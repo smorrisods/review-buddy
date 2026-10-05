@@ -10,3 +10,6 @@ description = "Review Buddy XDG path resolution and config layering."
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
