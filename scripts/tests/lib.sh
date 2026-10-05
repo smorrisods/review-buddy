@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tiny assertion helpers for the script tests. Source this file.
 
+# shellcheck disable=SC2034  # consumed by the test files that source this helper
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FAILURES=0
 TMP_ROOT="$(mktemp -d)"
