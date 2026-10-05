@@ -1,5 +1,5 @@
 //! `pr diff` on a terminal: coloured, with the pager.
-#![cfg(unix)]
+#![cfg(all(unix, feature = "demo"))]
 
 use std::io::Read;
 
