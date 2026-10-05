@@ -4,7 +4,7 @@ A theme is a TOML file that assigns colours to **roles**. Widgets only ever ask 
 
 ## Where themes live
 
-- Built-in: Liminal HQ (`liminal-hq`, default), Afterglow Dark (`afterglow-dark`), Afterglow Light (`afterglow-light`). They are embedded in the binary and also shipped as `themes/*.toml` for reference.
+- Built-in: Liminal HQ (`liminal-hq`, default), Dusk (`dusk`, the Review Buddy signature look), Afterglow Dark (`afterglow-dark`), Afterglow Light (`afterglow-light`). They are embedded in the binary and also shipped as `themes/*.toml` for reference.
 - Your own: `$XDG_CONFIG_HOME/review-buddy/themes/*.toml` (default `~/.config/review-buddy/themes/`). The file name without `.toml` is the theme id.
 - Installed packs: `$XDG_DATA_HOME/review-buddy/themes/` (default `~/.local/share/…`), then each `$XDG_DATA_DIRS/review-buddy/themes/` (distro packages, e.g. `/usr/share/review-buddy/themes/`).
 - Search order is config home → data home → data dirs → built-ins; the first matching id wins, so you can shadow a built-in by copying it into your config dir. See `configuration.md` → File locations.
