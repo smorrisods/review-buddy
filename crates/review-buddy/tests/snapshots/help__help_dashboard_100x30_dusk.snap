@@ -11,7 +11,7 @@ expression: text(&render(&mut a))
 │  ● Raise muted text │  j/k  move in the focused pane                       │                     │
 │  GH review-buddy#209│  g/G  first / last row                               │  c Comment  ⏎ Diff  │
 │                     │  tab  next pane                                      │                     │
-│  Worth a look · 2   │  h/l  previous / next pane                           │ 3   Conversation 2  │
+│  Worth a look · 2   │  h/l  previous / next pane                           │ 6   Conversation 3  │
 │  ✕ Cache pipeline st│  1-9  switch source                                  │──────────────────── │
 │  GL flow!1182 · priy│  [/]  previous / next detail tab                     │p and a Menu type    │
 │  ● Tidy zsh startup │                                                      │m.                   │
@@ -29,6 +29,6 @@ expression: text(&render(&mut a))
 │                     ╰──────────────────────────────────────────────────────╯                     │
 │                                              ││ Checks                                           │
 │                                              ││ ● 2 passing  ◐ 1 running                         │
-│                                              ││                                                  │
+│                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
  ⏎ diff  o open  y copy  ? help  T theme  q quit

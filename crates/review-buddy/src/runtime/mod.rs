@@ -324,7 +324,16 @@ mod tests {
             status(&mut rx).await,
             "Opened https://github.com/a/b/pull/1"
         );
-        assert_eq!(runner.calls.lock().unwrap().as_slice(), ["xdg-open"]);
+        assert_eq!(
+            runner.calls.lock().unwrap().as_slice(),
+            [if cfg!(target_os = "macos") {
+                "open"
+            } else if cfg!(windows) {
+                "rundll32"
+            } else {
+                "xdg-open"
+            }]
+        );
     }
 
     #[tokio::test]

@@ -137,6 +137,16 @@ mod tests {
         }
     }
 
+    fn opener() -> &'static str {
+        if cfg!(target_os = "macos") {
+            "open"
+        } else if cfg!(windows) {
+            "rundll32"
+        } else {
+            "xdg-open"
+        }
+    }
+
     fn platform(runner: &Arc<Fake>, tty: Arc<Mutex<dyn Write + Send>>) -> Platform {
         Platform::new(runner.clone(), tty, ctx())
     }
@@ -144,13 +154,13 @@ mod tests {
     #[test]
     fn open_runs_the_opener_and_reports_it() {
         let runner = Arc::new(Fake {
-            works: vec!["xdg-open"],
+            works: vec![opener()],
             ..Fake::default()
         });
         let p = platform(&runner, Arc::new(Mutex::new(Vec::new())));
         let notice = p.open("https://github.com/a/b/pull/1");
         assert_eq!(notice.text, "Opened https://github.com/a/b/pull/1");
-        assert_eq!(runner.calls.lock().unwrap()[0].0, "xdg-open");
+        assert_eq!(runner.calls.lock().unwrap()[0].0, opener());
     }
 
     #[test]

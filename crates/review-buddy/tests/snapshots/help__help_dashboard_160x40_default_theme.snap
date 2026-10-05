@@ -10,7 +10,7 @@ expression: text(&render(&mut a))
 │    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
 │  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
 │    github.com          ││                                              ││                                                                                    │
-│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 3   Conversation 2                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3                                    │
 │    gitlab.platform.ex… ││  ✕ Cache pipeline status╭ Keys · Queue ────────────────────────────────────────╮────────────────────────────────────────────────── │
 │  ● gitlab.com        1 ││  GL flow!1182 · priya · │Move                                                  │d a Menu type that tracks the selected item.       │
 │    gitlab.com          ││  ● Tidy zsh startup     │  j/k  move in the focused pane                       │                                                   │
@@ -20,11 +20,11 @@ expression: text(&render(&mut a))
 │                        ││  · Clarify the install s│  1-9  switch source                                  │                                                   │
 │                        ││  GL notes!12 · kai · app│  [/]  previous / next detail tab                     │         Checks                                    │
 │                        ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
-│                        ││  ▸ Noise · 2 bot updates│Change                                                │                                                   │
+│                        ││  ▸ Noise · 2 bot updates│Change                                                │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
 │                        ││                         │  ⏎    diff                                           │                                                   │
 │                        ││  ── That's everything.  │  o    open                                           │                                                   │
 │                        ││  7 in this view.        │  y    copy                                           │                                                   │
-│                        ││                         │                                                      │ey never gets stuck. Happy to make it configurable │
+│                        ││                         │                                                      │oin. Is the intermediate Vec doing anything for    │
 │                        ││                         │General                                               │                                                   │
 │                        ││                         │  ?    help                                           │                                                   │
 │                        ││                         │  T    theme                                          │                                                   │
