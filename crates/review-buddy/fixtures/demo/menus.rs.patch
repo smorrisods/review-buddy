@@ -1,0 +1,41 @@
+@@ -10,7 +10,9 @@ use crate::app::Action;
+ 
+ pub struct Menu {
+     items: Vec<MenuItem>,
++    selected: usize,
++    open: bool,
+ }
+ 
+ impl Menu {
+     pub fn new(items: Vec<MenuItem>) -> Self {
+@@ -34,6 +36,24 @@ impl Menu {
+     pub fn len(&self) -> usize {
+         self.items.len()
+     }
++
++    pub fn select_next(&mut self) {
++        if self.items.is_empty() {
++            return;
++        }
++        self.selected = (self.selected + 1) % self.items.len();
++    }
++
++    pub fn select_prev(&mut self) {
++        if self.items.is_empty() {
++            return;
++        }
++        self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);
++    }
++
++    pub fn activate(&self) -> Option<&Action> {
++        self.items.get(self.selected).map(|item| &item.action)
++    }
+ }
+ 
+ pub struct MenuItem {
+@@ -58,3 +78,4 @@ pub struct MenuItem {
+     pub label: String,
+-    pub action: Option<Action>,
++    pub action: Action,
++    pub hint: Option<&'static str>,
+ }

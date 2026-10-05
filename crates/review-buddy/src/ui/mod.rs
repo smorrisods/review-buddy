@@ -57,16 +57,29 @@ fn draw_dashboard(frame: &mut Frame, app: &App, area: Rect) {
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let lines = vec![
-        Line::styled(
-            "Nothing connected yet.",
-            style::fg(palette, Role::TextBright),
-        ),
-        Line::styled(
-            "Press , to add GitHub or GitLab.",
-            style::fg(palette, Role::Muted),
-        ),
-    ];
+    let lines = if app.state.loaded {
+        vec![
+            Line::styled(
+                format!("{} changes loaded.", app.state.changes.len()),
+                style::fg(palette, Role::TextBright),
+            ),
+            Line::styled(
+                "The queue will appear here.",
+                style::fg(palette, Role::Muted),
+            ),
+        ]
+    } else {
+        vec![
+            Line::styled(
+                "Nothing connected yet.",
+                style::fg(palette, Role::TextBright),
+            ),
+            Line::styled(
+                "Press , to add GitHub or GitLab.",
+                style::fg(palette, Role::Muted),
+            ),
+        ]
+    };
     let height = lines.len() as u16;
     let rect = Rect::new(
         inner.x,

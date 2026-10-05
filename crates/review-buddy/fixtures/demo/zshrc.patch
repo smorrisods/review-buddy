@@ -1,0 +1,7 @@
+@@ -8,5 +8,5 @@ # Prompt
+ autoload -Uz compinit
+-compinit
++compinit -C
+ 
+ # History
+ HISTSIZE=50000

@@ -1,0 +1,7 @@
+@@ -3,5 +3,5 @@ ## Install
+ Download a release for your platform and put it on your `PATH`.
+ 
+-Run `review-buddy` and follow the first-run prompts.
++Run `review-buddy` and follow the first-run prompts, or try `review-buddy --demo` to explore without connecting anything.
+ 
+ ## Connect a source

@@ -1,0 +1,9 @@
+@@ -0,0 +1,8 @@
++use ratatui::text::Line;
++
++use crate::ui::menus::Menu;
++
++pub fn render(menus: &[Menu]) -> Line<'static> {
++    let labels: Vec<String> = menus.iter().map(|m| m.title().to_string()).collect();
++    Line::from(labels.join("  "))
++}

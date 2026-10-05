@@ -1,0 +1,354 @@
+# Demo fixtures: four sources and seven changes covering every triage bucket.
+# Ages are relative to the frozen `now` so the queue reads the same on any day.
+
+[user]
+login = "smorris"
+name = "Scott Morris"
+
+[[source]]
+id = "liminal-hq"
+kind = "github"
+host = "github.com"
+label = "liminal-hq"
+owners = ["liminal-hq"]
+
+[[source]]
+id = "smorris"
+kind = "github"
+host = "github.com"
+label = "smorris"
+user = true
+
+[[source]]
+id = "platform"
+kind = "gitlab"
+host = "gitlab.platform.example"
+label = "platform"
+owners = ["platform"]
+auth = "token"
+
+[[source]]
+id = "gitlab-com"
+kind = "gitlab"
+host = "gitlab.com"
+label = "gitlab.com"
+owners = ["kai-codes"]
+
+# Waiting on you: review requested, no review yet. The menus.rs diff lives here.
+[[change]]
+source = "liminal-hq"
+repo = "liminal-hq/review-buddy"
+number = 214
+title = "Add a menu bar and keyboard-driven menus"
+author = "ada"
+created_ago = "3d"
+updated_ago = "2h"
+branch = "ada/menus"
+base = "main"
+head_sha = "9c4e1f2"
+base_sha = "3ab7d05"
+ci = "running"
+labels = ["enhancement", "ui"]
+my_role = "reviewing"
+my_review = "none"
+has_new_activity = true
+mergeable = true
+body = """
+Adds a menu bar along the top and a `Menu` type that tracks the selected item.
+
+- `Menu::select_next` and `Menu::select_prev` move the highlight
+- `Menu::activate` returns the action for the highlighted item
+- The bar itself is a plain `Line`, so it picks up the active theme
+"""
+
+[[change.reviewer]]
+login = "smorris"
+state = "requested"
+
+[[change.reviewer]]
+login = "jo"
+state = "commented"
+
+[[change.file]]
+path = "src/ui/menus.rs"
+status = "modified"
+patch = "menus.rs.patch"
+
+[[change.file]]
+path = "src/ui/menubar.rs"
+status = "added"
+patch = "menubar.rs.patch"
+
+[[change.file]]
+path = "src/ui/mod.rs"
+status = "modified"
+patch = "ui-mod.rs.patch"
+
+[[change.check]]
+name = "fmt"
+state = "pass"
+
+[[change.check]]
+name = "clippy"
+state = "pass"
+
+[[change.check]]
+name = "test (linux)"
+state = "running"
+
+[[change.thread]]
+id = "demo-thread-1"
+path = "src/ui/menus.rs"
+line = 44
+side = "new"
+
+[[change.thread.comment]]
+id = "demo-comment-1"
+author = "jo"
+created_ago = "1d"
+body = "Should this wrap round to the first item? Most menus I use stop at the end."
+
+[[change.thread.comment]]
+id = "demo-comment-2"
+author = "ada"
+created_ago = "20h"
+body = "I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather."
+
+[[change.draft_comment]]
+path = "src/ui/menus.rs"
+side = "new"
+line = 51
+body = """
+Fewer branches this way:
+
+```suggestion
+        self.selected = (self.selected + self.items.len() - 1) % self.items.len();
+```
+"""
+
+# Waiting on you: you approved an earlier push, and the author pushed again.
+[[change]]
+source = "liminal-hq"
+repo = "liminal-hq/review-buddy"
+number = 209
+title = "Raise muted text contrast in the light theme"
+author = "jo"
+created_ago = "6d"
+updated_ago = "5h"
+branch = "jo/light-contrast"
+base = "main"
+head_sha = "e81b6a4"
+base_sha = "3ab7d05"
+ci = "pass"
+labels = ["bug", "theme"]
+my_role = "reviewing"
+my_review = "approved"
+my_reviewed_sha = "5d02c97"
+i_commented = true
+has_new_activity = true
+mergeable = true
+body = "Muted text dipped under 4.5:1 on the light surface. This raises the floor and adds a regression test."
+
+[[change.reviewer]]
+login = "smorris"
+state = "approved"
+
+[[change.file]]
+path = "crates/rb-theme/src/palette.rs"
+status = "modified"
+patch = "palette.rs.patch"
+
+[[change.check]]
+name = "fmt"
+state = "pass"
+
+[[change.check]]
+name = "clippy"
+state = "pass"
+
+[[change.check]]
+name = "test (linux)"
+state = "pass"
+
+# Worth a look: you were mentioned on a self-hosted GitLab merge request. Its checks fail.
+[[change]]
+source = "platform"
+repo = "platform/flow"
+number = 1182
+title = "Cache pipeline status lookups"
+author = "priya"
+created_ago = "2d"
+updated_ago = "7h"
+branch = "priya/status-cache"
+base = "main"
+head_sha = "b7730de"
+base_sha = "1f9c2a8"
+ci = "fail"
+labels = ["performance"]
+my_role = "mentioned"
+my_review = "none"
+mergeable = true
+body = "The status panel asks for the same pipeline many times a second. This keeps results for a short time to coax the load down. @smorris, does the TTL look right to you?"
+
+[[change.reviewer]]
+login = "tomas"
+state = "requested"
+
+[[change.file]]
+path = "src/status/cache.rs"
+status = "modified"
+patch = "cache.rs.patch"
+
+[[change.check]]
+name = "build"
+state = "pass"
+
+[[change.check]]
+name = "unit tests"
+state = "fail"
+
+[[change.check]]
+name = "lint"
+state = "pass"
+
+# Worth a look: your own change with new activity.
+[[change]]
+source = "smorris"
+repo = "smorris/dotfiles"
+number = 31
+title = "Tidy zsh startup"
+author = "smorris"
+created_ago = "4d"
+updated_ago = "1d"
+branch = "tidy-zsh"
+base = "main"
+head_sha = "4a6f0b3"
+base_sha = "c21e8d9"
+ci = "pass"
+labels = []
+my_role = "authored"
+my_review = "none"
+has_new_activity = true
+mergeable = true
+body = "Caches the completion dump so new shells open faster."
+
+[[change.reviewer]]
+login = "ada"
+state = "commented"
+
+[[change.file]]
+path = ".zshrc"
+status = "modified"
+patch = "zshrc.patch"
+
+[[change.check]]
+name = "shellcheck"
+state = "pass"
+
+[[change.thread]]
+id = "demo-thread-2"
+path = ".zshrc"
+line = 9
+side = "new"
+resolved = true
+
+[[change.thread.comment]]
+id = "demo-comment-3"
+author = "ada"
+created_ago = "1d"
+body = "Does `-C` skip the security check? Worth a comment above it."
+
+[[change.thread.comment]]
+id = "demo-comment-4"
+author = "smorris"
+created_ago = "1d"
+body = "It does. I'll note that in the file."
+
+# Can wait: you approved this exact commit, so nothing needs you.
+[[change]]
+source = "gitlab-com"
+repo = "kai-codes/notes"
+number = 12
+title = "Clarify the install steps"
+author = "kai"
+created_ago = "5d"
+updated_ago = "3d"
+branch = "kai/install-docs"
+base = "main"
+head_sha = "0d9a5c1"
+base_sha = "77e3b40"
+ci = "none"
+labels = ["docs"]
+my_role = "reviewing"
+my_review = "approved"
+my_reviewed_sha = "0d9a5c1"
+mergeable = true
+body = "Mentions the demo mode so new readers can try it first."
+
+[[change.reviewer]]
+login = "smorris"
+state = "approved"
+
+[[change.file]]
+path = "docs/setup.md"
+status = "modified"
+patch = "setup.md.patch"
+
+# Noise: dependency bots.
+[[change]]
+source = "liminal-hq"
+repo = "liminal-hq/review-buddy"
+number = 201
+title = "Update ratatui to 0.30"
+author = "renovate[bot]"
+author_is_bot = true
+created_ago = "1d"
+updated_ago = "1d"
+branch = "renovate/ratatui-0.x"
+base = "main"
+head_sha = "f2c8a77"
+base_sha = "3ab7d05"
+ci = "pass"
+labels = ["dependencies"]
+my_role = "reviewing"
+my_review = "none"
+mergeable = true
+body = "This change updates ratatui from 0.29 to 0.30."
+
+[[change.file]]
+path = "Cargo.toml"
+status = "modified"
+patch = "cargo-ratatui.patch"
+
+[[change.check]]
+name = "test (linux)"
+state = "pass"
+
+[[change]]
+source = "platform"
+repo = "platform/flow"
+number = 1190
+title = "Update tokio to 1.47"
+author = "project_42_bot_a1b2c3"
+author_is_bot = true
+created_ago = "9h"
+updated_ago = "9h"
+branch = "deps/tokio-1.47"
+base = "main"
+head_sha = "6e0b4d8"
+base_sha = "1f9c2a8"
+ci = "pass"
+labels = ["dependencies"]
+my_role = "reviewing"
+my_review = "none"
+mergeable = true
+body = "Automated dependency update."
+
+[[change.file]]
+path = "Cargo.toml"
+status = "modified"
+patch = "cargo-tokio.patch"
+
+[[change.check]]
+name = "build"
+state = "pass"
