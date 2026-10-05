@@ -15,7 +15,7 @@ Every pull and merge request, in one quiet queue. **review buddy** is a keyboard
 - **Full review in the terminal.** Unified and side-by-side diffs, line ranges, suggestions, threads, approvals, and merge pre-checks.
 - **Always explorable.** `--demo` runs against offline fixtures with no network and no credentials.
 - **Your secrets stay put.** Tokens live in the OS keyring, or reuse `gh`/`glab`, an `env:VAR`, or a `token_command`. Never on disk.
-- **Themeable.** Liminal HQ is the default look, with Afterglow Dark and Light, and your own TOML themes.
+- **Themeable.** Liminal HQ is the default look, with the Dusk signature palette, Afterglow Dark and Light, and your own TOML themes.
 
 ## Getting started
 

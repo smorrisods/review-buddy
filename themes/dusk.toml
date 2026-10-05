@@ -1,0 +1,38 @@
+# Dusk — the Review Buddy signature palette.
+# Liminal HQ's amber → rose → violet gradient, softened toward twilight, with one twist:
+# a mint "lantern" teal closes the gradient and marks calm, ready states.
+[theme]
+name = "Dusk"
+extends = "liminal-hq"
+appearance = "dark"
+
+[colours]
+background     = "transparent"   # uses your terminal's background
+raised         = "#15121f"       # aubergine-tinted, not pure grey
+selection      = "#ffb86b1f"     # apricot @ 12%
+line           = "#2e2a40"
+text           = "#ece8f4"
+text_bright    = "#ffffff"
+text_secondary = "#bdb6d0"
+muted          = "#8a84a3"
+accent         = "#ffb86b"       # apricot: a softer #ffaa40
+interactive    = "#b49bff"       # lavender
+cyan           = "#5eead4"       # mint lantern, the twist
+success        = "#5fd68a"
+warning        = "#fbbf24"
+danger         = "#fb5a7a"
+added_bg       = "#5fd68a1a"
+removed_bg     = "#fb5a7a1a"
+github         = "#7db4ff"
+gitlab         = "#b49bff"
+wordmark       = ["#ffb86b", "#fb5a7a", "#b49bff", "#5eead4"]
+jax_body       = "#ffc27a"
+jax_box        = "#fb6f8a"
+
+[syntax]
+keyword  = "#b49bff"
+string   = "#5fd68a"
+type     = "#5eead4"
+comment  = "#8a84a3"
+number   = "#ffb86b"
+function = "#ece8f4"
