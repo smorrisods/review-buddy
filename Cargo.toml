@@ -25,6 +25,7 @@ rust-version = "1.87"
 
 [workspace.dependencies]
 anyhow = "1"
+async-trait = "0.1"
 clap = { version = "4", features = ["derive"] }
 clap_mangen = "0.3"
 rb-core = { path = "crates/rb-core" }
@@ -35,6 +36,10 @@ rb-platform = { path = "crates/rb-platform" }
 rb-store = { path = "crates/rb-store" }
 rb-theme = { path = "crates/rb-theme" }
 rb-diff = { path = "crates/rb-diff" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+url = { version = "2", features = ["serde"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
