@@ -29,6 +29,6 @@ Cargo workspace (see `docs/architecture.md`): `rb-core` (domain, triage, `Provid
 ## Commits and PRs
 
 - Conventional Commits (`type(scope): summary`), Markdown bodies **without headings**, using bold labels (**Summary**, **Why**, **Details**, **Validation**, **Risks**). Use `git commit -F <file>`.
-- Branches use a `feature/`, `fix/`, `chore/`, `docs/`, `test/`, `ci/`, `build/`, or `design/` prefix. PR titles are human-readable with no `feat:` prefix, and merges use `gh pr merge --merge`.
+- Branches use a `feature/`, `fix/`, `chore/`, `docs/`, `test/`, `ci/`, `build/`, or `design/` prefix. PR titles are human-readable with no `feat:` prefix, and merges use `gh pr merge --merge`. Update a PR branch by rebasing onto `main` and pushing with `--force-with-lease`.
 
 See `AGENTS.md` for the full guidelines.
