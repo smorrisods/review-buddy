@@ -74,6 +74,22 @@ impl Painter {
     }
 }
 
+impl Painter {
+    /// Wraps text in a foreground colour that isn't a theme role, such as a syntax colour.
+    pub fn paint_colour(&self, colour: Option<Colour>, text: &str) -> String {
+        match colour {
+            Some(fg) if self.enabled && !text.is_empty() => {
+                let style = Style {
+                    fg: Some(fg),
+                    ..Style::default()
+                };
+                format!("\u{1b}[{}m{text}\u{1b}[0m", sgr(&style))
+            }
+            _ => text.to_string(),
+        }
+    }
+}
+
 fn sgr(style: &Style) -> String {
     let mut parts: Vec<String> = Vec::new();
     if style.modifiers.bold {
