@@ -13,6 +13,9 @@ use crate::error::{header_u64, map_status, sso_url};
 
 const DEFAULT_API: &str = "https://api.github.com";
 
+/// The REST API version every request pins.
+pub const API_VERSION: &str = "2022-11-28";
+
 /// The most recent rate-limit numbers GitHub reported. `reset` is Unix seconds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct RateLimit {
@@ -41,6 +44,8 @@ pub struct TokenReport {
     pub core: RateLimit,
     pub graphql: Option<RateLimit>,
     pub sso_hint: Option<String>,
+    /// `YYYY-MM-DD`, when GitHub says the token expires.
+    pub expires: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -170,6 +175,13 @@ impl GithubClient {
                 Some(url) => format!("Authorise the token for your organisation at {url}"),
                 None => format!("Some organisations need SSO authorisation ({v})"),
             });
+        let expires = raw
+            .headers
+            .get("github-authentication-token-expiration")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.split_whitespace().next())
+            .filter(|d| d.len() == 10 && d.as_bytes()[4] == b'-' && d.as_bytes()[7] == b'-')
+            .map(str::to_string);
         let (rates, _) = self.get_json::<RateBody>("/rate_limit").await?;
         Ok(TokenReport {
             login: user.login,
@@ -178,6 +190,7 @@ impl GithubClient {
             core: rates.resources.core,
             graphql: rates.resources.graphql,
             sso_hint,
+            expires,
         })
     }
 
@@ -254,7 +267,7 @@ impl GithubClient {
                 USER_AGENT,
                 concat!("review-buddy/", env!("CARGO_PKG_VERSION")),
             )
-            .header("x-github-api-version", "2022-11-28")
+            .header("x-github-api-version", API_VERSION)
             .send()
             .await
             .map_err(|e| self.network_error(e))?;

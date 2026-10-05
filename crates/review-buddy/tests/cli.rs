@@ -54,12 +54,9 @@ fn unknown_flag_is_a_usage_error() {
 
 #[test]
 fn unimplemented_commands_say_so_and_exit_2() {
-    let cases: [&[&str]; 6] = [
+    let cases: [&[&str]; 3] = [
         &["open", "https://github.com/a/b/pull/1"],
-        &["doctor"],
         &["triage", "explain", "https://github.com/a/b/pull/1"],
-        &["auth", "status"],
-        &["source", "list"],
         &["config", "get", "ui.theme"],
     ];
     for args in cases {

@@ -10,18 +10,21 @@ pub mod output;
 pub mod prompt;
 pub mod selector;
 
+mod auth;
 mod changes;
 mod config;
+mod doctor;
 mod pr_checks;
 mod pr_diff;
 mod pr_list;
 mod queue;
+mod source;
 mod stub;
 mod theme;
 
 use std::process::ExitCode;
 
-use crate::cli::{Cli, Command, ConfigAction, PrAction, ThemeAction};
+use crate::cli::{AuthAction, Cli, Command, ConfigAction, PrAction, SourceAction, ThemeAction};
 use context::{Context, Terminal};
 use error::{CmdError, Exit};
 
@@ -96,6 +99,13 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
                 required,
             },
         ),
+        Command::Auth {
+            action: AuthAction::Status,
+        } => auth::status(&ctx),
+        Command::Source {
+            action: SourceAction::List,
+        } => source::list(&ctx),
+        Command::Doctor => doctor::run(&ctx),
         other => unreachable!("{other:?} has no milestone but no implementation"),
     }
 }
@@ -111,7 +121,7 @@ mod tests {
 
     #[test]
     fn unbuilt_commands_exit_2_before_touching_anything() {
-        for args in [&["mr", "view", "!1"][..], &["doctor"]] {
+        for args in [&["mr", "view", "!1"][..], &["triage", "explain", "x"]] {
             let err = execute(parse(args), Terminal::detect()).unwrap_err();
             assert_eq!(err.exit(), Exit::Usage, "{args:?}");
             assert!(err.to_string().starts_with("Not built yet."));
