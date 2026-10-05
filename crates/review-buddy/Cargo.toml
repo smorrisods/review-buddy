@@ -27,6 +27,7 @@ futures-util.workspace = true
 jaq-core.workspace = true
 jaq-json.workspace = true
 jaq-std.workspace = true
+pulldown-cmark.workspace = true
 ratatui.workspace = true
 rb-core.workspace = true
 rb-diff.workspace = true

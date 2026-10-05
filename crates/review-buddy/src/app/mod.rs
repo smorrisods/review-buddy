@@ -19,7 +19,7 @@ pub mod queue;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
-pub use diff::{DiffData, DiffFile, DiffFocus, DiffState, FileView, Phase, Syntax};
+pub use diff::{open_change, DiffData, DiffFile, DiffFocus, DiffState, FileView, Phase, Syntax};
 pub use failure::{FailureKind, SourceFailure};
 pub use update::update;
 

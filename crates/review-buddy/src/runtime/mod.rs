@@ -55,6 +55,8 @@ pub enum Backend {
 pub struct RunOptions {
     #[cfg(feature = "demo")]
     pub demo: Option<crate::demo::Demo>,
+    /// Start on this change's diff instead of the dashboard.
+    pub open: Option<rb_core::ChangeId>,
     #[cfg(feature = "live")]
     pub live: Option<std::sync::Arc<crate::providers::Live>>,
 }
@@ -184,6 +186,7 @@ pub fn run(options: RunOptions) -> Result<()> {
 async fn event_loop(options: RunOptions) -> Result<()> {
     let backend = options.backend();
     let platform = Platform::system();
+    let open = options.open.clone();
     let mut guard = TerminalGuard::enter()?;
     let size = guard.terminal.size()?;
     let mut app = App::new(AppConfig::from_env((size.width, size.height)));
@@ -222,6 +225,12 @@ async fn event_loop(options: RunOptions) -> Result<()> {
             for cmd in update(&mut app, msg) {
                 execute(cmd, &tx, &backend, &platform);
             }
+        }
+    }
+
+    if let Some(id) = open {
+        for cmd in crate::app::open_change(&mut app, &id) {
+            execute(cmd, &tx, &backend, &platform);
         }
     }
 

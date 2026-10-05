@@ -54,8 +54,7 @@ fn unknown_flag_is_a_usage_error() {
 
 #[test]
 fn unimplemented_commands_say_so_and_exit_2() {
-    let cases: [&[&str]; 3] = [
-        &["open", "https://github.com/a/b/pull/1"],
+    let cases: [&[&str]; 2] = [
         &["triage", "explain", "https://github.com/a/b/pull/1"],
         &["config", "get", "ui.theme"],
     ];
@@ -321,13 +320,16 @@ mod global_flags {
 
     #[test]
     fn mr_is_an_alias_of_pr() {
-        for noun in ["pr", "mr"] {
+        let run = |noun: &str| {
             let (mut cmd, _h) = demo();
-            cmd.args([noun, "view", "!1182"])
+            let out = cmd
+                .args([noun, "view", "!1182"])
                 .assert()
-                .code(2)
-                .stderr(predicate::str::contains("Not built yet"));
-        }
+                .get_output()
+                .clone();
+            (out.status.code(), out.stdout, out.stderr)
+        };
+        assert_eq!(run("pr"), run("mr"));
     }
 
     #[test]
