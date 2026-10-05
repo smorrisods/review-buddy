@@ -11,12 +11,13 @@ pub mod prompt;
 pub mod selector;
 
 mod config;
+mod pr_diff;
 mod stub;
 mod theme;
 
 use std::process::ExitCode;
 
-use crate::cli::{Cli, Command, ConfigAction, ThemeAction};
+use crate::cli::{Cli, Command, ConfigAction, PrAction, ThemeAction};
 use context::{Context, Terminal};
 use error::{CmdError, Exit};
 
@@ -49,6 +50,25 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
         Command::Theme {
             action: ThemeAction::List,
         } => theme::list(&ctx),
+        Command::Pr {
+            action:
+                PrAction::Diff {
+                    selector,
+                    name_only,
+                    stat,
+                    file,
+                    patch,
+                },
+        } => pr_diff::run(
+            &ctx,
+            selector.as_deref(),
+            &pr_diff::Options {
+                name_only,
+                stat,
+                files: file,
+                raw: patch,
+            },
+        ),
         other => unreachable!("{other:?} has no milestone but no implementation"),
     }
 }

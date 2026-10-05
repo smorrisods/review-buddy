@@ -10,6 +10,9 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
         }
         | Command::Theme {
             action: ThemeAction::List,
+        }
+        | Command::Pr {
+            action: PrAction::Diff { .. },
         } => return None,
         Command::Config { .. } => "v0.2.0",
         Command::Theme { .. } => "v0.1.0",
@@ -21,9 +24,9 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
         Command::Pr { action } => match action {
             PrAction::List(_)
             | PrAction::View { .. }
-            | PrAction::Diff { .. }
             | PrAction::Checks { .. }
             | PrAction::Open { .. } => "v0.1.0",
+            PrAction::Diff { .. } => return None,
         },
         Command::Auth {
             action: AuthAction::Status,
