@@ -265,8 +265,14 @@ fn heading(app: &App, text: &str) -> Line<'static> {
     )
 }
 
-fn placeholder(app: &App) -> Vec<Line<'static>> {
-    vec![muted(app, "·  ·  ·")]
+fn placeholder(app: &App, change: &ChangeSummary) -> Vec<Line<'static>> {
+    match app.state.failures.get(&change.id.source_id) {
+        Some(failure) => vec![
+            muted(app, failure.summary.clone()),
+            muted(app, failure.next_step.clone()),
+        ],
+        None => vec![muted(app, "·  ·  ·")],
+    }
 }
 
 pub fn body_lines(app: &App, change: &ChangeSummary, width: u16) -> Vec<Line<'static>> {
@@ -276,11 +282,11 @@ pub fn body_lines(app: &App, change: &ChangeSummary, width: u16) -> Vec<Line<'st
         Tab::Files => files(app, change),
         Tab::Checks => match info {
             Some(info) => checks(app, info),
-            None => placeholder(app),
+            None => placeholder(app, change),
         },
         Tab::Conversation => match info {
             Some(info) => conversation(app, info),
-            None => placeholder(app),
+            None => placeholder(app, change),
         },
     }
 }
@@ -293,7 +299,7 @@ fn overview(
 ) -> Vec<Line<'static>> {
     let palette = &app.palette;
     let Some(info) = info else {
-        return placeholder(app);
+        return placeholder(app, change);
     };
     let mut out = Vec::new();
     let text = plain_markdown(&info.body);

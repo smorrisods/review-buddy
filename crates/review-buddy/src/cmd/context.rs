@@ -82,6 +82,8 @@ pub struct Context {
     pub paths: PathsReport,
     pub config: Config,
     config_error: Option<String>,
+    #[cfg(feature = "live")]
+    factory: Arc<crate::providers::Factory>,
     #[cfg(feature = "demo")]
     demo: Option<crate::demo::Demo>,
 }
@@ -202,6 +204,11 @@ impl Context {
             out,
             interaction,
             paths,
+            #[cfg(feature = "live")]
+            factory: Arc::new(crate::providers::Factory::from_config(
+                &config,
+                crate::providers::Deps::system(),
+            )),
             config,
             config_error,
             #[cfg(feature = "demo")]
@@ -273,13 +280,34 @@ impl Context {
         if let Some(demo) = &self.demo {
             return Ok(Arc::new(demo.world.provider(source.kind)));
         }
-        let _ = source;
         #[cfg(feature = "live")]
-        let message =
-            "Live sources aren't wired into the command line yet.\nTry --demo to explore.";
+        {
+            use crate::providers::ProviderError;
+            self.factory.provider(&source.id).map_err(|e| match e {
+                ProviderError::Auth(_) => CmdError::AuthNeeded(format!(
+                    "{}\n{}",
+                    e.failure(&source.host).summary,
+                    crate::app::failure::SIGN_IN_STEP
+                )),
+                ProviderError::GitlabLater => {
+                    CmdError::Unsupported(format!("{e}\nGitHub sources work today."))
+                }
+                ProviderError::UnknownSource(_) => CmdError::usage(e.to_string()),
+                ProviderError::Client(_) => CmdError::failed(e.to_string()),
+            })
+        }
         #[cfg(not(feature = "live"))]
-        let message = "This build has no network support.\nTry --demo.";
-        Err(CmdError::usage(message))
+        {
+            let _ = source;
+            Err(CmdError::usage(
+                "This build has no network support.\nTry --demo.",
+            ))
+        }
+    }
+
+    #[cfg(feature = "live")]
+    pub fn factory(&self) -> Arc<crate::providers::Factory> {
+        Arc::clone(&self.factory)
     }
 
     /// The cache, opened on first use. Demo mode gets a throwaway in-memory one.
@@ -420,7 +448,7 @@ mod tests {
     }
 
     #[test]
-    fn live_sources_are_not_wired_yet() {
+    fn sources_the_config_doesnt_know_are_usage_errors() {
         let ctx = Context::build(demo_args(), pipe()).unwrap();
         let source = ctx.sources().unwrap().remove(0);
         let real = Context::from_env(

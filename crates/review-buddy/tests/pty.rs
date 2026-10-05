@@ -39,6 +39,17 @@ fn starts_draws_the_wordmark_and_quits_on_q() {
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
     cmd.env_remove("NO_COLOR");
+    let home = tempfile::tempdir().unwrap();
+    cmd.env("HOME", home.path());
+    for var in [
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+        "XDG_CACHE_HOME",
+        "XDG_STATE_HOME",
+    ] {
+        cmd.env(var, home.path().join(var));
+    }
+    cmd.env_remove("REVIEW_BUDDY_CONFIG");
     let mut child = pair.slave.spawn_command(cmd).unwrap();
     drop(pair.slave);
 

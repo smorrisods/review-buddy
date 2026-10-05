@@ -12,7 +12,7 @@ use rb_core::{
 use url::Url;
 
 use super::fixtures::{self, DemoChange};
-use crate::app::{ChangeInfo, DiffData, Snapshot};
+use crate::app::{DiffData, Snapshot};
 
 /// The label every visible demo confirmation ends with.
 pub const DEMO_SUFFIX: &str = "(demo)";
@@ -124,10 +124,8 @@ impl DemoWorld {
     /// pending comments.
     pub async fn diff_data(&self, id: &ChangeId) -> Result<DiffData> {
         let provider = self.provider(id.kind);
-        let files = provider.files(id).await?;
-        let threads = provider.threads(id).await?;
         let draft = self.draft(id).unwrap_or_default();
-        Ok(DiffData::new(files, threads, draft))
+        crate::load::fetch_diff(&provider, id, draft).await
     }
 
     /// Loads sources and changes through the providers, the way the live app would.
@@ -138,12 +136,10 @@ impl DemoWorld {
             let page = provider.list_changes(&Scope::everything(), None).await?;
             for change in &page.items {
                 let id = &change.id;
-                let info = ChangeInfo {
-                    body: provider.change_detail(id).await?.body,
-                    checks: provider.checks(id).await?,
-                    threads: provider.threads(id).await?,
-                };
-                details.insert(id.clone(), info);
+                details.insert(
+                    id.clone(),
+                    crate::load::fetch_info(provider.as_ref(), id).await?,
+                );
             }
             changes.extend(page.items);
         }

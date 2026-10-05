@@ -1,10 +1,10 @@
 //! Elm-style app state: `update(&mut App, Msg) -> Vec<Cmd>` is pure, so it stays unit-testable.
 //! Effects leave as [`Cmd`]s and results return as [`Msg`]s.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
-use rb_core::{ChangeId, ChangeSummary, Check, Source, Thread, Timestamp};
+use rb_core::{ChangeId, ChangeSummary, Check, Source, SourceId, Thread, Timestamp};
 use rb_theme::{ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID};
 
 use crate::ui::HitMap;
@@ -12,12 +12,15 @@ use crate::ui::HitMap;
 mod dashboard;
 mod diff;
 pub mod diffview;
+pub mod failure;
 pub mod links;
+mod live;
 pub mod queue;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
 pub use diff::{DiffData, DiffFile, DiffFocus, DiffState, FileView, Phase, Syntax};
+pub use failure::{FailureKind, SourceFailure};
 pub use update::update;
 
 /// How long a status message or toast stays on screen.
@@ -106,6 +109,19 @@ pub enum Msg {
     ToastExpired(u64),
     /// The sources and changes a [`Cmd::LoadChanges`] asked for.
     Loaded(Box<Snapshot>),
+    /// Saved rows to paint first. A refresh of every source follows straight away.
+    Cached(Box<Snapshot>),
+    /// One source's refresh finished.
+    SourceLoaded {
+        source: SourceId,
+        result: Result<Vec<ChangeSummary>, SourceFailure>,
+        now: Timestamp,
+    },
+    /// The description, checks and threads a [`Cmd::LoadInfo`] asked for.
+    InfoLoaded {
+        id: ChangeId,
+        result: Result<Box<ChangeInfo>, String>,
+    },
     /// The patches, threads and pending comments a [`Cmd::LoadDiff`] asked for.
     DiffLoaded {
         id: ChangeId,
@@ -120,6 +136,8 @@ pub enum Cmd {
     After { delay: Duration, msg: Msg },
     /// Fetch every source's changes from whatever backs this session.
     LoadChanges,
+    /// Fetch the description, checks and threads for one change.
+    LoadInfo(ChangeId),
     /// Fetch the files, threads and your pending comments for one change.
     LoadDiff(ChangeId),
     /// Open a web address in the browser.
@@ -155,6 +173,12 @@ pub struct AppState {
     /// A load has been asked for and hasn't answered yet.
     pub loading: bool,
     pub details: HashMap<ChangeId, ChangeInfo>,
+    /// Changes whose details have been asked for, so each is fetched once per refresh.
+    pub info_requested: HashSet<ChangeId>,
+    /// Sources that couldn't be refreshed, and why.
+    pub failures: HashMap<SourceId, SourceFailure>,
+    /// Sources a refresh is still waiting on.
+    pub pending_sources: usize,
     pub sources: Vec<Source>,
     pub changes: Vec<ChangeSummary>,
     /// The clock the queue's relative ages are measured against.
@@ -186,6 +210,8 @@ pub struct App {
     pub screen: Screen,
     pub size: (u16, u16),
     pub focused: bool,
+    /// Refresh when the terminal regains focus.
+    pub refresh_on_focus: bool,
     pub palette: Palette,
     pub status: Option<Entry>,
     pub toasts: Vec<Entry>,
@@ -218,6 +244,7 @@ impl App {
             screen: Screen::default(),
             size: config.size,
             focused: true,
+            refresh_on_focus: true,
             palette: Palette::new(builtin(theme_index), config.depth, config.no_color),
             status: None,
             toasts: Vec::new(),

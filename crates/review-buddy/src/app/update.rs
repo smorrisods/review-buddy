@@ -3,12 +3,18 @@ use crossterm::event::{
 };
 
 use super::{
-    dashboard, diff, links, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, Screen,
-    MAX_TOASTS, NOTICE_TTL,
+    dashboard, diff, links, live, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind,
+    Screen, Snapshot, MAX_TOASTS, NOTICE_TTL,
 };
 
 /// Applies one message and returns the effects to run. Does no I/O.
 pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
+    let mut cmds = apply(app, msg);
+    cmds.extend(live::ensure_info(app));
+    cmds
+}
+
+fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
     match msg {
         Msg::Key(key) => on_key(app, key),
         Msg::Mouse(mouse) if app.help => {
@@ -46,6 +52,9 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
         Msg::FocusGained => {
             app.focused = true;
             app.mark_dirty();
+            if app.refresh_on_focus && app.state.loaded {
+                return live::request_refresh(app, false);
+            }
             Vec::new()
         }
         Msg::FocusLost => {
@@ -67,21 +76,19 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
             Vec::new()
         }
         Msg::Loaded(snapshot) => {
-            let snapshot = *snapshot;
-            app.source_label = format!("{} · {} sources", snapshot.label, snapshot.sources.len());
-            app.change_count = snapshot.changes.len();
-            app.state = AppState {
-                loaded: true,
-                loading: false,
-                sources: snapshot.sources,
-                changes: snapshot.changes,
-                details: snapshot.details,
-                now: Some(snapshot.now),
-            };
-            dashboard::reconcile(app);
-            app.mark_dirty();
+            take_snapshot(app, *snapshot);
             Vec::new()
         }
+        Msg::Cached(snapshot) => {
+            take_snapshot(app, *snapshot);
+            live::request_refresh(app, false)
+        }
+        Msg::SourceLoaded {
+            source,
+            result,
+            now,
+        } => live::on_source_loaded(app, source, result, now),
+        Msg::InfoLoaded { id, result } => live::on_info_loaded(app, id, result),
         Msg::DiffLoaded { id, result } => {
             diff::on_loaded(app, &id, result);
             Vec::new()
@@ -91,6 +98,21 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
 
 fn close_help(app: &mut App) {
     app.help = false;
+    app.mark_dirty();
+}
+
+fn take_snapshot(app: &mut App, snapshot: Snapshot) {
+    app.source_label = format!("{} · {} sources", snapshot.label, snapshot.sources.len());
+    app.change_count = snapshot.changes.len();
+    app.state = AppState {
+        loaded: true,
+        sources: snapshot.sources,
+        changes: snapshot.changes,
+        details: snapshot.details,
+        now: Some(snapshot.now),
+        ..AppState::default()
+    };
+    dashboard::reconcile(app);
     app.mark_dirty();
 }
 
@@ -132,6 +154,9 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char('o') if !ctrl && !alt => run(app, Action::Open),
         KeyCode::Char('y') if !ctrl && !alt => run(app, Action::Copy),
         KeyCode::Char('T') if !ctrl => run(app, Action::CycleTheme),
+        KeyCode::Char('r') if !ctrl && app.screen == Screen::Dashboard => {
+            live::request_refresh(app, true)
+        }
         KeyCode::Esc if !app.toasts.is_empty() => {
             app.toasts.clear();
             app.mark_dirty();
@@ -197,7 +222,7 @@ pub(super) fn set_status(app: &mut App, notice: Notice) -> Vec<Cmd> {
     vec![expiry(Msg::StatusExpired(id))]
 }
 
-fn push_toast(app: &mut App, notice: Notice) -> Vec<Cmd> {
+pub(super) fn push_toast(app: &mut App, notice: Notice) -> Vec<Cmd> {
     let id = app.take_id();
     app.toasts.push(Entry { id, notice });
     if app.toasts.len() > MAX_TOASTS {
