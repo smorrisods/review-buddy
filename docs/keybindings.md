@@ -26,6 +26,9 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | Key | Action |
 |---|---|
 | `↑↓` / `j k` | Move in the focused pane |
+| `g` `G` | Jump to the first / last row in the focused pane |
+| `h` `l` | Previous / next pane (same as `⇧tab` / `tab`) |
+| `⏎` on the Noise row | Expand or collapse the bot updates |
 | `⏎` / `d` | Open the diff for the selected change |
 | `[` `]` | Previous / next detail tab (Overview, Files, Checks, Conversation) |
 | `← →` | Same as `[` `]` when the detail pane is focused |

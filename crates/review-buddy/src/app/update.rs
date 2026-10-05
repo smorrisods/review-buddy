@@ -2,7 +2,9 @@ use crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
 };
 
-use super::{Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, MAX_TOASTS, NOTICE_TTL};
+use super::{
+    dashboard, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, MAX_TOASTS, NOTICE_TTL,
+};
 
 /// Applies one message and returns the effects to run. Does no I/O.
 pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
@@ -14,12 +16,24 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
                     let action = action.clone();
                     run(app, action)
                 }
-                None => Vec::new(),
+                None => match app.hits.pane_at(mouse.column, mouse.row) {
+                    Some(pane) => run(app, Action::FocusPane(pane)),
+                    None => Vec::new(),
+                },
             },
+            MouseEventKind::ScrollDown => {
+                dashboard::on_scroll(app, mouse.column, mouse.row, true);
+                Vec::new()
+            }
+            MouseEventKind::ScrollUp => {
+                dashboard::on_scroll(app, mouse.column, mouse.row, false);
+                Vec::new()
+            }
             _ => Vec::new(),
         },
         Msg::Resize(w, h) => {
             app.size = (w, h);
+            dashboard::on_resize(app);
             app.mark_dirty();
             Vec::new()
         }
@@ -55,10 +69,13 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
             app.change_count = snapshot.changes.len();
             app.state = AppState {
                 loaded: true,
+                loading: false,
                 sources: snapshot.sources,
                 changes: snapshot.changes,
+                details: snapshot.details,
                 now: Some(snapshot.now),
             };
+            dashboard::reconcile(app);
             app.mark_dirty();
             Vec::new()
         }
@@ -83,7 +100,7 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
                 Vec::new()
             }
         }
-        _ => Vec::new(),
+        _ => dashboard::on_key(app, key).unwrap_or_default(),
     }
 }
 
@@ -102,10 +119,11 @@ fn run(app: &mut App, action: Action) -> Vec<Cmd> {
             dismiss_toast(app, id);
             Vec::new()
         }
+        other => dashboard::on_action(app, other),
     }
 }
 
-fn set_status(app: &mut App, notice: Notice) -> Vec<Cmd> {
+pub(super) fn set_status(app: &mut App, notice: Notice) -> Vec<Cmd> {
     let id = app.take_id();
     app.status = Some(Entry { id, notice });
     app.mark_dirty();
@@ -180,6 +198,7 @@ mod tests {
                 sources: Vec::new(),
                 changes: Vec::new(),
                 now: rb_core::Timestamp(5),
+                details: Default::default(),
             })),
         );
         assert!(cmds.is_empty());

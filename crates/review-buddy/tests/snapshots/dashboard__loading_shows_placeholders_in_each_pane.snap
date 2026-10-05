@@ -1,10 +1,10 @@
 ---
-source: crates/review-buddy/tests/render.rs
+source: crates/review-buddy/tests/dashboard.rs
 expression: text(&buffer)
 ---
  review buddy  ·  no sources · 0 changes                                                                                                             Liminal HQ
 ╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ detail ────────────────────────────────────────────────────────────────────────────╮
-│                        ││                                              ││ Pick a change to read it here.                                                     │
+│                        ││                                              ││ ·  ·  ·                                                                            │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
@@ -21,8 +21,8 @@ expression: text(&buffer)
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
-│     No sources yet.    ││            Nothing connected yet.            ││                                                                                    │
-│                        ││       Press , to add GitHub or GitLab.       ││                                                                                    │
+│         ·  ·  ·        ││                    ·  ·  ·                   ││                                                                                    │
+│                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │

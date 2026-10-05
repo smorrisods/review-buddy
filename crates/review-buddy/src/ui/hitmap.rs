@@ -1,11 +1,12 @@
 use ratatui::layout::Rect;
 
-use crate::app::Action;
+use crate::app::{Action, Pane};
 
 /// Clickable rectangles registered while drawing; later entries sit on top.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HitMap {
     entries: Vec<(Rect, Action)>,
+    panes: Vec<(Rect, Pane)>,
 }
 
 impl HitMap {
@@ -21,6 +22,18 @@ impl HitMap {
             .rev()
             .find(|(rect, _)| contains(*rect, column, row))
             .map(|(_, action)| action)
+    }
+
+    /// Records where each dashboard pane sits, for the wheel and for clicks on empty space.
+    pub fn set_panes(&mut self, panes: Vec<(Rect, Pane)>) {
+        self.panes = panes;
+    }
+
+    pub fn pane_at(&self, column: u16, row: u16) -> Option<Pane> {
+        self.panes
+            .iter()
+            .find(|(rect, _)| contains(*rect, column, row))
+            .map(|(_, pane)| *pane)
     }
 
     pub fn len(&self) -> usize {

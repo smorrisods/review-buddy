@@ -1,10 +1,20 @@
 ---
-source: crates/review-buddy/tests/render.rs
-expression: text(&buffer)
+source: crates/review-buddy/tests/dashboard.rs
+expression: text(&render(&mut a))
 ---
- review buddy  ·  no sources · 0 changes                                                                                                             Liminal HQ
-╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ detail ────────────────────────────────────────────────────────────────────────────╮
-│                        ││                                              ││ Pick a change to read it here.                                                     │
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ smorris/dotfiles#31 ───────────────────────────────────────────────────────────────╮
+│  ● All               7 ││  Worth a look · 1                            ││ Tidy zsh startup                                                                   │
+│    every source        ││▌ ● Tidy zsh startup                       1d ││ smorris wants tidy-zsh → main                                                      │
+│  ● liminal-hq        3 ││▌ GH dotfiles#31 · smorris · yours            ││ +1 −1 · 1 file · opened 4d ago                                                     │
+│    github.com          ││                                              ││                                                                                    │
+│▌ ● smorris           1 ││  ── That's everything.                       ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││  1 in this view.                             ││                                                                                    │
+│  ● platform          2 ││                                              ││  Overview   Files 1   Checks 1   Conversation 2                                    │
+│    gitlab.platform.ex… ││                                              ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││                                              ││ 1 file changed  +1 −1                                                              │
+│    gitlab.com          ││                                              ││                                                                                    │
+│                        ││                                              ││ ⏎ to open the diff                                                                 │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
@@ -13,16 +23,6 @@ expression: text(&buffer)
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│     No sources yet.    ││            Nothing connected yet.            ││                                                                                    │
-│                        ││       Press , to add GitHub or GitLab.       ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │

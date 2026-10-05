@@ -12,7 +12,7 @@ use rb_core::{
 use url::Url;
 
 use super::fixtures::{self, DemoChange};
-use crate::app::Snapshot;
+use crate::app::{ChangeInfo, Snapshot};
 
 /// The label every visible demo confirmation ends with.
 pub const DEMO_SUFFIX: &str = "(demo)";
@@ -123,8 +123,18 @@ impl DemoWorld {
     /// Loads sources and changes through the providers, the way the live app would.
     pub async fn snapshot(&self) -> Result<Snapshot> {
         let mut changes = Vec::new();
+        let mut details = std::collections::HashMap::new();
         for provider in self.providers() {
             let page = provider.list_changes(&Scope::everything(), None).await?;
+            for change in &page.items {
+                let id = &change.id;
+                let info = ChangeInfo {
+                    body: provider.change_detail(id).await?.body,
+                    checks: provider.checks(id).await?,
+                    threads: provider.threads(id).await?,
+                };
+                details.insert(id.clone(), info);
+            }
             changes.extend(page.items);
         }
         Ok(Snapshot {
@@ -132,6 +142,7 @@ impl DemoWorld {
             sources: self.sources(),
             changes,
             now: self.now(),
+            details,
         })
     }
 }
