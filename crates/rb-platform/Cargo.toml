@@ -8,5 +8,24 @@ repository.workspace = true
 rust-version.workspace = true
 description = "Review Buddy per-OS integrations: open URL, clipboard, keyring."
 
+[features]
+default = ["keyring"]
+keyring = ["dep:keyring"]
+
+[dependencies]
+base64.workspace = true
+thiserror.workspace = true
+
+# Pure-Rust Secret Service (zbus) with RustCrypto, so Linux musl builds stay static.
+# Never enable `sync-secret-service` (libdbus) or `crypto-openssl` here.
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { workspace = true, optional = true, features = ["async-secret-service", "crypto-rust"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { workspace = true, optional = true, features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { workspace = true, optional = true, features = ["windows-native"] }
+
 [lints]
 workspace = true
