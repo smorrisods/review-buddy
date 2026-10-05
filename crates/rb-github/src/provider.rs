@@ -6,10 +6,10 @@ use rb_core::{
 };
 use url::Url;
 
-use crate::{changes, checks, files, threads, GithubClient};
+use crate::{changes, checks, files, review, threads, GithubClient};
 
-/// GitHub behind the `Provider` trait. Listing, detail, files, threads and checks are implemented; the remaining
-/// methods land with the issues that need them and report `Unsupported` until then.
+/// GitHub behind the `Provider` trait. Listing, detail, files, threads, checks and review writes are implemented; merge and re-run
+/// report `Unsupported` until v0.3.
 #[derive(Debug, Clone)]
 pub struct GithubProvider {
     client: GithubClient,
@@ -73,19 +73,19 @@ impl Provider for GithubProvider {
 
     async fn submit_review(
         &self,
-        _id: &ChangeId,
-        _review: &ReviewDraft,
-        _verdict: Verdict,
+        id: &ChangeId,
+        review: &ReviewDraft,
+        verdict: Verdict,
     ) -> Result<()> {
-        not_yet("submitting reviews")
+        review::submit_review(&self.client, id, review, verdict).await
     }
 
-    async fn reply(&self, _thread: &ThreadId, _body: &str) -> Result<Comment> {
-        not_yet("replying")
+    async fn reply(&self, thread: &ThreadId, body: &str) -> Result<Comment> {
+        review::reply(&self.client, thread, body).await
     }
 
-    async fn resolve(&self, _thread: &ThreadId, _resolved: bool) -> Result<()> {
-        not_yet("resolving threads")
+    async fn resolve(&self, thread: &ThreadId, resolved: bool) -> Result<()> {
+        review::resolve(&self.client, thread, resolved).await
     }
 
     async fn merge(&self, _id: &ChangeId, _opts: &MergeOpts) -> Result<MergeOutcome> {

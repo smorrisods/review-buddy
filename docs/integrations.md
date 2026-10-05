@@ -60,11 +60,11 @@ On GitHub, a file whose `patch` is absent (binary or too large) comes back with 
 | | GitHub | GitLab |
 |---|---|---|
 | Read | GraphQL `reviewThreads { isResolved, isOutdated, path, line, originalLine, startLine, diffSide, startDiffSide, comments { state } }` (includes your pending review; comments in state `PENDING` mark the thread as pending) + `GET /issues/:n/comments`, shown as unanchored conversation threads. A range comment is anchored at its last line and keeps its `start_line` and `start_side`; an outdated thread falls back to `originalLine` | `GET /projects/:id/merge_requests/:iid/discussions` |
-| Pending review | `POST /repos/:o/:r/pulls/:n/reviews` with no `event` creates a pending review; new comments are added via GraphQL `addPullRequestReviewThread` | `POST …/merge_requests/:iid/draft_notes` |
+| Pending review | GraphQL: your existing pending review on the change is reused (found with `reviews(states: [PENDING])`), otherwise `addPullRequestReview` creates one; each draft comment is added with `addPullRequestReviewThread`. Comments already on the pending review (same path, line and body) are skipped, so a retry never duplicates | `POST …/merge_requests/:iid/draft_notes` |
 | Line comment | `path`, `line`, `side: RIGHT` (or `LEFT` for deleted lines) | `position { position_type: "text", base_sha, start_sha, head_sha, new_path, old_path, new_line \| old_line }` |
 | Range comment | add `start_line`, `start_side` | `position.line_range { start { line_code, type }, end { … } }` |
-| Reply | `POST …/pulls/:n/comments/:id/replies` | `POST …/discussions/:id/notes` |
-| Resolve | GraphQL `resolveReviewThread` | `PUT …/discussions/:id?resolved=true` |
+| Reply | GraphQL `addPullRequestReviewThreadReply` on the thread's node id | `POST …/discussions/:id/notes` |
+| Resolve | GraphQL `resolveReviewThread` / `unresolveReviewThread` | `PUT …/discussions/:id?resolved=true` |
 
 ## Suggestions
 
@@ -79,9 +79,17 @@ Both forges render a fenced suggestion block in a comment body as an applicable 
 
 | Verdict | GitHub | GitLab |
 |---|---|---|
-| Approve | `POST …/pulls/:n/reviews/:id/events` `event: APPROVE` (submits the pending review with its comments) | `POST …/draft_notes/bulk_publish`, then `POST …/merge_requests/:iid/approve` (with `sha` = the head SHA, so stale approvals fail cleanly) |
+| Approve | GraphQL `submitPullRequestReview` `event: APPROVE` (submits the pending review with its comments) | `POST …/draft_notes/bulk_publish`, then `POST …/merge_requests/:iid/approve` (with `sha` = the head SHA, so stale approvals fail cleanly) |
 | Request changes | `event: REQUEST_CHANGES`, `body` required | `bulk_publish`, then the reviewer state set to `requested_changes`. **Capability probed on connect** (instance version from `GET /version`, plus a dry check of the reviewers endpoint). Where it's unsupported, `Capabilities.request_changes = false`: `x` is hidden from chips and the palette, and pressing it explains why and suggests `c` |
 | Comment only | `event: COMMENT` | `bulk_publish` |
+
+### Review writes on GitHub
+
+- **Preview:** `rb_github::plan_review(&ReviewDraft, Verdict)` is pure. It validates the draft (request changes needs a summary, a comment-only review needs something to say, no empty comments or backwards ranges) and lists the calls, so a confirm modal and tests can show what will happen.
+- **Post now:** a single comment posted immediately is a draft with that one comment and `Verdict::Comment`. GitHub records it as a one-comment review. Replying on an existing thread uses `reply`.
+- **Failures after the pending review exists:** the review stays pending on GitHub, nothing is deleted, and the error says how many comments were added and what to do next. Retrying submits the rest.
+- **Errors:** 401 asks you to sign in again. 403 explains that the token can read but not review and suggests the `repo` scope (SSO responses keep their authorise link). 404 says the pull request or repository is gone or not visible. A line that isn't in the diff (422) asks you to refresh the diff. 409 and rate limits keep their own copy. Tokens never appear in errors or request bodies.
+- **Live smoke test:** `crates/rb-github/tests/writes.rs` has an `#[ignore]`d `live_smoke` test that posts a comment-only review. It only runs when `REVIEW_BUDDY_LIVE_WRITE_REPO` names a throwaway repository you created for this: `REVIEW_BUDDY_LIVE_WRITE_REPO=you/throwaway REVIEW_BUDDY_LIVE_WRITE_PR=1 GITHUB_TOKEN=… cargo test -p rb-github --test writes -- --ignored live_smoke`. Never point it at a real project.
 
 ## Merge
 
