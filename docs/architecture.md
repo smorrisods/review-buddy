@@ -21,7 +21,7 @@ review-buddy/
 
 ## Key crates
 
-`ratatui` (rendering) · `crossterm` (terminal, input, mouse, focus events) · `tokio` (async runtime) · `reqwest` + `rustls` · `graphql_client` · `serde` / `toml` / `toml_edit` · `rusqlite` (bundled) · `keyring` · `syntect` · `nucleo` (fuzzy matching) · `pulldown-cmark` (markdown → spans) · `etcetera` (XDG base directories on every Unix, macOS included; `%APPDATA%` on Windows. We don't use `directories`, because it maps macOS to `~/Library`) · `tracing` + `tracing-appender` (logs to `$XDG_STATE_HOME/review-buddy/logs/`, never to the screen) · `insta` (snapshot tests of rendered buffers).
+`ratatui` (rendering) · `crossterm` (terminal, input, mouse, focus events) · `tokio` (async runtime) · `reqwest` + `rustls` · hand-written GraphQL with typed `serde` structs · `serde` / `toml` / `toml_edit` · `rusqlite` (bundled) · `keyring` · `syntect` · `nucleo` (fuzzy matching) · `pulldown-cmark` (markdown → spans) · `etcetera` (XDG base directories on every Unix, macOS included; `%APPDATA%` on Windows. We don't use `directories`, because it maps macOS to `~/Library`) · `tracing` + `tracing-appender` (logs to `$XDG_STATE_HOME/review-buddy/logs/`, never to the screen) · `insta` (snapshot tests of rendered buffers).
 
 ## Binary crate layout
 
@@ -51,6 +51,20 @@ pub trait Provider: Send + Sync {
 ```
 
 `Capabilities` drives the UI: actions an instance can't do are hidden from the palette, and their key shows an explanation instead of failing.
+
+## GraphQL typing
+
+**Decision:** `rb-github` uses hand-written query strings with typed `serde` response structs behind a small `graphql::query<T>(client, query, variables)` helper, not `graphql_client`.
+
+**Why:** `graphql_client` generates types from a vendored copy of GitHub's schema. That file is huge, goes stale, differs between github.com and each Enterprise version, and adds a code-generation step to every build. Review Buddy uses a handful of queries (the five `search` queries, PR detail, threads, and a few mutations), so each response struct only declares the fields we read. A mistyped field fails in a wiremock fixture test instead of at compile time, which is an acceptable trade for a much lighter build and no schema to keep in sync.
+
+**What the helper does:** posts to `/graphql` (`/api/graphql` on Enterprise), reuses the shared auth, rate-limit tracking and error mapping, turns the `errors` array into forge-neutral errors (`NOT_FOUND`, `RATE_LIMITED`, `FORBIDDEN`), keeps partial errors next to usable data, and reads the `rateLimit { cost remaining resetAt }` block when a query asks for it.
+
+**Revisiting:** if the query set grows past what is comfortable to maintain by hand, or Enterprise schema drift causes repeated breakage, switch to `graphql_client` with a trimmed schema (introspected and pruned to the types we use) checked in under `crates/rb-github/graphql/`. Only `graphql::query` callers change; the `Provider` surface and `rb-core` models don't.
+
+## HTTP stack
+
+`reqwest` is built with `default-features = false` and `rustls-tls` plus `gzip`, so there is no OpenSSL or native-tls anywhere in the tree and musl static builds stay possible. Check with `cargo tree -p rb-github | grep -i -E 'openssl|native-tls'`, which must print nothing.
 
 ## App state (Elm-style)
 
