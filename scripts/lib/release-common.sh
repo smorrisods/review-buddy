@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Helpers shared by the release scripts. Source this file; do not execute it.
+# shellcheck disable=SC2034  # variables are consumed by the scripts that source this file
 
 PACKAGE_NAME="review-buddy"
 PACKAGE_SUMMARY="Every pull and merge request, in one quiet queue"
