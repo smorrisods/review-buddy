@@ -75,7 +75,8 @@ impl fmt::Display for PathsReport {
     }
 }
 
-#[cfg(test)]
+// These tests use POSIX-style absolute paths in an injected environment, so they run on Unix hosts.
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::fs;
