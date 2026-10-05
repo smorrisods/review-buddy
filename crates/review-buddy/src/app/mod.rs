@@ -10,10 +10,13 @@ use rb_theme::{ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID};
 use crate::ui::HitMap;
 
 mod dashboard;
+mod diff;
+pub mod diffview;
 pub mod queue;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
+pub use diff::{DiffData, DiffFile, DiffFocus, DiffState, FileView, Phase, Syntax};
 pub use update::update;
 
 /// How long a status message or toast stays on screen.
@@ -26,6 +29,7 @@ pub const MAX_TOASTS: usize = 3;
 pub enum Screen {
     #[default]
     Dashboard,
+    Diff,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +74,12 @@ pub enum Action {
     SelectItem(usize),
     SelectTab(Tab),
     Chip(Chip),
+    /// Leave the diff for the dashboard.
+    CloseDiff,
+    /// Choose the nth file of the diff.
+    DiffFile(usize),
+    /// Put the diff cursor at the nth row, or the nearest line to it.
+    DiffRow(usize),
 }
 
 /// Input, timers, and results of effects.
@@ -88,6 +98,11 @@ pub enum Msg {
     ToastExpired(u64),
     /// The sources and changes a [`Cmd::LoadChanges`] asked for.
     Loaded(Box<Snapshot>),
+    /// The patches, threads and pending comments a [`Cmd::LoadDiff`] asked for.
+    DiffLoaded {
+        id: ChangeId,
+        result: Result<Box<DiffData>, String>,
+    },
 }
 
 /// Effects, run by the runtime. They never run inside `update`.
@@ -97,6 +112,8 @@ pub enum Cmd {
     After { delay: Duration, msg: Msg },
     /// Fetch every source's changes from whatever backs this session.
     LoadChanges,
+    /// Fetch the files, threads and your pending comments for one change.
+    LoadDiff(ChangeId),
 }
 
 /// The sources and changes handed to the app in one go.
@@ -167,6 +184,8 @@ pub struct App {
     pub change_count: usize,
     pub state: AppState,
     pub dashboard: Dashboard,
+    pub diff: Option<DiffState>,
+    pub(crate) syntax: Syntax,
     pub(crate) ticks: u64,
     pub(crate) next_id: u64,
     theme_index: usize,
@@ -192,6 +211,8 @@ impl App {
             change_count: 0,
             state: AppState::default(),
             dashboard: Dashboard::default(),
+            diff: None,
+            syntax: Syntax::default(),
             ticks: 0,
             next_id: 1,
             theme_index,

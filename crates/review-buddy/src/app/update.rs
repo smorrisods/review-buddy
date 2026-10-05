@@ -3,7 +3,8 @@ use crossterm::event::{
 };
 
 use super::{
-    dashboard, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, MAX_TOASTS, NOTICE_TTL,
+    dashboard, diff, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, Screen,
+    MAX_TOASTS, NOTICE_TTL,
 };
 
 /// Applies one message and returns the effects to run. Does no I/O.
@@ -21,19 +22,14 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
                     None => Vec::new(),
                 },
             },
-            MouseEventKind::ScrollDown => {
-                dashboard::on_scroll(app, mouse.column, mouse.row, true);
-                Vec::new()
-            }
-            MouseEventKind::ScrollUp => {
-                dashboard::on_scroll(app, mouse.column, mouse.row, false);
-                Vec::new()
-            }
+            MouseEventKind::ScrollDown => scroll(app, mouse.column, mouse.row, true),
+            MouseEventKind::ScrollUp => scroll(app, mouse.column, mouse.row, false),
             _ => Vec::new(),
         },
         Msg::Resize(w, h) => {
             app.size = (w, h);
             dashboard::on_resize(app);
+            diff::on_resize(app);
             app.mark_dirty();
             Vec::new()
         }
@@ -79,7 +75,19 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
             app.mark_dirty();
             Vec::new()
         }
+        Msg::DiffLoaded { id, result } => {
+            diff::on_loaded(app, &id, result);
+            Vec::new()
+        }
     }
+}
+
+fn scroll(app: &mut App, column: u16, row: u16, down: bool) -> Vec<Cmd> {
+    match app.screen {
+        Screen::Dashboard => dashboard::on_scroll(app, column, row, down),
+        Screen::Diff => diff::on_scroll(app, column, row, down),
+    }
+    Vec::new()
 }
 
 fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
@@ -89,18 +97,17 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
     match key.code {
         KeyCode::Char('c') if ctrl => run(app, Action::Quit),
-        KeyCode::Char('q') if !ctrl => run(app, Action::Quit),
+        KeyCode::Char('q') if !ctrl && app.screen == Screen::Dashboard => run(app, Action::Quit),
         KeyCode::Char('T') if !ctrl => run(app, Action::CycleTheme),
-        KeyCode::Esc => {
-            if app.toasts.is_empty() {
-                Vec::new()
-            } else {
-                app.toasts.clear();
-                app.mark_dirty();
-                Vec::new()
-            }
+        KeyCode::Esc if !app.toasts.is_empty() => {
+            app.toasts.clear();
+            app.mark_dirty();
+            Vec::new()
         }
-        _ => dashboard::on_key(app, key).unwrap_or_default(),
+        _ => match app.screen {
+            Screen::Dashboard => dashboard::on_key(app, key).unwrap_or_default(),
+            Screen::Diff => diff::on_key(app, key),
+        },
     }
 }
 
@@ -112,12 +119,16 @@ fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         }
         Action::CycleTheme => {
             app.cycle_theme();
+            diff::refresh_theme(app);
             let text = format!("Theme: {}", app.theme_name());
             set_status(app, Notice::new(NoticeKind::Info, text))
         }
         Action::DismissToast(id) => {
             dismiss_toast(app, id);
             Vec::new()
+        }
+        Action::CloseDiff | Action::DiffFile(_) | Action::DiffRow(_) => {
+            diff::on_action(app, action)
         }
         other => dashboard::on_action(app, other),
     }

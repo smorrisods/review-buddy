@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/diff.rs
+expression: shown
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+╭ files 2 ───────────────────────╮╭ assets/logo.png ───────────────────────────────────────────────╮
+│› · assets/logo.png        +1 −0││                                                                │
+│  · src/a.rs               +1 −0││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                         assets/logo.png                        │
+│                                ││           binary or very large · o to open in browser          │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│ Your review · pending ─────────││                                                                │
+│Nothing pending yet.            ││                                                                │
+│0 of 2 files viewed             ││                                                                │
+│Your verdict: not started       ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+╰────────────────────────────────╯╰ file 1 of 2 ───────────────────────────────────────────────────╯
+ j/k move  n/p hunk  ]/[ file  tab pane  esc back  T theme

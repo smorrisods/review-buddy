@@ -188,3 +188,127 @@ fn demo_mode_loads_the_fixtures_and_touches_no_real_directories() {
         "demo mode must not create anything under the real HOME or XDG directories"
     );
 }
+
+#[cfg(feature = "demo")]
+#[test]
+fn demo_diff_opens_navigates_and_returns_to_the_dashboard() {
+    let home = tempfile::tempdir().unwrap();
+    let size = |cols: u16| PtySize {
+        rows: 40,
+        cols,
+        pixel_width: 0,
+        pixel_height: 0,
+    };
+    let pair = native_pty_system().openpty(size(160)).unwrap();
+    let mut cmd = CommandBuilder::new(env!("CARGO_BIN_EXE_review-buddy"));
+    cmd.args(["--demo", "--frozen-time", "2026-10-05T10:00"]);
+    cmd.env("TERM", "xterm-256color");
+    cmd.env("COLORTERM", "truecolor");
+    cmd.env_remove("NO_COLOR");
+    cmd.env("HOME", home.path());
+    for var in [
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+        "XDG_CACHE_HOME",
+        "XDG_STATE_HOME",
+    ] {
+        cmd.env(var, home.path().join(var));
+    }
+    let mut child = pair.slave.spawn_command(cmd).unwrap();
+    drop(pair.slave);
+
+    let mut reader = pair.master.try_clone_reader().unwrap();
+    let mut writer = pair.master.take_writer().unwrap();
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let mut buf = [0u8; 4096];
+        while let Ok(n) = reader.read(&mut buf) {
+            if n == 0 || tx.send(buf[..n].to_vec()).is_err() {
+                break;
+            }
+        }
+    });
+    let limit = Duration::from_secs(10);
+    let mut seen = Vec::new();
+    assert!(wait_for(
+        &rx,
+        &mut seen,
+        "Add a menu bar and keyboard-driven menus",
+        limit
+    ));
+
+    // Terminal output is a stream of cell updates, so a resize forces a full repaint to look at.
+    let mut wide = false;
+    let mut repaint = |seen: &mut Vec<u8>| {
+        wide = !wide;
+        pair.master
+            .resize(size(if wide { 161 } else { 160 }))
+            .unwrap();
+        let _ = seen;
+    };
+
+    seen.clear();
+    writer.write_all(b"\r").unwrap();
+    writer.flush().unwrap();
+    assert!(
+        wait_for(&rx, &mut seen, "@@ -10,7 +10,9 @@", limit),
+        "the diff opens: {:?}",
+        String::from_utf8_lossy(&seen)
+    );
+    assert!(
+        wait_for(&rx, &mut seen, "thread · line 44", limit),
+        "the thread block shows: {:?}",
+        String::from_utf8_lossy(&seen)
+    );
+    assert!(wait_for(&rx, &mut seen, "jo · 1d", limit));
+
+    writer.write_all(b"j").unwrap();
+    writer.write_all(b"n").unwrap();
+    writer.flush().unwrap();
+    std::thread::sleep(Duration::from_millis(300));
+    seen.clear();
+    repaint(&mut seen);
+    assert!(
+        wait_for(&rx, &mut seen, "hunk 2 of 3 · file 1 of 3", limit),
+        "n moves to the next hunk: {:?}",
+        String::from_utf8_lossy(&seen)
+    );
+
+    writer.write_all(b"]").unwrap();
+    writer.flush().unwrap();
+    std::thread::sleep(Duration::from_millis(300));
+    seen.clear();
+    repaint(&mut seen);
+    assert!(
+        wait_for(&rx, &mut seen, "file 2 of 3", limit),
+        "] opens the next file: {:?}",
+        String::from_utf8_lossy(&seen)
+    );
+    assert!(wait_for(&rx, &mut seen, " src/ui/menubar.rs ", limit));
+
+    writer.write_all(b"\x1b").unwrap();
+    writer.flush().unwrap();
+    // A lone escape byte is held back briefly while the terminal decides it isn't a sequence.
+    std::thread::sleep(Duration::from_millis(300));
+    seen.clear();
+    repaint(&mut seen);
+    assert!(
+        wait_for(&rx, &mut seen, "Waiting on you", limit),
+        "esc returns to the dashboard: {:?}",
+        String::from_utf8_lossy(&seen)
+    );
+
+    std::thread::sleep(Duration::from_millis(200));
+    writer.write_all(b"q").unwrap();
+    writer.flush().unwrap();
+    let deadline = Instant::now() + limit;
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        assert!(Instant::now() < deadline, "did not exit after q");
+        let _ = rx.recv_timeout(Duration::from_millis(50));
+    };
+    assert!(status.success());
+    assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);
+}
