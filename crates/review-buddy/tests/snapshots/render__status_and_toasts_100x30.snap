@@ -31,4 +31,4 @@ expression: text(&buffer)
 │                                     │! Couldn't reach gitlab.work.ca (timed out). Showing ca…  │ │
 │                                     ╰──────────────────────────────────────────────────────────╯ │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
- ⏎ diff  T theme  q quit                                                              · Theme: Dusk
+ ⏎ diff  o open  y copy  ? help  T theme  q quit                                      · Theme: Dusk

@@ -31,4 +31,4 @@ expression: shown
 │                                ││              │ +         self.selected = (self.selected + se… ││
 │                                ││              ╰────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  esc back  T theme
+ j/k move  n/p hunk  ]/[ file  tab pane  o open  y copy  esc back  ? help  T theme

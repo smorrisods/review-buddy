@@ -27,58 +27,79 @@ pub struct Hint {
     pub action: Option<Action>,
 }
 
-pub fn hints_for(screen: Screen) -> Vec<Hint> {
+/// One row of the key registry. The footer shows the `footer` entries; the help overlay
+/// shows them all, so the two can't drift apart.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Binding {
+    pub hint: Hint,
+    pub group: &'static str,
+    pub footer: bool,
+}
+
+fn bind(
+    group: &'static str,
+    key: &'static str,
+    label: &'static str,
+    action: Option<Action>,
+    footer: bool,
+) -> Binding {
+    Binding {
+        hint: Hint { key, label, action },
+        group,
+        footer,
+    }
+}
+
+/// Every key that works on `screen`, in the order the help overlay lists them.
+pub fn registry(screen: Screen) -> Vec<Binding> {
+    let open = Some(Action::Open);
+    let copy = Some(Action::Copy);
+    let help = Some(Action::ToggleHelp);
+    let theme = Some(Action::CycleTheme);
     match screen {
         Screen::Dashboard => vec![
-            Hint {
-                key: "⏎",
-                label: "diff",
-                action: Some(Action::Chip(Chip::Diff)),
-            },
-            Hint {
-                key: "T",
-                label: "theme",
-                action: Some(Action::CycleTheme),
-            },
-            Hint {
-                key: "q",
-                label: "quit",
-                action: Some(Action::Quit),
-            },
+            bind("Move", "j/k", "move in the focused pane", None, false),
+            bind("Move", "g/G", "first / last row", None, false),
+            bind("Move", "tab", "next pane", None, false),
+            bind("Move", "h/l", "previous / next pane", None, false),
+            bind("Move", "1-9", "switch source", None, false),
+            bind("Move", "[/]", "previous / next detail tab", None, false),
+            bind("Change", "⏎", "diff", Some(Action::Chip(Chip::Diff)), true),
+            bind("Change", "o", "open", open, true),
+            bind("Change", "y", "copy", copy, true),
+            bind("General", "?", "help", help, true),
+            bind("General", "T", "theme", theme, true),
+            bind("General", "q", "quit", Some(Action::Quit), true),
         ],
         Screen::Diff => vec![
-            Hint {
-                key: "j/k",
-                label: "move",
-                action: None,
-            },
-            Hint {
-                key: "n/p",
-                label: "hunk",
-                action: None,
-            },
-            Hint {
-                key: "]/[",
-                label: "file",
-                action: None,
-            },
-            Hint {
-                key: "tab",
-                label: "pane",
-                action: None,
-            },
-            Hint {
-                key: "esc",
-                label: "back",
-                action: Some(Action::CloseDiff),
-            },
-            Hint {
-                key: "T",
-                label: "theme",
-                action: Some(Action::CycleTheme),
-            },
+            bind("Move", "j/k", "move", None, true),
+            bind("Move", "g/G", "first / last line", None, false),
+            bind("Move", "pgup/pgdn", "page up / down", None, false),
+            bind("Move", "n/p", "hunk", None, true),
+            bind("Move", "]/[", "file", None, true),
+            bind("Move", "tab", "pane", None, true),
+            bind("Change", "o", "open", open, true),
+            bind("Change", "y", "copy", copy, true),
+            bind("General", "esc", "back", Some(Action::CloseDiff), true),
+            bind(
+                "General",
+                "q",
+                "back to the queue",
+                Some(Action::CloseDiff),
+                false,
+            ),
+            bind("General", "?", "help", help, true),
+            bind("General", "T", "theme", theme, true),
         ],
     }
+}
+
+pub fn hints_for(screen: Screen) -> Vec<Hint> {
+    registry(screen)
+        .into_iter()
+        .filter(|b| b.footer)
+        .map(|b| b.hint)
+        .collect()
 }
 
 const HINT_GAP: u16 = 2;
@@ -143,7 +164,10 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
     let palette = &app.palette;
     let hints = hints_for(app.screen);
 
-    let status = app.status.as_ref().map(status_text);
+    let status = app.status.as_ref().map(status_text).map(|(text, role)| {
+        let room = usize::from(area.width.saturating_sub(4));
+        (truncate(&text, room), role)
+    });
     let status_w = status.as_ref().map_or(0, |(t, _)| width(t) + 1);
     let hint_room = area.width.saturating_sub(1 + status_w);
 

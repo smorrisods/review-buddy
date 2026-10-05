@@ -31,4 +31,4 @@ expression: text(&render(&mut a))
 │                                ││              │ ada · 20h                                      ││
 │                                ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  esc back  T theme
+ j/k move  n/p hunk  ]/[ file  tab pane  o open  y copy  esc back  ? help  T theme

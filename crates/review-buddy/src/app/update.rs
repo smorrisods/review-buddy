@@ -3,7 +3,7 @@ use crossterm::event::{
 };
 
 use super::{
-    dashboard, diff, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, Screen,
+    dashboard, diff, links, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, Screen,
     MAX_TOASTS, NOTICE_TTL,
 };
 
@@ -11,6 +11,12 @@ use super::{
 pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     match msg {
         Msg::Key(key) => on_key(app, key),
+        Msg::Mouse(mouse) if app.help => {
+            if matches!(mouse.kind, MouseEventKind::Down(_)) {
+                close_help(app);
+            }
+            Vec::new()
+        }
         Msg::Mouse(mouse) => match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => match app.hits.at(mouse.column, mouse.row) {
                 Some(action) => {
@@ -48,6 +54,7 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
         }
         Msg::Paste(_) => Vec::new(),
         Msg::Notify(notice) => push_toast(app, notice),
+        Msg::Status(notice) => set_status(app, notice),
         Msg::StatusExpired(id) => {
             if app.status.as_ref().is_some_and(|e| e.id == id) {
                 app.status = None;
@@ -82,6 +89,11 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     }
 }
 
+fn close_help(app: &mut App) {
+    app.help = false;
+    app.mark_dirty();
+}
+
 fn scroll(app: &mut App, column: u16, row: u16, down: bool) -> Vec<Cmd> {
     match app.screen {
         Screen::Dashboard => dashboard::on_scroll(app, column, row, down),
@@ -95,9 +107,30 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         return Vec::new();
     }
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+    let alt = key.modifiers.contains(KeyModifiers::ALT);
+    let quits = match key.code {
+        KeyCode::Char('c') => ctrl,
+        KeyCode::Char('q') => !ctrl && app.screen == Screen::Dashboard && !app.help,
+        _ => false,
+    };
+    if !quits {
+        app.quit_armed = false;
+    }
+    if app.help {
+        return match key.code {
+            KeyCode::Esc | KeyCode::Char('?') => {
+                close_help(app);
+                Vec::new()
+            }
+            KeyCode::Char('c') if ctrl => run(app, Action::Quit),
+            _ => Vec::new(),
+        };
+    }
     match key.code {
-        KeyCode::Char('c') if ctrl => run(app, Action::Quit),
-        KeyCode::Char('q') if !ctrl && app.screen == Screen::Dashboard => run(app, Action::Quit),
+        _ if quits => run(app, Action::Quit),
+        KeyCode::Char('?') if !ctrl && !alt => run(app, Action::ToggleHelp),
+        KeyCode::Char('o') if !ctrl && !alt => run(app, Action::Open),
+        KeyCode::Char('y') if !ctrl && !alt => run(app, Action::Copy),
         KeyCode::Char('T') if !ctrl => run(app, Action::CycleTheme),
         KeyCode::Esc if !app.toasts.is_empty() => {
             app.toasts.clear();
@@ -114,9 +147,27 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
 fn run(app: &mut App, action: Action) -> Vec<Cmd> {
     match action {
         Action::Quit => {
+            if app.has_unsent_drafts() && !app.quit_armed {
+                app.quit_armed = true;
+                let text = "You have unsent review comments. Quit again to leave without sending, or press esc to keep reviewing.";
+                return set_status(app, Notice::new(NoticeKind::Warning, text));
+            }
             app.quit = true;
             Vec::new()
         }
+        Action::ToggleHelp => {
+            app.help = !app.help;
+            app.mark_dirty();
+            Vec::new()
+        }
+        Action::Open => match links::current_url(app) {
+            Some(url) => vec![Cmd::OpenUrl(url)],
+            None => nothing_selected(app, "open"),
+        },
+        Action::Copy => match links::current_url(app) {
+            Some(url) => vec![Cmd::Copy(url)],
+            None => nothing_selected(app, "copy"),
+        },
         Action::CycleTheme => {
             app.cycle_theme();
             diff::refresh_theme(app);
@@ -132,6 +183,11 @@ fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         }
         other => dashboard::on_action(app, other),
     }
+}
+
+fn nothing_selected(app: &mut App, verb: &str) -> Vec<Cmd> {
+    let text = format!("Nothing to {verb} yet. Select a change first.");
+    set_status(app, Notice::new(NoticeKind::Info, text))
 }
 
 pub(super) fn set_status(app: &mut App, notice: Notice) -> Vec<Cmd> {
@@ -389,5 +445,48 @@ mod tests {
             .push(Rect::new(0, 0, 10, 3), Action::DismissToast(id));
         update(&mut a, click(2, 1));
         assert!(a.toasts.is_empty());
+    }
+
+    #[test]
+    fn o_and_y_without_a_selection_explain_themselves() {
+        for code in ['o', 'y'] {
+            let mut a = app();
+            let cmds = update(&mut a, Msg::Key(KeyEvent::from(KeyCode::Char(code))));
+            assert!(matches!(cmds.as_slice(), [Cmd::After { .. }]));
+            let text = a.status.as_ref().unwrap().notice.text.clone();
+            assert!(text.contains("Select a change first"), "{text}");
+        }
+    }
+
+    #[test]
+    fn help_toggles_and_esc_closes_it_before_anything_else() {
+        let mut a = app();
+        update(&mut a, Msg::Key(KeyEvent::from(KeyCode::Char('?'))));
+        assert!(a.help);
+        update(&mut a, Msg::Notify(Notice::new(NoticeKind::Info, "hi")));
+        update(&mut a, Msg::Key(KeyEvent::from(KeyCode::Esc)));
+        assert!(!a.help);
+        assert_eq!(a.toasts.len(), 1, "the first Esc only closed the overlay");
+    }
+
+    #[test]
+    fn a_click_closes_the_overlay_without_acting_on_what_is_beneath() {
+        let mut a = app();
+        a.hits.push(Rect::new(0, 5, 3, 1), Action::Quit);
+        update(&mut a, Msg::Key(KeyEvent::from(KeyCode::Char('?'))));
+        update(&mut a, click(1, 5));
+        assert!(!a.help);
+        assert!(!a.should_quit());
+    }
+
+    #[test]
+    fn status_messages_from_effects_expire_like_any_other() {
+        let mut a = app();
+        let cmds = update(&mut a, Msg::Status(Notice::new(NoticeKind::Info, "Opened")));
+        let id = a.status.as_ref().unwrap().id;
+        assert!(matches!(
+            cmds.as_slice(),
+            [Cmd::After { msg: Msg::StatusExpired(i), .. }] if *i == id
+        ));
     }
 }
