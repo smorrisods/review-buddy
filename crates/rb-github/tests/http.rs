@@ -65,10 +65,7 @@ async fn provider_whoami_and_unsupported() {
         repo: "o/r".into(),
         number: 7,
     };
-    assert!(matches!(
-        p.change_detail(&id).await,
-        Err(Error::Unsupported(_))
-    ));
+    assert!(matches!(p.files(&id).await, Err(Error::Unsupported(_))));
     assert_eq!(p.web_url(&id).as_str(), "https://ghe.test/o/r/pull/7");
 }
 

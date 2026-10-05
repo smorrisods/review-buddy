@@ -1,0 +1,15 @@
+{
+  "data": {
+    "rateLimit": null,
+    "viewer": {
+      "login": "octo"
+    },
+    "repository": null
+  },
+  "errors": [
+    {
+      "type": "NOT_FOUND",
+      "message": "Could not resolve to a Repository"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "data": {
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4990,
+      "resetAt": "2999-01-01T00:00:00Z"
+    },
+    "viewer": {
+      "login": "octo"
+    },
+    "repository": {
+      "pullRequest": {
+        "id": "PR_A",
+        "number": 101,
+        "title": "Add retry to sync",
+        "isDraft": false,
+        "state": "OPEN",
+        "createdAt": "2026-09-01T08:00:00Z",
+        "updatedAt": "2026-10-04T10:00:00Z",
+        "headRefName": "feat/101",
+        "baseRefName": "main",
+        "headRefOid": "aaaaaaa",
+        "baseRefOid": "bbbbbbb",
+        "additions": 1010,
+        "deletions": 101,
+        "changedFiles": 2,
+        "author": {
+          "__typename": "User",
+          "login": "mira"
+        },
+        "repository": {
+          "nameWithOwner": "acme/web"
+        },
+        "labels": {
+          "nodes": [
+            {
+              "name": "backend"
+            }
+          ]
+        },
+        "assignees": {
+          "nodes": []
+        },
+        "reviewRequests": {
+          "nodes": [
+            {
+              "requestedReviewer": {
+                "__typename": "User",
+                "login": "octo"
+              }
+            },
+            {
+              "requestedReviewer": {
+                "__typename": "Team",
+                "slug": "web-team"
+              }
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "author": {
+                "login": "tess"
+              },
+              "state": "APPROVED",
+              "commit": {
+                "oid": "aaaaaaa"
+              }
+            }
+          ]
+        },
+        "comments": {
+          "nodes": [
+            {
+              "author": {
+                "login": "mira"
+              }
+            },
+            {
+              "author": {
+                "login": "octo"
+              }
+            }
+          ]
+        },
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "statusCheckRollup": {
+                  "state": "SUCCESS"
+                }
+              }
+            }
+          ]
+        },
+        "body": "Retries the sync call with backoff.\n\n- jitter\n- cap at 5 tries",
+        "mergeable": "MERGEABLE"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "data": {
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4990,
+      "resetAt": "2999-01-01T00:00:00Z"
+    },
+    "viewer": {
+      "login": "octo"
+    },
+    "search": {
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      },
+      "nodes": []
+    }
+  }
+}
