@@ -209,6 +209,18 @@ impl Context {
         }
     }
 
+    /// The clock ages are measured against: frozen in demo mode, the real time otherwise.
+    pub fn now(&self) -> rb_core::Timestamp {
+        #[cfg(feature = "demo")]
+        if let Some(demo) = &self.demo {
+            return demo.world.now();
+        }
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        rb_core::Timestamp(i64::try_from(secs).unwrap_or(i64::MAX))
+    }
+
     pub fn is_demo(&self) -> bool {
         self.args.demo
     }

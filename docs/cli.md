@@ -146,11 +146,11 @@ Run review-buddy auth login --host gitlab.work.ca, or set auth = "cli" if glab i
 
 ### `queue`
 
-The triaged queue across sources, exactly as the TUI would bucket it (same rules, same Show filters, same `bucket_limit` on a TTY). Flags: `--bucket wait|look|later|noise` (repeatable), `--show reviewing,assigned,authored,drafts,noise`, `--all` (ignore `bucket_limit`). Piped rows: `bucket  source  ref  ci  author  updatedAt  title`. Ends with `── That's everything.` on a TTY.
+The triaged queue across sources, exactly as the TUI would bucket it (same rules, same Show filters, same `bucket_limit` on a TTY). Flags: `--bucket wait|look|later|noise` (repeatable), `--show reviewing,assigned,authored,drafts,noise`, `--all` (ignore `bucket_limit`). `--show` replaces the configured Show filters for the run; `--bucket noise` or `--show noise` lists Noise as its own bucket at the end. Piped rows: `bucket  source  ref  ci  author  updatedAt  title`, with `ref` the full `owner/repo#number`. The bucket limit applies on a TTY only. Ends with `── That's everything.` on a TTY.
 
 ### `pr list`
 
-Unbucketed listing, closer to `gh pr list`. Flags: `--state open|closed|merged|all` (default `open`), `--author`, `--assignee`, `--reviewer`, `--label` (repeatable), `--draft`, `--search <query>` (passed to the forge's search where supported), `-L, --limit` (default 30). `@me` works for user flags.
+Unbucketed listing, closer to `gh pr list`. Flags: `--state open|closed|merged|all` (default `open`), `--author`, `--assignee`, `--reviewer`, `--label` (repeatable), `--draft`, `--search <query>` (passed to the forge's search where supported), `-L, --limit` (default 30). `@me` works for user flags. Filters run on the fetched changes, so `--search` matches the title, repository, author, branch and labels, and `--assignee` accepts only `@me` for now. Piped rows: `source  ref  state  ci  author  updatedAt  title`, newest first.
 
 ### `pr view`
 
