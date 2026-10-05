@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/help.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
+│  · src/ui/menubar.rs      +8 −0││›   10   10                                                                                                                 │
+│  · src/ui/mod.rs          +2 −0││    11   11   pub struct Menu {                                                                                             │
+│                                ││    12   12       items: Vec<MenuItem>,                                                                                     │
+│                                ││         13 +     selected: usize,                                                                                          │
+│                                ││         14 +     open: bool,                                                                                               │
+│                                ││    13   15   }                                                                                                             │
+│                                ││    14   16      ╭ Keys · Diff ─────────────────────────────────────────╮                                                   │
+│                                ││    15   17   imp│Move                                                  │                                                   │
+│                                ││    16   18      │  j/k        move                                     │                                                   │
+│                                ││              @@ │  g/G        first / last line                        │                                                   │
+│                                ││    34   36      │  pgup/pgdn  page up / down                           │                                                   │
+│                                ││    35   37      │  n/p        hunk                                     │                                                   │
+│                                ││    36   38      │  ]/[        file                                     │                                                   │
+│                                ││         39 +    │  tab        pane                                     │                                                   │
+│                                ││         40 +    │                                                      │                                                   │
+│                                ││         41 +    │Change                                                │                                                   │
+│                                ││         42 +    │  o          open                                     │                                                   │
+│                                ││         43 +    │  y          copy                                     │                                                   │
+│                                ││         44 +    │                                                      │n();                                               │
+│                                ││              ╭─ │General                                               │──────────────────────────────────────────────────╮│
+│                                ││              │ j│  esc        back                                     │                                                  ││
+│                                ││              │ S│  q          back to the queue                        │e stop at the end.                                ││
+│                                ││              │ a│  ?          help                                     │                                                  ││
+│                                ││              │ I│  T          theme                                    │y to make it configurable if you'd rather.        ││
+│                                ││              ╰──│                                                      │──────────────────────────────────────────────────╯│
+│                                ││         45 +    │esc or ? to close                                     │                                                   │
+│                                ││         46 +    ╰──────────────────────────────────────────────────────╯                                                   │
+│                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │
+│                                ││         48 +         if self.items.is_empty() {                                                                            │
+│ Your review · pending ─────────││         49 +             return;                                                                                           │
+│1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
+│0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
+│Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
+│                                ││              │ Fewer branches this way:                                                                                   ││
+│                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
+ j/k move  n/p hunk  ]/[ file  tab pane  o open  y copy  esc back  ? help  T theme

@@ -15,6 +15,7 @@ pub mod chrome;
 pub mod dashboard;
 pub mod detail;
 pub mod diff;
+pub mod help;
 mod hitmap;
 pub mod layout;
 pub mod size;
@@ -47,6 +48,9 @@ pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
     }
     chrome::draw_footer(frame, app, footer, &mut hits);
     chrome::draw_toasts(frame, app, body.inner(Margin::new(2, 1)), &mut hits);
+    if app.help {
+        help::draw(frame, app, body);
+    }
     hits
 }
 

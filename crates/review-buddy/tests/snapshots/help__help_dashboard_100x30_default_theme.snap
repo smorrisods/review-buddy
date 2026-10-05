@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/help.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
+╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ─────────────────────╮
+│  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus         │
+│▌ ◐ Add a menu bar an╭ Keys · Queue ────────────────────────────────────────╮                     │
+│▌ GH review-buddy#214│Move                                                  │ ago                 │
+│  ● Raise muted text │  j/k  move in the focused pane                       │                     │
+│  GH review-buddy#209│  g/G  first / last row                               │  c Comment  ⏎ Diff  │
+│                     │  tab  next pane                                      │                     │
+│  Worth a look · 2   │  h/l  previous / next pane                           │ 3   Conversation 2  │
+│  ✕ Cache pipeline st│  1-9  switch source                                  │──────────────────── │
+│  GL flow!1182 · priy│  [/]  previous / next detail tab                     │p and a Menu type    │
+│  ● Tidy zsh startup │                                                      │m.                   │
+│  GH dotfiles#31 · sm│Change                                                │                     │
+│                     │  ⏎    diff                                           │::select_prev move   │
+│  Can wait · 1       │  o    open                                           │                     │
+│  · Clarify the insta│  y    copy                                           │ action for the      │
+│  GL notes!12 · kai ·│                                                      │                     │
+│                     │General                                               │Line, so it picks up │
+│  ▸ Noise · 2 bot upd│  ?    help                                           │                     │
+│                     │  T    theme                                          │                     │
+│  ── That's everythin│  q    quit                                           │                     │
+│  7 in this view.    │                                                      │                     │
+│                     │esc or ? to close                                     │                     │
+│                     ╰──────────────────────────────────────────────────────╯                     │
+│                                              ││ Checks                                           │
+│                                              ││ ● 2 passing  ◐ 1 running                         │
+│                                              ││                                                  │
+╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  ? help  T theme  q quit

@@ -17,8 +17,9 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | `T` | Cycle theme |
 | `J` | Toggle Jax |
 | `r` | Refresh now |
-| `?` | Help overlay listing the keys for the current screen |
-| `q` | Quit (asks first if there are unsent drafts) |
+| `?` | Help overlay listing the keys for the current screen (`esc` or `?` closes it; it is built from the same registry as the footer hints) |
+| `o` / `y` | Open the current change in the browser / copy its URL. In the diff they use the change's files page. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
+| `q` | Quit from the queue; in the diff, go back (asks first if there are unsent drafts) |
 | `esc` | Close overlay → clear selection → back one screen |
 
 ## Dashboard

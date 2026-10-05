@@ -8,11 +8,13 @@ use futures_util::StreamExt;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio::time::{interval, sleep_until, Instant, MissedTickBehavior};
 
-use crate::app::{update, App, AppConfig, Cmd, Msg};
+use crate::app::{update, App, AppConfig, Cmd, Msg, Notice, NoticeKind};
 use crate::ui;
 
+mod effects;
 mod terminal;
 
+pub use effects::Platform;
 pub use terminal::{restore, TerminalGuard};
 
 /// Redraws are capped at about 30 frames per second.
@@ -53,6 +55,17 @@ pub struct RunOptions {
     pub demo: Option<crate::demo::Demo>,
 }
 
+impl Backend {
+    /// Demo mode never opens anything outside the terminal.
+    fn is_demo(&self) -> bool {
+        match self {
+            Backend::None => false,
+            #[cfg(feature = "demo")]
+            Backend::Demo(_) => true,
+        }
+    }
+}
+
 impl RunOptions {
     fn backend(&self) -> Backend {
         #[cfg(feature = "demo")]
@@ -64,8 +77,22 @@ impl RunOptions {
 }
 
 /// Runs one effect. Results come back as messages on `tx`.
-pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend) {
+pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform: &Platform) {
     match cmd {
+        Cmd::OpenUrl(url) if backend.is_demo() => {
+            let text = format!("Would open {url} (demo)");
+            let _ = tx.send(Msg::Status(Notice::new(NoticeKind::Info, text)));
+        }
+        Cmd::OpenUrl(url) => {
+            let platform = platform.clone();
+            let tx = tx.clone();
+            tokio::task::spawn_blocking(move || {
+                let _ = tx.send(Msg::Status(platform.open(&url)));
+            });
+        }
+        Cmd::Copy(text) => {
+            let _ = tx.send(Msg::Status(platform.copy(&text)));
+        }
         Cmd::LoadChanges => match backend {
             Backend::None => {}
             #[cfg(feature = "demo")]
@@ -125,6 +152,7 @@ pub fn run(options: RunOptions) -> Result<()> {
 
 async fn event_loop(options: RunOptions) -> Result<()> {
     let backend = options.backend();
+    let platform = Platform::system();
     let mut guard = TerminalGuard::enter()?;
     let size = guard.terminal.size()?;
     let mut app = App::new(AppConfig::from_env((size.width, size.height)));
@@ -138,10 +166,10 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     if !matches!(backend, Backend::None) {
         app.state.loading = true;
         // The first frame already shows the loaded data; the load is local and immediate.
-        execute(Cmd::LoadChanges, &tx, &backend);
+        execute(Cmd::LoadChanges, &tx, &backend, &platform);
         if let Some(msg) = rx.recv().await {
             for cmd in update(&mut app, msg) {
-                execute(cmd, &tx, &backend);
+                execute(cmd, &tx, &backend, &platform);
             }
         }
     }
@@ -169,7 +197,7 @@ async fn event_loop(options: RunOptions) -> Result<()> {
         };
         if let Some(msg) = msg {
             for cmd in update(&mut app, msg) {
-                execute(cmd, &tx, &backend);
+                execute(cmd, &tx, &backend, &platform);
             }
         }
     }
@@ -179,7 +207,13 @@ async fn event_loop(options: RunOptions) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
+    use std::sync::{Arc, Mutex};
+
     use crossterm::event::{KeyCode, KeyEvent};
+    use rb_platform::{
+        clipboard::ClipboardContext, CommandOutput, CommandRunner, Os, PlatformError,
+    };
 
     #[test]
     fn frames_are_capped_and_only_when_dirty() {
@@ -219,11 +253,115 @@ mod tests {
             },
             &tx,
             &Backend::None,
+            &test_platform(),
         );
         let got = tokio::time::timeout(Duration::from_secs(2), rx.recv())
             .await
             .expect("message arrives")
             .expect("channel open");
         assert!(matches!(got, Msg::ToastExpired(7)));
+    }
+
+    #[derive(Default)]
+    struct Recorder {
+        calls: Mutex<Vec<String>>,
+    }
+
+    impl CommandRunner for Recorder {
+        fn run(
+            &self,
+            program: &str,
+            _args: &[&str],
+            _stdin: Option<&[u8]>,
+        ) -> Result<CommandOutput, PlatformError> {
+            self.calls.lock().unwrap().push(program.to_string());
+            Ok(CommandOutput {
+                success: true,
+                ..CommandOutput::default()
+            })
+        }
+    }
+
+    fn test_platform() -> Platform {
+        platform_with(
+            Arc::new(Recorder::default()),
+            Arc::new(Mutex::new(Vec::new())),
+        )
+    }
+
+    fn platform_with(runner: Arc<Recorder>, tty: Arc<Mutex<dyn Write + Send>>) -> Platform {
+        let ctx = ClipboardContext {
+            os: Os::Linux,
+            in_tmux: false,
+            wayland: false,
+        };
+        Platform::new(runner, tty, ctx)
+    }
+
+    async fn status(rx: &mut mpsc::UnboundedReceiver<Msg>) -> String {
+        let msg = tokio::time::timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .expect("a status arrives")
+            .expect("channel open");
+        match msg {
+            Msg::Status(notice) => notice.text,
+            other => panic!("expected a status, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn open_url_runs_the_opener_and_reports() {
+        let runner = Arc::new(Recorder::default());
+        let platform = platform_with(runner.clone(), Arc::new(Mutex::new(Vec::new())));
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        execute(
+            Cmd::OpenUrl("https://github.com/a/b/pull/1".into()),
+            &tx,
+            &Backend::None,
+            &platform,
+        );
+        assert_eq!(
+            status(&mut rx).await,
+            "Opened https://github.com/a/b/pull/1"
+        );
+        assert_eq!(runner.calls.lock().unwrap().as_slice(), ["xdg-open"]);
+    }
+
+    #[tokio::test]
+    async fn copy_writes_osc52_through_the_terminal_writer() {
+        let tty = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let platform = platform_with(Arc::new(Recorder::default()), tty.clone());
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        execute(
+            Cmd::Copy("https://x.test/1".into()),
+            &tx,
+            &Backend::None,
+            &platform,
+        );
+        assert_eq!(status(&mut rx).await, "Copied https://x.test/1");
+        assert!(tty.lock().unwrap().starts_with(b"\x1b]52;c;"));
+    }
+
+    #[cfg(feature = "demo")]
+    #[tokio::test]
+    async fn demo_never_opens_anything() {
+        let runner = Arc::new(Recorder::default());
+        let platform = platform_with(runner.clone(), Arc::new(Mutex::new(Vec::new())));
+        let world = crate::demo::DemoWorld::new(
+            crate::demo::parse_iso(crate::demo::DEFAULT_FROZEN).unwrap(),
+        )
+        .unwrap();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        execute(
+            Cmd::OpenUrl("https://github.com/a/b/pull/1".into()),
+            &tx,
+            &Backend::Demo(world),
+            &platform,
+        );
+        assert_eq!(
+            status(&mut rx).await,
+            "Would open https://github.com/a/b/pull/1 (demo)"
+        );
+        assert!(runner.calls.lock().unwrap().is_empty());
     }
 }

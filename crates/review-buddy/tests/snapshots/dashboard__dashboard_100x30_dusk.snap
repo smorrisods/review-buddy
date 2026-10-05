@@ -32,4 +32,4 @@ expression: text(&render(&mut a))
 │                                              ││ ● 2 passing  ◐ 1 running                         │
 │                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
- ⏎ diff  T theme  q quit
+ ⏎ diff  o open  y copy  ? help  T theme  q quit

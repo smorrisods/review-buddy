@@ -12,6 +12,7 @@ use crate::ui::HitMap;
 mod dashboard;
 mod diff;
 pub mod diffview;
+pub mod links;
 pub mod queue;
 mod update;
 
@@ -66,6 +67,11 @@ pub struct Entry {
 pub enum Action {
     Quit,
     CycleTheme,
+    /// Open the current change (or its diff page) in the browser.
+    Open,
+    /// Copy the current change's URL.
+    Copy,
+    ToggleHelp,
     DismissToast(u64),
     FocusPane(Pane),
     /// Show one source: 0 is All, then each source in order.
@@ -94,6 +100,8 @@ pub enum Msg {
     Paste(String),
     /// An async result that wants the user's attention.
     Notify(Notice),
+    /// An async result shown in the footer.
+    Status(Notice),
     StatusExpired(u64),
     ToastExpired(u64),
     /// The sources and changes a [`Cmd::LoadChanges`] asked for.
@@ -114,6 +122,10 @@ pub enum Cmd {
     LoadChanges,
     /// Fetch the files, threads and your pending comments for one change.
     LoadDiff(ChangeId),
+    /// Open a web address in the browser.
+    OpenUrl(String),
+    /// Put text on the clipboard.
+    Copy(String),
 }
 
 /// The sources and changes handed to the app in one go.
@@ -185,6 +197,9 @@ pub struct App {
     pub state: AppState,
     pub dashboard: Dashboard,
     pub diff: Option<DiffState>,
+    /// The help overlay is showing.
+    pub help: bool,
+    quit_armed: bool,
     pub(crate) syntax: Syntax,
     pub(crate) ticks: u64,
     pub(crate) next_id: u64,
@@ -212,6 +227,8 @@ impl App {
             state: AppState::default(),
             dashboard: Dashboard::default(),
             diff: None,
+            help: false,
+            quit_armed: false,
             syntax: Syntax::default(),
             ticks: 0,
             next_id: 1,
@@ -243,6 +260,14 @@ impl App {
 
     pub fn ticks(&self) -> u64 {
         self.ticks
+    }
+
+    /// Whether quitting would lose review text that hasn't been sent.
+    pub fn has_unsent_drafts(&self) -> bool {
+        self.diff
+            .as_ref()
+            .and_then(|s| s.data.as_ref())
+            .is_some_and(|d| !d.draft.is_empty())
     }
 
     fn cycle_theme(&mut self) {
