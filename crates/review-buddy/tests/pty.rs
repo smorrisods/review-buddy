@@ -147,6 +147,29 @@ fn demo_mode_loads_the_fixtures_and_touches_no_real_directories() {
     let screen = String::from_utf8_lossy(&seen).into_owned();
     assert!(screen.contains("demo · 4 sources"));
     assert!(!screen.contains("Nothing connected yet."));
+    assert!(
+        wait_for(&rx, &mut seen, "Waiting on you", Duration::from_secs(10)),
+        "bucket heading missing: {:?}",
+        String::from_utf8_lossy(&seen)
+    );
+    assert!(wait_for(
+        &rx,
+        &mut seen,
+        "Add a menu bar and keyboard-driven menus",
+        Duration::from_secs(10)
+    ));
+
+    seen.clear();
+    writer.write_all(b"j").unwrap();
+    writer.flush().unwrap();
+    assert!(
+        wait_for(&rx, &mut seen, "Raise", Duration::from_secs(10)),
+        "j moves the selection and the detail follows: {:?}",
+        String::from_utf8_lossy(&seen)
+    );
+    writer.write_all(b"\t").unwrap();
+    writer.flush().unwrap();
+    std::thread::sleep(Duration::from_millis(200));
 
     writer.write_all(b"q").unwrap();
     writer.flush().unwrap();

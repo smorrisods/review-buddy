@@ -115,6 +115,7 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     let mut last_draw = Instant::now() - MIN_FRAME;
 
     if !matches!(backend, Backend::None) {
+        app.state.loading = true;
         // The first frame already shows the loaded data; the load is local and immediate.
         execute(Cmd::LoadChanges, &tx, &backend);
         if let Some(msg) = rx.recv().await {

@@ -1,15 +1,19 @@
 //! Elm-style app state: `update(&mut App, Msg) -> Vec<Cmd>` is pure, so it stays unit-testable.
 //! Effects leave as [`Cmd`]s and results return as [`Msg`]s.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
-use rb_core::{ChangeSummary, Source, Timestamp};
+use rb_core::{ChangeId, ChangeSummary, Check, Source, Thread, Timestamp};
 use rb_theme::{ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID};
 
 use crate::ui::HitMap;
 
+mod dashboard;
+pub mod queue;
 mod update;
 
+pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
 pub use update::update;
 
 /// How long a status message or toast stays on screen.
@@ -59,6 +63,13 @@ pub enum Action {
     Quit,
     CycleTheme,
     DismissToast(u64),
+    FocusPane(Pane),
+    /// Show one source: 0 is All, then each source in order.
+    SelectSource(usize),
+    /// Select the nth item of the queue.
+    SelectItem(usize),
+    SelectTab(Tab),
+    Chip(Chip),
 }
 
 /// Input, timers, and results of effects.
@@ -96,12 +107,25 @@ pub struct Snapshot {
     pub sources: Vec<Source>,
     pub changes: Vec<ChangeSummary>,
     pub now: Timestamp,
+    pub details: HashMap<ChangeId, ChangeInfo>,
+}
+
+/// The slower, per-change data the detail pane shows beyond the summary.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ChangeInfo {
+    /// Markdown description.
+    pub body: String,
+    pub checks: Vec<Check>,
+    pub threads: Vec<Thread>,
 }
 
 /// Remote data held by the app. Screens read it; only `update` writes it.
 #[derive(Debug, Clone, Default)]
 pub struct AppState {
     pub loaded: bool,
+    /// A load has been asked for and hasn't answered yet.
+    pub loading: bool,
+    pub details: HashMap<ChangeId, ChangeInfo>,
     pub sources: Vec<Source>,
     pub changes: Vec<ChangeSummary>,
     /// The clock the queue's relative ages are measured against.
@@ -142,6 +166,7 @@ pub struct App {
     pub source_label: String,
     pub change_count: usize,
     pub state: AppState,
+    pub dashboard: Dashboard,
     pub(crate) ticks: u64,
     pub(crate) next_id: u64,
     theme_index: usize,
@@ -166,6 +191,7 @@ impl App {
             source_label: "no sources".to_string(),
             change_count: 0,
             state: AppState::default(),
+            dashboard: Dashboard::default(),
             ticks: 0,
             next_id: 1,
             theme_index,

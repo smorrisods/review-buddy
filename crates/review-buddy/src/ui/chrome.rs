@@ -11,7 +11,7 @@ use rb_theme::Role;
 use unicode_width::UnicodeWidthStr;
 
 use super::{style, HitMap};
-use crate::app::{Action, App, Entry, NoticeKind, Screen};
+use crate::app::{Action, App, Chip, Entry, NoticeKind, Screen};
 
 fn width(s: &str) -> u16 {
     UnicodeWidthStr::width(s).min(usize::from(u16::MAX)) as u16
@@ -30,6 +30,11 @@ pub struct Hint {
 pub fn hints_for(screen: Screen) -> Vec<Hint> {
     match screen {
         Screen::Dashboard => vec![
+            Hint {
+                key: "⏎",
+                label: "diff",
+                action: Some(Action::Chip(Chip::Diff)),
+            },
             Hint {
                 key: "T",
                 label: "theme",
