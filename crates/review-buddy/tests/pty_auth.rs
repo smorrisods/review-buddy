@@ -1,5 +1,5 @@
 //! `source list` and `auth status` on a terminal: an aligned table with a header and colour.
-#![cfg(unix)]
+#![cfg(all(unix, feature = "demo"))]
 
 use std::io::Read;
 

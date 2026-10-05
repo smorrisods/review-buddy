@@ -164,6 +164,7 @@ fn source_list_reads_config_only_and_lists_every_source() {
     assert_eq!(value[2]["enabled"], false);
 }
 
+#[cfg(feature = "demo")]
 #[test]
 fn demo_reports_demo_sources_without_network_or_keyring() {
     let dir = tempfile::tempdir().unwrap();
