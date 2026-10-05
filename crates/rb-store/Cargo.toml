@@ -10,6 +10,13 @@ description = "Review Buddy SQLite cache, ETag store, drafts, and offline queue.
 
 [dependencies]
 rb-core.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true

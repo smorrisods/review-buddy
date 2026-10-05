@@ -30,6 +30,7 @@ async-trait = "0.1"
 clap = { version = "4", features = ["derive"] }
 clap_mangen = "0.3"
 predicates = "3"
+rusqlite = { version = "0.32", features = ["bundled"] }
 rb-core = { path = "crates/rb-core" }
 rb-diff = { path = "crates/rb-diff" }
 rb-github = { path = "crates/rb-github" }
