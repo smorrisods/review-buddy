@@ -436,6 +436,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let git = |args: &[&str]| {
             Command::new("git")
+                .args(["-c", "core.autocrlf=false", "-c", "core.safecrlf=false"])
                 .args(args)
                 .current_dir(dir.path())
                 .output()
