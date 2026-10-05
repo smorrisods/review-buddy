@@ -347,6 +347,8 @@ mod global_flags {
         assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);
     }
 
+    // Windows path separators differ in the printed table; the XDG layout itself is covered in rb-paths.
+    #[cfg(unix)]
     #[test]
     fn config_paths_follows_xdg_and_reports_loaded_files() {
         let (mut cmd, home) = sandbox();

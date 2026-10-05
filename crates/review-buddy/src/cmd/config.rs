@@ -123,7 +123,10 @@ mod tests {
         for field in PATH_FIELDS {
             assert!(value.get(field).is_some(), "{field}");
         }
-        assert_eq!(value["configDir"], "/home/a/.config/review-buddy");
+        assert_eq!(
+            value["configDir"],
+            report().paths.config_dir.display().to_string()
+        );
         assert_eq!(value["runtimeDir"], Value::Null);
         assert!(value["configFiles"].is_array());
     }
