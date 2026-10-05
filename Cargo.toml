@@ -46,6 +46,7 @@ rb-paths = { path = "crates/rb-paths" }
 rb-platform = { path = "crates/rb-platform" }
 rb-store = { path = "crates/rb-store" }
 rb-theme = { path = "crates/rb-theme" }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "json"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -57,6 +58,7 @@ toml = { version = "0.8", default-features = false, features = ["parse", "displa
 toml_edit = { version = "0.22", features = ["parse", "display"] }
 unicode-width = "0.2"
 url = { version = "2", features = ["serde"] }
+wiremock = "0.6"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
