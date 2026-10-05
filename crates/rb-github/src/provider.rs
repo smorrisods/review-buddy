@@ -1,31 +1,23 @@
 use async_trait::async_trait;
 use rb_core::{
     Capabilities, ChangeDetail, ChangeId, ChangeSummary, Check, Comment, Error, Etag, FilePatch,
-    ForgeKind, MergeOpts, MergeOutcome, Page, Provider, Result, ReviewDraft, Scope, SourceId,
-    Thread, ThreadId, User, Verdict,
+    ForgeKind, MergeOpts, MergeOutcome, Page, Provider, Result, ReviewDraft, Scope, Thread,
+    ThreadId, User, Verdict,
 };
 use url::Url;
 
-use crate::{changes, GithubClient};
+use crate::GithubClient;
 
-/// GitHub behind the `Provider` trait. Listing and detail are implemented; the remaining
-/// methods land with the issues that need them and report `Unsupported` until then.
+/// GitHub behind the `Provider` trait. Listing, detail and write methods land with the
+/// issues that need them and report `Unsupported` until then.
 #[derive(Debug, Clone)]
 pub struct GithubProvider {
     client: GithubClient,
-    source_id: SourceId,
 }
 
 impl GithubProvider {
     pub fn new(client: GithubClient) -> Self {
-        let source_id = SourceId::new(client.host());
-        Self { client, source_id }
-    }
-
-    /// The source these changes belong to; defaults to the host name.
-    pub fn with_source_id(mut self, source_id: SourceId) -> Self {
-        self.source_id = source_id;
-        self
+        Self { client }
     }
 
     pub fn client(&self) -> &GithubClient {
@@ -49,14 +41,14 @@ impl Provider for GithubProvider {
 
     async fn list_changes(
         &self,
-        scope: &Scope,
-        since: Option<Etag>,
+        _scope: &Scope,
+        _since: Option<Etag>,
     ) -> Result<Page<ChangeSummary>> {
-        changes::list_changes(&self.client, &self.source_id, scope, since).await
+        not_yet("listing changes")
     }
 
-    async fn change_detail(&self, id: &ChangeId) -> Result<ChangeDetail> {
-        changes::change_detail(&self.client, &self.source_id, id, self.web_url(id)).await
+    async fn change_detail(&self, _id: &ChangeId) -> Result<ChangeDetail> {
+        not_yet("change details")
     }
 
     async fn files(&self, _id: &ChangeId) -> Result<Vec<FilePatch>> {
@@ -107,6 +99,6 @@ impl Provider for GithubProvider {
     }
 
     fn capabilities(&self) -> Capabilities {
-        Capabilities::all()
+        Capabilities::none()
     }
 }
