@@ -3,8 +3,9 @@
 use anyhow::{anyhow, bail, Context, Result};
 use rb_core::{
     triage::parse_age, AuthMode, ChangeDetail, ChangeId, ChangeState, ChangeSummary, Check,
-    CiState, Comment, CommentId, DraftComment, FilePatch, FileStatus, ForgeKind, MyReview, MyRole,
-    ReviewDraft, Reviewer, Scope, Side, Source, SourceId, Thread, ThreadId, Timestamp, User,
+    CiState, Comment, CommentId, DraftComment, FilePatch, FileStatus, ForgeKind, Mergeability,
+    MyReview, MyRole, ReviewDraft, Reviewer, Scope, Side, Source, SourceId, Thread, ThreadId,
+    Timestamp, User,
 };
 use serde::Deserialize;
 use url::Url;
@@ -127,17 +128,30 @@ struct RawChange {
     #[serde(default)]
     has_new_activity: bool,
     mergeable: Option<bool>,
+    #[serde(default)]
+    mergeability: Mergeability,
+    #[serde(default)]
+    commit_count: u32,
     body: String,
     #[serde(default)]
     reviewer: Vec<Reviewer>,
     #[serde(default)]
     file: Vec<RawFile>,
     #[serde(default)]
-    check: Vec<Check>,
+    check: Vec<RawCheck>,
     #[serde(default)]
     thread: Vec<RawThread>,
     #[serde(default)]
     draft_comment: Vec<DraftComment>,
+}
+
+#[derive(Deserialize)]
+struct RawCheck {
+    name: String,
+    state: CiState,
+    started_ago: Option<String>,
+    duration_secs: Option<i64>,
+    required: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -152,9 +166,12 @@ struct RawFile {
 struct RawThread {
     id: String,
     path: Option<String>,
+    start_line: Option<u32>,
     line: Option<u32>,
     #[serde(default = "new_side")]
     side: Side,
+    #[serde(default)]
+    pending: bool,
     #[serde(default)]
     resolved: bool,
     #[serde(default)]
@@ -264,10 +281,16 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
             body: raw.body.trim_end().to_string(),
             web_url: change_url(&source.host, &id)?,
             mergeable: raw.mergeable,
+            mergeability: raw.mergeability,
+            commit_count: raw.commit_count,
         },
         files,
         threads,
-        checks: raw.check,
+        checks: raw
+            .check
+            .into_iter()
+            .map(|c| check(c, now))
+            .collect::<Result<Vec<_>>>()?,
         draft: ReviewDraft {
             body: String::new(),
             comments: raw.draft_comment,
@@ -292,6 +315,21 @@ fn file(raw: RawFile, id: &ChangeId) -> Result<FilePatch> {
     })
 }
 
+fn check(raw: RawCheck, now: Timestamp) -> Result<Check> {
+    let started_at = raw.started_ago.map(|a| ago(now, &a)).transpose()?;
+    let completed_at = started_at
+        .zip(raw.duration_secs)
+        .map(|(s, d)| Timestamp(s.0 + d));
+    Ok(Check {
+        name: raw.name,
+        state: raw.state,
+        url: None,
+        started_at,
+        completed_at,
+        required: raw.required,
+    })
+}
+
 fn thread(raw: RawThread, now: Timestamp) -> Result<Thread> {
     let comments = raw
         .comment
@@ -302,6 +340,7 @@ fn thread(raw: RawThread, now: Timestamp) -> Result<Thread> {
                 author: c.author,
                 body: c.body.trim_end().to_string(),
                 created_at: ago(now, &c.created_ago)?,
+                pending: raw.pending,
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -310,6 +349,9 @@ fn thread(raw: RawThread, now: Timestamp) -> Result<Thread> {
         path: raw.path,
         line: raw.line,
         side: raw.side,
+        start_line: raw.start_line,
+        start_side: raw.start_line.map(|_| raw.side),
+        pending: raw.pending,
         resolved: raw.resolved,
         outdated: raw.outdated,
         comments,
@@ -470,6 +512,7 @@ mod tests {
                 CiState::Running => assert!(checks.iter().any(|k| k.state == CiState::Running)),
                 CiState::Pass => assert!(checks.iter().all(|k| k.state == CiState::Pass)),
                 CiState::None => assert!(checks.is_empty()),
+                _ => {}
             }
         }
     }

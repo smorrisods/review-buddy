@@ -162,6 +162,12 @@ pub enum CiState {
     Running,
     Fail,
     None,
+    /// Finished without a verdict either way (for example a GitHub "neutral" run).
+    Neutral,
+    /// Deliberately not run.
+    Skipped,
+    /// Stopped before it finished.
+    Cancelled,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -238,6 +244,28 @@ pub struct ChangeDetail {
     pub web_url: Url,
     /// `None` while the forge is still working it out.
     pub mergeable: Option<bool>,
+    /// Finer merge readiness than `mergeable`.
+    #[serde(default)]
+    pub mergeability: Mergeability,
+    /// Number of commits on the change; 0 when the forge didn't say.
+    #[serde(default)]
+    pub commit_count: u32,
+}
+
+/// Why a change can or can't be merged right now.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Mergeability {
+    #[default]
+    Unknown,
+    Clean,
+    Conflicts,
+    /// Waiting on required reviews or checks.
+    Blocked,
+    /// The branch is behind its base.
+    Behind,
+    /// Mergeable, but some non-required check isn't passing.
+    Unstable,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -253,6 +281,9 @@ pub struct Comment {
     pub author: String,
     pub body: String,
     pub created_at: Timestamp,
+    /// Part of a pending (draft) review that hasn't been submitted.
+    #[serde(default)]
+    pub pending: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -260,10 +291,20 @@ pub struct Thread {
     pub id: ThreadId,
     /// `None` for a conversation-level thread.
     pub path: Option<String>,
+    /// Last line of the range (or the only line).
     pub line: Option<u32>,
     pub side: Side,
+    /// First line of a range comment; `None` for a single-line thread.
+    #[serde(default)]
+    pub start_line: Option<u32>,
+    /// Side of `start_line`; `None` means the same as `side`.
+    #[serde(default)]
+    pub start_side: Option<Side>,
     pub resolved: bool,
     pub outdated: bool,
+    /// Every comment is part of a pending review.
+    #[serde(default)]
+    pub pending: bool,
     pub comments: Vec<Comment>,
 }
 
@@ -272,6 +313,21 @@ pub struct Check {
     pub name: String,
     pub state: CiState,
     pub url: Option<Url>,
+    #[serde(default)]
+    pub started_at: Option<Timestamp>,
+    #[serde(default)]
+    pub completed_at: Option<Timestamp>,
+    /// `None` when the forge doesn't say whether branch protection requires it.
+    #[serde(default)]
+    pub required: Option<bool>,
+}
+
+impl Check {
+    /// Seconds between start and completion, when both are known.
+    pub fn duration_secs(&self) -> Option<i64> {
+        let (s, c) = (self.started_at?, self.completed_at?);
+        (c.0 >= s.0).then_some(c.0 - s.0)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -392,6 +448,37 @@ mod tests {
             repo: "platform/flow".into(),
             number: 88,
         }
+    }
+
+    #[test]
+    fn check_duration_needs_both_ends() {
+        let mut c = Check {
+            name: "x".into(),
+            state: CiState::Pass,
+            url: None,
+            started_at: Some(Timestamp(10)),
+            completed_at: None,
+            required: None,
+        };
+        assert_eq!(c.duration_secs(), None);
+        c.completed_at = Some(Timestamp(70));
+        assert_eq!(c.duration_secs(), Some(60));
+        c.completed_at = Some(Timestamp(5));
+        assert_eq!(c.duration_secs(), None);
+    }
+
+    #[test]
+    fn old_rows_without_new_fields_deserialize() {
+        let t: Thread = serde_json::from_str(
+            r#"{"id":"t","path":null,"line":3,"side":"new","resolved":false,"outdated":false,"comments":[{"id":"c","author":"a","body":"b","created_at":1}]}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            (t.start_line, t.pending, t.comments[0].pending),
+            (None, false, false)
+        );
+        let c: Check = serde_json::from_str(r#"{"name":"n","state":"pass","url":null}"#).unwrap();
+        assert_eq!((c.started_at, c.required), (None, None));
     }
 
     #[test]

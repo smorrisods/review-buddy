@@ -234,6 +234,11 @@ async fn threads_page_through_threads_and_comments() {
     assert_eq!(multi.comments[0].author, "alice");
     assert!(multi.comments[1].created_at > multi.comments[0].created_at);
     assert!(!multi.resolved && !multi.outdated);
+    assert_eq!(
+        (multi.start_line, multi.start_side),
+        (Some(1), Some(Side::Old))
+    );
+    assert!(!multi.pending && !multi.comments[0].pending);
 }
 
 #[tokio::test]
@@ -253,6 +258,12 @@ async fn threads_map_resolved_outdated_and_pending_suggestion() {
 
     let pending = &threads[3];
     assert_eq!((pending.line, pending.side), (Some(4), Side::New));
+    assert_eq!(
+        (pending.start_line, pending.start_side),
+        (Some(3), Some(Side::New))
+    );
+    assert!(pending.pending && pending.comments[0].pending);
+    assert_eq!(resolved.start_line, None);
     assert!(pending.comments[0]
         .body
         .contains("```suggestion\nfn c() -> u8 { 2 }\n```"));
@@ -320,11 +331,17 @@ async fn checks_merge_runs_and_legacy_statuses() {
             ("build", CiState::Pass),
             ("lint", CiState::Fail),
             ("e2e", CiState::Running),
-            ("docs", CiState::Pass),
+            ("docs", CiState::Skipped),
+            ("bench", CiState::Cancelled),
+            ("audit", CiState::Neutral),
             ("deploy/preview", CiState::Running),
             ("license/cla", CiState::Pass),
         ]
     );
+    assert_eq!(checks[0].duration_secs(), Some(125));
+    assert!(checks[0].started_at.is_some() && checks[0].required.is_none());
+    assert!(checks[2].started_at.is_some());
+    assert_eq!(checks[2].completed_at, None);
     let url = |i: usize| checks[i].url.as_ref().map(|u| u.as_str().to_string());
     assert_eq!(url(0).as_deref(), Some("https://ci.example/build"));
     assert_eq!(
@@ -332,7 +349,7 @@ async fn checks_merge_runs_and_legacy_statuses() {
         Some("https://github.com/acme/widgets/runs/2")
     );
     assert_eq!(url(3), None);
-    assert_eq!(url(4).as_deref(), Some("https://legacy.example/deploy"));
+    assert_eq!(url(6).as_deref(), Some("https://legacy.example/deploy"));
 }
 
 #[tokio::test]

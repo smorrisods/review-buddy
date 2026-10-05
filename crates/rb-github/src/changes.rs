@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rb_core::{
-    ChangeDetail, ChangeId, ChangeState, ChangeSummary, CiState, Error, Etag, ForgeKind, MyReview,
-    MyRole, Page, Result, Reviewer, ReviewerState, Scope, SourceId,
+    ChangeDetail, ChangeId, ChangeState, ChangeSummary, CiState, Error, Etag, ForgeKind,
+    Mergeability, MyReview, MyRole, Page, Result, Reviewer, ReviewerState, Scope, SourceId,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -41,6 +41,7 @@ fragment PrFields on PullRequest {
   } } }
   latestReviews(first: 30) { nodes { author { login } state commit { oid } } }
   comments(last: 30) { nodes { author { login } } }
+  commitCount: commits { totalCount }
   commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
 }
 ";
@@ -61,7 +62,7 @@ query($owner: String!, $name: String!, $number: Int!) {
   rateLimit { cost remaining resetAt }
   viewer { login }
   repository(owner: $owner, name: $name) {
-    pullRequest(number: $number) { ...PrFields body mergeable }
+    pullRequest(number: $number) { ...PrFields body mergeable mergeStateStatus }
   }
 }
 ";
@@ -228,6 +229,16 @@ struct PrNode {
     commits: Nodes<CommitNode>,
     body: Option<String>,
     mergeable: Option<String>,
+    #[serde(rename = "mergeStateStatus")]
+    merge_state_status: Option<String>,
+    #[serde(rename = "commitCount")]
+    commit_count: Option<Total>,
+}
+
+#[derive(Deserialize)]
+struct Total {
+    #[serde(rename = "totalCount")]
+    total_count: u32,
 }
 
 #[derive(Deserialize)]
@@ -635,6 +646,15 @@ pub(crate) async fn change_detail(
             Some("CONFLICTING") => Some(false),
             _ => None,
         },
+        mergeability: match node.merge_state_status.as_deref() {
+            Some("CLEAN" | "HAS_HOOKS") => Mergeability::Clean,
+            Some("DIRTY") => Mergeability::Conflicts,
+            Some("BLOCKED") => Mergeability::Blocked,
+            Some("BEHIND") => Mergeability::Behind,
+            Some("UNSTABLE") => Mergeability::Unstable,
+            _ => Mergeability::Unknown,
+        },
+        commit_count: node.commit_count.map_or(0, |c| c.total_count),
     })
 }
 

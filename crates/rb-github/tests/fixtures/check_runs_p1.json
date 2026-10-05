@@ -1,4 +1,4 @@
 {"total_count": 4, "check_runs": [
-  {"name": "build", "status": "completed", "conclusion": "success", "details_url": "https://ci.example/build", "html_url": "https://github.com/acme/widgets/runs/1"},
+  {"name": "build", "status": "completed", "conclusion": "success", "started_at": "2026-10-04T10:00:00Z", "completed_at": "2026-10-04T10:02:05Z", "details_url": "https://ci.example/build", "html_url": "https://github.com/acme/widgets/runs/1"},
   {"name": "lint", "status": "completed", "conclusion": "failure", "details_url": null, "html_url": "https://github.com/acme/widgets/runs/2"}
 ]}

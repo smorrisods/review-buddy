@@ -319,11 +319,15 @@ pub fn reveal(scroll: usize, top: usize, bottom: usize, height: usize, total: us
 }
 
 fn thread_block(thread: &Thread, now: Timestamp, width: usize) -> Block {
-    let place = match (thread.line, thread.outdated) {
-        (Some(line), false) => format!("line {line}"),
+    let place = match (thread.line, thread.start_line, thread.outdated) {
+        (Some(line), Some(start), false) if start < line => format!("lines {start}–{line}"),
+        (Some(line), _, false) => format!("line {line}"),
         _ => "outdated".to_string(),
     };
     let mut title = format!("thread · {place}");
+    if thread.pending {
+        title.push_str(" · ◌ pending");
+    }
     if thread.resolved {
         title.push_str(" · ✓ resolved");
     }
@@ -450,6 +454,9 @@ pub(crate) mod tests {
             path: Some("src/a.rs".into()),
             line: Some(line),
             side,
+            start_line: None,
+            start_side: None,
+            pending: false,
             resolved: false,
             outdated: false,
             comments: vec![
@@ -458,15 +465,35 @@ pub(crate) mod tests {
                     author: "jo".into(),
                     body: "Should this wrap round?".into(),
                     created_at: Timestamp(0),
+                    pending: false,
                 },
                 Comment {
                     id: CommentId("c2".into()),
                     author: "ada".into(),
                     body: "Yes.".into(),
                     created_at: Timestamp(3_600),
+                    pending: false,
                 },
             ],
         }
+    }
+
+    #[test]
+    fn range_and_pending_threads_say_so_in_the_title() {
+        let mut t = thread(7, Side::New);
+        assert_eq!(thread_block(&t, Timestamp(0), 40).title, "thread · line 7");
+        t.start_line = Some(5);
+        t.start_side = Some(Side::New);
+        t.pending = true;
+        assert_eq!(
+            thread_block(&t, Timestamp(0), 40).title,
+            "thread · lines 5–7 · ◌ pending"
+        );
+        t.start_line = Some(7);
+        assert_eq!(
+            thread_block(&t, Timestamp(0), 40).title,
+            "thread · line 7 · ◌ pending"
+        );
     }
 
     pub fn draft(line: u32, body: &str) -> DraftComment {

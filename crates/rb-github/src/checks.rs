@@ -1,15 +1,15 @@
 //! Check runs plus legacy commit statuses merged into one list.
 //! See "CI" in docs/integrations.md.
 //!
-//! Neutral and skipped runs count as passing, and cancelled runs as no signal, because
-//! `CiState` only has pass, running, fail and none. Branch-protection "required" flags
-//! need an extra admin-scoped call, so they are not reported.
+//! Neutral, skipped and cancelled runs keep their own `CiState`. Branch-protection "required"
+//! flags need an extra admin-scoped call, so `required` stays unknown.
 
 use rb_core::{ChangeId, Check, CiState, Result};
 use serde::Deserialize;
 use url::Url;
 
 use crate::files::repo_parts;
+use crate::time::parse_rfc3339;
 use crate::GithubClient;
 
 const MAX_PAGES: usize = 10;
@@ -37,6 +37,8 @@ struct Run {
     conclusion: Option<String>,
     details_url: Option<String>,
     html_url: Option<String>,
+    started_at: Option<String>,
+    completed_at: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -57,8 +59,11 @@ fn run_state(status: &str, conclusion: Option<&str>) -> CiState {
         return CiState::Running;
     }
     match conclusion {
-        Some("success" | "neutral" | "skipped") => CiState::Pass,
-        Some("cancelled") | None => CiState::None,
+        Some("success") => CiState::Pass,
+        Some("neutral") => CiState::Neutral,
+        Some("skipped") => CiState::Skipped,
+        Some("cancelled") => CiState::Cancelled,
+        None => CiState::None,
         Some(_) => CiState::Fail,
     }
 }
@@ -82,6 +87,9 @@ fn merge(runs: Vec<Run>, statuses: Vec<Status>) -> Vec<Check> {
         .map(|r| Check {
             state: run_state(&r.status, r.conclusion.as_deref()),
             url: url(r.details_url.or(r.html_url)),
+            started_at: r.started_at.as_deref().and_then(parse_rfc3339),
+            completed_at: r.completed_at.as_deref().and_then(parse_rfc3339),
+            required: None,
             name: r.name,
         })
         .collect();
@@ -92,6 +100,9 @@ fn merge(runs: Vec<Run>, statuses: Vec<Status>) -> Vec<Check> {
         out.push(Check {
             state: status_state(&s.state),
             url: url(s.target_url),
+            started_at: None,
+            completed_at: None,
+            required: None,
             name: s.context,
         });
     }
@@ -130,9 +141,13 @@ mod tests {
         assert_eq!(run_state("queued", None), CiState::Running);
         assert_eq!(run_state("in_progress", None), CiState::Running);
         assert_eq!(run_state("completed", Some("success")), CiState::Pass);
-        assert_eq!(run_state("completed", Some("neutral")), CiState::Pass);
-        assert_eq!(run_state("completed", Some("skipped")), CiState::Pass);
-        assert_eq!(run_state("completed", Some("cancelled")), CiState::None);
+        assert_eq!(run_state("completed", Some("neutral")), CiState::Neutral);
+        assert_eq!(run_state("completed", Some("skipped")), CiState::Skipped);
+        assert_eq!(
+            run_state("completed", Some("cancelled")),
+            CiState::Cancelled
+        );
+        assert_eq!(run_state("completed", None), CiState::None);
         assert_eq!(run_state("completed", Some("timed_out")), CiState::Fail);
         assert_eq!(
             run_state("completed", Some("action_required")),

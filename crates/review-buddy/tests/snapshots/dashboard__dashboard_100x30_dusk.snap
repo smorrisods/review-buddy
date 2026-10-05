@@ -1,5 +1,6 @@
 ---
 source: crates/review-buddy/tests/dashboard.rs
+assertion_line: 104
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
@@ -11,7 +12,7 @@ expression: text(&render(&mut a))
 │  ● Raise muted text contrast in the ligh… 5h ││                                                  │
 │  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  │
 │                                              ││                                                  │
-│  Worth a look · 2                            ││  Overview   Files 3   Checks 3   Conversation 2  │
+│  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3  │
 │  ✕ Cache pipeline status lookups          7h ││ ──────────────────────────────────────────────── │
 │  GL flow!1182 · priya · you're mentioned     ││ Adds a menu bar along the top and a Menu type    │
 │  ● Tidy zsh startup                       1d ││ that tracks the selected item.                   │
@@ -29,6 +30,6 @@ expression: text(&render(&mut a))
 │                                              ││                                                  │
 │                                              ││ Checks                                           │
 │                                              ││ ● 2 passing  ◐ 1 running                         │
-│                                              ││                                                  │
+│                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
  ⏎ diff  T theme  q quit

@@ -53,6 +53,8 @@ my_role = "reviewing"
 my_review = "none"
 has_new_activity = true
 mergeable = true
+mergeability = "unstable"
+commit_count = 4
 body = """
 Adds a menu bar along the top and a `Menu` type that tracks the selected item.
 
@@ -87,14 +89,40 @@ patch = "ui-mod.rs.patch"
 [[change.check]]
 name = "fmt"
 state = "pass"
+started_ago = "2h"
+duration_secs = 18
+required = true
 
 [[change.check]]
 name = "clippy"
 state = "pass"
+started_ago = "2h"
+duration_secs = 94
+required = true
 
 [[change.check]]
 name = "test (linux)"
 state = "running"
+started_ago = "2m"
+required = true
+
+[[change.check]]
+name = "test (windows)"
+state = "skipped"
+
+[[change.check]]
+name = "coverage"
+state = "neutral"
+started_ago = "2h"
+duration_secs = 131
+required = false
+
+[[change.check]]
+name = "bench"
+state = "cancelled"
+started_ago = "2h"
+duration_secs = 40
+required = false
 
 [[change.thread]]
 id = "demo-thread-1"
@@ -113,6 +141,19 @@ id = "demo-comment-2"
 author = "ada"
 created_ago = "20h"
 body = "I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather."
+
+[[change.thread]]
+id = "demo-thread-range"
+path = "src/ui/menubar.rs"
+start_line = 5
+line = 7
+side = "new"
+
+[[change.thread.comment]]
+id = "demo-comment-range"
+author = "jo"
+created_ago = "5h"
+body = "These three lines could be one `join`. Is the intermediate `Vec` doing anything for us?"
 
 [[change.draft_comment]]
 path = "src/ui/menus.rs"
