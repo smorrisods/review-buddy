@@ -27,8 +27,10 @@ rust-version = "1.87"
 anyhow = "1"
 assert_cmd = "2"
 async-trait = "0.1"
+base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 clap_mangen = "0.3"
+keyring = { version = "3.6", default-features = false }
 predicates = "3"
 rb-core = { path = "crates/rb-core" }
 rb-diff = { path = "crates/rb-diff" }
