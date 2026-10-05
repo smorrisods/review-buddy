@@ -23,9 +23,7 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
         | Command::Triage { .. } => "v0.1.0",
         Command::Pr { action } => match action {
             PrAction::List(_) => return None,
-            PrAction::View { .. }
-            | PrAction::Checks { .. }
-            | PrAction::Open { .. } => "v0.1.0",
+            PrAction::View { .. } | PrAction::Checks { .. } | PrAction::Open { .. } => "v0.1.0",
             PrAction::Diff { .. } => return None,
         },
         Command::Auth {
