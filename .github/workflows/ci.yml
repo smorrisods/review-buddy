@@ -186,6 +186,19 @@ jobs:
       - name: Run tests
         run: cargo nextest run --workspace --profile ci --no-tests=pass
 
+  scripts:
+    name: Release scripts
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Lint shell scripts
+        run: shellcheck -x --severity=warning scripts/*.sh scripts/lib/*.sh scripts/tests/*.sh
+
+      - name: Run script tests
+        run: bash scripts/tests/run.sh
+
   audit:
     name: Security audit
     runs-on: ubuntu-24.04

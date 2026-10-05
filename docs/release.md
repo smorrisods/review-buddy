@@ -9,7 +9,7 @@ Repo: `smorrisods/review-buddy`. Licence: MIT. Channels for 1.0: **GitHub Releas
 ## Release flow (identical to jira-tui)
 
 1. Merge the release-ready PR into `main`.
-2. Run `scripts/prepare-release-version.sh --version <next>` in a clean tree. It creates `chore/release-v<next>` and bumps **only our own** `name = "review-buddy"` stanza in `Cargo.toml` and `Cargo.lock`. It fails loudly if the stanza isn't found. `--current-version` and `--dry-run` behave the same as in jira-tui.
+2. Run `scripts/prepare-release-version.sh --version <next>` in a clean tree. It creates `chore/release-v<next>` and bumps the root `[workspace.package]` version and **only our own** `name = "review-buddy"` stanza in `Cargo.lock`. It fails loudly if the stanza isn't found. `--current-version` and `--dry-run` behave the same as in jira-tui.
 3. Open a PR from that branch, wait for green CI, and merge to `main`.
 4. Tag `vX.Y.Z` on `main`. The tag must match `^v[0-9]+\.[0-9]+\.[0-9]+$`.
 5. The `Release` workflow builds every target and creates or reuses the GitHub Release (generated notes; categories from `.github/release.yml`).
@@ -17,6 +17,31 @@ Repo: `smorrisods/review-buddy`. Licence: MIT. Channels for 1.0: **GitHub Releas
 7. Smoke-test from the published assets (checklist below), then edit the generated notes if needed.
 
 **Manual dispatch** (`workflow_dispatch`) is the same as jira-tui: `release_tag` is a **required** input and is never derived. There's an optional `release_draft`. The workflow refuses to reuse a matching release that is already published, and only reattaches to a release that is still a draft. Concurrency is grouped per tag, with cancel-in-progress. Uploads use `gh release upload --clobber`, so reruns against a draft are idempotent.
+
+## Release script commands
+
+All scripts live in `scripts/`; shared helpers are in `scripts/lib/release-common.sh`.
+
+```sh
+# Print the workspace version, or bump it (clean tree required; creates chore/release-vX.Y.Z)
+scripts/prepare-release-version.sh --current-version
+scripts/prepare-release-version.sh --version X.Y.Z --dry-run
+scripts/prepare-release-version.sh --version X.Y.Z
+
+# tar.gz archive: dist/review-buddy-X.Y.Z-<target>.tar.gz (man dir found under target/**/build/review-buddy-*/out/man unless --man-dir is given)
+cargo build --release --locked --target x86_64-unknown-linux-musl
+scripts/build-release-archive.sh --version vX.Y.Z --target x86_64-unknown-linux-musl --binary target/x86_64-unknown-linux-musl/release/review-buddy
+
+# .deb and .rpm (--arch amd64|arm64, --libc gnu|musl, --format all|deb|rpm); needs dpkg-deb and rpmbuild
+scripts/build-linux-packages.sh --version vX.Y.Z --arch amd64 --binary target/release/review-buddy --output-prefix dist/review-buddy-X.Y.Z-linux-amd64
+
+# one SHA256SUMS over everything in dist/
+scripts/generate-checksums.sh dist
+```
+
+On Windows, `scripts\build-release-archive.ps1 -Version vX.Y.Z -Target x86_64-pc-windows-msvc -Binary target\x86_64-pc-windows-msvc\release\review-buddy.exe` writes `dist\review-buddy-X.Y.Z-x86_64-pc-windows-msvc.zip` with `review-buddy.exe`, `themes/`, `config.example.toml`, `LICENSE` and `README.md` at the root.
+
+The version bump edits the `version` in the root `[workspace.package]` table (the binary crate inherits it) and our own `name = "review-buddy"` stanza in `Cargo.lock`. The scripts are covered by `bash scripts/tests/run.sh`, which CI runs in the `scripts` job along with `shellcheck`.
 
 ## Workflow jobs
 
