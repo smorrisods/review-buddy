@@ -79,7 +79,7 @@ impl MapEnv {
         Self {
             vars: HashMap::new(),
             home: Some(home.into()),
-            os: Os::Unix,
+            os: if cfg!(windows) { Os::Windows } else { Os::Unix },
             private_runtime: true,
         }
     }
