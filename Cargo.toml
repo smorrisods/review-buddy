@@ -35,6 +35,7 @@ rb-platform = { path = "crates/rb-platform" }
 rb-store = { path = "crates/rb-store" }
 rb-theme = { path = "crates/rb-theme" }
 rb-diff = { path = "crates/rb-diff" }
+tempfile = "3"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
