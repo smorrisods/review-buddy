@@ -14,7 +14,7 @@ review-buddy/
 │  ├─ rb-store/               SQLite cache (rusqlite), ETag store, drafts, offline queue
 │  ├─ rb-theme/               theme loading, role resolution, colour-depth quantisation
 │  ├─ rb-diff/                patch parsing, hunk model, side-by-side pairing, syntect bridge
-│  └─ review-buddy/           the binary: app state, event loop, ratatui widgets
+│  └─ review-buddy/           the binary: app state, event loop, ratatui widgets, and cmd/ (the gh-style command line)
 ├─ themes/                    built-in theme TOML (embedded with include_str!)
 └─ docs/
 ```
@@ -82,6 +82,10 @@ struct App {
 
 Mouse events are hit-tested against the `Rect`s recorded during the last draw (`HitMap`). Line drag-select is `Down(Left)` → anchor, `Drag(Left)` → cursor, `Up(Left)` → finish (and clear if anchor == cursor).
 
+## Command line
+
+With a command, the binary skips the TUI and runs one module under `crates/review-buddy/src/cmd/`. It builds the same sources, providers (or `DemoProvider` under `--demo`), cache and theme as the TUI, then resolves a selector, calls `Provider` and formats the result as a table, tab-separated lines or `--json`. Selector parsing and output formatting are pure and unit tested. See `docs/cli.md`.
+
 ## Rendering notes
 
 - Pane titles are drawn into the top border with `Block::title`. The focused pane uses `theme.accent` for the border and title.
@@ -110,4 +114,5 @@ Mouse events are hit-tested against the `Rect`s recorded during the last draw (`
 - Cargo features: `live` (HTTP providers, keyring) and `demo` (fixtures, `--demo`), both on by default. `--no-default-features` builds the core with neither and must stay warning-free (the CI clippy and test matrix: default, no-default-features, all-features, as in jira-tui).
 - Demo fixtures live in `crates/review-buddy/src/demo/` as TOML plus patch files. A `DemoProvider` implements `Provider`, so the UI code path is identical; write calls mutate in-memory state only.
 - CI runs tests on Linux x64 and ARM64, Windows x64 and macOS ARM64; release builds cover Linux amd64/arm64, macOS universal and Windows amd64/arm64 (see `release.md`).
+- CLI: `assert_cmd` runs every command under `--demo --frozen-time` with temp `XDG_*` dirs, piped and with `--json`, pinned with `insta` (see `docs/cli.md`).
 - `cargo test --features live` runs against a throwaway GitHub repo and a GitLab project (CI only, behind secrets).
