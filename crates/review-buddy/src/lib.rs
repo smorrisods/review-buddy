@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod cli;
+pub mod cmd;
 pub mod config;
 #[cfg(feature = "demo")]
 pub mod demo;

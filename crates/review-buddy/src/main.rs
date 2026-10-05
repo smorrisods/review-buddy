@@ -2,27 +2,17 @@ use std::io::IsTerminal;
 use std::process::ExitCode;
 
 use clap::Parser;
-use review_buddy::{cli, runtime};
+use review_buddy::{cli, cmd, runtime};
 
-/// Exit code for a command that parsed fine but cannot run here (not built yet,
-/// or the interface was started without a terminal).
+/// Exit code for an interface that was started without a terminal.
 const EXIT_UNAVAILABLE: u8 = 2;
 
 fn main() -> ExitCode {
-    run(cli::Cli::parse())
-}
-
-fn run(cli: cli::Cli) -> ExitCode {
-    let what = match &cli.command {
-        None => return launch(&cli),
-        Some(cli::Command::Open { .. }) => "The open command",
-        Some(cli::Command::Theme { .. }) => "The theme command",
-        Some(cli::Command::Doctor) => "The doctor command",
-        Some(cli::Command::Config { .. }) => "The config command",
-        Some(cli::Command::Triage { .. }) => "The triage command",
-    };
-    eprintln!("{what} isn't built yet. Run `review-buddy --help` to see what's available.");
-    ExitCode::from(EXIT_UNAVAILABLE)
+    let cli = cli::Cli::parse();
+    if cli.command.is_some() {
+        return cmd::run(cli);
+    }
+    launch(&cli)
 }
 
 fn launch(cli: &cli::Cli) -> ExitCode {
@@ -50,8 +40,10 @@ fn launch(cli: &cli::Cli) -> ExitCode {
 
 #[cfg(feature = "demo")]
 fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
-    let demo = if cli.demo {
-        Some(review_buddy::demo::Demo::start(cli.frozen_time.as_deref())?)
+    let demo = if cli.global.demo {
+        Some(review_buddy::demo::Demo::start(
+            cli.global.frozen_time.as_deref(),
+        )?)
     } else {
         None
     };
@@ -60,7 +52,7 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
 
 #[cfg(not(feature = "demo"))]
 fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
-    if cli.demo {
+    if cli.global.demo {
         anyhow::bail!(
             "This build doesn't include demo mode. Install a release build, or rebuild with the `demo` feature."
         );

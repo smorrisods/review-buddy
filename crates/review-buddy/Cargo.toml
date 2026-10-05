@@ -24,6 +24,9 @@ async-trait = { workspace = true, optional = true }
 clap.workspace = true
 crossterm.workspace = true
 futures-util.workspace = true
+jaq-core.workspace = true
+jaq-json.workspace = true
+jaq-std.workspace = true
 ratatui.workspace = true
 rb-core.workspace = true
 rb-diff.workspace = true
@@ -34,6 +37,7 @@ rb-platform.workspace = true
 rb-store.workspace = true
 rb-theme.workspace = true
 serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
 thiserror.workspace = true
 tokio.workspace = true
 toml.workspace = true
