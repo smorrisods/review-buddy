@@ -49,4 +49,5 @@ The app is Elm-style: a pure `update(&mut App, Msg) -> Vec<Cmd>`, with effects r
 - **Live writes only against a throwaway repository.**
 - **Calm-computing copy:** sentence case, errors say what to do next, colour is never the only signal.
 - **Canadian spelling** in comments, docs, and UI copy, except for external API fields and crate names.
+- **Update PR branches by rebasing onto `main`** (`git push --force-with-lease`), not by merging `main` in.
 - **Branch names start with a `prefix/`** (`feature/`, `fix/`, `chore/`, `docs/`, `test/`, `ci/`, `build/`, `design/`); see `AGENTS.md`.

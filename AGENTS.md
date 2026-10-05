@@ -69,7 +69,7 @@ Guidelines for humans and AI agents working in `review-buddy`.
 - **Labels:** every PR gets at least one primary category label (`enhancement`, `bug`, `documentation`, `testing`, `ci`, `build`, `chore`) plus scope labels where useful (`rust`, `dependencies`, `github_actions`, `github`, `gitlab`, `ui`, `diff`, `theme`, `demo`, `platform`, `release`). Use `skip-changelog` for changes that shouldn't appear in release notes.
 - **Readiness:** open PRs ready for review by default; draft only when asked or when there's a clearly communicated blocker.
 - **Merging:** use a real merge commit (`gh pr merge --merge`), not squash or rebase, so the per-commit history survives onto `main`.
-- **Force-pushing** an open PR branch requires explicit user confirmation first.
+- **Updating a PR branch:** rebase onto `main` rather than merging `main` into the branch, and push with `git push --force-with-lease`. Rebasing a branch you own is expected. Force-pushing any other history rewrite of an open PR branch (or one other people have pushed to) still needs explicit user confirmation first.
 - Prefer the `gh` CLI for PR, issue, label, and workflow-run work.
 
 ## Releases
