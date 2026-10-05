@@ -1,5 +1,6 @@
 use rb_core::{
-    CiState, Error, Etag, ForgeKind, MyReview, MyRole, Provider, ReviewerState, Scope, SourceId,
+    CiState, Error, Etag, ForgeKind, Mergeability, MyReview, MyRole, Provider, ReviewerState,
+    Scope, SourceId,
 };
 use rb_github::{GithubClient, GithubProvider};
 use rb_platform::Secret;
@@ -384,6 +385,8 @@ async fn detail_maps_body_reviewers_and_mergeability() {
     assert_eq!(d.summary.title, "Add retry to sync");
     assert!(d.body.starts_with("Retries the sync call"));
     assert_eq!(d.mergeable, Some(true));
+    assert_eq!(d.mergeability, Mergeability::Clean);
+    assert_eq!(d.commit_count, 4);
     assert_eq!(d.web_url.as_str(), "https://ghe.test/acme/web/pull/101");
     assert_eq!(d.summary.my_role, MyRole::Reviewing);
     assert_eq!(d.summary.reviewers.len(), 3);

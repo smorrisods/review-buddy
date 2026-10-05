@@ -1,5 +1,6 @@
 ---
 source: crates/review-buddy/tests/dashboard.rs
+assertion_line: 86
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
@@ -10,7 +11,7 @@ expression: text(&render(&mut a))
 │    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
 │  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
 │    github.com          ││                                              ││                                                                                    │
-│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 3   Conversation 2                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3                                    │
 │    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups          7h ││ ────────────────────────────────────────────────────────────────────────────────── │
 │  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ Adds a menu bar along the top and a Menu type that tracks the selected item.       │
 │    gitlab.com          ││  ● Tidy zsh startup                       1d ││                                                                                    │
@@ -20,12 +21,12 @@ expression: text(&render(&mut a))
 │                        ││  · Clarify the install steps              3d ││                                                                                    │
 │                        ││  GL notes!12 · kai · approved by you         ││ Reviewers                                Checks                                    │
 │                        ││                                              ││ ◌ smorris requested                      ● 2 passing  ◐ 1 running                  │
-│                        ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││ ✎ jo commented                                                                     │
+│                        ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││ ✎ jo commented                           ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
 │                        ││                                              ││                                                                                    │
 │                        ││  ── That's everything.                       ││ Latest comment                                                                     │
-│                        ││  7 in this view.                             ││ ada · 20h ago · menus.rs:44                                                        │
-│                        ││                                              ││ I went with wrapping so a held key never gets stuck. Happy to make it configurable │
-│                        ││                                              ││ if you'd rather.                                                                   │
+│                        ││  7 in this view.                             ││ jo · 5h ago · menubar.rs:7                                                         │
+│                        ││                                              ││ These three lines could be one join. Is the intermediate Vec doing anything for    │
+│                        ││                                              ││ us?                                                                                │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││ Your review  not started                                                           │
 │                        ││                                              ││                                                                                    │

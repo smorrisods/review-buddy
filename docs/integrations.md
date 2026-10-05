@@ -59,7 +59,7 @@ On GitHub, a file whose `patch` is absent (binary or too large) comes back with 
 
 | | GitHub | GitLab |
 |---|---|---|
-| Read | GraphQL `reviewThreads { isResolved, isOutdated, path, line, originalLine, diffSide, comments }` (includes your pending review) + `GET /issues/:n/comments`, shown as unanchored conversation threads. A range comment is anchored at its last line; an outdated thread falls back to `originalLine` | `GET /projects/:id/merge_requests/:iid/discussions` |
+| Read | GraphQL `reviewThreads { isResolved, isOutdated, path, line, originalLine, startLine, diffSide, startDiffSide, comments { state } }` (includes your pending review; comments in state `PENDING` mark the thread as pending) + `GET /issues/:n/comments`, shown as unanchored conversation threads. A range comment is anchored at its last line and keeps its `start_line` and `start_side`; an outdated thread falls back to `originalLine` | `GET /projects/:id/merge_requests/:iid/discussions` |
 | Pending review | `POST /repos/:o/:r/pulls/:n/reviews` with no `event` creates a pending review; new comments are added via GraphQL `addPullRequestReviewThread` | `POST …/merge_requests/:iid/draft_notes` |
 | Line comment | `path`, `line`, `side: RIGHT` (or `LEFT` for deleted lines) | `position { position_type: "text", base_sha, start_sha, head_sha, new_path, old_path, new_line \| old_line }` |
 | Range comment | add `start_line`, `start_side` | `position.line_range { start { line_code, type }, end { … } }` |
@@ -97,7 +97,7 @@ The confirm modal shows the blocking reason when `mergeStateStatus` / `detailed_
 
 | | GitHub | GitLab |
 |---|---|---|
-| Read | `GET /repos/:o/:r/commits/:sha/check-runs` + `/status` (legacy statuses), merged by name with the check run winning. Neutral and skipped count as pass, cancelled as no signal; the branch-protection "required" flag isn't read | `GET /projects/:id/pipelines/:pid/jobs` |
+| Read | `GET /repos/:o/:r/commits/:sha/check-runs` + `/status` (legacy statuses), merged by name with the check run winning. Neutral, skipped and cancelled keep their own `CiState` and show calmly with distinct glyphs; `started_at`/`completed_at` give each run's duration; the branch-protection "required" flag isn't read, so `required` stays unknown | `GET /projects/:id/pipelines/:pid/jobs` |
 | Re-run failed | `POST /repos/:o/:r/actions/runs/:run_id/rerun-failed-jobs` per failed workflow run | `POST /projects/:id/pipelines/:pid/retry` |
 | Logs | `details_url` in the browser (`o`) | `web_url` of the job |
 

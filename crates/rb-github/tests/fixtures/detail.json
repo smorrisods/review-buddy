@@ -96,6 +96,8 @@
           ]
         },
         "body": "Retries the sync call with backoff.\n\n- jitter\n- cap at 5 tries",
+        "mergeStateStatus": "CLEAN",
+        "commitCount": {"totalCount": 4},
         "mergeable": "MERGEABLE"
       }
     }

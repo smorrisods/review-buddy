@@ -369,7 +369,31 @@ pub fn ci_word(state: CiState) -> &'static str {
         CiState::Running => "running",
         CiState::Fail => "failing",
         CiState::None => "no checks",
+        CiState::Neutral => "neutral",
+        CiState::Skipped => "skipped",
+        CiState::Cancelled => "cancelled",
     }
+}
+
+fn duration_word(secs: i64) -> String {
+    match secs.max(0) {
+        s if s < 60 => format!("{s}s"),
+        s if s < 3600 => format!("{}m {:02}s", s / 60, s % 60),
+        s => format!("{}h {:02}m", s / 3600, s % 3600 / 60),
+    }
+}
+
+fn check_note(check: &rb_core::Check) -> String {
+    let mut parts = vec![ci_word(check.state).to_string()];
+    if let Some(secs) = check.duration_secs() {
+        parts.push(duration_word(secs));
+    }
+    match check.required {
+        Some(true) => parts.push("required".into()),
+        Some(false) => parts.push("optional".into()),
+        None => {}
+    }
+    format!("  {}", parts.join(" · "))
 }
 
 fn check_summary_lines(app: &App, info: &ChangeInfo) -> Vec<Line<'static>> {
@@ -379,18 +403,26 @@ fn check_summary_lines(app: &App, info: &ChangeInfo) -> Vec<Line<'static>> {
         out.push(muted(app, "No checks reported"));
         return out;
     }
-    let mut counts = Vec::new();
-    for state in [CiState::Pass, CiState::Running, CiState::Fail] {
-        let n = info.checks.iter().filter(|c| c.state == state).count();
-        if n > 0 {
-            let (glyph, role) = ci_look(state);
-            counts.push(Span::styled(
-                format!("{glyph} {n} {}  ", ci_word(state)),
-                style::fg(palette, role),
-            ));
+    let groups: [&[CiState]; 2] = [
+        &[CiState::Pass, CiState::Running, CiState::Fail],
+        &[CiState::Neutral, CiState::Skipped, CiState::Cancelled],
+    ];
+    for group in groups {
+        let mut counts = Vec::new();
+        for &state in group {
+            let n = info.checks.iter().filter(|c| c.state == state).count();
+            if n > 0 {
+                let (glyph, role) = ci_look(state);
+                counts.push(Span::styled(
+                    format!("{glyph} {n} {}  ", ci_word(state)),
+                    style::fg(palette, role),
+                ));
+            }
+        }
+        if !counts.is_empty() {
+            out.push(Line::from(counts));
         }
     }
-    out.push(Line::from(counts));
     out
 }
 
@@ -464,10 +496,7 @@ fn checks(app: &App, info: &ChangeInfo) -> Vec<Line<'static>> {
             Line::from(vec![
                 Span::styled(format!("{glyph} "), style::fg(palette, role)),
                 Span::styled(c.name.clone(), style::fg(palette, Role::Text)),
-                Span::styled(
-                    format!("  {}", ci_word(c.state)),
-                    style::fg(palette, Role::Muted),
-                ),
+                Span::styled(check_note(c), style::fg(palette, Role::Muted)),
             ])
         })
         .collect()
@@ -542,5 +571,15 @@ mod tests {
     fn ci_words() {
         assert_eq!(ci_word(CiState::Fail), "failing");
         assert_eq!(ci_word(CiState::None), "no checks");
+        assert_eq!(ci_word(CiState::Skipped), "skipped");
+        assert_eq!(ci_word(CiState::Cancelled), "cancelled");
+        assert_eq!(ci_word(CiState::Neutral), "neutral");
+    }
+
+    #[test]
+    fn durations_are_compact() {
+        assert_eq!(duration_word(18), "18s");
+        assert_eq!(duration_word(94), "1m 34s");
+        assert_eq!(duration_word(3900), "1h 05m");
     }
 }

@@ -306,6 +306,9 @@ impl Provider for DemoProvider {
                     path: Some(draft.path.clone()),
                     line: Some(draft.line),
                     side: draft.side,
+                    start_line: draft.start_line,
+                    start_side: draft.start_line.map(|_| draft.side),
+                    pending: false,
                     resolved: false,
                     outdated: false,
                     comments: vec![Comment {
@@ -313,6 +316,7 @@ impl Provider for DemoProvider {
                         author: me.clone(),
                         body: draft.body.clone(),
                         created_at: now,
+                        pending: false,
                     }],
                 }
             })
@@ -349,6 +353,7 @@ impl Provider for DemoProvider {
             author: state.user.login.clone(),
             body: body.to_string(),
             created_at: state.now,
+            pending: false,
         };
         let kind = self.kind;
         let change = state
@@ -560,8 +565,18 @@ mod tests {
         let id = find(&w, 214).await.id;
         assert_eq!(gh.change_detail(&id).await.unwrap().summary.id, id);
         assert_eq!(gh.files(&id).await.unwrap().len(), 3);
-        assert_eq!(gh.threads(&id).await.unwrap().len(), 1);
-        assert_eq!(gh.checks(&id).await.unwrap().len(), 3);
+        let threads = gh.threads(&id).await.unwrap();
+        assert_eq!(threads.len(), 2);
+        let range = threads.iter().find(|t| t.start_line.is_some()).unwrap();
+        assert_eq!((range.start_line, range.line), (Some(5), Some(7)));
+        let checks = gh.checks(&id).await.unwrap();
+        assert_eq!(checks.len(), 6);
+        let state = |n: &str| checks.iter().find(|c| c.name == n).unwrap().state;
+        assert_eq!(state("test (windows)"), CiState::Skipped);
+        assert_eq!(state("coverage"), CiState::Neutral);
+        assert_eq!(state("bench"), CiState::Cancelled);
+        let fmt = checks.iter().find(|c| c.name == "fmt").unwrap();
+        assert_eq!((fmt.duration_secs(), fmt.required), (Some(18), Some(true)));
         let wrong_forge = w.provider(ForgeKind::GitLab);
         assert!(matches!(
             wrong_forge.files(&id).await,
@@ -594,7 +609,7 @@ mod tests {
             state: ReviewerState::Approved
         }));
         assert!(w.draft(&before.id).unwrap().is_empty());
-        assert_eq!(gh.threads(&before.id).await.unwrap().len(), 2);
+        assert_eq!(gh.threads(&before.id).await.unwrap().len(), 3);
         assert_eq!(
             w.confirmations(),
             vec!["Approved liminal-hq/review-buddy#214 (demo)".to_string()]

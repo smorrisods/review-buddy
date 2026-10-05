@@ -359,6 +359,16 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn neutral_skipped_and_cancelled_ci_are_not_failures() {
+        let mut c = change(1, MyRole::Authored, 0);
+        for ci in [CiState::Neutral, CiState::Skipped, CiState::Cancelled] {
+            c.ci = ci;
+            assert_eq!(status_tag(&c), "yours");
+            assert!(!own_failure(&c));
+        }
+    }
+
+    #[test]
     fn status_tags_cover_the_cases() {
         let mut c = change(1, MyRole::Authored, 0);
         assert_eq!(status_tag(&c), "yours");

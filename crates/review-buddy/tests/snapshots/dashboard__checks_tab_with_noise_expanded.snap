@@ -1,5 +1,6 @@
 ---
 source: crates/review-buddy/tests/dashboard.rs
+assertion_line: 133
 expression: text(&buffer)
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
@@ -10,14 +11,14 @@ expression: text(&buffer)
 │    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
 │  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
 │    github.com          ││                                              ││                                                                                    │
-│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 3   Conversation 2                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3                                    │
 │    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups          7h ││ ────────────────────────────────────────────────────────────────────────────────── │
-│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ ● fmt  passing                                                                     │
-│    gitlab.com          ││  ● Tidy zsh startup                       1d ││ ● clippy  passing                                                                  │
-│                        ││  GH dotfiles#31 · smorris · yours            ││ ◐ test (linux)  running                                                            │
-│                        ││                                              ││                                                                                    │
-│                        ││  Can wait · 1                                ││                                                                                    │
-│                        ││  · Clarify the install steps              3d ││                                                                                    │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ ● fmt  passing · 18s · required                                                    │
+│    gitlab.com          ││  ● Tidy zsh startup                       1d ││ ● clippy  passing · 1m 34s · required                                              │
+│                        ││  GH dotfiles#31 · smorris · yours            ││ ◐ test (linux)  running · required                                                 │
+│                        ││                                              ││ ↷ test (windows)  skipped                                                          │
+│                        ││  Can wait · 1                                ││ ○ coverage  neutral · 2m 11s · optional                                            │
+│                        ││  · Clarify the install steps              3d ││ ⊘ bench  cancelled · 40s · optional                                                │
 │                        ││  GL notes!12 · kai · approved by you         ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││  ▾ Noise · 2 bot updates · ⏎ to collapse     ││                                                                                    │

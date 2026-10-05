@@ -18,7 +18,7 @@ use crate::GithubClient;
 const MAX_PAGES: usize = 20;
 const ISSUE_COMMENT_PAGES: usize = 20;
 
-const COMMENT_FIELDS: &str = "id author { login } body createdAt";
+const COMMENT_FIELDS: &str = "id author { login } body createdAt state";
 
 fn threads_query() -> String {
     format!(
@@ -105,8 +105,12 @@ struct ThreadNode {
     line: Option<u32>,
     #[serde(rename = "originalLine")]
     original_line: Option<u32>,
+    #[serde(rename = "startLine")]
+    start_line: Option<u32>,
     #[serde(rename = "diffSide")]
     diff_side: Option<String>,
+    #[serde(rename = "startDiffSide")]
+    start_diff_side: Option<String>,
     comments: Connection<CommentNode>,
 }
 
@@ -117,6 +121,7 @@ struct CommentNode {
     body: String,
     #[serde(rename = "createdAt")]
     created_at: String,
+    state: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -149,18 +154,27 @@ fn comment(node: CommentNode) -> Comment {
         author: node.author.map_or_else(|| "ghost".into(), |a| a.login),
         body: node.body,
         created_at: parse_rfc3339(&node.created_at).unwrap_or(Timestamp(0)),
+        pending: node.state.as_deref() == Some("PENDING"),
+    }
+}
+
+fn side(raw: Option<&str>) -> Side {
+    match raw {
+        Some("LEFT") => Side::Old,
+        _ => Side::New,
     }
 }
 
 fn thread(node: ThreadNode, comments: Vec<Comment>) -> Thread {
+    let start_line = node.start_line.filter(|s| Some(*s) != node.line);
     Thread {
+        pending: !comments.is_empty() && comments.iter().all(|c| c.pending),
+        start_side: start_line.and(node.start_diff_side.as_deref().map(|s| side(Some(s)))),
+        start_line,
         id: ThreadId::new(node.id),
         path: node.path,
         line: node.line.or(node.original_line),
-        side: match node.diff_side.as_deref() {
-            Some("LEFT") => Side::Old,
-            _ => Side::New,
-        },
+        side: side(node.diff_side.as_deref()),
         resolved: node.is_resolved,
         outdated: node.is_outdated,
         comments,
@@ -249,6 +263,9 @@ async fn issue_comments(client: &GithubClient, id: &ChangeId) -> Result<Vec<Thre
                 path: None,
                 line: None,
                 side: Side::New,
+                start_line: None,
+                start_side: None,
+                pending: false,
                 resolved: false,
                 outdated: false,
                 comments: vec![Comment {
@@ -256,6 +273,7 @@ async fn issue_comments(client: &GithubClient, id: &ChangeId) -> Result<Vec<Thre
                     author: c.user.map_or_else(|| "ghost".into(), |u| u.login),
                     body: c.body,
                     created_at: parse_rfc3339(&c.created_at).unwrap_or(Timestamp(0)),
+                    pending: false,
                 }],
             });
         }
@@ -282,7 +300,9 @@ mod tests {
             path: Some("a.rs".into()),
             line,
             original_line: original,
+            start_line: None,
             diff_side: side.map(String::from),
+            start_diff_side: None,
             comments: Connection {
                 page_info: PageInfo {
                     has_next_page: false,
@@ -302,5 +322,17 @@ mod tests {
             (t.side, t.line, t.outdated, t.resolved),
             (Side::New, Some(9), true, true)
         );
+    }
+
+    #[test]
+    fn range_threads_keep_start_line_and_side() {
+        let mut n = node(Some("LEFT"), Some(4), Some(4));
+        n.start_line = Some(2);
+        n.start_diff_side = Some("LEFT".into());
+        let t = thread(n, vec![]);
+        assert_eq!((t.start_line, t.start_side), (Some(2), Some(Side::Old)));
+        let mut n = node(Some("RIGHT"), Some(4), Some(4));
+        n.start_line = Some(4);
+        assert_eq!(thread(n, vec![]).start_line, None);
     }
 }

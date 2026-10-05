@@ -28,6 +28,9 @@ pub fn ci_look(state: CiState) -> (&'static str, Role) {
         CiState::Running => ("◐", Role::Warning),
         CiState::Fail => ("✕", Role::Danger),
         CiState::None => ("·", Role::Muted),
+        CiState::Neutral => ("○", Role::Muted),
+        CiState::Skipped => ("↷", Role::Muted),
+        CiState::Cancelled => ("⊘", Role::Muted),
     }
 }
 

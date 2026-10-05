@@ -1,4 +1,6 @@
 {"total_count": 4, "check_runs": [
-  {"name": "e2e", "status": "in_progress", "conclusion": null, "details_url": "https://ci.example/e2e", "html_url": null},
-  {"name": "docs", "status": "completed", "conclusion": "skipped", "details_url": null, "html_url": null}
+  {"name": "e2e", "status": "in_progress", "conclusion": null, "started_at": "2026-10-04T10:00:00Z", "details_url": "https://ci.example/e2e", "html_url": null},
+  {"name": "docs", "status": "completed", "conclusion": "skipped", "details_url": null, "html_url": null},
+  {"name": "bench", "status": "completed", "conclusion": "cancelled", "details_url": null, "html_url": null},
+  {"name": "audit", "status": "completed", "conclusion": "neutral", "details_url": null, "html_url": null}
 ]}

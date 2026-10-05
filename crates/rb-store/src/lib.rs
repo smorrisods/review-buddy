@@ -426,7 +426,30 @@ mod tests {
             body: "body".into(),
             web_url: "https://example.com/pr/1".parse().unwrap(),
             mergeable: Some(true),
+            mergeability: Mergeability::Clean,
+            commit_count: 3,
         }
+    }
+
+    #[test]
+    fn detail_cached_before_model_gaps_still_loads() {
+        let mut store = Store::open_in_memory().unwrap();
+        let d = detail(summary("s", "o/r", 1, 10, "sha"));
+        let mut json = serde_json::to_value(&d).unwrap();
+        let obj = json.as_object_mut().unwrap();
+        obj.remove("mergeability");
+        obj.remove("commit_count");
+        let raw = serde_json::to_string(&json).unwrap();
+        assert!(!raw.contains("commit_count"));
+        store.put_detail(&d, Timestamp(1)).unwrap();
+        store
+            .conn
+            .execute("UPDATE changes SET detail_json = ?1", [raw])
+            .unwrap();
+        let old = store.get_detail(&d.summary.id).unwrap().unwrap();
+        assert_eq!(old.commit_count, 0);
+        assert_eq!(old.mergeability, Mergeability::Unknown);
+        assert_eq!(old.summary, d.summary);
     }
 
     #[test]
