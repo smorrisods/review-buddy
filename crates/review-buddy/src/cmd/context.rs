@@ -221,6 +221,12 @@ impl Context {
         rb_core::Timestamp(i64::try_from(secs).unwrap_or(i64::MAX))
     }
 
+    /// The demo world, when running with `--demo`.
+    #[cfg(feature = "demo")]
+    pub fn demo_world(&self) -> Option<&crate::demo::DemoWorld> {
+        self.demo.as_ref().map(|d| &d.world)
+    }
+
     pub fn is_demo(&self) -> bool {
         self.args.demo
     }

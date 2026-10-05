@@ -12,6 +12,7 @@ pub mod selector;
 
 mod changes;
 mod config;
+mod pr_checks;
 mod pr_diff;
 mod pr_list;
 mod queue;
@@ -76,6 +77,25 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
         Command::Pr {
             action: PrAction::List(args),
         } => pr_list::run(&ctx, &args),
+        Command::Pr {
+            action:
+                PrAction::Checks {
+                    selector,
+                    watch,
+                    interval,
+                    fail_fast,
+                    required,
+                },
+        } => pr_checks::run(
+            &ctx,
+            selector.as_deref(),
+            &pr_checks::Options {
+                watch,
+                interval,
+                fail_fast,
+                required,
+            },
+        ),
         other => unreachable!("{other:?} has no milestone but no implementation"),
     }
 }

@@ -13,6 +13,9 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
         }
         | Command::Pr {
             action: PrAction::Diff { .. },
+        }
+        | Command::Pr {
+            action: PrAction::Checks { .. },
         } => return None,
         Command::Queue(_) => return None,
         Command::Config { .. } => "v0.2.0",
