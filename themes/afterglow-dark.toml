@@ -1,0 +1,26 @@
+[theme]
+name = "Afterglow Dark"
+extends = "liminal-hq"
+appearance = "dark"
+
+[colours]
+background     = "#0f0e1a"
+raised         = "#1a1828"
+selection      = "#a78bfa29"     # purple @ 16%
+line           = "#2a2840"
+text           = "#e4e2ec"
+text_bright    = "#ffffff"
+text_secondary = "#b8b6c8"
+muted          = "#8f8da6"
+accent         = "#a78bfa"
+interactive    = "#60a5fa"
+github         = "#60a5fa"
+gitlab         = "#ffaa40"
+wordmark       = ["#a78bfa", "#f43f5e", "#ffaa40"]
+
+[syntax]
+keyword = "#60a5fa"
+
+[ansi]
+accent      = "magenta"
+interactive = "blue"

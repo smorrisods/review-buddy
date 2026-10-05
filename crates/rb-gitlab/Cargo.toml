@@ -1,0 +1,15 @@
+[package]
+name = "rb-gitlab"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Review Buddy GitLab provider (REST v4)."
+
+[dependencies]
+rb-core.workspace = true
+
+[lints]
+workspace = true

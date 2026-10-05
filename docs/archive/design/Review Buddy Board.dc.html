@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/colours.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/typography.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/terminal.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/base.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/styles.css">
+<script src="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/_ds_bundle.js"></script>
+<style>body{margin:0;background:#08080b;color:#e0e0e0;font-family:Inter,system-ui,sans-serif}a{color:#ffaa40;text-decoration:none}a:hover{color:#e89930}.dv-turn{padding:48px 52px 40px;border-bottom:1px solid rgba(255,255,255,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:12px;margin:0 0 24px}.dv-tid{font:600 11px 'JetBrains Mono',monospace;padding:3px 8px;background:#ffaa40;color:#0a0a0c;border-radius:4px}.dv-tname{font:600 18px/1.2 'Space Grotesk',sans-serif;color:#fff;letter-spacing:-.01em}.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}.dv-oid{font:600 11px 'JetBrains Mono',monospace;padding:2px 7px;background:rgba(255,255,255,.08);color:#e0e0e0;border-radius:4px}.dv-olabel{display:flex;align-items:baseline;gap:10px;font:400 13px/1.4 Inter,sans-serif;color:#b4bfce}.dv-olabel b{color:#fff;font-weight:600}.dv-card{background:#050507;border:1px solid rgba(255,255,255,.14);border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.45);overflow:hidden}.dv-opt:target .dv-oid{background:#ffaa40;color:#0a0a0c}.dv-next{margin:28px 0 0;font:13px/1.5 Inter,sans-serif;color:#7c8796}.dv-sub{font:600 14px 'Space Grotesk',sans-serif;color:#b4bfce;margin:40px 0 18px}</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:900px;margin-bottom:36px">
+    <div style="font:700 34px/1.1 'Space Grotesk',sans-serif;letter-spacing:-.02em;background:linear-gradient(to right,#fff 20%,#ffaa40,#f43f5e);-webkit-background-clip:text;background-clip:text;color:transparent">Review Buddy</div>
+    <div style="font:300 17px/1.5 Inter,sans-serif;color:#b4bfce;text-wrap:pretty">A ratatui dashboard that pulls every GitHub pull request and GitLab merge request into one calm queue, so you can read the diff, approve, comment and merge without leaving the terminal. Release Buddy's sibling.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 28px;margin-top:8px;font:13px/1.55 Inter,sans-serif;color:#b4bfce">
+      <div><b style="color:#fff;font-weight:600">Assumptions.</b> 160×40 terminal, truecolour. Rounded borders (ratatui <code style="font-family:'JetBrains Mono';color:#ffaa40">BorderType::Rounded</code>). Tokens via gh / glab or personal tokens, stored in the OS keyring.</div>
+      <div><b style="color:#fff;font-weight:600">Calm by default.</b> Buckets, not unread counts: Waiting on you, Worth a look, Can wait. Bots go to Noise. Every list ends with "That's everything."</div>
+      <div><b style="color:#fff;font-weight:600">Every frame is live.</b> Click one, then use the keys: ↑↓, ⏎ diff, a / x / c / s / m, v, 1–5, / search, ⌃K commands, T theme, L layout, J Jax.</div>
+    </div>
+  </div>
+
+  <div class="dv-thd"><span class="dv-tid">1</span><span class="dv-tname">Dashboard layouts</span></div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a><b>Three panes</b> sources · queue · overview. Easiest to scan, aggregate or filter by source.</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" layout="panes" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a><b>List + diff</b> dense one-line rows, the diff is always visible. Sources move to the top tabs.</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" layout="split" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a><b>One at a time</b> step through a bucket, approve and move on. Closest to a calm inbox.</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" layout="queue" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+  </div>
+
+  <div class="dv-sub">Review flow</div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1d">
+      <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a><b>Diff · unified</b> inline thread and a pending suggestion block</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" screen="diff" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1e">
+      <div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a><b>Diff · side by side</b> press v to swap</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" screen="diff" diff-mode="split" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1f">
+      <div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a><b>Comment with a suggestion</b> ⇧↑↓ (or V, or ⇧-click) selects lines 43–47. One composer for comments and suggestions: ⌃S inserts a suggestion block from the selection, and s is a shortcut that opens it with one already in</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" screen="diff" composer="suggest" range="43,47" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1g">
+      <div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a><b>Command palette</b> ⌃K, / opens the same box as a PR search</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" palette="cmd" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1h">
+      <div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a><b>Merge confirm</b> defaults to No</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" confirm="{{ true }}" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+  </div>
+
+  <div class="dv-sub">Setup &amp; settings</div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1i">
+      <div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a><b>First run</b> picks up gh / glab sign-ins, asks only for what's missing</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" screen="firstrun" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1j">
+      <div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a><b>Settings · Sources</b></div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" screen="config" config-tab="sources" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1k">
+      <div class="dv-olabel"><a class="dv-oid" href="#1k">1k</a><b>Settings · Theme</b> built-ins plus your own .toml</div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" screen="config" config-tab="theme" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+  </div>
+
+  <div class="dv-sub">Themes</div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1l">
+      <div class="dv-olabel"><a class="dv-oid" href="#1l">1l</a><b>Afterglow Dark</b></div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" theme="dark" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1m">
+      <div class="dv-olabel"><a class="dv-oid" href="#1m">1m</a><b>Afterglow Light</b></div>
+      <div class="dv-card" style="width:1180px;height:720px"><dc-import name="ReviewBuddy" theme="light" screen="diff" style="width:100%;height:100%" hint-size="1180px,720px"></dc-import></div>
+    </div>
+  </div>
+
+  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#1a">1a</a> but let me collapse the sources pane" · "make <a class="dv-oid" href="#1c">1c</a> the default and <a class="dv-oid" href="#1a">1a</a> a toggle" · "add a CI log view"</p>
+</section>
+</x-dc>
+</body>
+</html>

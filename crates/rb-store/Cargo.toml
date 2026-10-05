@@ -1,0 +1,15 @@
+[package]
+name = "rb-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Review Buddy SQLite cache, ETag store, drafts, and offline queue."
+
+[dependencies]
+rb-core.workspace = true
+
+[lints]
+workspace = true

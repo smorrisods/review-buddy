@@ -1,0 +1,38 @@
+[package]
+name = "review-buddy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+rust-version.workspace = true
+description = "Every pull and merge request, in one quiet queue."
+build = "build.rs"
+
+[features]
+default = ["live", "demo"]
+# `live` pulls in the HTTP providers and keyring. Disable it for an offline build.
+live = []
+# `demo` bundles the offline fixtures behind `--demo`. Release builds keep it on.
+demo = []
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+rb-core.workspace = true
+rb-diff.workspace = true
+rb-github.workspace = true
+rb-gitlab.workspace = true
+rb-paths.workspace = true
+rb-platform.workspace = true
+rb-store.workspace = true
+rb-theme.workspace = true
+
+[build-dependencies]
+clap.workspace = true
+clap_mangen.workspace = true
+
+[lints]
+workspace = true

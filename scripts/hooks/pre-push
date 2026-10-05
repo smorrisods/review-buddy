@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Reject pushes from branches that don't follow the prefix/description naming
+# policy documented in AGENTS.md.
+#
+# Enable once per clone with:
+#   git config core.hooksPath scripts/hooks
+
+set -euo pipefail
+
+# Branches exempt from the prefix rule: the trunk branch itself, and
+# Dependabot's own bot-created branches (it names those, not us).
+EXEMPT_BRANCHES=("main" "master")
+ALLOWED_PREFIXES=(feature fix chore docs test ci build design dependabot)
+
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+
+# Detached HEAD (e.g. pushing a tag) has no branch name to check.
+if [[ -z "$branch" ]]; then
+	exit 0
+fi
+
+for exempt in "${EXEMPT_BRANCHES[@]}"; do
+	if [[ "$branch" == "$exempt" ]]; then
+		exit 0
+	fi
+done
+
+if [[ "$branch" != */* ]]; then
+	prefix=""
+else
+	prefix="${branch%%/*}"
+fi
+
+for allowed in "${ALLOWED_PREFIXES[@]}"; do
+	if [[ "$prefix" == "$allowed" ]]; then
+		exit 0
+	fi
+done
+
+cat >&2 <<EOF
+error: branch '$branch' doesn't match the prefix/description naming policy.
+
+Allowed prefixes: ${ALLOWED_PREFIXES[*]}
+Example: feature/issue-89-create-issue-from-tui
+
+Rename with: git branch -m <prefix>/<description>
+See AGENTS.md's "Branching" section for details.
+EOF
+exit 1

@@ -1,0 +1,7 @@
+/* Liminal HQ webfonts.
+   Source repos load these from Google Fonts (next/font on liminalhq.ca; Spindle names them in its
+   font stacks; Cadence uses Roboto Flex + Material Symbols Rounded). No font binaries live in the
+   repos, so we load the same families from the Google Fonts CDN. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block");

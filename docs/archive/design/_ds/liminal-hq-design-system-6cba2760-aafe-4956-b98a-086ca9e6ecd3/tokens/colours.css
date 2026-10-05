@@ -1,0 +1,180 @@
+/* Afterglow colour system.
+   Hue ramps from liminal-hq/afterglow-themes (themes/afterglow.json, dark mode). Brand colour sits on
+   step 200 of every nine-step ramp; dark ramps run light (100) → dark (900).
+   Surfaces/borders/text from liminal-hq/spindle apps/spindle/src/design-system.css and
+   liminal-hq/liminal-hq.github.io src/app/globals.css. */
+:root {
+  color-scheme: dark;
+
+  /* ── Hue ramps (Afterglow, dark) ── */
+  --orange-100: #ffd096; --orange-200: #ffaa40; --orange-300: #d28c36; --orange-400: #a56f2b; --orange-500: #7d5422; --orange-600: #583b1a; --orange-700: #372612; --orange-800: #1e160d; --orange-900: #0f0c09;
+  --red-100: #f995a6; --red-200: #f43f5e; --red-300: #c9354e; --red-400: #9e2a3f; --red-500: #782131; --red-600: #541824; --red-700: #351118; --red-800: #1d0b10; --red-900: #0f070a;
+  --yellow-100: #fddc87; --yellow-200: #fbbf24; --yellow-300: #cf9e1f; --yellow-400: #a27c1a; --yellow-500: #7b5e15; --yellow-600: #564211; --yellow-700: #362a0d; --yellow-800: #1e180a; --yellow-900: #0f0c08;
+  --green-100: #8ce0ad; --green-200: #2ec66a; --green-300: #27a358; --green-400: #1f8146; --green-500: #196237; --green-600: #134528; --green-700: #0d2c1b; --green-800: #091811; --green-900: #070d0b;
+  --cyan-100: #85e7f6; --cyan-200: #22d3ee; --cyan-300: #1daec4; --cyan-400: #18899b; --cyan-500: #136876; --cyan-600: #0f4953; --cyan-700: #0b2e35; --cyan-800: #081a1e; --cyan-900: #060d10;
+  --blue-100: #a8cefc; --blue-200: #60a5fa; --blue-300: #5088ce; --blue-400: #3f6ba3; --blue-500: #31527c; --blue-600: #233a57; --blue-700: #172538; --blue-800: #0e151f; --blue-900: #090b11;
+  --purple-100: #cfbffc; --purple-200: #a78bfa; --purple-300: #8a73ce; --purple-400: #6d5ba3; --purple-500: #53457c; --purple-600: #3a3157; --purple-700: #252038; --purple-800: #15121f; --purple-900: #0b0a11;
+  --neutral-100: #f4f4f8; --neutral-200: #e0e0e0; --neutral-300: #b4bfce; --neutral-400: #8d97a8; --neutral-500: #5a6273; --neutral-600: #333847; --neutral-700: #1f2230; --neutral-800: #12121a; --neutral-900: #050507;
+  --grey-100: #c4ccd8; --grey-200: #94a3b8; --grey-300: #7a8798; --grey-400: #616a78; --grey-500: #4a515c; --grey-600: #343941; --grey-700: #22252a; --grey-800: #131519; --grey-900: #0b0b0e;
+
+  /* ── Brand ── */
+  --brand-orange: #ffaa40;
+  --brand-pink: #f43f5e;
+  --brand-purple: #a78bfa;
+  --brand-cyan: #22d3ee;
+  --brand-blue: #60a5fa;
+  --brand-green: #2ec66a;
+  --brand-amber: #fbbf24;
+  --brand-orange-pressed: #e89930;
+  --brand-gold: #ffd08e;
+
+  /* ── Gradients (use sparingly) ── */
+  --brand-gradient: linear-gradient(135deg, #ffaa40, #f43f5e, #a78bfa); /* @kind other */
+  --gradient-hero-text: linear-gradient(to right, #fff 20%, #ffaa40, #f43f5e); /* @kind other */
+  --gradient-text: linear-gradient(to right, #fff, #ffaa40, #a78bfa); /* @kind other */
+  --gradient-tagline: linear-gradient(90deg, #a78bfa, #f43f5e); /* @kind other */
+  --gradient-card: linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%); /* @kind other */
+  --gradient-build: linear-gradient(135deg, rgba(255,170,64,0.12), rgba(244,63,94,0.08)); /* @kind other */
+  --gradient-build-hover: linear-gradient(135deg, rgba(255,170,64,0.2), rgba(244,63,94,0.14)); /* @kind other */
+  --gradient-pill: linear-gradient(135deg, rgba(12,12,18,0.96), rgba(19,18,30,0.96)); /* @kind other */
+
+  /* ── Surfaces ── */
+  --bg-app: #050507;
+  --bg-sidebar: #0c0c10;
+  --bg-panel: #111116;
+  --bg-glass: rgba(20, 20, 25, 0.4);
+  --bg-card: rgba(20, 20, 25, 0.55);
+  --bg-card-hover: rgba(30, 30, 38, 0.7);
+  --bg-deep: rgba(255, 255, 255, 0.03);
+  --bg-faint: rgba(255, 255, 255, 0.02);
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-hover-strong: rgba(255, 255, 255, 0.06);
+  --bg-input: rgba(20, 20, 28, 0.6);
+  --bg-modal: #16161c;
+  --bg-tooltip: #1e1e26;
+  --bg-menu-mobile: rgba(12, 12, 18, 0.9);
+  --bg-code: rgba(10, 10, 14, 0.9);
+  --bg-raised: #14161d;
+  --bg-raised-high: #1b1e28;
+  --bg-raised-max: #262a37;
+
+  /* ── Borders (hairline white) ── */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-card: rgba(255, 255, 255, 0.10);
+  --border-default: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --border-focus: #ffaa40;
+
+  /* ── Text ── */
+  --text-bright: #ffffff;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b4bfce;
+  --text-muted: #7c8796;
+  --text-nav: #9ca3af;
+  --text-soft: #e2e8f0;
+  --text-inverse: #0a0a0c;
+
+  /* ── Semantic ── */
+  --colour-success: #2ec66a;
+  --colour-warning: #fbbf24;
+  --colour-error: #f43f5e;
+  --colour-info: #60a5fa;
+
+  /* Compatibility (Spindle asset badges) */
+  --badge-remux: #2ec66a;
+  --badge-light: #60a5fa;
+  --badge-reencode: #fbbf24;
+  --badge-unsupported: #f43f5e;
+
+  /* Code highlighting (liminalhq.ca blog) */
+  --syntax-text: #e6edf3;
+  --syntax-keyword: #ff8e53;
+  --syntax-string: #9ecbff;
+  --syntax-number: #f778ba;
+  --syntax-comment: #8b949e;
+
+  /* ── Role aliases (what components should reach for) ── */
+  --accent: var(--brand-orange);
+  --interactive: var(--brand-purple);
+  --focus-ring: var(--brand-orange);
+  --surface-page: var(--bg-app);
+  --surface-glass: var(--bg-glass);
+  --surface-card: var(--bg-card);
+  --surface-card-hover: var(--bg-card-hover);
+  --surface-chrome: var(--bg-sidebar);
+  --surface-overlay: var(--bg-modal);
+  --text-body: var(--text-primary);
+  --text-heading: var(--text-bright);
+  --text-supporting: var(--text-secondary);
+  --link: var(--brand-orange);
+
+  /* ── Calm palette (Foyer, Mudroom) — low contrast, no alarm red ── */
+  --calm-bg: #14161a;
+  --calm-paper: #1b1e24;
+  --calm-primary: #9bb4d8;
+  --calm-text: #e6e9ef;
+  --calm-text-secondary: #9aa3b2;
+  --calm-waiting: #d8a48f;
+  --calm-worth-a-look: #9bb4d8;
+  --calm-can-wait: #7e8796;
+  --calm-noise: #4b525e;
+}
+
+/* Afterglow Dark — softer indigo-black, purple accent, blue interactive */
+[data-theme="afterglow-dark"] {
+  --neutral-100: #f1eee6; --neutral-200: #e4e2ec; --neutral-300: #b8b6c8; --neutral-400: #8f8da6; --neutral-500: #5f5d78; --neutral-600: #3a384f; --neutral-700: #2a2840; --neutral-800: #1a1828; --neutral-900: #0f0e1a;
+  --bg-app: #0f0e1a;
+  --bg-sidebar: #141323;
+  --bg-panel: #1a1828;
+  --bg-card: rgba(26, 24, 40, 0.6);
+  --bg-card-hover: rgba(42, 40, 64, 0.7);
+  --bg-modal: #1a1828;
+  --bg-raised: #1a1828;
+  --bg-raised-high: #2a2840;
+  --bg-raised-max: #3a384f;
+  --text-primary: #e4e2ec;
+  --text-secondary: #b8b6c8;
+  --text-muted: #8f8da6;
+  --accent: var(--brand-purple);
+  --interactive: var(--brand-blue);
+  --focus-ring: var(--brand-purple);
+  --border-focus: var(--brand-purple);
+  --link: var(--brand-purple);
+}
+
+/* Afterglow Light — warm paper with deeper accents (light ramps run dark 100 → light 900) */
+[data-theme="afterglow-light"] {
+  color-scheme: light;
+  --orange-200: #b45309; --red-200: #be123c; --yellow-200: #a16207; --green-200: #15803d; --cyan-200: #0e7490; --blue-200: #2563eb; --purple-200: #5e44cc;
+  --neutral-100: #1c1b20; --neutral-200: #2b2a33; --neutral-300: #484554; --neutral-400: #6b6877; --neutral-500: #8f8c98; --neutral-600: #c9c5d0; --neutral-700: #e6e0eb; --neutral-800: #f2eff4; --neutral-900: #fbfaf6;
+  --brand-orange: #b45309; --brand-pink: #be123c; --brand-purple: #5e44cc; --brand-cyan: #0e7490; --brand-blue: #2563eb; --brand-green: #15803d; --brand-amber: #a16207;
+  --colour-success: #15803d; --colour-warning: #a16207; --colour-error: #be123c; --colour-info: #2563eb;
+  --bg-app: #fbfaf6;
+  --bg-sidebar: #f2eff4;
+  --bg-panel: #f2eff4;
+  --bg-glass: rgba(255, 255, 255, 0.6);
+  --bg-card: rgba(255, 255, 255, 0.7);
+  --bg-card-hover: #ffffff;
+  --bg-deep: rgba(0, 0, 0, 0.03);
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-hover-strong: rgba(0, 0, 0, 0.06);
+  --bg-input: #ffffff;
+  --bg-modal: #ffffff;
+  --bg-raised: #f2eff4;
+  --bg-raised-high: #e6e0eb;
+  --bg-raised-max: #c9c5d0;
+  --border-subtle: rgba(28, 27, 32, 0.10);
+  --border-card: rgba(28, 27, 32, 0.12);
+  --border-default: rgba(28, 27, 32, 0.16);
+  --border-strong: rgba(28, 27, 32, 0.26);
+  --text-bright: #1c1b20;
+  --text-primary: #2b2a33;
+  --text-secondary: #484554;
+  --text-muted: #6b6877;
+  --text-inverse: #fbfaf6;
+  --accent: var(--brand-purple);
+  --interactive: var(--brand-blue);
+  --focus-ring: var(--brand-purple);
+  --border-focus: var(--brand-purple);
+  --link: var(--brand-purple);
+}

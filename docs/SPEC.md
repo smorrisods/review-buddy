@@ -1,0 +1,302 @@
+# Review Buddy — product and technical spec
+
+> Every pull and merge request, in one quiet queue.
+
+Review Buddy is a terminal dashboard (Rust + [ratatui](https://ratatui.rs)) that brings GitHub pull requests and GitLab merge requests from any number of hosts into one place. You can read the diff, leave line comments and suggestions, approve, request changes and merge, all without leaving the terminal. It is Release Buddy's sibling, and the default look is Liminal HQ's Afterglow.
+
+The interactive design lives alongside this file:
+
+- `Review Buddy Board.dc.html`: every layout and screen side by side (frames 1a–1m)
+- `ReviewBuddy.dc.html`: a single working prototype; click into it and use the keys
+
+Supporting docs:
+
+- `docs/keybindings.md`: the full key map, per screen and per pane
+- `docs/theming.md`: theme file format, roles and the built-in themes
+- `docs/configuration.md`: `config.toml` reference
+- `docs/integrations.md`: GitHub and GitLab API mapping
+- `docs/architecture.md`: crate layout, state model, rendering, caching
+- `docs/release.md`: platforms, build targets, distribution, running unsigned builds
+- `config.example.toml`, `themes/*.toml`: ready-to-copy files
+
+---
+
+## 1. Goals and non-goals
+
+**Goals**
+
+1. One queue for all review work across GitHub (github.com and Enterprise) and GitLab (gitlab.com and self-hosted).
+2. Show sources one at a time **or** aggregated, with a single key to switch.
+3. Review fully from the keyboard: diff, range comments, suggestions, approve, request changes, merge, re-run CI, check out locally, open in the browser.
+4. Mouse support on par with the keyboard: click, shift-click, drag to select lines, click tabs and chips.
+5. Themeable by the user. Liminal HQ is the default and is transparent, so it uses the terminal's own background.
+6. Calm by default: pre-triaged buckets, pull-only refresh, no unread counts, a clear "you're caught up" state.
+
+**Non-goals (v1)**
+
+- Not a full Git client. Checkout shells out to `git`; there is no staging or committing.
+- No editing of PR or MR metadata beyond review actions (titles, labels, milestones are out of scope).
+- No push notifications or background daemon. Refresh happens while the app is open.
+- No MCP server or agent API (unlike jira-tui's `jira-mcp`). Review Buddy is for people.
+- No Bitbucket, Gitea or Forgejo in v1. The provider trait is designed so they can be added later (see `docs/architecture.md`).
+
+## 2. Principles (from the Liminal HQ house style)
+
+- **Local first.** Config, cache, state and drafts live on disk in the standard XDG base directories (`~/.config`, `~/.cache`, `~/.local/state`, `~/.local/share`, macOS included); tokens live in the OS keyring. The app works offline from the last cache.
+- **Calm computing.** Buckets, not badges. Bots go to Noise. Every list ends with "That's everything." Destructive actions confirm and default to **No**.
+- **Explain the why, kindly.** Errors say what happened and what to do next ("Token for gitlab.work.ca expired on 12 Jan. Press `e` to paste a new one.").
+- **Canadian English** in all copy: colour, behaviour, prioritise, licence (noun).
+- **Sentence case** for labels and actions; no all-caps anywhere. The wordmark is lowercase: `review buddy`.
+- **Unicode affordances** (`→ ⏎ ⇧ ⌃ ↑↓`) and middots (`·`) for metadata.
+
+## 3. Glossary
+
+| Term | Meaning |
+|---|---|
+| Source | One authenticated scope on one host: an org, group, user or whole instance. e.g. `liminal-hq` on github.com, `platform` on gitlab.work.ca |
+| All | The aggregated view across every source with `in_all = true` |
+| Change | A GitHub pull request or GitLab merge request. The UI says "PR" generically; numbers keep their native prefix (`#214`, `!1182`) |
+| Bucket | Triage group: **Waiting on you**, **Worth a look**, **Can wait**, plus hidden **Noise** |
+| Review | Your pending set of comments and suggestions on one change, submitted together with an approve, request-changes or comment verdict |
+| Suggestion | A comment containing a ` ```suggestion ` block that the author can apply in one click on the forge |
+
+## 4. Screens
+
+All screens share the **top bar** (wordmark · source tabs `1`–`5` · sync status and theme name) and the **footer** (context-sensitive key hints · transient status message · Jax mini dock where relevant).
+
+Panes use rounded borders (`BorderType::Rounded`) with the title set into the top border. The **focused pane** draws its border and title in the theme's `accent`; other panes use `line` and `text_secondary`.
+
+### 4.1 First run (frame 1i)
+
+Shown when no `config.toml` is found in any XDG config location, or when it is launched with `--setup`.
+
+1. **Connect your sources.** On start, detect:
+   - `gh auth status` / `gh auth token` for each GitHub host in gh's `hosts.yml` (`$GH_CONFIG_DIR`, else `$XDG_CONFIG_HOME/gh/`)
+   - `glab auth status` for each GitLab host in glab's config (`$GLAB_CONFIG_DIR`, else `$XDG_CONFIG_HOME/glab-cli/`)
+   - Remote hosts in git config (`~/.gitconfig` and `$XDG_CONFIG_HOME/git/config`) `url.*.insteadOf` entries and in recently used repos under `~/src` (configurable) that have no credentials yet
+
+   Each row reads `✓ GH github.com  signed in as smorris via gh · 2 orgs` or `○ GL gitlab.work.ca  found in ~/.gitconfig, no credentials yet  › add token`. Choosing a missing host expands an inline token field. Test the token with `⏎`; it is saved to the OS keyring under `review-buddy/<host>`. The field lists the required scopes (GitHub: `repo`, `read:org`; GitLab: `api`, `read_user`).
+2. **Pick a look.** Liminal HQ / Afterglow Dark / Afterglow Light. Each shows swatches and changes the screen live (`← →`).
+3. **A little company.** `[x] Keep Jax around` (`J`).
+
+`⏎` writes the config and opens the queue. `esc` skips; the app then runs with whatever was auto-detected and shows a one-line hint in the footer.
+
+### 4.2 Dashboard (three layouts)
+
+The layout is a user setting (`ui.layout`), and `L` cycles it at runtime. All three share the same data and actions.
+
+#### 1a · Three panes (`panes`, default)
+
+| Pane | Width | Contents |
+|---|---|---|
+| Sources | 26 cols | All sources, then each source (dot in the source's tag colour, host line underneath). Below that, **Show** filters: `[x] reviewing`, `[x] assigned`, `[x] authored`, `[ ] drafts`. The last Show filter is `[ ] noise`, which mixes Noise items into their natural buckets |
+| Queue | 48 cols | Bucket headings, then two-line rows: `CI glyph · title · age` / `GH|GL · repo#num · author · status tag`. Selected row: `sel` background and a 2-col `accent` left rule. After Can wait comes a collapsed **Noise** row (`Noise · 2 bot updates · ⏎ to expand`, muted); expanded, it lists them like any bucket. Ends with `── That's everything.` and a note (e.g. "1 hidden by your Show filters.") |
+| Detail | rest | Title (bold, `text_bright`), `author wants branch → base`, `+adds −dels · N files · opened 2h ago`. Tabs: **Overview · Files · Checks · Conversation** (`[` `]`). Action chips: `a Approve`, `x Request changes`, `c Comment`, `⏎ Diff`, `m Merge`. Jax box bottom-right when enabled |
+
+Detail tab contents:
+
+- **Overview**: description (rendered markdown → styled text), Reviewers (`✓` approved, `◌` requested, `✎` commented or requested changes) and Checks side by side, the latest comment, and your review state.
+- **Files**: changed files with `+/−` counts. `↑↓` picks, `⏎` opens that file in the diff.
+- **Checks**: every check run or pipeline job with duration. `R` re-runs failed jobs, `o` opens the logs in the browser.
+- **Conversation**: general and line comments in time order, each with its location (`menus.rs:43`). `c` replies, `⏎` jumps to the line in the diff.
+
+#### 1b · List + diff (`split`)
+
+- The left list (46%) has one-line rows: `CI · GH/GL · repo#num · title · age`. Sources are only in the top tabs.
+- The right pane always shows the first changed file of the selected change, with a compact header. Threads collapse to `╰ 2 comments from tess, mira-k · ⏎ to expand`.
+
+#### 1c · One at a time (`queue`)
+
+- A strip across the top: bucket name, progress dots (`● current`, `○ pending`, `✓ reviewed`), `1 of 3`, then "then Worth a look, then Can wait" or "then you're caught up".
+- Left: a context pane (description, a "Before you approve" list of checks and reviewers, actions `a Approve & next`, `x Request changes`, `n Skip for now`). Right: the diff.
+- `a` approves and advances. `n` / `p` move next / previous.
+
+### 4.3 Diff (frames 1d, 1e, 1f)
+
+Opened with `⏎` (or `d`) from any dashboard.
+
+- **Files pane** (34 cols): the file tree with `+/−` counts, the current file marked `›`. The bottom block shows "Your review · pending": the count of pending comments and suggestions, files viewed, and `a approve with these · x request changes`.
+- **Diff pane**: the file path in the top border; the view toggle `v unified │ side by side` top-right; the range status in the bottom border (`lines 43–47 selected · c comment · s suggest · esc clear`).
+
+**Unified** columns: `cursor (2) · old no. (5) · new no. (5) · sign (2) · code`. Additions get an `added_bg` tint, deletions a `removed_bg` tint. Hunk headers use `cyan` on `raised`.
+
+**Side by side**: two halves, each `no. (5) · sign (2) · code`, divided by a `line`-coloured rule. Runs of deletions and additions are zipped row by row; the shorter side is padded with empty rows. Threads and suggestions show as one-line markers on the right half.
+
+**Syntax highlighting**: `syntect` with a theme generated from the active theme's syntax roles (keyword → `interactive`, string → `success`, type → `cyan`, comment → `muted`).
+
+**Inline threads**: a bordered block indented under the line it belongs to, titled `thread · line 43`, showing author, age and body. `r` replies, `e` resolves.
+
+**Pending suggestions**: a bordered block in `accent`, showing the `−` / `+` lines and a note.
+
+**Line cursor and ranges**
+
+- `↑↓` moves the cursor (`›` in the gutter).
+- `⇧↑↓` extends a range from the anchor; `V` toggles a visual-range anchor; `esc` clears.
+- Mouse: click to place the cursor; **press and drag** to select a range; shift-click to extend.
+- Lines in the range get the `sel` background, `▌` in the gutter and `accent` line numbers.
+- A range maps to the forge's multi-line comment (GitHub `start_line` + `line`; GitLab `position.line_range`). Ranges can't cross hunks; selection clamps at the hunk edge.
+
+**Wide terminals**: with `diff.auto_side_by_side = true`, side by side becomes the default above 160 columns.
+
+### 4.4 Composer (frame 1f)
+
+There is one composer for comments and suggestions, docked over the bottom of the body.
+
+- Title: `Comment · menus.rs lines 43–47`, plus `· with suggestion` when the draft contains a suggestion block.
+- `c` opens it empty. `s` opens it with a suggestion block already in.
+- **`⌃S` inserts a ` ```suggestion ` block** prefilled with the selected lines (added and context lines; deleted lines left out), so you edit the replacement in place. You can insert it at any point in a draft.
+- `⏎` adds to your pending review. `⌃⏎` posts at once as a standalone comment. `⇧⏎` inserts a newline. `esc` discards; it asks first if the draft is longer than one line.
+- `⌃E` opens the draft in `$EDITOR`.
+- Drafts autosave to `$XDG_STATE_HOME/review-buddy/drafts/<host>/<owner>/<repo>/<num>.md` (default `~/.local/state/…`) and come back when you return to the change.
+
+### 4.5 Command palette (frame 1g)
+
+- `⌃K` opens **Commands**; `/` opens the same box as **Search all sources**.
+- Commands are fuzzy-matched (`nucleo`), eight results at most, each with its direct key on the right. They cover every action in `docs/keybindings.md` plus `Source: …`, `Theme: …`, `Cycle layout`, `Toggle Jax` and `Settings`.
+- Search matches title, repo, number and author across every source (cached data, then a live forge search if fewer than three local hits). `⏎` opens the result's diff.
+- `↑↓` choose · `⏎` run · `esc` close.
+
+### 4.6 Merge confirm (frame 1h)
+
+- A modal with a `danger`-coloured border: `Merge spindle#214?`, then the method and target ("Squash and merge feat/titleset-menus into main, then delete the branch."), then any caveats ("1 suggestion is still pending. It will be posted first.").
+- Buttons: `No, not yet` (selected by default) and `Merge`. `← → / tab` switch, `⏎` confirms, `esc` cancels.
+- The merge is blocked, with an explanation, when required checks or approvals are missing. `--force` doesn't exist; open the change in the browser instead.
+
+### 4.7 Settings (frames 1j, 1k)
+
+`,` opens Settings. The nav on the left has: **Sources · Review · Keys · Theme · Jax**.
+
+- **Sources**: a table (`enabled · GH/GL · name · host · auth · in All`) with the selected source's details below: host, sign-in method (CLI or token), masked token with `e` edit / `t` test and its expiry, scope (orgs or groups or `*`), include drafts, show in All, tag colour. `n` adds a source, `space` enables or disables, `del` removes (asks first, defaults to No).
+- **Review**: merge method, confirm-before-merge, diff default, mark files viewed on open, refresh interval, Noise authors, checkout location.
+- **Keys**: a read-only map with a pointer to `[keys]` in config.
+- **Theme**: built-in and user themes with swatches; `↑↓` previews live; the user theme directory and an example are shown.
+- **Jax**: show Jax, mood reactions, shift log.
+
+Changes write at once to `$XDG_CONFIG_HOME/review-buddy/config.toml` (atomic write via a temp file + rename, comments preserved via `toml_edit`). Values that come from `$XDG_CONFIG_DIRS` or `config.d/` show their origin (e.g. `from config.d/10-work.toml`) and are written as overrides rather than edited in place.
+
+## 5. Data model and triage
+
+```text
+Source { id, kind: GitHub|GitLab, host, label, scope, auth: Cli|Token, in_all, include_drafts, tag_colour }
+Change { source_id, kind, repo, number, title, author, state, draft, created_at, updated_at,
+         branch, base, head_sha, base_sha, adds, dels, files, ci: Pass|Running|Fail|None,
+         reviewers: [Reviewer{login, state}], my_role: Reviewing|Assigned|Authored|Mentioned,
+         my_review: None|Approved|ChangesRequested|Commented, bucket }
+```
+
+**Bucket rules** (first match wins; all configurable in `[triage]`):
+
+0. **Your rules first.** `[[triage.rule]]` entries are tried in order (global, or scoped with `source = …`). The first rule that matches sets the bucket. See `docs/configuration.md`.
+1. Author is in `noise_authors`, or matches a bot pattern → **Noise** (a collapsed bucket at the end of the queue, plus the optional `noise` Show filter)
+2. Your review is requested, or you are assigned and haven't reviewed since the last push → **Waiting on you**
+3. You are mentioned, you have commented before, or you authored it and it has new activity → **Worth a look**
+4. Everything else in scope (your own approved changes, drafts) → **Can wait**
+
+Within a bucket, sort by `updated_at` descending, with CI failures on your own changes first. Lists are bounded: each bucket shows 20 rows and then `+N more · ⏎ to expand`.
+
+**Show filters** narrow by `my_role`; `drafts` and `noise` are off by default. With `noise` ticked, Noise items appear in their natural bucket instead of the collapsed row. The queue's end note reports how many the filters hide.
+
+## 6. Actions → forge mapping (summary)
+
+| Action | Key | GitHub | GitLab |
+|---|---|---|---|
+| Approve | `a` | Submit review `event: APPROVE` | `POST …/merge_requests/:iid/approve`, then publish draft notes |
+| Request changes | `x` | Submit review `event: REQUEST_CHANGES` (needs a body) | Publish draft notes, then set the reviewer state to "requested changes". **Probed on connect:** on instances without it, `x` is hidden (palette and chips) and pressing it says "gitlab.work.ca doesn't support request changes. Leave a comment instead (c)." |
+| Comment | `c` | Pending review comment (`line`, `side`, `start_line`) | Draft note with `position` |
+| Suggest | `s` / `⌃S` | Same, body contains a ` ```suggestion ` block | Same, body contains ` ```suggestion:-N+M ` |
+| Merge | `m` | `PUT /pulls/:n/merge` with `merge_method` | `PUT …/merge_requests/:iid/merge` with `squash`, `should_remove_source_branch` |
+| Re-run CI | `R` | `POST /actions/runs/:id/rerun-failed-jobs` | `POST /projects/:id/pipelines/:pid/retry` |
+| Check out | `b` | `git fetch origin pull/N/head:<branch>` | `git fetch origin merge-requests/IID/head:<branch>` |
+| Open | `o` | `html_url` via `open` / `xdg-open` | `web_url` |
+
+Full endpoint details, pagination, rate limits and error mapping are in `docs/integrations.md`.
+
+## 7. Feedback and states
+
+- **Status messages** sit at the right of the footer for 4 s: `✓ Approved spindle#214`, `↻ Re-running failed jobs on flow#88`, `⎇ Checked out feat/titleset-menus in ~/src/spindle`.
+- **Errors** use the same slot in `warning` (never a full-screen alarm), with a fix: `Couldn't reach gitlab.work.ca (timed out). Showing cached data from 10:42 · r to retry`.
+- **Offline**: the top bar reads `offline · cached 10:42`. Actions queue up locally and are sent on reconnect, after you confirm the list.
+- **Empty states**:
+  - No sources: "Nothing connected yet. Press , to add GitHub or GitLab."
+  - Caught up: "That's everything. Nothing is waiting on you." with Jax napping.
+  - Filtered to empty: "Your Show filters hide all N. Press space on a filter to widen it."
+- **Loading**: per-pane `·  ·  ·` placeholders. Never a spinner over the whole screen.
+
+## 8. Demo mode
+
+`review-buddy --demo` runs fully offline on built-in fixtures. It is used for first impressions, screenshots, docs and release smoke tests.
+
+- **Fixtures:** the same data as the design board: GitHub `liminal-hq` and `smorris`, GitLab `platform` (self-hosted) and `gitlab.com`, seven changes across every bucket, plus two Noise bots, the `menus.rs` diff with a thread and a pending suggestion, and checks in pass, running and fail states.
+- **Actions animate but don't send:** approve, request changes, comment, merge, re-run, checkout and open all update local state, show their status message and trigger Jax's mood, then append `(demo)`. No network sockets are opened (the `live` feature's HTTP client isn't constructed), and checkout prints the git command it would have run.
+- **Jax** is on by default in demo mode.
+- **Screenshot-ready:**
+  - `--demo-scene <name>` opens a specific frame (`panes`, `split`, `queue`, `diff`, `diff-split`, `suggest`, `palette`, `merge`, `firstrun`, `settings-sources`, `settings-theme`), matching board frames 1a–1m.
+  - `--frozen-time 2026-10-05T10:00` pins relative ages.
+  - `--jax-mood <mood>` and `REVIEW_BUDDY_SEED` make Jax deterministic.
+  - `--size 160x40` sets the reported size when it is run under a recorder (vhs, asciinema).
+- **Feature-gated:** fixtures live behind the `demo` Cargo feature (on by default). `cargo build --release --no-default-features --features live` drops them. Release builds keep `demo` on, because the smoke tests rely on it.
+- Demo never reads or writes the user's config, cache or state. It uses a throwaway temp dir, so it's safe to run on any machine.
+
+## 9. Jax
+
+Jax is optional (`J` toggles; persisted). He appears in the 1a detail pane and the 1c context pane, and as a mini dock (`●‿● jax 🦦`) in the diff footer. He is never drawn over content or modals, and is hidden on first run and in Settings.
+
+- Moods: 🎉 party for 4 s after approve or merge; 😰 alarm while the selected change has failing CI; otherwise chill, rotating every 6 s (🤓 reading the diff, slowly · 🎣 fishing for nits · 😴 napping until CI finishes · 👋 hi. a few things want you.).
+- He blinks (`- ‿ -`) every ~4 s. Everything freezes when `ui.reduced_motion = true` or `REVIEW_BUDDY_REDUCED_MOTION=1`.
+- The box title is `jax · {emoji}`.
+
+## 10. Theming (summary)
+
+Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default, transparent background), **Afterglow Dark**, **Afterglow Light**. User themes go in `$XDG_CONFIG_HOME/review-buddy/themes/*.toml`, with installed packs under `$XDG_DATA_HOME` and `$XDG_DATA_DIRS`; missing keys fall back to Liminal HQ. `T` cycles at runtime. Truecolour is used when `COLORTERM` is `truecolor`/`24bit`; otherwise roles are quantised to the 256-colour palette, and below that to 16 named ANSI colours via each theme's `[ansi]` table. Full spec: `docs/theming.md`.
+
+## 11. Performance and limits
+
+- Cold start to the first painted queue from cache: < 150 ms. A full refresh across 5 sources: < 3 s on a typical connection (requests run in parallel per source, capped at 4 concurrent per host).
+- Diffs over 3,000 lines render lazily by hunk; files over 1 MB or binary files show `binary or very large · o to open in browser`.
+- Refresh is pull-only: on launch, on `r`, and every `refresh.interval` (default 5 min) while focused. ETags and `If-None-Match` keep it cheap.
+- Minimum terminal size is 100×30. Below 130 cols, 1a collapses the Sources pane into the top tabs; below 100, a "make me a little wider" notice is shown.
+
+## 12. Accessibility
+
+- Every action has a key; every key action has a mouse equivalent.
+- Colour is never the only signal: CI states use glyphs (`● ◐ ✕`), review states use `✓ ◌ ✎`, and diff lines keep `+`/`−` signs.
+- All built-in themes keep text ≥ 4.5:1 against their background (Liminal HQ measured against `#050507`).
+- `--no-unicode` swaps glyphs for ASCII (`*`, `~`, `x`, `>`) and rounded borders for plain ones.
+
+## 13. Platforms
+
+- **Linux is the primary platform**: designed, dogfooded and tested there first. Windows and macOS are supported release targets with CI coverage.
+- **Architectures:** x86-64 and ARM64 on every OS. **macOS ships one universal2 binary** (no per-arch builds). **Linux:** tarballs, standalone binaries and `install.sh` use **static musl** builds (any distro); `.deb` / `.rpm` use glibc builds (≥ 2.35, built on Ubuntu 22.04).
+- **Channels for 1.0:** GitHub Releases, `install.sh`, `install.ps1`, `.deb` / `.rpm`. Nothing else yet.
+- **Repo:** `smorrisods/review-buddy`.
+- **Release process:** the same as smorrisods/jira-tui (version-bump script → PR → tag → `Release` workflow → one `SHA256SUMS`), extended with Windows jobs and a `lipo` step.
+- **No code signing.** macOS binaries carry only the ad-hoc signature Apple Silicon needs to run; Windows binaries are unsigned. Integrity comes from a single `SHA256SUMS`. `install.sh` / `install.ps1` verify it and avoid the Gatekeeper and SmartScreen prompts.
+- Platform differences (keyring, clipboard, URL opening, terminal capability, key chords) are isolated in `rb-paths` and `rb-platform`. The full matrix is in `docs/release.md`.
+
+## 14. Release plan
+
+| Milestone | Scope |
+|---|---|
+| 0.1 | GitHub only, 1a layout, unified diff, approve, comment, open in browser, the Liminal HQ theme. Releases for every target from day one (Linux amd64/arm64 musl + glibc packages, macOS universal, Windows amd64/arm64), with `--demo` for smoke tests (Linux tested by hand; Windows and macOS smoke-tested in CI) |
+| 0.2 | GitLab (gitlab.com and self-hosted), aggregation, buckets and filters, first-run detection |
+| 0.3 | Ranges, suggestions, side-by-side diff, merge, re-run CI, checkout |
+| 0.4 | Layouts 1b and 1c, command palette and search, user themes, Jax, triage rules, demo scenes |
+| 1.0 | Offline queueing, draft persistence, `--no-unicode`; release channels per `docs/release.md` |
+
+## 15. Decisions log
+
+| Question | Decision |
+|---|---|
+| GitLab instances without request changes | Probe on connect; hide `x` there and explain if it's pressed |
+| Linux with no Secret Service | `auth = "cli"`, `env:VAR` or `token_command` is enough; no file store |
+| Noise | A reachable collapsed bucket at the end of the queue **and** a `noise` Show filter |
+| Per-source triage | Yes, as an ordered rule list with match conditions (see `docs/configuration.md`) |
+| Demo mode | Yes, offline fixtures, feature-gated (`demo`), screenshot-ready |
+| MCP server | No |
+| macOS artefacts | Universal only |
+| musl | Ships in 1.0, for tarballs and `install.sh`; glibc for `.deb` / `.rpm` |
+| Channels | GitHub Releases, `install.sh`, `install.ps1`, `.deb` / `.rpm` |
+| Licence | MIT |
+| Repo | `smorrisods/review-buddy` |
+
+Licence: MIT.

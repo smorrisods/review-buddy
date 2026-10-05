@@ -1,0 +1,71 @@
+/* Native-desktop flex (Waypoint, and the shared @liminal-hq/waypoint-chrome package).
+   From liminal-hq/waypoint apps/waypoint/src/theme/tokens.css + packages/chrome/src/tokens.css.
+   Waypoint follows the OS scheme; dark is the default here (Afterglow is dark-first),
+   light under [data-wp-theme="light"]. Warm stone neutrals, orange accent. */
+:root {
+  --wp-solid-window: #1c1917;
+  --wp-solid-sidebar: #211e1b;
+  --wp-solid-content: #171412;
+  --wp-bg-window: #1c1917;
+  --wp-bg-sidebar: #211e1b;
+  --wp-bg-content: #171412;
+  --wp-bg-raised: #292524;
+  --wp-bg-hover: #332e2b;
+  --wp-bg-selected: #4a2a1a;
+  --wp-bg-chrome: #292524;
+  --wp-border-subtle: #3a3531;
+  --wp-text-primary: #f5f1ed;
+  --wp-text-secondary: #c9c1ba;
+  --wp-text-muted: #9a918a;
+  --wp-accent: #f97316;
+  --wp-accent-fg: #1c1917;
+  --wp-danger: #f87171;
+  --wp-danger-fg: #ffffff;
+  --wp-success: #4ade80;
+  --wp-warning: #facc15;
+  --wp-focus-ring: #60a5fa;
+  --wp-control-bg: rgba(245, 241, 237, 0.06);
+  --wp-control-bg-hover: rgba(245, 241, 237, 0.12);
+  --wp-window-close-hover-bg: #c42b1c;
+  --wp-window-close-hover-fg: #ffffff;
+  --wp-title-bar-height: 40px;
+  --wp-window-radius: 12px;
+  --wp-row-height: 28px;
+  --wp-control-height: 28px;
+  --wp-sidebar-width: 220px;
+  --wp-shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --wp-shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.45);
+  --wp-window-shadow: 0 2px 8px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(0, 0, 0, 0.22);
+  --wp-icon-stroke: 1.3px;
+  --wp-folder-fill: rgba(249, 115, 22, 0.25);
+  --wp-font-ui: system-ui, sans-serif;
+  --wp-tab-colour-red: #f87171; --wp-tab-colour-orange: #fb923c; --wp-tab-colour-yellow: #facc15; --wp-tab-colour-green: #4ade80; --wp-tab-colour-teal: #2dd4bf; --wp-tab-colour-blue: #60a5fa; --wp-tab-colour-purple: #a78bfa; --wp-tab-colour-pink: #f472b6; --wp-tab-colour-grey: #9ca3af;
+}
+
+[data-wp-theme="light"] {
+  --wp-solid-window: #f4f1ee;
+  --wp-solid-sidebar: #ebe7e3;
+  --wp-solid-content: #fbf9f7;
+  --wp-bg-window: #f4f1ee;
+  --wp-bg-sidebar: #ebe7e3;
+  --wp-bg-content: #fbf9f7;
+  --wp-bg-raised: #ffffff;
+  --wp-bg-hover: #e3ded9;
+  --wp-bg-selected: #f6d9c8;
+  --wp-bg-chrome: #ffffff;
+  --wp-border-subtle: #d9d3cd;
+  --wp-text-primary: #211d1a;
+  --wp-text-secondary: #57504a;
+  --wp-text-muted: #7d756e;
+  --wp-accent: #c2410c;
+  --wp-accent-fg: #ffffff;
+  --wp-danger: #b91c1c;
+  --wp-success: #15803d;
+  --wp-warning: #a16207;
+  --wp-focus-ring: #2563eb;
+  --wp-control-bg: rgba(33, 29, 26, 0.06);
+  --wp-control-bg-hover: rgba(33, 29, 26, 0.12);
+  --wp-shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --wp-folder-fill: rgba(194, 65, 12, 0.25);
+  --wp-tab-colour-red: #dc2626; --wp-tab-colour-orange: #c2410c; --wp-tab-colour-yellow: #a16207; --wp-tab-colour-green: #15803d; --wp-tab-colour-teal: #0f766e; --wp-tab-colour-blue: #2563eb; --wp-tab-colour-purple: #7c3aed; --wp-tab-colour-pink: #db2777; --wp-tab-colour-grey: #6b7280;
+}

@@ -1,0 +1,12 @@
+[package]
+name = "rb-diff"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Review Buddy patch parsing, hunk model, and side-by-side pairing."
+
+[lints]
+workspace = true

@@ -1,0 +1,83 @@
+# Review Buddy — example config
+# Copy to $XDG_CONFIG_HOME/review-buddy/config.toml (default ~/.config/review-buddy/config.toml, macOS too).
+# Split sources into $XDG_CONFIG_HOME/review-buddy/config.d/*.toml if you like; they merge in lexical order.
+# System defaults may live in $XDG_CONFIG_DIRS/review-buddy/config.toml (default /etc/xdg/…).
+# Tokens are never stored here; they live in your OS keyring.
+
+[ui]
+theme = "liminal-hq"        # liminal-hq | afterglow-dark | afterglow-light | any file in themes/
+layout = "panes"            # panes | split | queue   (L cycles)
+jax = true                  # J toggles
+reduced_motion = false
+unicode = true
+colour_depth = "auto"       # auto | truecolor | 256 | 16
+mouse = true
+
+[review]
+merge_method = "squash"     # merge | squash | rebase
+confirm_merge = true        # always defaults to "No, not yet"
+delete_branch_on_merge = true
+mark_viewed_on_open = true
+request_changes_needs_summary = true
+
+[diff]
+view = "unified"            # unified | side-by-side   (v toggles)
+auto_side_by_side = true
+side_by_side_min_cols = 160
+context_lines = 3
+ignore_whitespace = false
+tab_width = 4
+
+[refresh]
+interval = "5m"             # pull only, while open. "off" = manual (r)
+on_focus = true
+
+[triage]
+noise_authors = ["renovate[bot]", "dependabot[bot]", "release-please[bot]"]
+bucket_limit = 20
+show = ["reviewing", "assigned", "authored"]   # add "drafts" to see drafts
+stale_after = "14d"
+
+[checkout]
+root = "~/src/{repo}"
+use_worktree_if_dirty = true
+clone_if_missing = "ask"
+
+# Sources: tab keys 2–9 follow this order (1 is always All).
+
+[[source]]
+name = "liminal-hq"
+kind = "github"
+host = "github.com"
+auth = "cli"                # reuse `gh` sign-in
+scope = { orgs = ["liminal-hq"] }
+tag_colour = "github"
+
+[[source]]
+name = "smorris"
+kind = "github"
+host = "github.com"
+auth = "cli"
+scope = { user = true }
+tag_colour = "github"
+
+[[source]]
+name = "platform"
+kind = "gitlab"
+host = "gitlab.work.ca"
+auth = "token"              # stored in keyring as review-buddy/gitlab.work.ca
+scope = { groups = ["platform", "infra"] }
+include_drafts = false
+tag_colour = "gitlab"
+
+[[source]]
+name = "gitlab.com"
+kind = "gitlab"
+host = "gitlab.com"
+auth = "cli"                # reuse `glab` sign-in
+tag_colour = "gitlab"
+
+[keys]
+# Only list the ones you want to change. See docs/keybindings.md.
+# approve = "a"
+# palette = "ctrl-k"

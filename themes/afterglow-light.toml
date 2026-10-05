@@ -1,0 +1,34 @@
+[theme]
+name = "Afterglow Light"
+extends = "liminal-hq"
+appearance = "light"
+
+[colours]
+background     = "#fbfaf6"
+raised         = "#f2eff4"
+selection      = "#b453091a"     # deep orange @ 10%
+line           = "#ddd6c8"
+text           = "#2b2722"
+text_bright    = "#15120e"
+text_secondary = "#4a453d"
+muted          = "#6b655b"
+accent         = "#b45309"
+interactive    = "#5e44cc"
+cyan           = "#0e7490"
+success        = "#15803d"
+warning        = "#a16207"
+danger         = "#be123c"
+added_bg       = "#15803d17"
+removed_bg     = "#be123c14"
+github         = "#2563eb"
+gitlab         = "#5e44cc"
+wordmark       = ["#b45309", "#be123c", "#5e44cc"]
+jax_body       = "#b45309"
+jax_box        = "#be123c"
+
+[syntax]
+keyword = "#5e44cc"
+string  = "#15803d"
+type    = "#0e7490"
+comment = "#6b655b"
+number  = "#b45309"

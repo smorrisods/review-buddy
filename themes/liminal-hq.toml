@@ -1,0 +1,43 @@
+[theme]
+name = "Liminal HQ"
+appearance = "dark"
+
+[colours]
+background     = "transparent"   # uses your terminal's background
+raised         = "#111116"
+selection      = "#ffaa401f"     # orange @ 12%
+line           = "#2a2d36"
+text           = "#e0e0e0"
+text_bright    = "#ffffff"
+text_secondary = "#b4bfce"
+muted          = "#7c8796"
+accent         = "#ffaa40"
+interactive    = "#a78bfa"
+cyan           = "#22d3ee"
+success        = "#2ec66a"
+warning        = "#fbbf24"
+danger         = "#f43f5e"
+added_bg       = "#2ec66a1a"
+removed_bg     = "#f43f5e1a"
+github         = "#60a5fa"
+gitlab         = "#a78bfa"
+wordmark       = ["#ffaa40", "#f43f5e", "#a78bfa"]
+jax_body       = "#ffb454"
+jax_box        = "#e25d75"
+
+[syntax]
+keyword  = "#a78bfa"
+string   = "#2ec66a"
+type     = "#22d3ee"
+comment  = "#7c8796"
+number   = "#ffaa40"
+function = "#e0e0e0"
+
+[ansi]
+accent      = "yellow"
+interactive = "magenta"
+cyan        = "cyan"
+success     = "green"
+warning     = "bright-yellow"
+danger      = "red"
+muted       = "bright-black"

@@ -1,0 +1,25 @@
+/* Terminal flex (Flow, adapted from SMDU's default theme). Truecolour foregrounds only —
+   TUIs never force a background; they sit on the user's terminal colour.
+   From liminal-hq/flow crates/liminal-flow-tui/src/ui/theme.rs. */
+:root {
+  --term-text: #d2d8e1;
+  --term-muted: #7c8796;
+  --term-accent: #5aa2ff;
+  --term-active: #2ec66a;
+  --term-line: #2e3540;
+  --term-header: #9aa4b2;
+  --term-error: #fca5a5;
+  --term-done: #e6b450;
+  --term-bg-preview: #0b0d10; /* stand-in for "the user's terminal background" in mocks */
+
+  /* Flicker's projector-booth palette (liminal-hq/flicker src/theme.rs) — Jax's home */
+  --booth-accent: #ffb454;   /* marquee amber — focus, titles, Jax's body */
+  --booth-accent2: #e25d75;  /* curtain crimson — danger, confirms, Jax's box */
+  --booth-info: #6ecddc;     /* projector cyan */
+  --booth-good: #98d279;     /* screen-glow green */
+  --booth-warn: #f0c864;     /* house-lights gold */
+  --booth-bad: #eb6464;      /* trouble red */
+  --booth-muted: #787682;    /* dust */
+  --booth-select: #3a3022;   /* a dimmed lamp */
+  --booth-water: #60a5fa;    /* ANSI blue stand-in for Jax's fishing and otter water */
+}

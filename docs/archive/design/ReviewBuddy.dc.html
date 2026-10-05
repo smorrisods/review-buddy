@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/colours.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/tokens/terminal.css">
+<link rel="stylesheet" href="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/styles.css">
+<script src="_ds/liminal-hq-design-system-6cba2760-aafe-4956-b98a-086ca9e6ecd3/_ds_bundle.js"></script>
+<style>html,body{margin:0;height:100%;background:#050507}a{color:#ffaa40}a:hover{color:#e89930}</style>
+</helmet>
+<div tabIndex="0" onKeyDown="{{ onKey }}" ref="{{ rootRef }}" style="{{ rootStyle }}">
+
+<div style="display:flex;align-items:center;gap:18px;padding:7px 14px 3px;white-space:nowrap;overflow:hidden">
+  <span style="font-weight:700;background:var(--t-grad);-webkit-background-clip:text;background-clip:text;color:transparent">◆ review buddy</span>
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;gap:4px">
+      <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="5">
+        <span onClick="{{ tab.onClick }}" style="padding:0 8px;cursor:pointer;border-radius:3px;color:{{ tab.color }};background:{{ tab.bg }}"><span style="color:var(--t-muted)">{{ tab.num }}</span> {{ tab.label }}</span>
+      </sc-for>
+    </div>
+  </sc-if>
+  <span style="flex:1"></span>
+  <span style="color:var(--t-muted)">{{ syncNote }}</span>
+</div>
+
+<div style="flex:1;min-height:0;display:flex;gap:10px;padding:14px 12px 6px;position:relative">
+
+  <sc-if value="{{ isPanes }}" hint-placeholder-val="{{ true }}">
+    <div style="position:relative;width:220px;flex:none;border:1px solid {{ fc.sources }};border-radius:6px;padding:12px 8px 8px;display:flex;flex-direction:column;gap:2px">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.sources }}">Sources</span>
+      <sc-for list="{{ sourceRows }}" as="s" hint-placeholder-count="5">
+        <div onClick="{{ s.onClick }}" style="cursor:pointer;padding:3px 6px;border-radius:3px;background:{{ s.bg }}">
+          <div style="display:flex;gap:8px"><span style="color:{{ s.markColor }}">{{ s.mark }}</span><span style="color:{{ s.color }}">{{ s.label }}</span><span style="flex:1"></span><span style="color:var(--t-muted)">{{ s.num }}</span></div>
+          <div style="color:var(--t-muted);padding-left:16px">{{ s.host }}</div>
+        </div>
+      </sc-for>
+      <div style="margin-top:12px;padding:0 6px;color:var(--t-sec)">Show <span style="color:var(--t-muted)">· <span style="color:var(--t-accent)">space</span> toggles</span></div>
+      <sc-for list="{{ filterRows }}" as="fr" hint-placeholder-count="4">
+        <div onClick="{{ fr.onClick }}" style="cursor:pointer;padding:0 6px;border-radius:3px;white-space:pre;background:{{ fr.bg }};color:{{ fr.color }}"><span style="color:{{ fr.boxColor }}">{{ fr.box }}</span> {{ fr.label }}</div>
+      </sc-for>
+      <span style="flex:1"></span>
+    </div>
+
+    <div style="position:relative;width:400px;flex:none;border:1px solid {{ fc.queue }};border-radius:6px;padding:12px 6px 8px;display:flex;flex-direction:column;min-height:0">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.queue }}">{{ queueTitle }}</span>
+      <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+          <sc-if value="{{ r.isHead }}"><div onClick="{{ r.onClick }}" style="display:flex;gap:10px;padding:8px 8px 3px;cursor:{{ r.cursor }}"><span style="color:{{ r.color }};font-weight:700">{{ r.label }}</span><span style="color:var(--t-muted)">{{ r.note }}</span></div></sc-if>
+          <sc-if value="{{ r.isPr }}">
+            <div onClick="{{ r.onClick }}" style="cursor:pointer;padding:3px 8px 3px 6px;border-left:2px solid {{ r.edge }};background:{{ r.bg }}">
+              <div style="display:flex;gap:8px"><span style="color:{{ r.ciColor }}">{{ r.ci }}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:{{ r.titleColor }}">{{ r.title }}</span><span style="color:var(--t-muted)">{{ r.age }}</span></div>
+              <div style="display:flex;gap:8px;padding-left:16px;white-space:nowrap"><span style="color:{{ r.srcColor }}">{{ r.srcTag }}</span><span style="color:var(--t-muted)">{{ r.repoNum }} · {{ r.author }}</span><span style="flex:1"></span><span style="color:{{ r.tagColor }}">{{ r.tag }}</span></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ r.isNoise }}"><div onClick="{{ r.onClick }}" style="cursor:pointer;display:flex;gap:10px;padding:8px 8px 3px 6px;border-left:2px solid {{ r.edge }};background:{{ r.bg }}"><span style="color:var(--t-sec);font-weight:700">Noise</span><span style="color:var(--t-muted)">{{ r.note }}</span></div></sc-if>
+          <sc-if value="{{ r.isEnd }}"><div style="padding:12px 8px;color:var(--t-muted)">── That's everything. <span style="color:var(--t-sec)">{{ r.note }}</span></div></sc-if>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="position:relative;flex:1;min-width:0;border:1px solid {{ fc.detail }};border-radius:6px;padding:12px 14px 10px;display:flex;flex-direction:column;gap:2px;min-height:0">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.detail }}">{{ sel.repoNum }}</span>
+      <div style="color:var(--t-bright);font-weight:700">{{ sel.title }}</div>
+      <div style="color:var(--t-muted)"><span style="color:{{ sel.srcColor }}">{{ sel.srcTag }}</span> {{ sel.author }} wants <span style="color:var(--t-cyan)">{{ sel.branch }}</span> → {{ sel.base }}</div>
+      <div><span style="color:var(--t-ok)">+{{ sel.adds }}</span> <span style="color:var(--t-rose)">−{{ sel.dels }}</span> <span style="color:var(--t-muted)">· {{ sel.files }} files · opened {{ sel.age }} ago</span></div>
+      <div style="display:flex;gap:18px;margin:10px 0 6px;border-bottom:1px solid var(--t-line);white-space:nowrap;overflow:hidden;align-items:flex-end">
+        <sc-for list="{{ detailTabs }}" as="dt" hint-placeholder-count="4"><span onClick="{{ dt.onClick }}" style="cursor:pointer;padding-bottom:2px;color:{{ dt.color }};border-bottom:2px solid {{ dt.edge }}">{{ dt.label }}</span></sc-for>
+        <span style="flex:1;min-width:8px"></span><span style="color:var(--t-muted);overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0;padding-bottom:2px"><span style="color:var(--t-accent)">[ ]</span> switch tab</span>
+      </div>
+      <sc-if value="{{ dtFiles }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ files }}" as="f" hint-placeholder-count="6">
+          <div onClick="{{ f.onClick }}" style="cursor:pointer;display:flex;gap:8px;padding:1px 6px;border-radius:3px;background:{{ f.bg }};white-space:nowrap"><span style="color:var(--t-accent)">{{ f.mark }}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:{{ f.color }}">{{ f.name }}</span><span style="color:var(--t-ok)">+{{ f.a }}</span><span style="color:var(--t-rose)">−{{ f.d }}</span></div>
+        </sc-for>
+        <div style="margin-top:6px;color:var(--t-muted)"><span style="color:var(--t-accent)">⏎</span> open this file in the diff</div>
+      </sc-if>
+      <sc-if value="{{ dtChecks }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ sel.checks }}" as="ck" hint-placeholder-count="3"><div style="display:flex;gap:8px;padding:1px 6px"><span style="color:{{ ck.color }}">{{ ck.icon }}</span><span style="flex:1">{{ ck.name }}</span><span style="color:var(--t-muted)">{{ ck.time }}</span></div></sc-for>
+        <div style="margin-top:6px;color:var(--t-muted)"><span style="color:var(--t-accent)">R</span> re-run failed jobs  <span style="color:var(--t-accent)">o</span> open logs in browser</div>
+      </sc-if>
+      <sc-if value="{{ dtConvo }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ convo }}" as="tc" hint-placeholder-count="2"><div style="margin-bottom:8px"><span style="color:var(--t-int)">{{ tc.who }}</span> <span style="color:var(--t-muted)">{{ tc.age }} · {{ tc.where }}</span><div style="text-wrap:pretty">{{ tc.text }}</div></div></sc-for>
+        <div style="color:var(--t-muted)"><span style="color:var(--t-accent)">c</span> reply  <span style="color:var(--t-accent)">⏎</span> jump to line in diff</div>
+      </sc-if>
+      <sc-if value="{{ dtOverview }}" hint-placeholder-val="{{ true }}">
+      <div style="color:var(--t-sec);text-wrap:pretty">{{ sel.desc }}</div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:12px">
+        <div>
+          <div style="color:var(--t-sec);margin-bottom:2px">Reviewers</div>
+          <sc-for list="{{ sel.reviewers }}" as="rv" hint-placeholder-count="3"><div style="display:flex;gap:8px;white-space:nowrap;overflow:hidden"><span style="color:{{ rv.color }}">{{ rv.icon }}</span><span>{{ rv.who }}</span><span style="color:var(--t-muted);overflow:hidden;text-overflow:ellipsis">{{ rv.state }}</span></div></sc-for>
+        </div>
+        <div>
+          <div style="color:var(--t-sec);margin-bottom:2px">Checks</div>
+          <sc-for list="{{ sel.checks }}" as="ck" hint-placeholder-count="3"><div style="display:flex;gap:8px;white-space:nowrap"><span style="color:{{ ck.color }}">{{ ck.icon }}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">{{ ck.name }}</span><span style="color:var(--t-muted)">{{ ck.time }}</span></div></sc-for>
+        </div>
+      </div>
+      <div style="margin-top:12px;color:var(--t-sec)">Latest</div>
+      <div style="display:flex;gap:8px"><span style="color:var(--t-int)">{{ sel.cWho }}</span><span style="color:var(--t-muted)">{{ sel.cAge }}</span></div>
+      <div style="text-wrap:pretty">{{ sel.cText }}</div>
+      <div style="margin-top:10px;color:{{ sel.myColor }}">{{ sel.myLine }}</div>
+      </sc-if>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        <span onClick="{{ act.approve }}" style="cursor:pointer;border:1px solid var(--t-accent);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">a</span> Approve</span>
+        <span onClick="{{ act.changes }}" style="cursor:pointer;border:1px solid var(--t-line);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">x</span> Request changes</span>
+        <span onClick="{{ act.comment }}" style="cursor:pointer;border:1px solid var(--t-line);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">c</span> Comment</span>
+        <span onClick="{{ act.diff }}" style="cursor:pointer;border:1px solid var(--t-line);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">⏎</span> Diff</span>
+        <span onClick="{{ act.merge }}" style="cursor:pointer;border:1px solid var(--t-line);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">m</span> Merge</span>
+      </div>
+      <span style="flex:1"></span>
+      <sc-if value="{{ showJax }}">
+        <div style="align-self:flex-end;position:relative;border:1px solid var(--t-jaxbox);border-radius:6px;padding:10px 12px 6px;width:250px;display:flex;gap:12px;align-items:center;margin-top:8px">
+          <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-jaxbox)">jax · {{ jaxEmoji }}</span>
+          <div style="white-space:pre;color:var(--t-jax);line-height:16px"><div> .---.</div><div>|<span style="color:var(--t-bright)">{{ jaxFace }}</span>|</div><div> '--'</div></div>
+          <div style="color:var(--t-muted);text-wrap:pretty">{{ jaxCaption }}</div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSplit }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;width:46%;flex:none;border:1px solid {{ fc.queue }};border-radius:6px;padding:12px 6px 8px;display:flex;flex-direction:column;min-height:0">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.queue }}">{{ queueTitle }}</span>
+      <div style="flex:1;min-height:0;overflow:hidden">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+          <sc-if value="{{ r.isHead }}"><div onClick="{{ r.onClick }}" style="display:flex;gap:10px;padding:8px 8px 3px;cursor:{{ r.cursor }}"><span style="color:{{ r.color }};font-weight:700">{{ r.label }}</span><span style="color:var(--t-muted)">{{ r.note }}</span></div></sc-if>
+          <sc-if value="{{ r.isPr }}">
+            <div onClick="{{ r.onClick }}" style="cursor:pointer;display:grid;grid-template-columns:2ch 3ch 15ch minmax(0,1fr) 4ch;gap:8px;padding:3px 8px 3px 6px;border-left:2px solid {{ r.edge }};background:{{ r.bg }};white-space:nowrap">
+              <span style="color:{{ r.ciColor }}">{{ r.ci }}</span><span style="color:{{ r.srcColor }}">{{ r.srcTag }}</span><span style="color:var(--t-muted);overflow:hidden;text-overflow:ellipsis">{{ r.repoNum }}</span><span style="overflow:hidden;text-overflow:ellipsis;color:{{ r.titleColor }}">{{ r.title }}</span><span style="color:var(--t-muted);text-align:right">{{ r.age }}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ r.isNoise }}"><div onClick="{{ r.onClick }}" style="cursor:pointer;display:flex;gap:10px;padding:8px 8px 3px 6px;border-left:2px solid {{ r.edge }};background:{{ r.bg }}"><span style="color:var(--t-sec);font-weight:700">Noise</span><span style="color:var(--t-muted)">{{ r.note }}</span></div></sc-if>
+          <sc-if value="{{ r.isEnd }}"><div style="padding:12px 8px;color:var(--t-muted)">── That's everything. <span style="color:var(--t-sec)">{{ r.note }}</span></div></sc-if>
+        </sc-for>
+      </div>
+    </div>
+    <div style="position:relative;flex:1;min-width:0;border:1px solid {{ fc.diff }};border-radius:6px;padding:12px 0 8px;display:flex;flex-direction:column;min-height:0">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.diff }}">{{ sel.repoNum }} · src/authoring/menus.rs</span>
+      <div style="padding:0 12px 8px">
+        <div style="color:var(--t-bright);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ sel.title }}</div>
+        <div style="color:var(--t-muted)">{{ sel.author }} · <span style="color:var(--t-ok)">+{{ sel.adds }}</span> <span style="color:var(--t-rose)">−{{ sel.dels }}</span> · <span style="color:{{ sel.ciColor }}">{{ sel.ciIcon }}</span> {{ sel.ciLabel }} · <span style="color:{{ sel.myColor }}">{{ sel.myShort }}</span></div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden">
+        <sc-for list="{{ diffRows }}" as="d" hint-placeholder-count="12">
+          <sc-if value="{{ d.isHunk }}"><div style="color:var(--t-cyan);padding:1px 12px;background:var(--t-raised)">{{ d.text }}</div></sc-if>
+          <sc-if value="{{ d.isLine }}"><div style="display:grid;grid-template-columns:5ch 5ch 2ch minmax(0,1fr);white-space:pre;background:{{ d.bg }}"><span style="color:var(--t-muted);text-align:right;padding-right:8px">{{ d.o }}</span><span style="color:var(--t-muted);text-align:right;padding-right:8px">{{ d.n }}</span><span style="color:{{ d.signColor }}">{{ d.sign }}</span><span style="overflow:hidden"><sc-for list="{{ d.segs }}" as="sg"><span style="color:{{ sg.c }}">{{ sg.t }}</span></sc-for></span></div></sc-if>
+          <sc-if value="{{ d.isThread }}"><div style="margin:4px 12px 4px 11ch;color:var(--t-muted)">╰ 2 comments from tess, mira-k · ⏎ to expand</div></sc-if>
+          <sc-if value="{{ d.isSuggest }}"><div style="margin:4px 12px 4px 11ch;color:var(--t-muted)">╰ your suggested change · pending</div></sc-if>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isQueue }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;min-height:0">
+      <div style="display:flex;align-items:center;gap:14px;padding:0 4px;white-space:nowrap">
+        <span style="color:var(--t-accent);font-weight:700">{{ qBucket }}</span>
+        <div style="display:flex;gap:6px"><sc-for list="{{ qDots }}" as="qd" hint-placeholder-count="3"><span onClick="{{ qd.onClick }}" style="cursor:pointer;color:{{ qd.color }}">{{ qd.g }}</span></sc-for></div>
+        <span style="color:var(--t-sec)">{{ qPos }}</span>
+        <span style="flex:1"></span>
+        <span style="color:var(--t-muted)">{{ qNext }}</span>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;gap:10px">
+        <div style="position:relative;width:40%;flex:none;border:1px solid {{ fc.context }};border-radius:6px;padding:12px 14px 10px;display:flex;flex-direction:column;gap:2px;min-height:0">
+          <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.context }}">{{ sel.repoNum }}</span>
+          <div style="color:var(--t-bright);font-weight:700">{{ sel.title }}</div>
+          <div style="color:var(--t-muted)"><span style="color:{{ sel.srcColor }}">{{ sel.srcTag }}</span> {{ sel.author }} · <span style="color:var(--t-cyan)">{{ sel.branch }}</span> → {{ sel.base }}</div>
+          <div style="color:var(--t-sec);margin-top:8px;text-wrap:pretty">{{ sel.desc }}</div>
+          <div style="color:var(--t-sec);margin-top:12px">Before you approve</div>
+          <sc-for list="{{ sel.checks }}" as="ck" hint-placeholder-count="3"><div style="display:flex;gap:8px;white-space:nowrap"><span style="color:{{ ck.color }}">{{ ck.icon }}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">{{ ck.name }}</span><span style="color:var(--t-muted)">{{ ck.time }}</span></div></sc-for>
+          <sc-for list="{{ sel.reviewers }}" as="rv" hint-placeholder-count="2"><div style="display:flex;gap:8px;white-space:nowrap;overflow:hidden"><span style="color:{{ rv.color }}">{{ rv.icon }}</span><span>{{ rv.who }}</span><span style="color:var(--t-muted);overflow:hidden;text-overflow:ellipsis">{{ rv.state }}</span></div></sc-for>
+          <div style="margin-top:12px;color:{{ sel.myColor }}">{{ sel.myLine }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+            <span onClick="{{ act.approve }}" style="cursor:pointer;border:1px solid var(--t-accent);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">a</span> Approve &amp; next</span>
+            <span onClick="{{ act.changes }}" style="cursor:pointer;border:1px solid var(--t-line);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">x</span> Request changes</span>
+            <span onClick="{{ act.next }}" style="cursor:pointer;border:1px solid var(--t-line);border-radius:4px;padding:0 8px"><span style="color:var(--t-accent)">n</span> Skip for now</span>
+          </div>
+          <span style="flex:1"></span>
+          <sc-if value="{{ showJax }}">
+            <div style="align-self:flex-start;position:relative;border:1px solid var(--t-jaxbox);border-radius:6px;padding:10px 12px 6px;width:250px;display:flex;gap:12px;align-items:center;margin-top:8px">
+              <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-jaxbox)">jax · {{ jaxEmoji }}</span>
+              <div style="white-space:pre;color:var(--t-jax);line-height:16px"><div> .---.</div><div>|<span style="color:var(--t-bright)">{{ jaxFace }}</span>|</div><div> '--'</div></div>
+              <div style="color:var(--t-muted);text-wrap:pretty">{{ jaxCaption }}</div>
+            </div>
+          </sc-if>
+        </div>
+        <div style="position:relative;flex:1;min-width:0;border:1px solid {{ fc.diff }};border-radius:6px;padding:12px 0 8px;display:flex;flex-direction:column;min-height:0">
+          <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.diff }}">menus.rs · 1 of {{ sel.files }} files</span>
+          <div style="flex:1;min-height:0;overflow:hidden">
+            <sc-for list="{{ diffRows }}" as="d" hint-placeholder-count="12">
+              <sc-if value="{{ d.isHunk }}"><div style="color:var(--t-cyan);padding:1px 12px;background:var(--t-raised)">{{ d.text }}</div></sc-if>
+              <sc-if value="{{ d.isLine }}"><div style="display:grid;grid-template-columns:5ch 2ch minmax(0,1fr);white-space:pre;background:{{ d.bg }}"><span style="color:var(--t-muted);text-align:right;padding-right:8px">{{ d.ln }}</span><span style="color:{{ d.signColor }}">{{ d.sign }}</span><span style="overflow:hidden"><sc-for list="{{ d.segs }}" as="sg"><span style="color:{{ sg.c }}">{{ sg.t }}</span></sc-for></span></div></sc-if>
+              <sc-if value="{{ d.isThread }}"><div style="margin:4px 12px 4px 7ch;color:var(--t-muted)">╰ 2 comments from tess, mira-k</div></sc-if>
+              <sc-if value="{{ d.isSuggest }}"><div style="margin:4px 12px 4px 7ch;color:var(--t-muted)">╰ your suggested change · pending</div></sc-if>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDiff }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;width:270px;flex:none;border:1px solid {{ fc.files }};border-radius:6px;padding:12px 8px 8px;display:flex;flex-direction:column;gap:2px;min-height:0">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.files }}">{{ sel.repoNum }} · files</span>
+      <sc-for list="{{ files }}" as="f" hint-placeholder-count="6">
+        <div onClick="{{ f.onClick }}" style="cursor:pointer;display:flex;gap:8px;padding:1px 6px;border-radius:3px;background:{{ f.bg }};white-space:nowrap"><span style="color:{{ f.mColor }}">{{ f.mark }}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:{{ f.color }}">{{ f.name }}</span><span style="color:var(--t-ok)">+{{ f.a }}</span><span style="color:var(--t-rose)">−{{ f.d }}</span></div>
+      </sc-for>
+      <span style="flex:1"></span>
+      <div style="border-top:1px solid var(--t-line);padding:8px 6px 0;display:flex;flex-direction:column;gap:2px">
+        <div style="color:var(--t-sec)">Your review · pending</div>
+        <div><span style="color:var(--t-accent)">1</span> comment · <span style="color:var(--t-accent)">1</span> suggestion</div>
+        <div style="color:var(--t-muted)">1 of 6 files viewed</div>
+        <div style="margin-top:6px;color:var(--t-muted)"><span style="color:var(--t-accent)">a</span> approve with these  <span style="color:var(--t-accent)">x</span> request changes</div>
+      </div>
+    </div>
+    <div style="position:relative;flex:1;min-width:0;border:1px solid {{ fc.diff }};border-radius:6px;padding:12px 0 8px;display:flex;flex-direction:column;min-height:0">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.diff }}">{{ fileName }}</span>
+      <span style="position:absolute;bottom:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-muted);z-index:1"><span style="color:var(--t-accent)">{{ rangeLabel }}</span> {{ rangeHint }}</span>
+      <span onClick="{{ act.view }}" style="position:absolute;top:-10px;right:10px;padding:0 6px;background:var(--t-bg);cursor:pointer"><span style="color:var(--t-accent)">v</span> <span style="color:{{ uniColor }}">unified</span> <span style="color:var(--t-muted)">│</span> <span style="color:{{ sbsColor }}">side by side</span></span>
+      <div style="flex:1;min-height:0;overflow:hidden">
+        <sc-if value="{{ isUnified }}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{ diffRows }}" as="d" hint-placeholder-count="14">
+            <sc-if value="{{ d.isHunk }}"><div style="color:var(--t-cyan);padding:1px 12px;background:var(--t-raised)">{{ d.text }}</div></sc-if>
+            <sc-if value="{{ d.isLine }}"><div onMouseDown="{{ d.onDown }}" onMouseEnter="{{ d.onEnter }}" style="cursor:pointer;user-select:none;display:grid;grid-template-columns:2ch 5ch 5ch 2ch minmax(0,1fr);white-space:pre;background:{{ d.bg }}"><span style="color:var(--t-accent);padding-left:4px">{{ d.mark }}</span><span style="color:{{ d.numColor }};text-align:right;padding-right:8px">{{ d.o }}</span><span style="color:{{ d.numColor }};text-align:right;padding-right:8px">{{ d.n }}</span><span style="color:{{ d.signColor }}">{{ d.sign }}</span><span style="overflow:hidden"><sc-for list="{{ d.segs }}" as="sg"><span style="color:{{ sg.c }}">{{ sg.t }}</span></sc-for></span></div></sc-if>
+            <sc-if value="{{ d.isThread }}">
+              <div style="position:relative;margin:10px 14px 8px 12ch;border:1px solid var(--t-line);border-radius:6px;padding:10px 12px 6px">
+                <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-sec)">thread · line 43</span>
+                <sc-for list="{{ thread }}" as="tc" hint-placeholder-count="2"><div style="margin-bottom:4px"><span style="color:var(--t-int)">{{ tc.who }}</span> <span style="color:var(--t-muted)">{{ tc.age }}</span><div style="text-wrap:pretty">{{ tc.text }}</div></div></sc-for>
+                <div style="color:var(--t-muted)"><span style="color:var(--t-accent)">r</span> reply  <span style="color:var(--t-accent)">e</span> resolve</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ d.isSuggest }}">
+              <div style="position:relative;margin:10px 14px 8px 12ch;border:1px solid var(--t-accent);border-radius:6px;padding:10px 0 6px">
+                <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-accent)">suggested change · you · pending</span>
+                <div style="white-space:pre;background:var(--t-delbg);padding:0 12px"><span style="color:var(--t-rose)">- </span>    let name = format!("vmgm_ts{:02}", ts.index);</div>
+                <div style="white-space:pre;background:var(--t-addbg);padding:0 12px"><span style="color:var(--t-ok)">+ </span>    let name = format!("vmgm_ts{:02}", ts.index + 1);</div>
+                <div style="padding:4px 12px 0;color:var(--t-sec)">Index is zero-based; dvdauthor numbers titlesets from 1.</div>
+              </div>
+            </sc-if>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ isSbs }}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{ splitRows }}" as="d" hint-placeholder-count="14">
+            <sc-if value="{{ d.isHunk }}"><div style="color:var(--t-cyan);padding:1px 12px;background:var(--t-raised)">{{ d.text }}</div></sc-if>
+            <sc-if value="{{ d.isPair }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);white-space:pre">
+                <div style="display:grid;grid-template-columns:5ch 2ch minmax(0,1fr);background:{{ d.lbg }}"><span style="color:var(--t-muted);text-align:right;padding-right:8px">{{ d.ln }}</span><span style="color:var(--t-rose)">{{ d.ls }}</span><span style="overflow:hidden"><sc-for list="{{ d.lsegs }}" as="sg"><span style="color:{{ sg.c }}">{{ sg.t }}</span></sc-for></span></div>
+                <div style="display:grid;grid-template-columns:5ch 2ch minmax(0,1fr);border-left:1px solid var(--t-line);background:{{ d.rbg }}"><span style="color:var(--t-muted);text-align:right;padding-right:8px">{{ d.rn }}</span><span style="color:var(--t-ok)">{{ d.rs }}</span><span style="overflow:hidden"><sc-for list="{{ d.rsegs }}" as="sg"><span style="color:{{ sg.c }}">{{ sg.t }}</span></sc-for></span></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ d.isThread }}"><div style="margin:4px 14px 4px calc(50% + 7ch);color:var(--t-muted)">╰ <span style="color:var(--t-int)">tess</span> Does a single-title titleset still get a chapter menu…  <span style="color:var(--t-accent)">⏎</span> open</div></sc-if>
+            <sc-if value="{{ d.isSuggest }}"><div style="margin:4px 14px 4px calc(50% + 7ch);color:var(--t-muted)">╰ <span style="color:var(--t-accent)">suggestion</span> ts.index + 1 · pending</div></sc-if>
+          </sc-for>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isFirst }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;overflow:hidden;display:flex;justify-content:center">
+      <div style="width:100%;max-width:780px;display:flex;flex-direction:column;gap:18px;padding-top:4px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <div style="color:var(--t-muted);white-space:pre">·    ˚        ·            ˚     ·</div>
+          <div style="font-weight:700;letter-spacing:0.3em;background:var(--t-grad);-webkit-background-clip:text;background-clip:text;color:transparent">r e v i e w   b u d d y</div>
+          <div style="white-space:pre;background:var(--t-grad);-webkit-background-clip:text;background-clip:text;color:transparent">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+          <div style="color:var(--t-sec);margin-top:6px">Every pull and merge request, in one quiet queue.</div>
+        </div>
+        <div style="position:relative;border:1px solid var(--t-accent);border-radius:6px;padding:14px 14px 10px">
+          <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-accent)">1 · Connect your sources</span>
+          <div style="color:var(--t-muted);margin-bottom:6px">We looked for gh and glab on your machine first. Tokens stay in your OS keyring.</div>
+          <sc-for list="{{ frSources }}" as="fs" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:2ch 3ch 18ch minmax(0,1fr) auto;gap:8px;padding:2px 6px;border-radius:3px;background:{{ fs.bg }};white-space:nowrap">
+              <span style="color:{{ fs.markColor }}">{{ fs.mark }}</span><span style="color:{{ fs.kindColor }}">{{ fs.kind }}</span><span>{{ fs.host }}</span><span style="color:var(--t-muted);overflow:hidden;text-overflow:ellipsis">{{ fs.detail }}</span><span style="color:var(--t-accent)">{{ fs.action }}</span>
+            </div>
+          </sc-for>
+          <div style="margin:6px 0 0 calc(5ch + 16px);display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;gap:10px"><span style="color:var(--t-sec)">Personal access token</span><span style="flex:1;border-bottom:1px solid var(--t-accent);color:var(--t-text)">glpat-••••••••••••••3f2a<span style="color:var(--t-accent)">▏</span></span></div>
+            <div style="color:var(--t-muted)">needs scopes api, read_user · <span style="color:var(--t-accent)">⏎</span> test and save</div>
+          </div>
+          <div style="margin-top:8px;padding:0 6px;color:var(--t-muted)"><span style="color:var(--t-accent)">+</span> add another GitHub or GitLab host</div>
+        </div>
+        <div style="position:relative;border:1px solid var(--t-line);border-radius:6px;padding:14px 14px 10px">
+          <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-sec)">2 · Pick a look</span>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+            <sc-for list="{{ themeOptions }}" as="th" hint-placeholder-count="3">
+              <div onClick="{{ th.onClick }}" style="cursor:pointer;padding:4px 8px;border-radius:4px;border:1px solid {{ th.border }}">
+                <div><span style="color:{{ th.markColor }}">{{ th.mark }}</span> {{ th.name }}</div>
+                <div style="display:flex;gap:2px;margin:3px 0"><sc-for list="{{ th.sw }}" as="c"><span style="width:16px;height:10px;border-radius:2px;background:{{ c }}"></span></sc-for></div>
+                <div style="color:var(--t-muted)">{{ th.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="position:relative;border:1px solid var(--t-line);border-radius:6px;padding:14px 14px 10px">
+          <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-sec)">3 · A little company</span>
+          <div onClick="{{ act.jax }}" style="cursor:pointer">{{ jaxCheck }} Keep Jax around <span style="color:var(--t-muted)">— he naps in a corner and cheers when CI goes green. Toggle any time with J.</span></div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isConfig }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;width:200px;flex:none;border:1px solid {{ fc.nav }};border-radius:6px;padding:12px 8px 8px;display:flex;flex-direction:column;gap:2px">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.nav }}">Settings</span>
+      <sc-for list="{{ configTabs }}" as="ct" hint-placeholder-count="5">
+        <div onClick="{{ ct.onClick }}" style="cursor:pointer;padding:2px 8px;border-radius:3px;color:{{ ct.color }};background:{{ ct.bg }}">{{ ct.label }}</div>
+      </sc-for>
+      <span style="flex:1"></span>
+      <div style="padding:0 8px;color:var(--t-muted)">~/.config/review-buddy/</div>
+    </div>
+    <div style="position:relative;flex:1;min-width:0;border:1px solid {{ fc.content }};border-radius:6px;padding:14px 16px 10px;display:flex;flex-direction:column;gap:2px;min-height:0;overflow:hidden">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:{{ ft.content }}">{{ configTitle }}</span>
+
+      <sc-if value="{{ cfgSources }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:3ch 3ch 14ch 22ch 16ch minmax(0,1fr);gap:8px;padding:0 6px;color:var(--t-muted);white-space:nowrap"><span></span><span></span><span>Name</span><span>Host</span><span>Auth</span><span>In “All”</span></div>
+        <sc-for list="{{ cfgSourceRows }}" as="cs" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:3ch 3ch 14ch 22ch 16ch minmax(0,1fr);gap:8px;padding:2px 6px;border-radius:3px;background:{{ cs.bg }};white-space:nowrap">
+            <span style="color:var(--t-ok)">{{ cs.on }}</span><span style="color:{{ cs.kindColor }}">{{ cs.kind }}</span><span>{{ cs.label }}</span><span style="color:var(--t-sec);overflow:hidden;text-overflow:ellipsis">{{ cs.host }}</span><span style="color:var(--t-sec)">{{ cs.auth }}</span><span>{{ cs.all }}</span>
+          </div>
+        </sc-for>
+        <div style="position:relative;margin-top:16px;border:1px solid var(--t-line);border-radius:6px;padding:14px 14px 10px;display:grid;grid-template-columns:18ch minmax(0,1fr);row-gap:3px;column-gap:12px">
+          <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-bg);color:var(--t-sec)">platform · gitlab.work.ca</span>
+          <span style="color:var(--t-muted)">Host</span><span>https://gitlab.work.ca</span>
+          <span style="color:var(--t-muted)">Sign in with</span><span>( ) glab CLI   <span style="color:var(--t-accent)">(●)</span> personal access token</span>
+          <span style="color:var(--t-muted)">Token</span><span>glpat-••••••••••••3f2a   <span style="color:var(--t-accent)">e</span> edit  <span style="color:var(--t-accent)">t</span> test  <span style="color:var(--t-ok)">✓ ok · expires 12 Jan</span></span>
+          <span style="color:var(--t-muted)">Scope</span><span>groups platform, infra</span>
+          <span style="color:var(--t-muted)">Include drafts</span><span>[ ]</span>
+          <span style="color:var(--t-muted)">Show in “All”</span><span>[x]</span>
+          <span style="color:var(--t-muted)">Tag colour</span><span><span style="color:var(--t-gl)">■</span> purple</span>
+        </div>
+        <div style="margin-top:10px;color:var(--t-muted)"><span style="color:var(--t-accent)">n</span> new source   <span style="color:var(--t-accent)">space</span> enable / disable   <span style="color:var(--t-accent)">del</span> remove (asks first)</div>
+      </sc-if>
+
+      <sc-if value="{{ cfgTheme }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ themeOptions }}" as="th" hint-placeholder-count="3">
+          <div onClick="{{ th.onClick }}" style="cursor:pointer;display:grid;grid-template-columns:3ch 20ch auto minmax(0,1fr);gap:10px;align-items:center;padding:4px 8px;border-radius:4px;border:1px solid {{ th.border }};margin-bottom:6px">
+            <span style="color:{{ th.markColor }}">{{ th.mark }}</span><span>{{ th.name }}</span>
+            <span style="display:flex;gap:2px"><sc-for list="{{ th.sw }}" as="c"><span style="width:16px;height:12px;border-radius:2px;background:{{ c }}"></span></sc-for></span>
+            <span style="color:var(--t-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ th.note }}</span>
+          </div>
+        </sc-for>
+        <div style="margin-top:12px;color:var(--t-sec)">Your own themes</div>
+        <div style="color:var(--t-muted)">Drop a .toml in $XDG_CONFIG_HOME/review-buddy/themes/ (~/.config by default) and it shows up here. Any key you leave out falls back to Liminal HQ.</div>
+        <div style="margin-top:8px;padding:8px 12px;border-left:1px solid var(--t-line);white-space:pre;color:var(--t-sec)"><span style="color:var(--t-cyan)">[theme]</span>
+name       = <span style="color:var(--t-ok)">"Harbour"</span>
+background = <span style="color:var(--t-ok)">"transparent"</span>
+accent     = <span style="color:var(--t-ok)">"#ffaa40"</span>
+added      = <span style="color:var(--t-ok)">"#2ec66a"</span>
+removed    = <span style="color:var(--t-ok)">"#f43f5e"</span></div>
+      </sc-if>
+
+      <sc-if value="{{ cfgReview }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:30ch minmax(0,1fr);row-gap:4px;column-gap:12px">
+          <span style="color:var(--t-muted)">Merge method</span><span>squash <span style="color:var(--t-muted)">(falls back to the repo's default)</span></span>
+          <span style="color:var(--t-muted)">Confirm before merge</span><span>always · defaults to No</span>
+          <span style="color:var(--t-muted)">Diff view</span><span>unified <span style="color:var(--t-muted)">· side by side above 160 columns</span></span>
+          <span style="color:var(--t-muted)">Mark file viewed when opened</span><span>[x]</span>
+          <span style="color:var(--t-muted)">Refresh</span><span>every 5 min, pull only <span style="color:var(--t-muted)">(no push notifications)</span></span>
+          <span style="color:var(--t-muted)">Send to Noise</span><span>renovate, dependabot, release-please</span>
+          <span style="color:var(--t-muted)">Check out into</span><span>~/src/{repo} <span style="color:var(--t-muted)">· uses a worktree if dirty</span></span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ cfgKeys }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:10ch minmax(0,1fr) 10ch minmax(0,1fr);row-gap:3px;column-gap:12px">
+          <sc-for list="{{ keysList }}" as="kk" hint-placeholder-count="8"><span style="color:var(--t-accent)">{{ kk.k }}</span><span>{{ kk.l }}</span></sc-for>
+        </div>
+        <div style="margin-top:12px;color:var(--t-muted)">Rebind in config.toml under [keys]. Arrows always work.</div>
+      </sc-if>
+
+      <sc-if value="{{ cfgJax }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ act.jax }}" style="cursor:pointer">{{ jaxCheck }} Show Jax</div>
+        <div>[x] React to what's happening <span style="color:var(--t-muted)">(party on approve, alarm on red CI)</span></div>
+        <div>[ ] Show his shift log</div>
+        <div style="color:var(--t-muted);margin-top:8px">He hides on this screen anyway. Reduced motion freezes him.</div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showPalette }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:40px;left:50%;transform:translateX(-50%);width:600px;max-width:92%;background:var(--t-raised);border:1px solid var(--t-accent);border-radius:6px;padding:14px 0 6px;z-index:5">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-raised);color:var(--t-accent)">{{ paletteTitle }}</span>
+      <div style="padding:0 14px 6px;border-bottom:1px solid var(--t-line)"><span style="color:var(--t-accent)">› </span><span>{{ paletteQuery }}</span><span style="color:var(--t-accent)">▏</span><span style="color:var(--t-muted)">{{ palettePlaceholder }}</span></div>
+      <div style="padding:4px 0">
+        <sc-for list="{{ paletteItems }}" as="pi" hint-placeholder-count="6">
+          <div onClick="{{ pi.onClick }}" style="cursor:pointer;display:flex;gap:10px;padding:1px 14px;background:{{ pi.bg }};white-space:nowrap"><span style="color:var(--t-accent)">{{ pi.marker }}</span><span style="color:{{ pi.color }}">{{ pi.label }}</span><span style="color:var(--t-muted);flex:1;overflow:hidden;text-overflow:ellipsis">{{ pi.sub }}</span><span style="color:var(--t-accent)">{{ pi.hint }}</span></div>
+        </sc-for>
+        <sc-if value="{{ paletteEmpty }}"><div style="padding:2px 14px;color:var(--t-muted)">Nothing matches. Try fewer letters.</div></sc-if>
+      </div>
+      <div style="padding:4px 14px 0;border-top:1px solid var(--t-line);color:var(--t-muted)"><span style="color:var(--t-accent)">↑↓</span> choose  <span style="color:var(--t-accent)">⏎</span> run  <span style="color:var(--t-accent)">esc</span> close  <span style="color:var(--t-accent)">/</span> searches PRs, <span style="color:var(--t-accent)">⌃K</span> runs commands</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showConfirm }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:30%;left:50%;transform:translateX(-50%);width:470px;background:var(--t-raised);border:1px solid var(--t-jaxbox);border-radius:6px;padding:16px 16px 12px;z-index:6;display:flex;flex-direction:column;gap:4px">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-raised);color:var(--t-jaxbox)">Merge {{ sel.repoNum }}?</span>
+      <div>Squash and merge <span style="color:var(--t-cyan)">{{ sel.branch }}</span> into {{ sel.base }}, then delete the branch.</div>
+      <div style="color:var(--t-muted)">1 suggestion is still pending. It will be posted first.</div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+        <span onClick="{{ act.confirmNo }}" style="cursor:pointer;padding:0 10px;border-radius:4px;border:1px solid var(--t-line);background:{{ confirmNoBg }};color:{{ confirmNoColor }}">No, not yet</span>
+        <span onClick="{{ act.confirmYes }}" style="cursor:pointer;padding:0 10px;border-radius:4px;border:1px solid var(--t-line);background:{{ confirmYesBg }};color:{{ confirmYesColor }}">Merge</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showComposer }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:22px;right:22px;bottom:12px;background:var(--t-raised);border:1px solid var(--t-accent);border-radius:6px;padding:14px 14px 8px;z-index:4">
+      <span style="position:absolute;top:-10px;left:10px;padding:0 6px;background:var(--t-raised);color:var(--t-accent)">{{ composerTitle }}</span>
+      <div style="white-space:pre-wrap;min-height:38px">{{ composerText }}<span style="color:var(--t-accent)">▏</span></div>
+      <div style="color:var(--t-muted);margin-top:4px"><span style="color:var(--t-accent)">⌃S</span> insert suggestion from {{ rangeLabel }}  <span style="color:var(--t-accent)">⏎</span> add to review  <span style="color:var(--t-accent)">⌃⏎</span> post now  <span style="color:var(--t-accent)">esc</span> discard  · markdown works</div>
+    </div>
+  </sc-if>
+</div>
+
+<div style="display:flex;gap:16px;padding:5px 14px 7px;white-space:nowrap;overflow:hidden">
+  <sc-for list="{{ footerKeys }}" as="fk" hint-placeholder-count="8"><span><span style="color:var(--t-accent)">{{ fk.k }}</span> <span style="color:var(--t-muted)">{{ fk.l }}</span></span></sc-for>
+  <span style="flex:1"></span>
+  <sc-if value="{{ showToast }}"><span style="color:var(--t-ok)">{{ toastText }}</span></sc-if>
+  <sc-if value="{{ showDock }}"><span style="color:var(--t-jax)">●‿● <span style="color:var(--t-jaxbox)">jax</span> {{ jaxEmoji }}</span></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:720},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;liminal&quot;,&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;liminal&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;panes&quot;,&quot;split&quot;,&quot;queue&quot;],&quot;default&quot;:&quot;panes&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;diff&quot;,&quot;firstrun&quot;,&quot;config&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;diffMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;unified&quot;,&quot;split&quot;],&quot;default&quot;:&quot;unified&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;jax&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;palette&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;paletteQuery&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;configTab&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;composer&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;confirm&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;toast&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;autofocus&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const THEMES = {
+  liminal: { name: 'Liminal HQ', note: 'transparent — your terminal background', v: { bg: '#050507', text: '#e0e0e0', bright: '#ffffff', sec: '#b4bfce', muted: '#7c8796', line: '#2a2d36', accent: '#ffaa40', int: '#a78bfa', rose: '#f43f5e', cyan: '#22d3ee', ok: '#2ec66a', warn: '#fbbf24', sel: 'rgba(255,170,64,0.12)', raised: '#111116', addbg: 'rgba(46,198,106,0.10)', delbg: 'rgba(244,63,94,0.10)', gh: '#60a5fa', gl: '#a78bfa', jax: '#ffb454', jaxbox: '#e25d75', grad: 'linear-gradient(90deg,#ffaa40,#f43f5e,#a78bfa)' } },
+  dark: { name: 'Afterglow Dark', note: 'indigo-black, purple accent', v: { bg: '#0f0e1a', text: '#e4e2ec', bright: '#ffffff', sec: '#b8b6c8', muted: '#8f8da6', line: '#2a2840', accent: '#a78bfa', int: '#60a5fa', rose: '#f43f5e', cyan: '#22d3ee', ok: '#2ec66a', warn: '#fbbf24', sel: 'rgba(167,139,250,0.16)', raised: '#1a1828', addbg: 'rgba(46,198,106,0.10)', delbg: 'rgba(244,63,94,0.10)', gh: '#60a5fa', gl: '#ffaa40', jax: '#ffb454', jaxbox: '#e25d75', grad: 'linear-gradient(90deg,#a78bfa,#f43f5e,#ffaa40)' } },
+  light: { name: 'Afterglow Light', note: 'warm paper, deeper accents', v: { bg: '#fbfaf6', text: '#2b2722', bright: '#15120e', sec: '#4a453d', muted: '#6b655b', line: '#ddd6c8', accent: '#b45309', int: '#5e44cc', rose: '#be123c', cyan: '#0e7490', ok: '#15803d', warn: '#a16207', sel: 'rgba(180,83,9,0.10)', raised: '#f2eff4', addbg: 'rgba(21,128,61,0.09)', delbg: 'rgba(190,18,60,0.08)', gh: '#2563eb', gl: '#5e44cc', jax: '#b45309', jaxbox: '#be123c', grad: 'linear-gradient(90deg,#b45309,#be123c,#5e44cc)' } }
+};
+const THEME_ORDER = ['liminal', 'dark', 'light'];
+const SOURCES = [
+  { key: 'all', label: 'All sources', short: 'All', kind: null, host: 'aggregated' },
+  { key: 'gh-liminal', label: 'liminal-hq', short: 'liminal-hq', kind: 'gh', host: 'github.com · org', auth: 'gh CLI' },
+  { key: 'gh-me', label: 'smorris', short: 'smorris', kind: 'gh', host: 'github.com · personal', auth: 'gh CLI' },
+  { key: 'gl-work', label: 'platform', short: 'platform', kind: 'gl', host: 'gitlab.work.ca · group', auth: 'token' },
+  { key: 'gl-com', label: 'gitlab.com', short: 'gitlab.com', kind: 'gl', host: 'gitlab.com · personal', auth: 'glab CLI' }
+];
+const BUCKETS = [['wait', 'Waiting on you', 'asked for you'], ['look', 'Worth a look', "you're watching"], ['later', 'Can wait', 'no rush']];
+const PRS = [
+  { id: 1, source: 'gh-liminal', kind: 'gh', repo: 'spindle', num: '#214', title: 'Author chapter menus per titleset', author: 'mira-k', age: '2h', ci: 'pass', bucket: 'wait', tag: 'asks you', adds: 184, dels: 42, files: 6, branch: 'feat/titleset-menus', base: 'main', desc: 'dvdauthor declares menus once per titleset, not per title, so discs with several titles in one set got duplicate VMGM entries. This groups titles by titleset before authoring and adds a snapshot test for a two-titleset disc.', reviewers: [['ash', 'approved'], ['you', 'requested'], ['tess', 'commented']], checks: [['build', 'pass', '3m 12s'], ['test · 412', 'pass', '5m 40s'], ['clippy', 'pass', '1m 05s'], ['iso-smoke', 'run', 'running']], comment: ['tess', '3h', 'Does a single-title titleset still get a chapter menu when it has chapters?'] },
+  { id: 2, source: 'gl-work', kind: 'gl', repo: 'billing-api', num: '!1182', title: 'Retry webhook delivery with jittered backoff', author: 'dchen', age: '5h', ci: 'run', bucket: 'wait', tag: 'asks you', adds: 96, dels: 18, files: 4, branch: 'dchen/webhook-retry', base: 'main', desc: 'Failed webhook deliveries retried immediately and hammered partners during outages. Moves retries onto a queue with exponential backoff and full jitter, capped at six attempts.', reviewers: [['you', 'requested'], ['priya', 'requested']], checks: [['lint', 'pass', '48s'], ['unit', 'pass', '2m 10s'], ['integration', 'run', 'running']], comment: ['dchen', '5h', 'The cap is configurable per partner; defaults are conservative.'] },
+  { id: 3, source: 'gh-liminal', kind: 'gh', repo: 'flow', num: '#88', title: 'Persist thread order across sessions', author: 'ash', age: '1d', ci: 'fail', bucket: 'wait', tag: 'asks you', adds: 57, dels: 9, files: 3, branch: 'ash/thread-order', base: 'main', desc: 'Thread order reset on every launch. Stores a stable order key alongside each thread in the local store.', reviewers: [['you', 'requested']], checks: [['build', 'pass', '2m 02s'], ['test · 138', 'fail', '1 failing'], ['fmt', 'pass', '12s']], comment: ['ash', '1d', 'The failing test is a fixture with the old schema. Fixing next.'] },
+  { id: 4, source: 'gl-work', kind: 'gl', repo: 'infra', num: '!940', title: 'Bump terraform aws provider to 5.x', author: 'renovate', age: '1d', ci: 'pass', bucket: 'look', tag: 'watching', adds: 12, dels: 12, files: 2, branch: 'renovate/aws-5.x', base: 'main', desc: 'Updates hashicorp/aws from 4.67 to 5.31. Plan output attached by CI.', reviewers: [['jo', 'approved']], checks: [['plan', 'pass', '1m 30s']], comment: ['jo', '20h', 'Plan shows no resource replacements.'] },
+  { id: 5, source: 'gh-liminal', kind: 'gh', repo: 'waypoint', num: '#301', title: 'Breadcrumb overflow menu on narrow windows', author: 'tess', age: '2d', ci: 'pass', bucket: 'look', tag: 'watching', adds: 140, dels: 33, files: 5, branch: 'tess/breadcrumb-overflow', base: 'main', desc: 'Collapses middle path segments into a … menu when the path bar runs out of room.', reviewers: [['ash', 'commented']], checks: [['build', 'pass', '4m 01s'], ['e2e', 'pass', '6m 18s']], comment: ['ash', '1d', 'Lovely. Does it keep keyboard focus order?'] },
+  { id: 6, source: 'gh-me', kind: 'gh', repo: 'dotfiles', num: '#12', title: 'Add Afterglow kitty theme', author: 'you', age: '3d', ci: 'pass', bucket: 'later', tag: 'yours · approved', adds: 48, dels: 0, files: 1, branch: 'afterglow-kitty', base: 'main', desc: 'Adds the Afterglow palette for kitty, generated from the theme JSON.', reviewers: [['tess', 'approved']], checks: [['lint', 'pass', '9s']], comment: ['tess', '2d', 'Ship it.'] },
+  { id: 7, source: 'gl-com', kind: 'gl', repo: 'docs', num: '!77', title: 'Clarify on-call handoff steps', author: 'priya', age: '4d', ci: 'pass', bucket: 'later', tag: 'draft', adds: 22, dels: 9, files: 1, branch: 'priya/handoff', base: 'main', desc: 'Rewrites the handoff checklist so the outgoing person writes the summary, not the incoming one.', reviewers: [['you', 'optional']], checks: [['vale', 'pass', '14s']], comment: ['priya', '4d', 'Still a draft. Thoughts welcome, no rush.'] }
+];
+PRS.push(
+  { id: 8, source: 'gh-liminal', kind: 'gh', repo: 'spindle', num: '#219', title: 'Bump serde from 1.0.210 to 1.0.214', author: 'dependabot', age: '6h', ci: 'pass', bucket: 'noise', natural: 'later', tag: 'bot', adds: 6, dels: 6, files: 2, branch: 'dependabot/cargo/serde-1.0.214', base: 'main', desc: 'Bumps serde from 1.0.210 to 1.0.214. Release notes attached by the bot.', reviewers: [['you', 'optional']], checks: [['build', 'pass', '3m 01s'], ['test · 412', 'pass', '5m 22s']], comment: ['dependabot', '6h', 'Compatibility score is high for this update.'] },
+  { id: 9, source: 'gl-work', kind: 'gl', repo: 'infra', num: '!944', title: 'Update ingress-nginx chart to 4.11', author: 'renovate', age: '9h', ci: 'run', bucket: 'noise', natural: 'look', tag: 'bot', adds: 3, dels: 3, files: 1, branch: 'renovate/ingress-nginx-4.x', base: 'main', desc: 'Updates the ingress-nginx Helm chart from 4.10.1 to 4.11.0.', reviewers: [['jo', 'requested']], checks: [['plan', 'run', 'running']], comment: ['renovate', '9h', 'Automerge is off. Review when convenient.'] }
+);
+const ROLE = { 1: 'reviewing', 2: 'reviewing', 3: 'reviewing', 4: 'assigned', 5: 'reviewing', 6: 'authored', 7: 'reviewing', 8: 'reviewing', 9: 'assigned' };
+PRS.forEach(p => { p.role = ROLE[p.id]; p.draft = p.id === 7; });
+const FILTERS = [['reviewing', 'reviewing'], ['assigned', 'assigned'], ['authored', 'authored'], ['drafts', 'drafts'], ['noise', 'noise']];
+const DIFF = [
+  ['h', '@@ -38,14 +38,22 @@ impl MenuAuthor'],
+  [' ', 'pub fn author_menus(&self, project: &Project) -> Result<Vec<MenuDecl>> {'],
+  [' ', '    let mut decls = Vec::new();'],
+  ['-', '    for title in &project.titles {'],
+  ['-', '        decls.push(self.menu_for(title)?);'],
+  ['-', '    }'],
+  ['+', '    // dvdauthor declares menus once per titleset, not per title'],
+  ['+', '    for titleset in project.titlesets() {'],
+  ['+', '        let menu = self.menu_for_titleset(&titleset)?;'],
+  ['+', '        if titleset.titles.len() > 1 {'],
+  ['T'],
+  ['+', '            decls.push(menu.with_chapters(&titleset.titles));'],
+  ['+', '        } else {'],
+  ['+', '            decls.push(menu);'],
+  ['+', '        }'],
+  ['+', '    }'],
+  [' ', '    Ok(decls)'],
+  [' ', '}'],
+  ['h', '@@ -55,4 +63,4 @@ impl MenuAuthor'],
+  [' ', 'fn menu_for_titleset(&self, ts: &Titleset) -> Result<MenuDecl> {'],
+  ['-', '    let name = format!("menu_{}", ts.id);'],
+  ['+', '    let name = format!("vmgm_ts{:02}", ts.index);'],
+  ['S'],
+  [' ', '    MenuDecl::new(name, self.style.clone())'],
+  [' ', '}']
+];
+const THREAD = [
+  { who: 'tess', age: '3h', text: 'Does a single-title titleset still get a chapter menu when it has chapters?' },
+  { who: 'mira-k', age: '2h', text: "Good catch — it doesn't yet. Pushing a fix." }
+];
+const FILES = [['src/authoring/menus.rs', 38, 12], ['src/authoring/titleset.rs', 61, 8], ['src/authoring/mod.rs', 4, 1], ['tests/menus_snapshot.rs', 72, 0], ['tests/fixtures/two_sets.toml', 9, 0], ['docs/authoring.md', 0, 21]];
+const COMMANDS = [
+  ['Approve', 'approve', 'a'], ['Request changes', 'changes', 'x'], ['Comment', 'comment', 'c'], ['Suggest a change', 'suggest', 's'],
+  ['Merge…', 'merge', 'm'], ['Re-run CI', 'rerun', 'R'], ['Check out branch locally', 'checkout', 'b'], ['Open in browser', 'open', 'o'],
+  ['Toggle diff: unified / side by side', 'view', 'v'], ['Source: All', 'src:all', '1'], ['Source: liminal-hq (GitHub)', 'src:gh-liminal', '2'],
+  ['Source: platform (GitLab)', 'src:gl-work', '4'], ['Theme: Liminal HQ', 'theme:liminal', ''], ['Theme: Afterglow Dark', 'theme:dark', ''],
+  ['Theme: Afterglow Light', 'theme:light', ''], ['Cycle layout', 'layout', 'L'], ['Toggle Jax', 'jax', 'J'], ['Settings', 'settings', ',']
+];
+const PANES = { panes: ['sources', 'queue', 'detail'], split: ['queue', 'diff'], queue: ['context', 'diff'], diff: ['files', 'diff'], config: ['nav', 'content'] };
+const DEFAULT_FOCUS = { panes: 1, split: 0, queue: 0, diff: 1, config: 0 };
+const ALL_PANES = ['sources', 'queue', 'detail', 'context', 'diff', 'files', 'nav', 'content'];
+const MOODS = [['🤓', 'reading the diff, slowly'], ['🎣', 'fishing for nits'], ['😴', 'napping until CI finishes'], ['👋', 'hi. a few things want you.']];
+const CI = { pass: ['●', 'var(--t-ok)', 'checks pass'], run: ['◐', 'var(--t-warn)', 'checks running'], fail: ['✕', 'var(--t-rose)', '1 check failing'] };
+
+function tok(text) {
+  const out = []; const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|\b(fn|let|mut|pub|impl|for|in|if|else|return|match|use|struct|self)\b|\b([A-Z][A-Za-z0-9]*)\b/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push({ t: text.slice(last, m.index), c: 'var(--t-text)' });
+    out.push({ t: m[0], c: m[1] ? 'var(--t-muted)' : m[2] ? 'var(--t-ok)' : m[3] ? 'var(--t-int)' : 'var(--t-cyan)' });
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push({ t: text.slice(last), c: 'var(--t-text)' });
+  return out;
+}
+function buildDiff() {
+  const uni = [], split = []; let o = 38, n = 38, buf = { d: [], a: [] };
+  const flush = () => {
+    const len = Math.max(buf.d.length, buf.a.length);
+    for (let i = 0; i < len; i++) {
+      const L = buf.d[i], R = buf.a[i];
+      split.push({ isPair: true, ln: L ? L.o : '', ls: L ? '-' : '', lsegs: L ? L.segs : [], lbg: L ? 'var(--t-delbg)' : 'transparent', rn: R ? R.n : '', rs: R ? '+' : '', rsegs: R ? R.segs : [], rbg: R ? 'var(--t-addbg)' : 'transparent' });
+    }
+    buf = { d: [], a: [] };
+  };
+  for (const [k, t] of DIFF) {
+    if (k === 'h') {
+      flush(); const m = t.match(/-(\d+).*\+(\d+)/); o = +m[1]; n = +m[2];
+      uni.push({ isHunk: true, text: t }); split.push({ isHunk: true, text: t }); continue;
+    }
+    if (k === 'T' || k === 'S') { flush(); uni.push({ isThread: k === 'T', isSuggest: k === 'S' }); split.push({ isThread: k === 'T', isSuggest: k === 'S' }); continue; }
+    const segs = tok(t);
+    if (k === ' ') { flush(); const r = { isLine: true, o, n, ln: n, sign: ' ', segs, bg: 'transparent', signColor: 'var(--t-muted)' }; uni.push(r); split.push({ isPair: true, ln: o, ls: '', lsegs: segs, lbg: 'transparent', rn: n, rs: '', rsegs: segs, rbg: 'transparent' }); o++; n++; }
+    else if (k === '-') { const r = { isLine: true, o, n: '', ln: o, sign: '-', segs, bg: 'var(--t-delbg)', signColor: 'var(--t-rose)' }; uni.push(r); buf.d.push(r); o++; }
+    else { const r = { isLine: true, o: '', n, ln: n, sign: '+', segs, bg: 'var(--t-addbg)', signColor: 'var(--t-ok)' }; uni.push(r); buf.a.push(r); n++; }
+  }
+  flush();
+  return { uni, split };
+}
+const BUILT = buildDiff();
+const LINE_IDX = BUILT.uni.map((r, i) => r.isLine ? i : -1).filter(i => i >= 0);
+const lnum = (r) => r.n !== '' ? r.n : r.o;
+function idxForLine(n) { const i = BUILT.uni.findIndex(r => r.isLine && r.n === n); return i >= 0 ? i : LINE_IDX[0]; }
+function parseRange(str) { if (!str) return [LINE_IDX[4], null]; const [a, b] = String(str).split(',').map(Number); return [idxForLine(b || a), b ? idxForLine(a) : null]; }
+
+class Component extends DCLogic {
+  rootRef = React.createRef();
+  state = {
+    theme: this.props.theme || 'liminal', layout: this.props.layout || 'panes', screen: this.props.screen || 'dashboard',
+    diffMode: this.props.diffMode || 'unified', jax: this.props.jax !== false, palette: this.props.palette || null,
+    query: this.props.paletteQuery || '', pIdx: 0, sel: 1, source: 'all', reviews: {}, toast: this.props.toast || '',
+    confirm: !!this.props.confirm, cIdx: 0, configTab: this.props.configTab || 'sources',
+    composer: this.props.composer || null, draft: '',
+    cur: parseRange(this.props.range)[0], anchor: parseRange(this.props.range)[1],
+    mood: 0, blink: false, party: false, focus: {}, fileIdx: 0, dtab: 0, srcCur: 0, filters: { reviewing: true, assigned: true, authored: true, drafts: false, noise: false }, noiseOpen: false, noiseCur: false
+  };
+  paneKey() { const s = this.state; return s.screen === 'dashboard' ? s.layout : s.screen; }
+  curPane() { const k = this.paneKey(); const list = PANES[k]; if (!list) return null; const i = this.state.focus[k] ?? DEFAULT_FOCUS[k]; return list[i]; }
+  cyclePane(d) { const k = this.paneKey(); const list = PANES[k]; if (!list) return; const i = this.state.focus[k] ?? DEFAULT_FOCUS[k]; this.setState({ focus: { ...this.state.focus, [k]: (i + d + list.length) % list.length } }); }
+  focusPane(name) { const k = this.paneKey(); const list = PANES[k]; if (!list || list.indexOf(name) < 0) return; this.setState({ focus: { ...this.state.focus, [k]: list.indexOf(name) } }); }
+  rangeRows() { const s = this.state; const a = s.anchor == null ? s.cur : s.anchor; const lo = Math.min(a, s.cur), hi = Math.max(a, s.cur); return { lo, hi, rows: BUILT.uni.slice(lo, hi + 1).filter(r => r.isLine) }; }
+  rangeLabel() { const { lo, hi } = this.rangeRows(); const a = lnum(BUILT.uni[lo]), b = lnum(BUILT.uni[hi]); return lo === hi ? 'line ' + a : 'lines ' + a + '–' + b; }
+  suggestDraft() { const { rows } = this.rangeRows(); return '```suggestion\n' + rows.filter(r => r.sign !== '-').map(r => r.segs.map(x => x.t).join('')).join('\n') + '\n```'; }
+  moveLine(d, extend) { const s = this.state; const pos = LINE_IDX.indexOf(s.cur); const next = LINE_IDX[Math.min(LINE_IDX.length - 1, Math.max(0, pos + d))]; this.setState({ cur: next, anchor: extend ? (s.anchor == null ? s.cur : s.anchor) : null }); }
+  downLine(i, e) { e.preventDefault(); const s = this.state; if (e.shiftKey) { this.setState({ cur: i, anchor: s.anchor == null ? s.cur : s.anchor }); return; } this.dragging = true; this.setState({ cur: i, anchor: i }); const up = () => { this.dragging = false; window.removeEventListener('mouseup', up); if (this.state.anchor === this.state.cur) this.setState({ anchor: null }); if (this.rootRef.current) this.rootRef.current.focus({ preventScroll: true }); }; window.addEventListener('mouseup', up); }
+  enterLine(i) { if (this.dragging) this.setState({ cur: i }); }
+  clickLine(i, e) { const s = this.state; if (e && e.shiftKey) this.setState({ cur: i, anchor: s.anchor == null ? s.cur : s.anchor }); else this.setState({ cur: i, anchor: null }); }
+  componentDidMount() {
+    if (this.props.composer) this.setState({ draft: this.props.composer === 'suggest' ? 'Single-title sets can still have chapters, so key off that instead:\n' + this.suggestDraft() : 'Could we cover the single-title case in the snapshot test too?' });
+    if (this.props.autofocus && this.rootRef.current) this.rootRef.current.focus({ preventScroll: true });
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce) {
+      this.moodT = setInterval(() => this.setState(s => ({ mood: (s.mood + 1) % MOODS.length })), 6000);
+      this.blinkT = setInterval(() => { this.setState({ blink: true }); setTimeout(() => this.setState({ blink: false }), 180); }, 3700);
+    }
+  }
+  componentWillUnmount() { clearInterval(this.moodT); clearInterval(this.blinkT); clearTimeout(this.toastT); }
+  componentDidUpdate(prev) {
+    const map = { theme: 'theme', layout: 'layout', screen: 'screen', diffMode: 'diffMode', configTab: 'configTab' };
+    const patch = {};
+    for (const k in map) if (prev[k] !== this.props[k] && this.props[k]) patch[map[k]] = this.props[k];
+    if (prev.jax !== this.props.jax) patch.jax = this.props.jax !== false;
+    if (Object.keys(patch).length) this.setState(patch);
+  }
+  passes(p) { const f = this.state.filters; if (p.draft && !f.drafts) return false; return !!f[p.role]; }
+  toggleFilter(key) { this.setState({ filters: { ...this.state.filters, [key]: !this.state.filters[key] } }); }
+  eb(p) { return p.bucket === 'noise' ? (this.state.filters.noise ? p.natural : 'noise') : p.bucket; }
+  noiseItems() { const s = this.state; return PRS.filter(p => (s.source === 'all' || p.source === s.source) && this.passes(p) && this.eb(p) === 'noise'); }
+  visible() { const s = this.state; const list = PRS.filter(p => (s.source === 'all' || p.source === s.source) && this.passes(p)); const ord = []; BUCKETS.forEach(([b]) => list.forEach(p => this.eb(p) === b && ord.push(p))); if (s.noiseOpen) list.forEach(p => this.eb(p) === 'noise' && ord.push(p)); return ord; }
+  selPr() { const v = this.visible(); return v.find(p => p.id === this.state.sel) || v[0] || PRS[0]; }
+  label(p) { return p.repo + p.num; }
+  say(text, party) {
+    clearTimeout(this.toastT); clearTimeout(this.partyT);
+    this.setState({ toast: text, party: !!party });
+    this.toastT = setTimeout(() => this.setState({ toast: '' }), 4000);
+    if (party) this.partyT = setTimeout(() => this.setState({ party: false }), 4000);
+  }
+  move(d) { const s = this.state; const v = this.visible(); if (!v.length) return; if (s.noiseCur) { if (d < 0) this.setState({ noiseCur: false }); return; } const hasRow = !s.noiseOpen && this.noiseItems().length > 0; const i = Math.max(0, v.findIndex(p => p.id === this.selPr().id)); if (d > 0 && i === v.length - 1 && hasRow) { this.setState({ noiseCur: true }); return; } const j = Math.min(v.length - 1, Math.max(0, i + d)); this.setState({ sel: v[j].id }); }
+  openNoise() { const n = this.noiseItems(); if (n.length) this.setState({ noiseOpen: true, noiseCur: false, sel: n[0].id }); }
+  run(cmd) {
+    const p = this.selPr(); const s = this.state;
+    this.setState({ palette: null, query: '', pIdx: 0 });
+    if (cmd.startsWith('src:')) { const key = cmd.slice(4); this.setState({ source: key }); return; }
+    if (cmd.startsWith('theme:')) { this.setState({ theme: cmd.slice(6) }); return; }
+    if (cmd.startsWith('pr:')) { this.setState({ sel: +cmd.slice(3), screen: 'diff' }); return; }
+    switch (cmd) {
+      case 'approve': this.setState({ reviews: { ...s.reviews, [p.id]: 'approved' } }); this.say('✓ Approved ' + this.label(p), true); if (s.layout === 'queue' && s.screen === 'dashboard') this.move(1); break;
+      case 'changes': this.setState({ reviews: { ...s.reviews, [p.id]: 'changes' } }); this.say('✎ Requested changes on ' + this.label(p)); break;
+      case 'comment': this.setState({ composer: 'comment', draft: '' }); break;
+      case 'suggest': this.setState({ composer: 'suggest', draft: this.suggestDraft() }); break;
+      case 'merge': this.setState({ confirm: true, cIdx: 0 }); break;
+      case 'rerun': this.say('↻ Re-running failed jobs on ' + this.label(p)); break;
+      case 'checkout': this.say('⎇ Checked out ' + p.branch + ' in ~/src/' + p.repo); break;
+      case 'open': this.say('→ Opened ' + this.label(p) + ' in your browser'); break;
+      case 'view': this.setState({ diffMode: s.diffMode === 'unified' ? 'split' : 'unified', screen: s.screen === 'dashboard' ? 'diff' : s.screen }); break;
+      case 'diff': this.setState({ screen: 'diff' }); break;
+      case 'layout': this.setState({ layout: { panes: 'split', split: 'queue', queue: 'panes' }[s.layout], screen: 'dashboard' }); break;
+      case 'jax': this.setState({ jax: !s.jax }); break;
+      case 'settings': this.setState({ screen: 'config' }); break;
+      case 'next': this.move(1); break;
+    }
+  }
+  paletteList() {
+    const s = this.state; const q = s.query.toLowerCase();
+    if (s.palette === 'search') return PRS.filter(p => !q || (p.title + ' ' + p.repo + p.num + ' ' + p.author).toLowerCase().includes(q)).slice(0, 7).map(p => ({ label: p.title, sub: this.label(p) + ' · ' + p.author, hint: p.kind === 'gh' ? 'GH' : 'GL', cmd: 'pr:' + p.id }));
+    return COMMANDS.filter(c => !q || c[0].toLowerCase().includes(q)).slice(0, 8).map(c => ({ label: c[0], sub: '', hint: c[2], cmd: c[1] }));
+  }
+  onKey = (e) => {
+    const s = this.state, k = e.key; let handled = true;
+    if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === 'k') { this.setState({ palette: 'cmd', query: '', pIdx: 0 }); e.preventDefault(); return; }
+    if (s.palette) {
+      const list = this.paletteList();
+      if (k === 'Escape') this.setState({ palette: null, query: '' });
+      else if (k === 'ArrowDown') this.setState({ pIdx: Math.min(list.length - 1, s.pIdx + 1) });
+      else if (k === 'ArrowUp') this.setState({ pIdx: Math.max(0, s.pIdx - 1) });
+      else if (k === 'Enter') { const it = list[s.pIdx]; if (it) this.run(it.cmd); }
+      else if (k === 'Backspace') this.setState({ query: s.query.slice(0, -1), pIdx: 0 });
+      else if (k.length === 1 && !e.ctrlKey && !e.metaKey) this.setState({ query: s.query + k, pIdx: 0 });
+      else handled = false;
+      if (handled) e.preventDefault(); return;
+    }
+    if (s.confirm) {
+      if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'Tab') this.setState({ cIdx: 1 - s.cIdx });
+      else if (k === 'Enter') { this.setState({ confirm: false }); if (s.cIdx === 1) this.say('✓ Merged ' + this.label(this.selPr()) + ' · branch deleted', true); }
+      else if (k === 'Escape') this.setState({ confirm: false });
+      e.preventDefault(); return;
+    }
+    if (s.composer) {
+      if (k === 'Escape') this.setState({ composer: null });
+      else if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === 's') this.setState({ draft: (s.draft ? s.draft.replace(/\s*$/, '') + '\n' : '') + this.suggestDraft() });
+      else if (k === 'Enter' && !e.shiftKey) { this.setState({ composer: null }); this.say(s.draft.includes('```suggestion') ? '✓ Comment with suggestion added to your review' : '✓ Comment added to your review'); }
+      else if (k === 'Enter') this.setState({ draft: s.draft + '\n' });
+      else if (k === 'Backspace') this.setState({ draft: s.draft.slice(0, -1) });
+      else if (k.length === 1) this.setState({ draft: s.draft + k });
+      else handled = false;
+      if (handled) e.preventDefault(); return;
+    }
+    if (k === 'Tab' && s.screen !== 'firstrun') { this.cyclePane(e.shiftKey ? -1 : 1); e.preventDefault(); return; }
+    const pane = this.curPane();
+    if (s.screen === 'firstrun') {
+      if (k === 'Enter') this.setState({ screen: 'dashboard' });
+      else if (k === 'Escape') this.setState({ screen: 'dashboard' });
+      else if (k === 't' || k === 'ArrowRight') this.setState({ theme: THEME_ORDER[(THEME_ORDER.indexOf(s.theme) + 1) % 3] });
+      else if (k === 'ArrowLeft') this.setState({ theme: THEME_ORDER[(THEME_ORDER.indexOf(s.theme) + 2) % 3] });
+      else if (k === 'J' || k === 'j') this.setState({ jax: !s.jax });
+      else handled = false;
+      if (handled) e.preventDefault(); return;
+    }
+    if (s.screen === 'config') {
+      const tabs = ['sources', 'review', 'keys', 'theme', 'jax']; const i = tabs.indexOf(s.configTab);
+      if (k === 'Escape' || k === ',') this.setState({ screen: 'dashboard' });
+      else if (k === 'ArrowDown' && pane === 'nav') this.setState({ configTab: tabs[Math.min(4, i + 1)] });
+      else if (k === 'ArrowUp' && pane === 'nav') this.setState({ configTab: tabs[Math.max(0, i - 1)] });
+      else if (s.configTab === 'theme' && pane === 'content' && (k === 'ArrowDown' || k === 'ArrowUp')) this.setState({ theme: THEME_ORDER[(THEME_ORDER.indexOf(s.theme) + (k === 'ArrowDown' ? 1 : 2)) % 3] });
+      else if (s.configTab === 'theme' && (k === 'ArrowRight' || k === ' ')) this.setState({ theme: THEME_ORDER[(THEME_ORDER.indexOf(s.theme) + 1) % 3] });
+      else if (s.configTab === 'jax' && k === ' ') this.setState({ jax: !s.jax });
+      else handled = false;
+      if (handled) e.preventDefault(); return;
+    }
+    if (s.screen === 'diff' && pane === 'files' && (k === 'ArrowDown' || k === 'ArrowUp')) { this.setState({ fileIdx: Math.min(FILES.length - 1, Math.max(0, s.fileIdx + (k === 'ArrowDown' ? 1 : -1))) }); e.preventDefault(); return; }
+    if (s.screen === 'diff' && pane === 'files' && k === 'Enter') { this.focusPane('diff'); e.preventDefault(); return; }
+    if (pane === 'sources' && (k === 'ArrowDown' || k === 'ArrowUp')) { const max = SOURCES.length + FILTERS.length - 1; const c = Math.min(max, Math.max(0, s.srcCur + (k === 'ArrowDown' ? 1 : -1))); this.setState(c < SOURCES.length ? { srcCur: c, source: SOURCES[c].key } : { srcCur: c }); e.preventDefault(); return; }
+    if (pane === 'sources' && (k === ' ' || k === 'Enter') && s.srcCur >= SOURCES.length) { this.toggleFilter(FILTERS[s.srcCur - SOURCES.length][0]); e.preventDefault(); return; }
+    if (s.screen === 'diff') {
+      if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'J' || k === 'K') { this.moveLine(k === 'ArrowDown' || k === 'J' ? 1 : -1, e.shiftKey); e.preventDefault(); return; }
+      if (k === 'V') { this.setState({ anchor: s.anchor == null ? s.cur : null }); e.preventDefault(); return; }
+      if (k === 'Escape' && s.anchor != null) { this.setState({ anchor: null }); e.preventDefault(); return; }
+    }
+    if (s.screen === 'dashboard' && s.layout === 'panes' && (k === '[' || k === ']' || (pane === 'detail' && (k === 'ArrowLeft' || k === 'ArrowRight')))) { const d = (k === ']' || k === 'ArrowRight') ? 1 : -1; this.setState({ dtab: (s.dtab + d + 4) % 4 }); e.preventDefault(); return; }
+    if (s.screen === 'dashboard' && s.layout === 'panes' && pane === 'detail' && s.dtab === 1 && (k === 'ArrowDown' || k === 'ArrowUp')) { this.setState({ fileIdx: Math.min(FILES.length - 1, Math.max(0, s.fileIdx + (k === 'ArrowDown' ? 1 : -1))) }); e.preventDefault(); return; }
+    const keymap = { a: 'approve', x: 'changes', c: 'comment', s: 'suggest', m: 'merge', R: 'rerun', b: 'checkout', o: 'open', v: 'view', L: 'layout', J: 'jax', ',': 'settings', n: 'next' };
+    if (k === 'ArrowDown' || k === 'j') this.move(1);
+    else if (k === 'ArrowUp' || k === 'k' || k === 'p') this.move(-1);
+    else if ((k === 'Enter' || k === 'd') && s.noiseCur) this.openNoise();
+    else if (k === 'Enter' || k === 'd') this.setState({ screen: 'diff' });
+    else if (k === 'Escape') this.setState({ screen: 'dashboard', toast: '' });
+    else if (k === '/') this.setState({ palette: 'search', query: '', pIdx: 0 });
+    else if (k === 'T') this.setState({ theme: THEME_ORDER[(THEME_ORDER.indexOf(s.theme) + 1) % 3] });
+    else if (/^[1-5]$/.test(k)) this.setState({ source: SOURCES[+k - 1].key });
+    else if (keymap[k]) this.run(keymap[k]);
+    else handled = false;
+    if (handled) e.preventDefault();
+  };
+  renderVals() {
+    const s = this.state; const T = THEMES[s.theme] || THEMES.liminal; const v = T.v;
+    const vars = {}; for (const key in v) vars['--t-' + key] = v[key];
+    const rootStyle = { ...vars, width: '100%', height: '100%', minHeight: 560, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13, lineHeight: '19px', background: v.bg, color: v.text, outline: 'none', position: 'relative', overflow: 'hidden', fontVariantLigatures: 'none' };
+    const vis = this.visible(); const p = this.selPr();
+    const src = (kind) => kind === 'gh' ? 'var(--t-gh)' : 'var(--t-gl)';
+    const myState = s.reviews[p.id];
+    const tabs = SOURCES.map((x, i) => ({ num: i + 1, label: x.short, color: s.source === x.key ? 'var(--t-accent)' : 'var(--t-sec)', bg: s.source === x.key ? 'var(--t-sel)' : 'transparent', onClick: () => this.setState({ source: x.key, srcCur: i }) }));
+    const sourceRows = SOURCES.map((x, i) => ({ num: i + 1, label: x.label, host: x.host, mark: x.kind ? '●' : '◆', markColor: x.kind ? src(x.kind) : 'var(--t-accent)', color: s.source === x.key ? 'var(--t-accent)' : 'var(--t-text)', bg: s.source === x.key ? 'var(--t-sel)' : 'transparent', onClick: () => this.setState({ source: x.key, srcCur: i }) }));
+    const rows = [];
+    const groups = s.noiseOpen ? [...BUCKETS, ['noise', 'Noise', 'bots and automation · click to fold']] : BUCKETS;
+    groups.forEach(([b, label, note]) => {
+      const items = vis.filter(x => this.eb(x) === b); if (!items.length) return;
+      rows.push(b === 'noise' ? { isHead: true, label, note, color: 'var(--t-sec)', cursor: 'pointer', onClick: () => this.setState({ noiseOpen: false }) } : { isHead: true, label, note, color: 'var(--t-accent)', cursor: 'default' });
+      items.forEach(x => {
+        const on = x.id === p.id && !s.noiseCur; const r = s.reviews[x.id];
+        rows.push({ isPr: true, title: x.title, age: x.age, ci: CI[x.ci][0], ciColor: CI[x.ci][1], srcTag: x.kind === 'gh' ? 'GH' : 'GL', srcColor: src(x.kind), repoNum: this.label(x), author: x.author, tag: r === 'approved' ? '✓ you approved' : r === 'changes' ? '✎ changes asked' : x.tag, tagColor: r === 'approved' ? 'var(--t-ok)' : r === 'changes' ? 'var(--t-rose)' : x.bucket === 'wait' ? 'var(--t-accent)' : 'var(--t-muted)', bg: on ? 'var(--t-sel)' : 'transparent', edge: on ? 'var(--t-accent)' : 'transparent', titleColor: on ? 'var(--t-bright)' : 'var(--t-text)', onClick: () => this.setState({ sel: x.id, noiseCur: false }) });
+      });
+    });
+    const nItems = this.noiseItems();
+    if (nItems.length && !s.noiseOpen) rows.push({ isNoise: true, note: nItems.length + (nItems.length > 1 ? ' bot updates' : ' bot update') + ' · ⏎ to expand', bg: s.noiseCur ? 'var(--t-sel)' : 'transparent', edge: s.noiseCur ? 'var(--t-accent)' : 'transparent', onClick: () => this.openNoise() });
+    const hidden = PRS.filter(x => (s.source === 'all' || x.source === s.source) && !this.passes(x)).length;
+    rows.push({ isEnd: true, note: hidden ? hidden + ' hidden by your Show filters.' : '' });
+    const srcFocused = this.curPane() === 'sources';
+    const filterRows = FILTERS.map(([key, label], i) => { const on = s.filters[key]; const cur = srcFocused && s.srcCur === SOURCES.length + i; return { label, box: on ? '[x]' : '[ ]', boxColor: on ? 'var(--t-accent)' : 'var(--t-muted)', color: on ? 'var(--t-text)' : 'var(--t-muted)', bg: cur ? 'var(--t-sel)' : 'transparent', onClick: () => { this.toggleFilter(key); this.setState({ srcCur: SOURCES.length + i }); } }; });
+    const revMap = { approved: ['✓', 'var(--t-ok)'], requested: ['◌', 'var(--t-muted)'], commented: ['✎', 'var(--t-sec)'], optional: ['◌', 'var(--t-muted)'], changes: ['✎', 'var(--t-rose)'] };
+    const reviewers = p.reviewers.map(([who, st]) => { const st2 = who === 'you' && myState ? (myState === 'approved' ? 'approved' : 'changes') : st; return { who, state: st2 === 'changes' ? 'requested changes' : st2, icon: revMap[st2][0], color: revMap[st2][1] }; });
+    const checks = p.checks.map(([name, st, time]) => ({ name, time, icon: CI[st][0], color: CI[st][1] }));
+    const sel = { ...p, repoNum: this.label(p), srcTag: p.kind === 'gh' ? 'GH' : 'GL', srcColor: src(p.kind), reviewers, checks, cWho: p.comment[0], cAge: p.comment[1], cText: p.comment[2], ciIcon: CI[p.ci][0], ciColor: CI[p.ci][1], ciLabel: CI[p.ci][2],
+      myLine: myState === 'approved' ? '✓ You approved this.' : myState === 'changes' ? '✎ You asked for changes.' : p.author === 'you' ? 'This one is yours.' : "You haven't reviewed this yet.",
+      myShort: myState === 'approved' ? 'you approved' : myState === 'changes' ? 'changes asked' : 'not reviewed',
+      myColor: myState === 'approved' ? 'var(--t-ok)' : myState === 'changes' ? 'var(--t-rose)' : 'var(--t-muted)' };
+    const srcObj = SOURCES.find(x => x.key === s.source);
+    const queueTitle = 'Queue · ' + (s.source === 'all' ? 'all sources' : srcObj.label);
+    const bucketItems = vis.filter(x => this.eb(x) === this.eb(p)); const bi = bucketItems.findIndex(x => x.id === p.id);
+    const qDots = bucketItems.map(x => ({ g: s.reviews[x.id] ? '✓' : x.id === p.id ? '●' : '○', color: s.reviews[x.id] ? 'var(--t-ok)' : x.id === p.id ? 'var(--t-accent)' : 'var(--t-muted)', onClick: () => this.setState({ sel: x.id }) }));
+    const bucketLabel = this.eb(p) === 'noise' ? 'Noise' : (BUCKETS.find(b => b[0] === this.eb(p)) || BUCKETS[0])[1];
+    const later = BUCKETS.filter(b => b[0] !== this.eb(p) && vis.some(x => this.eb(x) === b[0])).map(b => b[1]).join(', then ');
+    const files = FILES.map(([name, a, d], i) => ({ name, a, d, mark: i === s.fileIdx ? '›' : ' ', mColor: 'var(--t-accent)', color: i === s.fileIdx ? 'var(--t-bright)' : 'var(--t-text)', bg: i === s.fileIdx ? 'var(--t-sel)' : 'transparent', onClick: () => this.setState({ fileIdx: i }) }));
+    const focused = this.curPane(); const fc = {}, ft = {};
+    ALL_PANES.forEach(n => { fc[n] = n === focused ? 'var(--t-accent)' : 'var(--t-line)'; ft[n] = n === focused ? 'var(--t-accent)' : 'var(--t-sec)'; });
+    const plist = s.palette ? this.paletteList() : [];
+    const paletteItems = plist.map((it, i) => ({ ...it, marker: i === s.pIdx ? '›' : ' ', bg: i === s.pIdx ? 'var(--t-sel)' : 'transparent', color: i === s.pIdx ? 'var(--t-bright)' : 'var(--t-text)', onClick: () => this.run(it.cmd) }));
+    const themeOptions = THEME_ORDER.map(key => { const t = THEMES[key]; const on = s.theme === key; return { name: t.name, note: t.note, mark: on ? '(●)' : '( )', markColor: on ? 'var(--t-accent)' : 'var(--t-muted)', border: on ? 'var(--t-accent)' : 'var(--t-line)', sw: [t.v.bg, t.v.accent, t.v.int, t.v.rose, t.v.ok, t.v.text], onClick: () => this.setState({ theme: key }) }; });
+    const frSources = [
+      { mark: '✓', markColor: 'var(--t-ok)', kind: 'GH', kindColor: 'var(--t-gh)', host: 'github.com', detail: 'signed in as smorris via gh · 2 orgs', action: '', bg: 'transparent' },
+      { mark: '✓', markColor: 'var(--t-ok)', kind: 'GL', kindColor: 'var(--t-gl)', host: 'gitlab.com', detail: 'signed in via glab', action: '', bg: 'transparent' },
+      { mark: '○', markColor: 'var(--t-accent)', kind: 'GL', kindColor: 'var(--t-gl)', host: 'gitlab.work.ca', detail: 'found in ~/.gitconfig, no credentials yet', action: '› add token', bg: 'var(--t-sel)' }
+    ];
+    const cfgTabs = [['sources', 'Sources'], ['review', 'Review'], ['keys', 'Keys'], ['theme', 'Theme'], ['jax', 'Jax']];
+    const configTabs = cfgTabs.map(([k, l]) => ({ label: l, color: s.configTab === k ? 'var(--t-accent)' : 'var(--t-text)', bg: s.configTab === k ? 'var(--t-sel)' : 'transparent', onClick: () => this.setState({ configTab: k }) }));
+    const cfgSourceRows = SOURCES.slice(1).map((x, i) => ({ on: '●', kind: x.kind === 'gh' ? 'GH' : 'GL', kindColor: src(x.kind), label: x.label, host: x.host.split(' · ')[0], auth: x.auth, all: '[x]', bg: x.key === 'gl-work' ? 'var(--t-sel)' : 'transparent' }));
+    const keysList = [['tab', 'next pane (⇧ back)'], ['↑ ↓', 'move in pane'], ['⏎', 'open diff'], ['[ ]', 'detail tabs (← → when focused)'], ['a', 'approve'], ['x', 'request changes'], ['c', 'comment'], ['s', 'suggest a change'], ['m', 'merge (asks first)'], ['R', 're-run CI'], ['b', 'check out branch'], ['o', 'open in browser'], ['v', 'unified / side by side'], ['1–5', 'switch source'], ['/', 'search PRs'], ['⌃K', 'command palette'], ['L', 'cycle layout'], ['T', 'cycle theme'], ['J', 'Jax on / off'], [',', 'settings']].map(([k, l]) => ({ k, l }));
+    const fk = (arr) => arr.map(([k, l]) => ({ k, l }));
+    let footerKeys;
+    if (s.screen === 'firstrun') footerKeys = fk([['⏎', 'open my queue'], ['← →', 'theme'], ['J', 'Jax'], ['esc', 'skip for now'], ['', 'settings live in $XDG_CONFIG_HOME/review-buddy/']]);
+    else if (s.screen === 'config') footerKeys = fk([['tab', 'next pane'], ['↑↓', 'section'], ['space', 'toggle'], ['esc', 'back to queue']]);
+    else if (s.screen === 'diff') footerKeys = fk([['tab', 'files / diff'], ['↑↓', 'line'], ['⇧↑↓', 'select lines'], ['c', 'comment'], ['s', 'suggest'], ['v', 'unified / split'], ['a', 'approve'], ['x', 'changes'], ['b', 'check out'], ['esc', 'back'], ['⌃K', 'commands']]);
+    else if (s.layout === 'queue') footerKeys = fk([['tab', 'pane'], ['a', 'approve & next'], ['n', 'skip'], ['p', 'back'], ['⏎', 'full diff'], ['x', 'changes'], ['c', 'comment'], ['/', 'search'], ['⌃K', 'commands']]);
+    else footerKeys = fk([['tab', 'pane'], ['↑↓', 'move'], ['[ ]', 'tabs'], ['⏎', 'diff'], ['a', 'approve'], ['x', 'changes'], ['c', 'comment'], ['m', 'merge'], ['1–5', 'source'], ['/', 'search'], ['⌃K', 'commands'], [',', 'settings']]);
+    const rr = this.rangeRows(); const multi = rr.lo !== rr.hi;
+    const diffRowsLive = BUILT.uni.map((r, i) => {
+      if (!r.isLine) return r;
+      const inR = i >= rr.lo && i <= rr.hi; const isCur = i === s.cur;
+      return { ...r, mark: isCur ? '›' : inR ? '▌' : ' ', bg: inR ? 'var(--t-sel)' : r.bg, numColor: inR ? 'var(--t-accent)' : 'var(--t-muted)', onDown: (e) => this.downLine(i, e), onEnter: () => this.enterLine(i) };
+    });
+    const mood = s.party ? ['🎉', 'approved! snack time.'] : p.ci === 'fail' ? ['😰', 'one test is unhappy. not your fault.'] : MOODS[s.mood];
+    const isDash = s.screen === 'dashboard';
+    return {
+      rootRef: this.rootRef, rootStyle, onKey: this.onKey,
+      showTabs: s.screen !== 'firstrun', syncNote: s.screen === 'firstrun' ? 'first run · about a minute' : 'synced 2m ago · ' + T.name,
+      isPanes: isDash && s.layout === 'panes', isSplit: isDash && s.layout === 'split', isQueue: isDash && s.layout === 'queue',
+      isDiff: s.screen === 'diff', isFirst: s.screen === 'firstrun', isConfig: s.screen === 'config',
+      tabs, sourceRows, filterRows, rows, queueTitle, sel,
+      diffRows: s.screen === 'diff' ? diffRowsLive : BUILT.uni, splitRows: BUILT.split,
+      detailTabs: ['Overview', 'Files', 'Checks', 'Conversation'].map((l, i) => ({ label: l, color: i === s.dtab ? 'var(--t-accent)' : 'var(--t-muted)', edge: i === s.dtab ? 'var(--t-accent)' : 'transparent', onClick: () => this.setState({ dtab: i }) })),
+      dtOverview: s.dtab === 0, dtFiles: s.dtab === 1, dtChecks: s.dtab === 2, dtConvo: s.dtab === 3,
+      convo: p.id === 1 ? [{ who: 'ash', age: '1d', where: 'approved', text: 'Snapshot test reads well. Nice.' }, ...THREAD.map(t => ({ ...t, where: 'menus.rs:43' }))] : [{ who: p.comment[0], age: p.comment[1], where: 'general', text: p.comment[2] }],
+      fc, ft, fileName: FILES[s.fileIdx][0],
+      rangeLabel: this.rangeLabel(), rangeHint: multi ? 'selected · c comment · s suggest · esc clear' : '· ⇧↑↓, V, or drag with the mouse to select a range', thread: THREAD, files,
+      isUnified: s.diffMode !== 'split', isSbs: s.diffMode === 'split',
+      uniColor: s.diffMode !== 'split' ? 'var(--t-accent)' : 'var(--t-muted)', sbsColor: s.diffMode === 'split' ? 'var(--t-accent)' : 'var(--t-muted)',
+      qBucket: bucketLabel, qDots, qPos: (bi + 1) + ' of ' + bucketItems.length, qNext: later ? 'then ' + later : "then you're caught up",
+      showPalette: !!s.palette, paletteTitle: s.palette === 'search' ? 'Search all sources' : 'Commands', paletteQuery: s.query,
+      palettePlaceholder: s.query ? '' : (s.palette === 'search' ? 'title, repo, number or author' : 'type a command'), paletteItems, paletteEmpty: !!s.palette && !plist.length,
+      showConfirm: s.confirm, confirmNoBg: s.cIdx === 0 ? 'var(--t-sel)' : 'transparent', confirmNoColor: s.cIdx === 0 ? 'var(--t-accent)' : 'var(--t-text)',
+      confirmYesBg: s.cIdx === 1 ? 'var(--t-jaxbox)' : 'transparent', confirmYesColor: s.cIdx === 1 ? '#0a0a0c' : 'var(--t-text)',
+      showComposer: !!s.composer, composerTitle: 'Comment · menus.rs ' + this.rangeLabel() + (s.draft.includes('```suggestion') ? ' · with suggestion' : ''), composerText: s.draft,
+      showToast: !!s.toast, toastText: s.toast,
+      showJax: s.jax && isDash, showDock: s.jax && (s.screen === 'diff') && !s.toast,
+      jaxEmoji: mood[0], jaxCaption: mood[1], jaxFace: s.blink ? '- ‿ -' : '●‿●',
+      jaxCheck: s.jax ? '[x]' : '[ ]',
+      themeOptions, frSources, configTabs, configTitle: (cfgTabs.find(c => c[0] === s.configTab) || cfgTabs[0])[1],
+      cfgSources: s.configTab === 'sources', cfgTheme: s.configTab === 'theme', cfgReview: s.configTab === 'review', cfgKeys: s.configTab === 'keys', cfgJax: s.configTab === 'jax',
+      cfgSourceRows, keysList, footerKeys,
+      act: {
+        approve: () => this.run('approve'), changes: () => this.run('changes'), comment: () => this.run('comment'), diff: () => this.run('diff'),
+        merge: () => this.run('merge'), next: () => this.run('next'), view: () => this.run('view'), jax: () => this.run('jax'),
+        confirmNo: () => this.setState({ confirm: false }), confirmYes: () => { this.setState({ confirm: false }); this.say('✓ Merged ' + this.label(p) + ' · branch deleted', true); }
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

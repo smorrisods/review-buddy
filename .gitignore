@@ -1,0 +1,10 @@
+/target
+**/*.rs.bk
+
+# Local auth material — never commit
+token.txt
+.env
+
+# OS / editor cruft
+.DS_Store
+*.swp

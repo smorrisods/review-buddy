@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rb-core",
+    "crates/rb-github",
+    "crates/rb-gitlab",
+    "crates/rb-paths",
+    "crates/rb-platform",
+    "crates/rb-store",
+    "crates/rb-theme",
+    "crates/rb-diff",
+    "crates/review-buddy",
+]
+default-members = ["crates/review-buddy"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+authors = ["Scott Morris"]
+repository = "https://github.com/smorrisods/review-buddy"
+homepage = "https://github.com/smorrisods/review-buddy"
+documentation = "https://github.com/smorrisods/review-buddy#readme"
+rust-version = "1.87"
+
+[workspace.dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+clap_mangen = "0.3"
+rb-core = { path = "crates/rb-core" }
+rb-github = { path = "crates/rb-github" }
+rb-gitlab = { path = "crates/rb-gitlab" }
+rb-paths = { path = "crates/rb-paths" }
+rb-platform = { path = "crates/rb-platform" }
+rb-store = { path = "crates/rb-store" }
+rb-theme = { path = "crates/rb-theme" }
+rb-diff = { path = "crates/rb-diff" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
