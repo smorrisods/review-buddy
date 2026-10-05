@@ -3,6 +3,7 @@
 
 use std::time::Duration;
 
+use rb_core::{ChangeSummary, Source, Timestamp};
 use rb_theme::{ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID};
 
 use crate::ui::HitMap;
@@ -74,6 +75,8 @@ pub enum Msg {
     Notify(Notice),
     StatusExpired(u64),
     ToastExpired(u64),
+    /// The sources and changes a [`Cmd::LoadChanges`] asked for.
+    Loaded(Box<Snapshot>),
 }
 
 /// Effects, run by the runtime. They never run inside `update`.
@@ -81,6 +84,28 @@ pub enum Msg {
 pub enum Cmd {
     /// Deliver `msg` after `delay`.
     After { delay: Duration, msg: Msg },
+    /// Fetch every source's changes from whatever backs this session.
+    LoadChanges,
+}
+
+/// The sources and changes handed to the app in one go.
+#[derive(Debug, Clone)]
+pub struct Snapshot {
+    /// Short name of the backing store, shown in the top bar (`demo`).
+    pub label: String,
+    pub sources: Vec<Source>,
+    pub changes: Vec<ChangeSummary>,
+    pub now: Timestamp,
+}
+
+/// Remote data held by the app. Screens read it; only `update` writes it.
+#[derive(Debug, Clone, Default)]
+pub struct AppState {
+    pub loaded: bool,
+    pub sources: Vec<Source>,
+    pub changes: Vec<ChangeSummary>,
+    /// The clock the queue's relative ages are measured against.
+    pub now: Option<Timestamp>,
 }
 
 /// What the app needs to know about the terminal it starts in.
@@ -116,6 +141,7 @@ pub struct App {
     /// Short description of the connected sources, shown in the top bar.
     pub source_label: String,
     pub change_count: usize,
+    pub state: AppState,
     pub(crate) ticks: u64,
     pub(crate) next_id: u64,
     theme_index: usize,
@@ -139,6 +165,7 @@ impl App {
             hits: HitMap::default(),
             source_label: "no sources".to_string(),
             change_count: 0,
+            state: AppState::default(),
             ticks: 0,
             next_id: 1,
             theme_index,

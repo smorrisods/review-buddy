@@ -1,0 +1,6 @@
+@@ -40,4 +40,4 @@ impl Palette {
+     fn muted(&self) -> Colour {
+-        self.theme.role(Role::Muted)
++        self.theme.role_with_floor(Role::Muted, MIN_CONTRAST)
+     }
+ }

@@ -14,7 +14,7 @@ fn main() -> ExitCode {
 
 fn run(cli: cli::Cli) -> ExitCode {
     let what = match &cli.command {
-        None => return launch(),
+        None => return launch(&cli),
         Some(cli::Command::Open { .. }) => "The open command",
         Some(cli::Command::Theme { .. }) => "The theme command",
         Some(cli::Command::Doctor) => "The doctor command",
@@ -25,18 +25,45 @@ fn run(cli: cli::Cli) -> ExitCode {
     ExitCode::from(EXIT_UNAVAILABLE)
 }
 
-fn launch() -> ExitCode {
+fn launch(cli: &cli::Cli) -> ExitCode {
     if !std::io::stdout().is_terminal() || !std::io::stdin().is_terminal() {
         eprintln!(
             "Review Buddy needs an interactive terminal to draw in. Run it from a terminal, or see `review-buddy --help` for the command line."
         );
         return ExitCode::from(EXIT_UNAVAILABLE);
     }
-    match runtime::run() {
+    let options = match run_options(cli) {
+        Ok(options) => options,
+        Err(err) => {
+            eprintln!("{err:#}");
+            return ExitCode::from(EXIT_UNAVAILABLE);
+        }
+    };
+    match runtime::run(options) {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("Review Buddy couldn't start the interface: {err:#}");
             ExitCode::FAILURE
         }
     }
+}
+
+#[cfg(feature = "demo")]
+fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
+    let demo = if cli.demo {
+        Some(review_buddy::demo::Demo::start(cli.frozen_time.as_deref())?)
+    } else {
+        None
+    };
+    Ok(runtime::RunOptions { demo })
+}
+
+#[cfg(not(feature = "demo"))]
+fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
+    if cli.demo {
+        anyhow::bail!(
+            "This build doesn't include demo mode. Install a release build, or rebuild with the `demo` feature."
+        );
+    }
+    Ok(runtime::RunOptions::default())
 }

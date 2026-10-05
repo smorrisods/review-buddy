@@ -2,7 +2,7 @@ use crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
 };
 
-use super::{Action, App, Cmd, Entry, Msg, Notice, NoticeKind, MAX_TOASTS, NOTICE_TTL};
+use super::{Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind, MAX_TOASTS, NOTICE_TTL};
 
 /// Applies one message and returns the effects to run. Does no I/O.
 pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
@@ -47,6 +47,19 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
         }
         Msg::ToastExpired(id) => {
             dismiss_toast(app, id);
+            Vec::new()
+        }
+        Msg::Loaded(snapshot) => {
+            let snapshot = *snapshot;
+            app.source_label = format!("{} · {} sources", snapshot.label, snapshot.sources.len());
+            app.change_count = snapshot.changes.len();
+            app.state = AppState {
+                loaded: true,
+                sources: snapshot.sources,
+                changes: snapshot.changes,
+                now: Some(snapshot.now),
+            };
+            app.mark_dirty();
             Vec::new()
         }
     }
@@ -130,7 +143,7 @@ mod tests {
     use ratatui::layout::Rect;
 
     use super::*;
-    use crate::app::AppConfig;
+    use crate::app::{AppConfig, Snapshot};
     use rb_theme::ColourDepth;
 
     fn app() -> App {
@@ -155,6 +168,25 @@ mod tests {
             row,
             modifiers: KeyModifiers::NONE,
         })
+    }
+
+    #[test]
+    fn loaded_snapshot_fills_state_and_top_bar_info() {
+        let mut a = app();
+        let cmds = update(
+            &mut a,
+            Msg::Loaded(Box::new(Snapshot {
+                label: "demo".into(),
+                sources: Vec::new(),
+                changes: Vec::new(),
+                now: rb_core::Timestamp(5),
+            })),
+        );
+        assert!(cmds.is_empty());
+        assert!(a.state.loaded);
+        assert_eq!(a.state.now, Some(rb_core::Timestamp(5)));
+        assert_eq!(a.source_label, "demo · 0 sources");
+        assert!(a.is_dirty());
     }
 
     #[test]

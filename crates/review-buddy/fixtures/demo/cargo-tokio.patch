@@ -1,0 +1,5 @@
+@@ -14,3 +14,3 @@ [dependencies]
+ serde = { version = "1", features = ["derive"] }
+-tokio = { version = "1.38", features = ["rt"] }
++tokio = { version = "1.47", features = ["rt"] }
+ url = "2"

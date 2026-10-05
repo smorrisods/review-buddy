@@ -37,9 +37,53 @@ pub fn msg_from_event(event: Event) -> Option<Msg> {
     }
 }
 
+/// What answers [`Cmd::LoadChanges`].
+#[derive(Debug, Clone, Default)]
+pub enum Backend {
+    #[default]
+    None,
+    #[cfg(feature = "demo")]
+    Demo(crate::demo::DemoWorld),
+}
+
+/// How the interface should start.
+#[derive(Debug, Default)]
+pub struct RunOptions {
+    #[cfg(feature = "demo")]
+    pub demo: Option<crate::demo::Demo>,
+}
+
+impl RunOptions {
+    fn backend(&self) -> Backend {
+        #[cfg(feature = "demo")]
+        if let Some(demo) = &self.demo {
+            return Backend::Demo(demo.world.clone());
+        }
+        Backend::None
+    }
+}
+
 /// Runs one effect. Results come back as messages on `tx`.
-pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>) {
+pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend) {
     match cmd {
+        Cmd::LoadChanges => match backend {
+            Backend::None => {}
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                let world = world.clone();
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let msg = match world.snapshot().await {
+                        Ok(snapshot) => Msg::Loaded(Box::new(snapshot)),
+                        Err(err) => Msg::Notify(crate::app::Notice::new(
+                            crate::app::NoticeKind::Warning,
+                            format!("The demo data didn't load: {err}."),
+                        )),
+                    };
+                    let _ = tx.send(msg);
+                });
+            }
+        },
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
             tokio::spawn(async move {
@@ -51,14 +95,15 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>) {
 }
 
 /// Starts the interface and blocks until the user quits.
-pub fn run() -> Result<()> {
+pub fn run(options: RunOptions) -> Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_time()
         .build()?;
-    runtime.block_on(event_loop())
+    runtime.block_on(event_loop(options))
 }
 
-async fn event_loop() -> Result<()> {
+async fn event_loop(options: RunOptions) -> Result<()> {
+    let backend = options.backend();
     let mut guard = TerminalGuard::enter()?;
     let size = guard.terminal.size()?;
     let mut app = App::new(AppConfig::from_env((size.width, size.height)));
@@ -68,6 +113,16 @@ async fn event_loop() -> Result<()> {
     let mut ticker = interval(TICK);
     ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
     let mut last_draw = Instant::now() - MIN_FRAME;
+
+    if !matches!(backend, Backend::None) {
+        // The first frame already shows the loaded data; the load is local and immediate.
+        execute(Cmd::LoadChanges, &tx, &backend);
+        if let Some(msg) = rx.recv().await {
+            for cmd in update(&mut app, msg) {
+                execute(cmd, &tx, &backend);
+            }
+        }
+    }
 
     while !app.should_quit() {
         if frame_due(app.is_dirty(), last_draw.elapsed()) {
@@ -92,7 +147,7 @@ async fn event_loop() -> Result<()> {
         };
         if let Some(msg) = msg {
             for cmd in update(&mut app, msg) {
-                execute(cmd, &tx);
+                execute(cmd, &tx, &backend);
             }
         }
     }
@@ -141,6 +196,7 @@ mod tests {
                 msg: Msg::ToastExpired(7),
             },
             &tx,
+            &Backend::None,
         );
         let got = tokio::time::timeout(Duration::from_secs(2), rx.recv())
             .await
