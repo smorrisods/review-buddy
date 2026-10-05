@@ -1,0 +1,407 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag (vX.Y.Z). Required to publish. In a dry run it defaults to v<workspace version>.
+        required: false
+        type: string
+      dry_run:
+        description: Build everything and upload workflow artefacts, but do not create a GitHub Release
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && (inputs.release_tag || github.ref_name) || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare-release:
+    name: Prepare release metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+      dry_run: ${{ steps.meta.outputs.dry_run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and verify the release
+        id: meta
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.release_tag }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          CARGO_VERSION="$(scripts/prepare-release-version.sh --current-version)"
+
+          DRY_RUN="false"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            DRY_RUN="${INPUT_DRY_RUN:-true}"
+            TAG="${INPUT_TAG:-}"
+            if [[ -z "${TAG}" ]]; then
+              if [[ "${DRY_RUN}" != "true" ]]; then
+                echo "release_tag is required when dry_run is false." >&2
+                exit 1
+              fi
+              TAG="v${CARGO_VERSION}"
+            fi
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            echo "Unsupported ref type: ${GITHUB_REF_TYPE}" >&2
+            exit 1
+          fi
+
+          if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: ${TAG} (expected vX.Y.Z)" >&2
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+
+          if [[ "${VERSION}" != "${CARGO_VERSION}" ]]; then
+            echo "Tag ${TAG} does not match the workspace version ${CARGO_VERSION} in Cargo.toml." >&2
+            echo "Run scripts/prepare-release-version.sh --version ${VERSION}, merge it, then tag main." >&2
+            exit 1
+          fi
+
+          # Dry runs may start from any branch; real releases must be on main.
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "Dry run: skipping the main-ancestry check."
+          else
+            git fetch --no-tags origin main
+            if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+              echo "Commit ${GITHUB_SHA} is not on main; releases are only cut from main." >&2
+              exit 1
+            fi
+          fi
+
+          {
+            echo "tag=${TAG}"
+            echo "version=${VERSION}"
+            echo "dry_run=${DRY_RUN}"
+          } >> "${GITHUB_OUTPUT}"
+
+          {
+            echo "## Release preparation"
+            echo
+            echo "- Tag: \`${TAG}\`"
+            echo "- Version: \`${VERSION}\`"
+            echo "- Dry run: \`${DRY_RUN}\`"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  build-linux:
+    name: Build Linux (${{ matrix.suffix }})
+    runs-on: ${{ matrix.os }}
+    needs: prepare-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-musl, arch: amd64, libc: musl, suffix: linux-amd64-musl, file_arch: x86-64 }
+          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-musl, arch: arm64, libc: musl, suffix: linux-arm64-musl, file_arch: aarch64 }
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: amd64, libc: gnu, suffix: linux-amd64-glibc, file_arch: x86-64 }
+          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, arch: arm64, libc: gnu, suffix: linux-arm64-glibc, file_arch: aarch64 }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+          shared-key: release-linux
+
+      - name: Install packaging tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          # Native musl-gcc on each arch (ring and bundled SQLite compile C). A native
+          # runner is more reliable than cross-compiling aarch64 with zig or `cross`:
+          # no container, no extra toolchain, and it is the same recipe on both arches.
+          if [[ "${{ matrix.libc }}" == "musl" ]]; then
+            sudo apt-get install -y musl-tools
+          fi
+
+      - name: Build release binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ matrix.libc }}" == "musl" ]]; then
+            TARGET_ENV="$(echo "${{ matrix.target }}" | tr '-' '_')"
+            export "CC_${TARGET_ENV}=musl-gcc"
+          fi
+          cargo build --locked --release --target "${{ matrix.target }}"
+
+      - name: Verify the binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="target/${{ matrix.target }}/release/review-buddy"
+          file "${BIN}"
+          file "${BIN}" | grep -q "${{ matrix.file_arch }}"
+          if [[ "${{ matrix.libc }}" == "musl" ]]; then
+            ldd_out="$(ldd "${BIN}" 2>&1 || true)"
+            echo "${ldd_out}"
+            # glibc's ldd says "statically linked" for static-pie and "not a dynamic executable" otherwise.
+            grep -qE "not a dynamic executable|statically linked" <<< "${ldd_out}"
+            file "${BIN}" | grep -qE "statically linked|static-pie linked"
+          fi
+          "${BIN}" --version
+
+      - name: Prepare release artefacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          BIN="target/${{ matrix.target }}/release/review-buddy"
+          PREFIX="dist/review-buddy-${VERSION}-${{ matrix.suffix }}"
+
+          if [[ "${{ matrix.libc }}" == "musl" ]]; then
+            cp "${BIN}" "${PREFIX}"
+            scripts/build-release-archive.sh --version "${VERSION}" --binary "${BIN}" --output-prefix "${PREFIX}"
+          else
+            scripts/build-linux-packages.sh --version "${VERSION}" --arch "${{ matrix.arch }}" --libc gnu --binary "${BIN}" --output-prefix "${PREFIX}"
+          fi
+          ls -l dist
+
+      - name: Smoke-test the packages
+        if: matrix.libc == 'gnu'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo dpkg -i dist/*.deb
+          review-buddy --version
+          sudo dpkg -r review-buddy
+
+      - name: Upload workflow artefacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: review-buddy-${{ matrix.suffix }}
+          path: dist/review-buddy-*
+          if-no-files-found: error
+
+  build-macos:
+    name: Build macOS (universal2)
+    runs-on: macos-14
+    needs: prepare-release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: release-universal2
+          shared-key: release-macos
+
+      - name: Build both architectures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked --release --target aarch64-apple-darwin
+          cargo build --locked --release --target x86_64-apple-darwin
+
+      - name: Create and sign the universal2 binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist universal
+          lipo -create \
+            target/aarch64-apple-darwin/release/review-buddy \
+            target/x86_64-apple-darwin/release/review-buddy \
+            -output universal/review-buddy
+
+          archs="$(lipo -archs universal/review-buddy)"
+          echo "lipo -archs: ${archs}"
+          grep -q "arm64" <<< "${archs}"
+          grep -q "x86_64" <<< "${archs}"
+
+          # Apple Silicon refuses unsigned arm64 code; an ad-hoc signature is the minimum.
+          # Not notarised: see docs/release.md for first-run guidance.
+          codesign --sign - --force universal/review-buddy
+          codesign -dv universal/review-buddy 2>&1 | tee codesign.txt
+          grep -q "Signature=adhoc" codesign.txt
+          codesign --verify --verbose universal/review-buddy
+
+      - name: Smoke-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          universal/review-buddy --version
+          if arch -x86_64 /usr/bin/true 2>/dev/null; then
+            arch -x86_64 universal/review-buddy --version
+          else
+            echo "Rosetta is not available on this runner; skipping the x86_64 slice run."
+          fi
+
+      - name: Prepare release artefacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          PREFIX="dist/review-buddy-${VERSION}-macos-universal2"
+          MAN_DIR="$(dirname "$(find target/aarch64-apple-darwin/release/build -type f -path '*/review-buddy-*/out/man/review-buddy.1' | head -n 1)")"
+          cp universal/review-buddy "${PREFIX}"
+          scripts/build-release-archive.sh --version "${VERSION}" --binary universal/review-buddy --man-dir "${MAN_DIR}" --output-prefix "${PREFIX}"
+          ls -l dist
+
+      - name: Upload workflow artefacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: review-buddy-macos-universal2
+          path: dist/review-buddy-*
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows (${{ matrix.suffix }})
+    runs-on: ${{ matrix.os }}
+    needs: prepare-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2022, target: x86_64-pc-windows-msvc, suffix: windows-amd64 }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, suffix: windows-arm64 }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+          shared-key: release-windows
+
+      - name: Build release binary
+        shell: bash
+        run: cargo build --locked --release --target "${{ matrix.target }}"
+
+      - name: Smoke-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="target/${{ matrix.target }}/release/review-buddy.exe"
+          "${BIN}" --version
+          "${BIN}" --help > /dev/null
+
+      - name: Prepare release artefacts
+        shell: pwsh
+        run: |
+          $version = '${{ needs.prepare-release.outputs.version }}'
+          $bin = 'target\${{ matrix.target }}\release\review-buddy.exe'
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item $bin "dist\review-buddy-$version-${{ matrix.suffix }}.exe"
+          scripts\build-release-archive.ps1 -Version $version -Target '${{ matrix.suffix }}' -Binary $bin
+          Get-ChildItem dist
+
+      - name: Smoke-test the zip
+        shell: pwsh
+        run: |
+          $version = '${{ needs.prepare-release.outputs.version }}'
+          Expand-Archive "dist\review-buddy-$version-${{ matrix.suffix }}.zip" -DestinationPath unzipped
+          & unzipped\review-buddy.exe --version
+          if ($LASTEXITCODE -ne 0) { throw 'review-buddy.exe --version failed' }
+
+      - name: Upload workflow artefacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: review-buddy-${{ matrix.suffix }}
+          path: dist/review-buddy-*
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs:
+      - prepare-release
+      - build-linux
+      - build-macos
+      - build-windows
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Download all release assets
+        uses: actions/download-artifact@v8
+        with:
+          pattern: review-buddy-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate one SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/generate-checksums.sh release-assets
+          (cd release-assets && sha256sum -c SHA256SUMS)
+          {
+            echo "## Release assets"
+            echo
+            find release-assets -maxdepth 1 -type f -printf '%f\n' | sort | sed 's#^#- `#; s#$#`#'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload checksums as a workflow artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: SHA256SUMS
+          path: release-assets/SHA256SUMS
+          if-no-files-found: error
+
+      - name: Create the GitHub Release
+        if: needs.prepare-release.outputs.dry_run != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG}" --json isDraft -q .isDraft 2>/dev/null | grep -qx true; then
+            echo "Reusing existing draft release ${TAG}."
+          elif gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} is already published; refusing to modify it." >&2
+            exit 1
+          else
+            # Generated notes follow the categories in .github/release.yml.
+            gh release create "${TAG}" --target "${GITHUB_SHA}" --title "review-buddy ${TAG}" --generate-notes
+          fi
+          # --clobber keeps reruns against a draft idempotent.
+          gh release upload "${TAG}" release-assets/* --clobber

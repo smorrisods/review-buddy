@@ -16,7 +16,7 @@ Repo: `smorrisods/review-buddy`. Licence: MIT. Channels for 1.0: **GitHub Releas
 6. It attaches binaries, archives, packages and **one `SHA256SUMS`** covering every artefact.
 7. Smoke-test from the published assets (checklist below), then edit the generated notes if needed.
 
-**Manual dispatch** (`workflow_dispatch`) is the same as jira-tui: `release_tag` is a **required** input and is never derived. There's an optional `release_draft`. The workflow refuses to reuse a matching release that is already published, and only reattaches to a release that is still a draft. Concurrency is grouped per tag, with cancel-in-progress. Uploads use `gh release upload --clobber`, so reruns against a draft are idempotent.
+**Manual dispatch** (`workflow_dispatch`) takes `release_tag` (`vX.Y.Z`; required unless `dry_run` is on, where it defaults to `v` plus the workspace version) and `dry_run` (default **true**). A dry run can start from any branch: it skips the main-ancestry check, builds and smoke-tests every target, uploads the artefacts and a `SHA256SUMS` as workflow artefacts, and publishes nothing. A real run (`dry_run` off) needs the tag to match the `Cargo.toml` version and the commit to be on `main`. `publish-release` refuses to modify a release that is already published and only reattaches assets to a draft. Concurrency is grouped per tag, with cancel-in-progress. Uploads use `gh release upload --clobber`, so reruns against a draft are idempotent. GitHub only lists a `workflow_dispatch` workflow once the file exists on the default branch, so the very first dry run happens after the workflow merges.
 
 ## Release script commands
 
@@ -28,18 +28,18 @@ scripts/prepare-release-version.sh --current-version
 scripts/prepare-release-version.sh --version X.Y.Z --dry-run
 scripts/prepare-release-version.sh --version X.Y.Z
 
-# tar.gz archive: dist/review-buddy-X.Y.Z-<target>.tar.gz (man dir found under target/**/build/review-buddy-*/out/man unless --man-dir is given)
+# tar.gz archive: dist/review-buddy-X.Y.Z-<target>.tar.gz, where `<target>` is a label such as `linux-amd64-musl`, or use `--output-prefix` (man dir found under target/**/build/review-buddy-*/out/man unless --man-dir is given)
 cargo build --release --locked --target x86_64-unknown-linux-musl
-scripts/build-release-archive.sh --version vX.Y.Z --target x86_64-unknown-linux-musl --binary target/x86_64-unknown-linux-musl/release/review-buddy
+scripts/build-release-archive.sh --version vX.Y.Z --target linux-amd64-musl --binary target/x86_64-unknown-linux-musl/release/review-buddy
 
 # .deb and .rpm (--arch amd64|arm64, --libc gnu|musl, --format all|deb|rpm); needs dpkg-deb and rpmbuild
-scripts/build-linux-packages.sh --version vX.Y.Z --arch amd64 --binary target/release/review-buddy --output-prefix dist/review-buddy-X.Y.Z-linux-amd64
+scripts/build-linux-packages.sh --version vX.Y.Z --arch amd64 --binary target/release/review-buddy --output-prefix dist/review-buddy-X.Y.Z-linux-amd64-glibc
 
 # one SHA256SUMS over everything in dist/
 scripts/generate-checksums.sh dist
 ```
 
-On Windows, `scripts\build-release-archive.ps1 -Version vX.Y.Z -Target x86_64-pc-windows-msvc -Binary target\x86_64-pc-windows-msvc\release\review-buddy.exe` writes `dist\review-buddy-X.Y.Z-x86_64-pc-windows-msvc.zip` with `review-buddy.exe`, `themes/`, `config.example.toml`, `LICENSE` and `README.md` at the root.
+On Windows, `scripts\build-release-archive.ps1 -Version vX.Y.Z -Target windows-amd64 -Binary target\x86_64-pc-windows-msvc\release\review-buddy.exe` writes `dist\review-buddy-X.Y.Z-windows-amd64.zip` with `review-buddy.exe`, `themes/`, `config.example.toml`, `LICENSE` and `README.md` at the root.
 
 The version bump edits the `version` in the root `[workspace.package]` table (the binary crate inherits it) and our own `name = "review-buddy"` stanza in `Cargo.lock`. The scripts are covered by `bash scripts/tests/run.sh`, which CI runs in the `scripts` job along with `shellcheck`.
 
@@ -47,23 +47,23 @@ The version bump edits the `version` in the root `[workspace.package]` table (th
 
 | Job | Runner | What it does |
 |---|---|---|
-| `prepare-release` | `ubuntu-24.04` | Same as jira-tui: resolves and validates the tag, creates or reuses the release, writes `$GITHUB_STEP_SUMMARY` |
-| `build-linux` | `ubuntu-22.04`, `ubuntu-22.04-arm` | jira-tui's job, **extended with musl**. Each runner builds two targets: `*-unknown-linux-gnu` → `.deb` / `.rpm` via `scripts/build-linux-packages.sh`; and `*-unknown-linux-musl` (`apt install musl-tools`, native on each arch) → the standalone binary and `.tar.gz` via `scripts/build-release-archive.sh`. The musl build uses `keyring` with pure-Rust D-Bus (`zbus`, `crypto-rust`), bundled SQLite and rustls, so it is fully static (`ldd` reports "not a dynamic executable"; checked in the job) |
-| `build-macos` | `macos-14` | **Extended:** builds `aarch64-apple-darwin` natively and `x86_64-apple-darwin` cross-compiled (same as jira-tui), then a new step runs `lipo -create` to make one universal2 binary, then `codesign --sign - --force` on the result. Archive via `build-release-archive.sh --arch universal` |
-| `build-windows` | `windows-2022`, `windows-11-arm` | **New:** `x86_64-pc-windows-msvc` and `aarch64-pc-windows-msvc`. Standalone `.exe` and a `.zip` via `scripts/build-release-archive.ps1` (mirrors the shell script's layout) |
-| `publish-release` | `ubuntu-24.04` | Same as jira-tui: downloads every `review-buddy-*` artefact, writes a single `SHA256SUMS` (`sha256sum -- *`, no `./` prefix) and uploads |
+| `prepare-release` | `ubuntu-24.04` | Resolves the tag, checks it matches the workspace `Cargo.toml` version, and (unless a dry run) that the commit is on `main`; writes `$GITHUB_STEP_SUMMARY` |
+| `build-linux` | `ubuntu-22.04`, `ubuntu-22.04-arm` | Four builds, each on a native runner: `*-unknown-linux-musl` (`musl-tools`, `CC=musl-gcc`; the standalone binary and `.tar.gz`) and `*-unknown-linux-gnu` (`.deb` and `.rpm` via `scripts/build-linux-packages.sh`). Native builds avoid a zig or `cross` toolchain for aarch64. The musl build uses `keyring` with pure-Rust D-Bus (`zbus`, `crypto-rust`), bundled SQLite and rustls, so it is fully static. The job checks `file` for the architecture, `ldd` for "not a dynamic executable" or "statically linked" (glibc's `ldd` reports static-pie the second way), and runs `--version`; the `.deb` is installed and run too |
+| `build-macos` | `macos-14` | Builds `aarch64-apple-darwin` natively and `x86_64-apple-darwin` cross-compiled, runs `lipo -create` into one universal2 binary (`lipo -archs` verified), `codesign --sign - --force`, checks `codesign -dv` reports an ad-hoc signature, and smoke-tests `--version` (also under Rosetta when available) |
+| `build-windows` | `windows-2022`, `windows-11-arm` | `x86_64-pc-windows-msvc` and `aarch64-pc-windows-msvc`, each built natively. Standalone `.exe` and a `.zip` via `scripts/build-release-archive.ps1`; `--version` is run on the binary and on the unzipped copy (`--demo` needs a terminal, so it isn't run in CI) |
+| `publish-release` | `ubuntu-24.04` | Downloads every `review-buddy-*` artefact, writes a single `SHA256SUMS` with `scripts/generate-checksums.sh` and verifies it, then (skipped on a dry run) creates the release with generated notes from `.github/release.yml` and uploads everything |
 
 Fixed runner images, not `-latest`, as in jira-tui. The glibc packages build on Ubuntu 22.04, so they need **glibc ≥ 2.35** (Ubuntu 22.04+, Debian 12+, RHEL 9+, current WSL2). The musl tarballs have no glibc requirement. Caching uses `Swatinem/rust-cache@v2` with per-target keys and a shared key per OS.
 
 ## Artefacts
 
-Same naming as jira-tui: `review-buddy-<tag>-<os>-<arch>[.ext]`.
+Names are `review-buddy-<version>-<os>-<arch>[-<libc>][.ext]`, where `<version>` is the tag without the `v`.
 
-| Asset | Linux amd64 | Linux arm64 | macOS universal | Windows amd64 | Windows arm64 |
+| Asset | Linux amd64 | Linux arm64 | macOS universal2 | Windows amd64 | Windows arm64 |
 |---|---|---|---|---|---|
-| Standalone binary | `…-linux-amd64` | `…-linux-arm64` | `…-macos-universal` | `…-windows-amd64.exe` | `…-windows-arm64.exe` |
-| Archive | `.tar.gz` | `.tar.gz` | `.tar.gz` | `.zip` | `.zip` |
-| Packages | `.deb`, `.rpm` (glibc) | `.deb`, `.rpm` (glibc) | — | — | — |
+| Standalone binary | `…-linux-amd64-musl` | `…-linux-arm64-musl` | `…-macos-universal2` | `…-windows-amd64.exe` | `…-windows-arm64.exe` |
+| Archive | `…-linux-amd64-musl.tar.gz` | `…-linux-arm64-musl.tar.gz` | `…-macos-universal2.tar.gz` | `…-windows-amd64.zip` | `…-windows-arm64.zip` |
+| Packages | `…-linux-amd64-glibc.deb` / `.rpm` | `…-linux-arm64-glibc.deb` / `.rpm` | — | — | — |
 
 Linux standalone binaries and tarballs are **static musl**, so they run on any distro, including Alpine and older glibc. Plus one `SHA256SUMS`.
 
@@ -87,7 +87,7 @@ Generated at build time with `clap_mangen` from one shared `src/cli.rs`, `includ
 
 ## Install scripts
 
-- `scripts/install.sh`, the same as jira-tui's: POSIX `sh`, safe to pipe from `curl`. It detects OS and arch (Linux `amd64`/`arm64` → the musl tarball; macOS → `universal`), resolves the latest tag or `--version`, verifies against `SHA256SUMS` and refuses on a mismatch. It installs into `--prefix` / `$PREFIX` (default `/usr/local`, `sudo` only if needed) and supports `--uninstall`. Colour output respects `NO_COLOR` and non-TTY output, and there's a little Jax in the banner.
+- `scripts/install.sh`, the same as jira-tui's: POSIX `sh`, safe to pipe from `curl`. It detects OS and arch (Linux `amd64`/`arm64` → the musl tarball; macOS → `universal2`), resolves the latest tag or `--version`, verifies against `SHA256SUMS` and refuses on a mismatch. It installs into `--prefix` / `$PREFIX` (default `/usr/local`, `sudo` only if needed) and supports `--uninstall`. Colour output respects `NO_COLOR` and non-TTY output, and there's a little Jax in the banner.
 - `scripts/install.ps1` **(new)**: the PowerShell equivalent. It detects `AMD64` / `ARM64`, verifies against `SHA256SUMS`, installs to `%LOCALAPPDATA%\Programs\review-buddy\`, adds it to the user `PATH`, supports `-Uninstall`, and runs `Unblock-File` on what it installs.
 
 ## Running unsigned builds
