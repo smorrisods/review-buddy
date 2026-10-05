@@ -185,19 +185,33 @@ See `keybindings.md`.
 | `REVIEW_BUDDY_THEME` | Overrides `ui.theme` for this run |
 | `REVIEW_BUDDY_REDUCED_MOTION=1` | Same as `ui.reduced_motion = true` |
 | `GITHUB_TOKEN`, `GITLAB_TOKEN` | Used only by sources with `auth = "env:…"` |
-| `NO_COLOR` | Honoured: roles collapse to bold, dim and reverse |
+| `NO_COLOR` | Honoured: roles collapse to bold, dim and reverse. On the command line, output is uncoloured |
+| `REVIEW_BUDDY_SOURCE`, `REVIEW_BUDDY_REPO` | Defaults for the command line's `--source` and `--repo` |
+| `REVIEW_BUDDY_PAGER` | Pager for `pr diff` and `pr view`; falls back to `$PAGER`, then `less -FRX` |
+| `REVIEW_BUDDY_PROMPT_DISABLED=1` | The command line never prompts; writes need `--yes` |
 
 ## Command line
 
+With no command, `review-buddy` opens the TUI. With a command it behaves like `gh`: non-interactive, pipe-friendly, with `--json`/`--jq` for scripts. The full design, including selectors, output rules and exit codes, is in `docs/cli.md`.
+
 ```text
-review-buddy                 open the queue
-review-buddy --setup         re-run first run
-review-buddy open <url>      jump straight to one change's diff
+review-buddy                          open the queue (TUI)
+review-buddy --setup                  re-run first run
+review-buddy open <selector>          open the TUI straight into one change's diff
+review-buddy queue                    your triaged queue, by bucket
+review-buddy pr list|view|diff|checks|open [<selector>]
+review-buddy pr review|comment|merge|checkout|rerun [<selector>]
+review-buddy auth status|login|logout|token
+review-buddy source list|test|add
+review-buddy triage explain <selector>   show which rule or built-in bucketed a change
+review-buddy config paths|get|list    resolved directories, loaded files and values
 review-buddy theme list|check <id>|export <id>
-review-buddy doctor          check auth, scopes, rate limits, API versions and XDG paths
-review-buddy config paths    print every resolved directory and which config files were loaded
-review-buddy --config <path> use one config file instead of the XDG user config
-review-buddy --demo [--demo-scene <name>] [--frozen-time <iso>] [--jax-mood <mood>]
-                             offline fixtures; nothing is sent (see SPEC §8)
-review-buddy triage explain <url>   show which rule or built-in bucketed a change
+review-buddy doctor                   check auth, scopes, rate limits, API versions and XDG paths
+review-buddy completion <shell>       print a shell completion script
+
+global: --config <path> · -s/--source <name> · -R/--repo <owner/repo> · --json <fields> · -q/--jq <expr>
+        -w/--web · --color auto|always|never · --no-color · -y/--yes
+        --demo [--demo-scene <name>] [--frozen-time <iso>] [--jax-mood <mood>] [--size <COLSxROWS>]
 ```
+
+`pr` is also available as `mr`. Selectors accept a URL, `owner/repo#N`, `source:owner/repo!N`, a bare number with `--repo`, a branch, or nothing (the current branch).

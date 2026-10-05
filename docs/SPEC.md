@@ -14,6 +14,7 @@ Supporting docs:
 - `docs/keybindings.md`: the full key map, per screen and per pane
 - `docs/theming.md`: theme file format, roles and the built-in themes
 - `docs/configuration.md`: `config.toml` reference
+- `docs/cli.md`: the `gh`-style command line (commands, selectors, output, exit codes)
 - `docs/integrations.md`: GitHub and GitLab API mapping
 - `docs/architecture.md`: crate layout, state model, rendering, caching
 - `docs/release.md`: platforms, build targets, distribution, running unsigned builds
@@ -31,6 +32,7 @@ Supporting docs:
 4. Mouse support on par with the keyboard: click, shift-click, drag to select lines, click tabs and chips.
 5. Themeable by the user. Liminal HQ is the default and is transparent, so it uses the terminal's own background.
 6. Calm by default: pre-triaged buckets, pull-only refresh, no unread counts, a clear "you're caught up" state.
+7. Scriptable without the TUI. With no arguments it opens the TUI; with a command it behaves like `gh` (`review-buddy pr list`, `pr view`, `pr diff --json …`), pipe-friendly and non-interactive, across every source. See `docs/cli.md`.
 
 **Non-goals (v1)**
 
@@ -277,9 +279,9 @@ Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default,
 
 | Milestone | Scope |
 |---|---|
-| 0.1 | GitHub only, 1a layout, unified diff, approve, comment, open in browser, the Liminal HQ theme. Releases for every target from day one (Linux amd64/arm64 musl + glibc packages, macOS universal, Windows amd64/arm64), with `--demo` for smoke tests (Linux tested by hand; Windows and macOS smoke-tested in CI) |
-| 0.2 | GitLab (gitlab.com and self-hosted), aggregation, buckets and filters, first-run detection |
-| 0.3 | Ranges, suggestions, side-by-side diff, merge, re-run CI, checkout |
+| 0.1 | GitHub only, 1a layout, unified diff, approve, comment, open in browser, the Liminal HQ theme. Read-only command line (`queue`, `pr list/view/diff/checks/open`, `auth status`, `--json`/`--jq`). Releases for every target from day one (Linux amd64/arm64 musl + glibc packages, macOS universal, Windows amd64/arm64), with `--demo` for smoke tests (Linux tested by hand; Windows and macOS smoke-tested in CI) |
+| 0.2 | GitLab (gitlab.com and self-hosted), aggregation, buckets and filters, first-run detection, GitLab parity for the command line plus `auth login` and `source` commands |
+| 0.3 | Ranges, suggestions, side-by-side diff, merge, re-run CI, checkout, and the command line's `pr review`, `pr merge`, `pr checkout`, `pr rerun` |
 | 0.4 | Layouts 1b and 1c, command palette and search, user themes, Jax, triage rules, demo scenes |
 | 1.0 | Offline queueing, draft persistence, `--no-unicode`; release channels per `docs/release.md` |
 
@@ -293,6 +295,7 @@ Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default,
 | Per-source triage | Yes, as an ordered rule list with match conditions (see `docs/configuration.md`) |
 | Demo mode | Yes, offline fixtures, feature-gated (`demo`), screenshot-ready |
 | MCP server | No |
+| Command line | `gh`-style: no arguments opens the TUI, any command is non-interactive and scriptable (`docs/cli.md`) |
 | macOS artefacts | Universal only |
 | musl | Ships in 1.0, for tarballs and `install.sh`; glibc for `.deb` / `.rpm` |
 | Channels | GitHub Releases, `install.sh`, `install.ps1`, `.deb` / `.rpm` |
