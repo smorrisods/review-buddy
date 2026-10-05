@@ -312,3 +312,149 @@ fn demo_diff_opens_navigates_and_returns_to_the_dashboard() {
     assert!(status.success());
     assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);
 }
+
+#[cfg(feature = "demo")]
+/// Runs a command to completion in a pseudo-terminal and returns its exit code and output.
+fn run_to_exit(args: &[&str], env: &[(&str, &str)], cols: u16) -> (u32, String) {
+    let home = tempfile::tempdir().unwrap();
+    let pair = native_pty_system()
+        .openpty(PtySize {
+            rows: 40,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .unwrap();
+    let mut cmd = CommandBuilder::new(env!("CARGO_BIN_EXE_review-buddy"));
+    cmd.args(args);
+    cmd.env_clear();
+    cmd.env("PATH", std::env::var("PATH").unwrap_or_default());
+    cmd.env("HOME", home.path());
+    cmd.env("XDG_CONFIG_HOME", home.path().join("config"));
+    cmd.env("XDG_DATA_HOME", home.path().join("data"));
+    cmd.env("XDG_CACHE_HOME", home.path().join("cache"));
+    cmd.env("XDG_STATE_HOME", home.path().join("state"));
+    cmd.env("XDG_CONFIG_DIRS", home.path().join("etc"));
+    for (k, v) in env {
+        cmd.env(k, v);
+    }
+    let mut child = pair.slave.spawn_command(cmd).unwrap();
+    drop(pair.slave);
+    let mut reader = pair.master.try_clone_reader().unwrap();
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let mut buf = [0u8; 4096];
+        while let Ok(n) = reader.read(&mut buf) {
+            if n == 0 || tx.send(buf[..n].to_vec()).is_err() {
+                break;
+            }
+        }
+    });
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        assert!(Instant::now() < deadline, "command did not exit");
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    drop(pair.master);
+    let mut seen = Vec::new();
+    while let Ok(chunk) = rx.recv_timeout(Duration::from_millis(300)) {
+        seen.extend(chunk);
+    }
+    (
+        status.exit_code(),
+        String::from_utf8_lossy(&seen).into_owned(),
+    )
+}
+
+#[cfg(feature = "demo")]
+mod tty_tables {
+    use super::*;
+
+    fn strip(text: &str) -> String {
+        let mut out = String::new();
+        let mut chars = text.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == '\u{1b}' && chars.peek() == Some(&'[') {
+                chars.next();
+                for n in chars.by_ref() {
+                    if n.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            } else {
+                out.push(c);
+            }
+        }
+        out
+    }
+
+    const COLOUR: [(&str, &str); 2] = [("TERM", "xterm-256color"), ("COLORTERM", "truecolor")];
+
+    #[test]
+    fn theme_list_draws_an_aligned_coloured_table_on_a_terminal() {
+        let (code, out) = run_to_exit(&["--demo", "theme", "list"], &COLOUR, 100);
+        assert_eq!(code, 0, "{out:?}");
+        assert!(out.contains("\u{1b}[38;2;"), "expected colour: {out:?}");
+        assert!(
+            !out.contains("\u{1b}[?1049h"),
+            "a command never takes the screen"
+        );
+        let plain = strip(&out);
+        let lines: Vec<&str> = plain.lines().map(str::trim_end).collect();
+        assert_eq!(lines.len(), 5, "{plain:?}");
+        assert!(lines[0].starts_with("Id") && lines[0].contains("Appearance"));
+        assert!(!plain.contains('\t'));
+        let name_col = lines[0].find("Name").unwrap();
+        assert!(lines[1..].iter().all(|l| l.is_char_boundary(name_col)));
+        assert_eq!(&lines[1][name_col..name_col + 10], "Liminal HQ");
+        assert_eq!(&lines[2][name_col..name_col + 4], "Dusk");
+        assert!(lines[1].ends_with("current"));
+    }
+
+    #[test]
+    fn colour_is_off_for_no_color_and_the_no_color_flag() {
+        for (args, env) in [
+            (
+                &["--demo", "theme", "list"][..],
+                &[("NO_COLOR", "1"), COLOUR[0], COLOUR[1]][..],
+            ),
+            (&["--demo", "--no-color", "theme", "list"][..], &COLOUR[..]),
+            (
+                &["--demo", "--color", "never", "theme", "list"][..],
+                &COLOUR[..],
+            ),
+        ] {
+            let (code, out) = run_to_exit(args, env, 100);
+            assert_eq!(code, 0);
+            assert!(!out.contains('\u{1b}'), "{args:?}: {out:?}");
+        }
+    }
+
+    #[test]
+    fn color_always_forces_colour_and_a_narrow_terminal_still_fits() {
+        let (code, out) = run_to_exit(&["--demo", "--color", "always", "theme", "list"], &[], 50);
+        assert_eq!(code, 0);
+        assert!(out.contains("\u{1b}["));
+        for line in strip(&out).lines() {
+            assert!(line.trim_end().chars().count() <= 50, "{line:?}");
+        }
+        assert!(out.contains('…'), "{out:?}");
+    }
+
+    #[test]
+    fn json_on_a_terminal_is_indented() {
+        let (code, out) = run_to_exit(&["--demo", "theme", "list", "--json", "id"], &[], 100);
+        assert_eq!(code, 0);
+        assert!(out.contains("\n  {"), "{out:?}");
+    }
+
+    #[test]
+    fn unbuilt_commands_exit_2_on_a_terminal_too() {
+        let (code, out) = run_to_exit(&["--demo", "queue"], &[], 100);
+        assert_eq!(code, 2);
+        assert!(out.contains("Not built yet."));
+    }
+}
