@@ -1,0 +1,274 @@
+name: CI
+
+on:
+  # No `branches:` filter here on purpose — stacked PRs (see `gh stack`)
+  # target another feature branch instead of `main`, and a base-branch
+  # filter only fires the first time a PR's base happens to match it,
+  # not on every later push. Restricting `push` to `main` is still right,
+  # since that's just post-merge CI.
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  checks: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check Rust formatting
+        id: rust_fmt
+        run: cargo fmt --all -- --check
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## review-buddy Format Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Rust formatting: \`${{ steps.rust_fmt.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  clippy:
+    name: Clippy (${{ matrix.features.name }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          # The default feature set.
+          - name: default
+            flag: ""
+          # No default features.
+          - name: no-default-features
+            flag: "--no-default-features"
+          # Every feature.
+          - name: all-features
+            flag: "--all-features"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: clippy-${{ matrix.features.name }}
+
+      - name: Run Clippy
+        id: rust_clippy
+        run: cargo clippy --workspace --all-targets ${{ matrix.features.flag }} -- -D warnings
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## review-buddy Clippy Summary (${{ matrix.features.name }})"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Feature set: \`${{ matrix.features.name }}\`"
+            echo "- Clippy: \`${{ steps.rust_clippy.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  test:
+    name: Test (${{ matrix.features.name }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - name: default
+            flag: ""
+          - name: no-default-features
+            flag: "--no-default-features"
+          - name: all-features
+            flag: "--all-features"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: test-${{ matrix.features.name }}
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run tests with JUnit output
+        id: rust_tests
+        run: cargo nextest run --workspace ${{ matrix.features.flag }} --profile ci --no-tests=pass
+
+      - name: Upload test artefacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.features.name }}
+          path: target/nextest/ci/junit.xml
+          if-no-files-found: warn
+
+      - name: Publish unit test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          check_name: review-buddy Tests (${{ matrix.features.name }})
+          files: target/nextest/ci/junit.xml
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## review-buddy Test Summary (${{ matrix.features.name }})"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- Feature set: \`${{ matrix.features.name }}\`"
+            echo "- Tests: \`${{ steps.rust_tests.outcome }}\`"
+            echo "- Test artefact: \`target/nextest/ci/junit.xml\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  test-platforms:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+          - macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: platform-${{ matrix.os }}
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run tests
+        run: cargo nextest run --workspace --profile ci --no-tests=pass
+
+  audit:
+    name: Security audit
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run cargo-audit
+        id: cargo_audit
+        uses: actions-rust-lang/audit@v1
+
+      - name: Write summary
+        if: always()
+        run: |
+          {
+            echo "## review-buddy Security Audit Summary"
+            echo
+            echo "- Runner: \`ubuntu-24.04\`"
+            echo "- cargo-audit: \`${{ steps.cargo_audit.outcome }}\`"
+            echo "- Run URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  report-pr-results:
+    name: PR summary
+    if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    needs:
+      - format
+      - clippy
+      - test
+      - test-platforms
+      - audit
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Post CI summary comment
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const marker = '<!-- ci-check-summary -->';
+            const label = (result) =>
+              result === 'success' ? '[PASS]' :
+              result === 'failure' ? '[FAIL]' : '[SKIP]';
+
+            const fmt    = '${{ needs.format.result }}';
+            const clippy = '${{ needs.clippy.result }}';
+            const tests  = '${{ needs.test.result }}';
+            const platforms = '${{ needs.test-platforms.result }}';
+            const audit  = '${{ needs.audit.result }}';
+
+            const body = [
+              marker,
+              '## CI check summary',
+              '',
+              `- ${label(fmt)} Format: \`${fmt}\``,
+              `- ${label(clippy)} Clippy (default, no-default-features, all-features): \`${clippy}\``,
+              `- ${label(tests)} Test (default, no-default-features, all-features): \`${tests}\``,
+              `- ${label(platforms)} Test (windows-2022, macos-14): \`${platforms}\``,
+              `- ${label(audit)} Security audit: \`${audit}\``,
+            ].join('\n');
+
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((c) =>
+              c.user?.type === 'Bot' && c.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body,
+              });
+            }
