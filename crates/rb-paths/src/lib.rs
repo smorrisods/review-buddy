@@ -289,3 +289,87 @@ mod tests {
         assert!(text.contains("Settings are written to"));
     }
 }
+
+// Windows-style (drive letter) fixtures; `Path::is_absolute` is host-specific, so these run on Windows hosts.
+#[cfg(all(test, windows))]
+mod windows_tests {
+    use super::*;
+
+    fn env() -> MapEnv {
+        MapEnv::new(r"C:\Users\a").with_os(Os::Windows)
+    }
+
+    #[test]
+    fn appdata_layout() {
+        let e = env()
+            .with_var("APPDATA", r"C:\Users\a\AppData\Roaming")
+            .with_var("LOCALAPPDATA", r"C:\Users\a\AppData\Local");
+        let p = ResolvedPaths::resolve(&e).unwrap();
+        assert_eq!(
+            p.config_dir,
+            PathBuf::from(r"C:\Users\a\AppData\Roaming\review-buddy")
+        );
+        assert_eq!(
+            p.data_dir,
+            PathBuf::from(r"C:\Users\a\AppData\Roaming\review-buddy")
+        );
+        assert_eq!(
+            p.cache_dir,
+            PathBuf::from(r"C:\Users\a\AppData\Local\review-buddy\cache")
+        );
+        assert_eq!(
+            p.state_dir,
+            PathBuf::from(r"C:\Users\a\AppData\Local\review-buddy\state")
+        );
+    }
+
+    #[test]
+    fn falls_back_to_home_when_appdata_is_unset() {
+        let p = ResolvedPaths::resolve(&env()).unwrap();
+        assert_eq!(
+            p.config_dir,
+            PathBuf::from(r"C:\Users\a")
+                .join("AppData/Roaming")
+                .join("review-buddy")
+        );
+        assert_eq!(
+            p.cache_dir,
+            PathBuf::from(r"C:\Users\a")
+                .join("AppData/Local")
+                .join("review-buddy")
+                .join("cache")
+        );
+    }
+
+    #[test]
+    fn xdg_override_still_wins() {
+        let e = env().with_var("XDG_CONFIG_HOME", r"D:\cfg");
+        let p = ResolvedPaths::resolve(&e).unwrap();
+        assert_eq!(p.config_dir, PathBuf::from(r"D:\cfg\review-buddy"));
+    }
+
+    #[test]
+    fn relative_appdata_is_ignored() {
+        let e = env().with_var("APPDATA", r"roam");
+        let p = ResolvedPaths::resolve(&e).unwrap();
+        assert_eq!(
+            p.config_dir,
+            PathBuf::from(r"C:\Users\a")
+                .join("AppData/Roaming")
+                .join("review-buddy")
+        );
+    }
+
+    #[test]
+    fn directory_lists_split_on_semicolons_not_drive_colons() {
+        let e = env().with_var("XDG_CONFIG_DIRS", r"C:\a;rel;D:\b");
+        let p = ResolvedPaths::resolve(&e).unwrap();
+        assert_eq!(
+            p.system_config_dirs,
+            vec![
+                PathBuf::from(r"C:\a\review-buddy"),
+                PathBuf::from(r"D:\b\review-buddy")
+            ]
+        );
+    }
+}

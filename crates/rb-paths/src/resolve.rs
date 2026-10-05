@@ -114,10 +114,12 @@ fn abs_var(env: &dyn Env, key: &str) -> Option<PathBuf> {
         .filter(|p| p.is_absolute())
 }
 
-/// Parses a colon-separated list, dropping empty and relative entries.
+/// Parses a path list (`;`-separated on Windows, where `:` belongs to drive letters, otherwise `:`),
+/// dropping empty and relative entries.
 fn dir_list(env: &dyn Env, key: &str, default: &str) -> Vec<PathBuf> {
+    let sep = if env.os() == Os::Windows { ';' } else { ':' };
     let parse = |s: &str| -> Vec<PathBuf> {
-        s.split(':')
+        s.split(sep)
             .map(PathBuf::from)
             .filter(|p| p.is_absolute())
             .map(|p| p.join(APP_DIR))
