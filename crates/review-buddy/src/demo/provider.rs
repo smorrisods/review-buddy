@@ -12,7 +12,7 @@ use rb_core::{
 use url::Url;
 
 use super::fixtures::{self, DemoChange};
-use crate::app::{ChangeInfo, Snapshot};
+use crate::app::{ChangeInfo, DiffData, Snapshot};
 
 /// The label every visible demo confirmation ends with.
 pub const DEMO_SUFFIX: &str = "(demo)";
@@ -118,6 +118,16 @@ impl DemoWorld {
     /// Your pending, unsubmitted review comments on a change.
     pub fn draft(&self, id: &ChangeId) -> Option<ReviewDraft> {
         self.lock().change(id).ok().map(|c| c.draft.clone())
+    }
+
+    /// The patches and threads for one change, fetched through its provider, with your
+    /// pending comments.
+    pub async fn diff_data(&self, id: &ChangeId) -> Result<DiffData> {
+        let provider = self.provider(id.kind);
+        let files = provider.files(id).await?;
+        let threads = provider.threads(id).await?;
+        let draft = self.draft(id).unwrap_or_default();
+        Ok(DiffData::new(files, threads, draft))
     }
 
     /// Loads sources and changes through the providers, the way the live app would.

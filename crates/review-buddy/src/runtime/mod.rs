@@ -84,6 +84,27 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend) {
                 });
             }
         },
+        Cmd::LoadDiff(id) => match backend {
+            Backend::None => {
+                let _ = tx.send(Msg::DiffLoaded {
+                    id,
+                    result: Err("No source is connected. Add one, then try again.".to_string()),
+                });
+            }
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                let world = world.clone();
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let result = world
+                        .diff_data(&id)
+                        .await
+                        .map(Box::new)
+                        .map_err(|err| err.to_string());
+                    let _ = tx.send(Msg::DiffLoaded { id, result });
+                });
+            }
+        },
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
             tokio::spawn(async move {

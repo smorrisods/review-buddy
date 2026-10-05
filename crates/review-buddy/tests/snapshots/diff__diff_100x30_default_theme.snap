@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/diff.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
+│  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
+│  · src/ui/mod.rs          +2 −0││    11   11   pub struct Menu {                                 │
+│                                ││    12   12       items: Vec<MenuItem>,                         │
+│                                ││         13 +     selected: usize,                              │
+│                                ││         14 +     open: bool,                                   │
+│                                ││    13   15   }                                                 │
+│                                ││    14   16                                                     │
+│                                ││    15   17   impl Menu {                                       │
+│                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {    │
+│                                ││              @@ -34,6 +36,24 @@ impl Menu {                    │
+│                                ││    34   36       pub fn len(&self) -> usize {                  │
+│                                ││    35   37           self.items.len()                          │
+│                                ││    36   38       }                                             │
+│                                ││         39 +                                                   │
+│                                ││         40 +     pub fn select_next(&mut self) {               │
+│                                ││         41 +         if self.items.is_empty() {                │
+│                                ││         42 +             return;                               │
+│                                ││         43 +         }                                         │
+│                                ││         44 +         self.selected = (self.selected + 1) % sel…│
+│ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
+│1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
+│0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
+│Your verdict: not started       ││              │ menus I use stop at the end.                   ││
+│                                ││              │ ada · 20h                                      ││
+│                                ││              │ I went with wrapping so a held key never gets  ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
+ j/k move  n/p hunk  ]/[ file  tab pane  esc back  T theme

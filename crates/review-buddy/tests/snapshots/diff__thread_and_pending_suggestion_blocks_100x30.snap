@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/diff.rs
+expression: shown
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││         40 +     pub fn select_next(&mut self) {               │
+│  · src/ui/menubar.rs      +8 −0││         41 +         if self.items.is_empty() {                │
+│  · src/ui/mod.rs          +2 −0││         42 +             return;                               │
+│                                ││         43 +         }                                         │
+│                                ││         44 +         self.selected = (self.selected + 1) % sel…│
+│                                ││              ╭─ thread · line 44 ─────────────────────────────╮│
+│                                ││              │ jo · 1d                                        ││
+│                                ││              │ Should this wrap round to the first item? Most ││
+│                                ││              │ menus I use stop at the end.                   ││
+│                                ││              │ ada · 20h                                      ││
+│                                ││              │ I went with wrapping so a held key never gets  ││
+│                                ││              │ stuck. Happy to make it configurable if you'd  ││
+│                                ││              │ rather.                                        ││
+│                                ││              ╰────────────────────────────────────────────────╯│
+│                                ││         45 +     }                                             │
+│                                ││         46 +                                                   │
+│                                ││         47 +     pub fn select_prev(&mut self) {               │
+│                                ││         48 +         if self.items.is_empty() {                │
+│                                ││         49 +             return;                               │
+│                                ││         50 +         }                                         │
+│ Your review · pending ─────────││›        51 +         self.selected = self.selected.checked_sub…│
+│1 suggestion · 0 comments       ││              ╭─ pending suggestion · line 51 ─────────────────╮│
+│0 of 3 files viewed             ││              │ Fewer branches this way:                       ││
+│Your verdict: not started       ││              │ -         self.selected = self.selected.check… ││
+│                                ││              │ +         self.selected = (self.selected + se… ││
+│                                ││              ╰────────────────────────────────────────────────╯│
+╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
+ j/k move  n/p hunk  ]/[ file  tab pane  esc back  T theme

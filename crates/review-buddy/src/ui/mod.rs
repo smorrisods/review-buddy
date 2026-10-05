@@ -14,6 +14,7 @@ use crate::app::{App, Screen};
 pub mod chrome;
 pub mod dashboard;
 pub mod detail;
+pub mod diff;
 mod hitmap;
 pub mod layout;
 pub mod size;
@@ -42,6 +43,7 @@ pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
     chrome::draw_top_bar(frame, app, top, &mut hits);
     match app.screen {
         Screen::Dashboard => dashboard::draw(frame, app, body, &mut hits),
+        Screen::Diff => diff::draw(frame, app, body, &mut hits),
     }
     chrome::draw_footer(frame, app, footer, &mut hits);
     chrome::draw_toasts(frame, app, body.inner(Margin::new(2, 1)), &mut hits);

@@ -81,9 +81,51 @@ pub fn detail_content(detail: Rect) -> Rect {
     )
 }
 
+pub const FILES_WIDTH: u16 = 34;
+/// Height of the review block at the foot of the Files pane, border included.
+pub const REVIEW_HEIGHT: u16 = 6;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DiffLayout {
+    pub files: Rect,
+    /// Where the file rows go, inside the Files pane's border.
+    pub file_list: Rect,
+    pub review: Rect,
+    pub diff: Rect,
+    /// The rows of the diff itself, inside the Diff pane's border.
+    pub code: Rect,
+}
+
+pub fn diff_screen(body: Rect) -> DiffLayout {
+    let [files, diff] =
+        Layout::horizontal([Constraint::Length(FILES_WIDTH), Constraint::Min(0)]).areas(body);
+    let inside = inner(files);
+    let review_height = REVIEW_HEIGHT.min(inside.height);
+    let [file_list, review] =
+        Layout::vertical([Constraint::Min(0), Constraint::Length(review_height)]).areas(inside);
+    DiffLayout {
+        files,
+        file_list,
+        review,
+        diff,
+        code: inner(diff),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn diff_screen_splits_files_from_code() {
+        let l = diff_screen(body((160, 40)));
+        assert_eq!(l.files.width, 34);
+        assert_eq!(l.diff.x, 34);
+        assert_eq!(l.code.width, 124);
+        assert_eq!(l.code.height, 36);
+        assert_eq!(l.review.height, REVIEW_HEIGHT);
+        assert_eq!(l.file_list.height + l.review.height, 36);
+    }
 
     #[test]
     fn wide_layout_has_three_panes_that_fill_the_width() {

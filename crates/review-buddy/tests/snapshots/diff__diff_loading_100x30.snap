@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/diff.rs
+expression: shown
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+╭ files ─────────────────────────╮╭ diff ──────────────────────────────────────────────────────────╮
+│                                ││                                                                │
+│             ·  ·  ·            ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                        Loading the diff…                       │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│ Your review · pending ─────────││                                                                │
+│·  ·  ·                         ││                                                                │
+│Your verdict: not started       ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+│                                ││                                                                │
+╰────────────────────────────────╯╰────────────────────────────────────────────────────────────────╯
+ j/k move  n/p hunk  ]/[ file  tab pane  esc back  T theme

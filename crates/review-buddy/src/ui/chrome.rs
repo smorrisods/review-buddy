@@ -46,6 +46,38 @@ pub fn hints_for(screen: Screen) -> Vec<Hint> {
                 action: Some(Action::Quit),
             },
         ],
+        Screen::Diff => vec![
+            Hint {
+                key: "j/k",
+                label: "move",
+                action: None,
+            },
+            Hint {
+                key: "n/p",
+                label: "hunk",
+                action: None,
+            },
+            Hint {
+                key: "]/[",
+                label: "file",
+                action: None,
+            },
+            Hint {
+                key: "tab",
+                label: "pane",
+                action: None,
+            },
+            Hint {
+                key: "esc",
+                label: "back",
+                action: Some(Action::CloseDiff),
+            },
+            Hint {
+                key: "T",
+                label: "theme",
+                action: Some(Action::CycleTheme),
+            },
+        ],
     }
 }
 

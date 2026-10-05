@@ -55,13 +55,15 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | Key | Action |
 |---|---|
 | `tab` | Switch focus between Files and Diff |
-| `↑↓` | Files pane: choose a file · Diff pane: move the line cursor |
+| `↑↓` / `j` `k` | Files pane: choose a file · Diff pane: move the line cursor |
+| `g` `G` | First / last line (Files pane: first / last file) |
+| `PgUp` `PgDn` · `⌃U` `⌃D` | Move a page or half a page |
 | `⏎` | Files pane: open the file · on a thread marker: expand it |
 | `⇧↑↓` | Extend the line range |
 | `V` | Toggle the range anchor at the cursor |
-| `esc` | Clear the range, then go back to the dashboard |
-| `{` `}` | Previous / next hunk |
-| `⇧[` `⇧]` | Previous / next file |
+| `esc` / `q` | Clear the range, then go back to the dashboard |
+| `{` `}` · `p` `n` | Previous / next hunk |
+| `[` `]` | Previous / next file |
 | `v` | Unified ↔ side by side |
 | `w` | Toggle whitespace-only changes |
 | `c` | Comment on the line or range |
@@ -72,7 +74,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | `a` / `x` | Submit your review as approve / request changes |
 | `b` / `o` | Check out / open in browser |
 
-**Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend · click the `unified │ side by side` toggle · click a file to open it.
+**Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend · click the `unified │ side by side` toggle · click a file to open it · the wheel scrolls the diff.
 
 ## Composer
 

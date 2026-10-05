@@ -414,10 +414,10 @@ fn chip_pressed(app: &mut App, chip: Chip) -> Vec<Cmd> {
     if app.selected_change().is_none() {
         return Vec::new();
     }
-    let text = match chip {
-        Chip::Diff => "The diff view isn't built yet.".to_string(),
-        other => format!("{} isn't available yet in this build.", other.label()),
-    };
+    if chip == Chip::Diff {
+        return super::diff::open(app);
+    }
+    let text = format!("{} isn't available yet in this build.", chip.label());
     set_status(app, Notice::new(NoticeKind::Info, text))
 }
 
@@ -671,11 +671,47 @@ mod tests {
     }
 
     #[test]
-    fn enter_on_a_change_says_the_diff_is_coming_and_noise_is_not_a_change() {
+    fn enter_on_a_change_opens_the_diff_and_asks_for_its_patches() {
         let mut app = loaded(160, sample());
         let cmds = update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Enter)));
+        assert_eq!(app.screen, crate::app::Screen::Diff);
+        assert!(
+            matches!(cmds.as_slice(), [Cmd::LoadDiff(id)] if Some(id) == app.selected_change().map(|c| &c.id))
+        );
+        assert_eq!(
+            app.diff.as_ref().map(|d| d.phase.clone()),
+            Some(crate::app::Phase::Loading)
+        );
+    }
+
+    #[test]
+    fn d_and_the_diff_chip_open_the_diff_too() {
+        let mut app = loaded(160, sample());
+        let cmds = update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Char('d'))));
         assert_eq!(cmds.len(), 1);
-        assert!(app.status.as_ref().unwrap().notice.text.contains("diff"));
+        assert_eq!(app.screen, crate::app::Screen::Diff);
+        let mut app = loaded(160, sample());
+        let cmds = on_action(&mut app, crate::app::Action::Chip(Chip::Diff));
+        assert_eq!(cmds.len(), 1);
+        assert_eq!(app.screen, crate::app::Screen::Diff);
+    }
+
+    #[test]
+    fn leaving_the_diff_keeps_the_dashboard_selection() {
+        let mut app = loaded(160, sample());
+        let before = app.dashboard.selected.clone();
+        update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Enter)));
+        update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Esc)));
+        assert_eq!(app.screen, crate::app::Screen::Dashboard);
+        assert_eq!(app.dashboard.selected, before);
+    }
+
+    #[test]
+    fn other_chips_still_explain_themselves() {
+        let mut app = loaded(160, sample());
+        on_action(&mut app, crate::app::Action::Chip(Chip::Merge));
+        assert!(app.status.as_ref().unwrap().notice.text.contains("Merge"));
+        assert_eq!(app.screen, crate::app::Screen::Dashboard);
     }
 
     #[test]
