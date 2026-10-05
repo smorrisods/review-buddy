@@ -170,6 +170,9 @@ pub fn ci_word(ci: CiState) -> &'static str {
         CiState::Running => "running",
         CiState::Fail => "fail",
         CiState::None => "none",
+        CiState::Neutral => "neutral",
+        CiState::Skipped => "skipped",
+        CiState::Cancelled => "cancelled",
     }
 }
 
