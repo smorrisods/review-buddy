@@ -1,0 +1,4 @@
+{"total_count": 4, "check_runs": [
+  {"name": "e2e", "status": "in_progress", "conclusion": null, "details_url": "https://ci.example/e2e", "html_url": null},
+  {"name": "docs", "status": "completed", "conclusion": "skipped", "details_url": null, "html_url": null}
+]}

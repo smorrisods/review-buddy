@@ -188,6 +188,36 @@ impl GithubClient {
         Ok((value, raw))
     }
 
+    /// GETs `path` and follows `Link: rel="next"` for at most `max_pages` pages. The second
+    /// value is true when more pages existed beyond the cap.
+    pub(crate) async fn get_pages(&self, path: &str, max_pages: usize) -> Result<(Vec<Raw>, bool)> {
+        let mut url = self.rest_url(path);
+        let mut pages = Vec::new();
+        loop {
+            let raw = self.send(self.http.get(&url)).await?;
+            let next = next_link(&raw.headers);
+            pages.push(raw);
+            let Some(next) = next else {
+                return Ok((pages, false));
+            };
+            if pages.len() >= max_pages {
+                return Ok((pages, true));
+            }
+            let same_origin = Url::parse(&next).is_ok_and(|n| {
+                n.scheme() == self.rest_base.scheme()
+                    && n.host_str() == self.rest_base.host_str()
+                    && n.port_or_known_default() == self.rest_base.port_or_known_default()
+            });
+            if !same_origin {
+                return Err(Error::Api(format!(
+                    "{} sent a next-page link to a different host, so it was not followed. Try again, or run `review-buddy doctor`",
+                    self.host
+                )));
+            }
+            url = next;
+        }
+    }
+
     pub(crate) fn parse<T: DeserializeOwned>(&self, body: &[u8]) -> Result<T> {
         serde_json::from_slice(body).map_err(|e| {
             Error::Api(format!(
@@ -260,6 +290,18 @@ impl GithubClient {
     }
 }
 
+fn next_link(headers: &HeaderMap) -> Option<String> {
+    let link = headers.get("link")?.to_str().ok()?;
+    link.split(',').find_map(|part| {
+        let (target, params) = part.split_once(';')?;
+        let is_next = params
+            .split(';')
+            .any(|p| p.trim().replace(' ', "") == "rel=\"next\"");
+        let target = target.trim().strip_prefix('<')?.strip_suffix('>')?;
+        is_next.then(|| target.to_string())
+    })
+}
+
 /// Enterprise serves REST at `/api/v3` and GraphQL at `/api/graphql`; github.com and
 /// plain overrides use `<base>/graphql`.
 fn graphql_url_for(rest_base: &Url) -> Url {
@@ -288,6 +330,19 @@ mod tests {
             c.graphql_url().as_str(),
             "https://ghe.example.com/api/graphql"
         );
+    }
+
+    #[test]
+    fn next_link_is_found() {
+        let mut h = HeaderMap::new();
+        h.insert(
+            "link",
+            HeaderValue::from_static(
+                "<https://a/x?page=1>; rel=\"prev\", <https://a/x?page=3>; rel=\"next\", <https://a/x?page=9>; rel=\"last\"",
+            ),
+        );
+        assert_eq!(next_link(&h).as_deref(), Some("https://a/x?page=3"));
+        assert_eq!(next_link(&HeaderMap::new()), None);
     }
 
     #[test]

@@ -2,10 +2,13 @@
 
 mod auth;
 mod changes;
+mod checks;
 mod client;
 mod error;
+mod files;
 pub mod graphql;
 mod provider;
+mod threads;
 mod time;
 
 pub use auth::{Auth, AuthError, ResolvedToken, TokenOrigin};

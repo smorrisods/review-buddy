@@ -1,0 +1,6 @@
+[
+  {"filename": "src/new_name.rs", "previous_filename": "src/old_name.rs", "status": "renamed", "additions": 1, "deletions": 1, "changes": 2,
+   "patch": "@@ -1 +1 @@\n-old\n+new"},
+  {"filename": "src/gone.rs", "status": "removed", "additions": 0, "deletions": 4, "changes": 4,
+   "patch": "@@ -1,4 +0,0 @@\n-a\n-b\n-c\n-d"}
+]

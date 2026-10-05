@@ -1,0 +1,11 @@
+{"data": {"rateLimit": {"cost": 1, "remaining": 4990, "resetAt": "2999-01-01T00:00:00Z"},
+ "repository": {"pullRequest": {"reviewThreads": {
+  "pageInfo": {"hasNextPage": true, "endCursor": "t1"},
+  "nodes": [
+   {"id": "PRT_1", "isResolved": false, "isOutdated": false, "path": "src/lib.rs", "line": 2, "originalLine": 2,
+    "startLine": 1, "diffSide": "LEFT", "startDiffSide": "LEFT",
+    "comments": {"pageInfo": {"hasNextPage": true, "endCursor": "c1"}, "nodes": [
+      {"id": "PRRC_1", "author": {"login": "alice"}, "body": "Why drop this?", "createdAt": "2026-01-02T10:00:00Z"},
+      {"id": "PRRC_2", "author": {"login": "bob"}, "body": "It moved.", "createdAt": "2026-01-02T11:00:00Z"}
+    ]}}
+  ]}}}}}
