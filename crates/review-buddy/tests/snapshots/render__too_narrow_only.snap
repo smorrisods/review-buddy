@@ -1,0 +1,25 @@
+---
+source: crates/review-buddy/tests/render.rs
+expression: text(&buffer)
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                  Make me a little wider
+                 Review Buddy needs at least 100×30. This window is 90×40.

@@ -41,7 +41,7 @@ fn demo_flags_pass_validation_with_demo() {
     rb().args(["--demo", "--demo-scene", "inbox", "--size", "160x40"])
         .assert()
         .code(2)
-        .stderr(predicate::str::contains("isn't built yet"));
+        .stderr(predicate::str::contains("interactive terminal"));
 }
 
 #[test]
@@ -54,14 +54,12 @@ fn unknown_flag_is_a_usage_error() {
 
 #[test]
 fn unimplemented_commands_say_so_and_exit_2() {
-    let cases: [&[&str]; 7] = [
-        &[],
+    let cases: [&[&str]; 5] = [
         &["open", "https://github.com/a/b/pull/1"],
         &["theme", "list"],
         &["doctor"],
         &["config", "paths"],
         &["triage", "explain", "https://github.com/a/b/pull/1"],
-        &["--demo"],
     ];
     for args in cases {
         rb().args(args)
@@ -69,6 +67,18 @@ fn unimplemented_commands_say_so_and_exit_2() {
             .code(2)
             .stdout(predicate::str::is_empty())
             .stderr(predicate::str::contains("isn't built yet"))
+            .stderr(predicate::str::contains("--help"));
+    }
+}
+
+#[test]
+fn the_interface_needs_a_terminal() {
+    for args in [&[][..], &["--demo"][..]] {
+        rb().args(args)
+            .assert()
+            .code(2)
+            .stdout(predicate::str::is_empty())
+            .stderr(predicate::str::contains("interactive terminal"))
             .stderr(predicate::str::contains("--help"));
     }
 }
