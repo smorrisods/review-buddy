@@ -1,0 +1,27 @@
+@@ -38,11 +38,14 @@ impl Menu {
+     pub fn items(&self) -> &[Item] {
+         &self.items
+     }
+ 
+-    pub fn select(&mut self, index: usize) {
+-        self.cursor = index;
++    /// Moves the cursor, clamping to the last item.
++    pub fn select(&mut self, index: usize) -> bool {
++        let last = self.items.len().saturating_sub(1);
++        self.cursor = index.min(last);
++        self.cursor == index
+     }
+ 
+     pub fn title(&self) -> &str {
+-        "Menu"
++        "Main menu" // sentence case
+     }
+@@ -90,6 +96,9 @@ mod tests {
+     #[test]
+     fn selects_first() {
++        let mut m = Menu::new();
++        m.select(0);
++        assert_eq!(m.cursor, 0);
+     }
+
+ }

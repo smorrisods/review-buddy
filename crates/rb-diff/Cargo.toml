@@ -10,3 +10,11 @@ description = "Review Buddy patch parsing, hunk model, and side-by-side pairing.
 
 [lints]
 workspace = true
+
+[dependencies]
+rb-core.workspace = true
+rb-theme.workspace = true
+syntect.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

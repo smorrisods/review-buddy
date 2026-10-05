@@ -1,0 +1,7 @@
+@@ -1,5 +1,5 @@ (header position 0)
+  1   1 p1    fn main() {
+  2     p2   -→let x = 1;
+      2 p3   +→let x = 2;
+  3   3 p4    →println!("{x}");
+  4   4 p5    
+  5   5 p6    } [no newline]
