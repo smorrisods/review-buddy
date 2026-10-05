@@ -1,0 +1,20 @@
+{"data": {"rateLimit": {"cost": 1, "remaining": 4989, "resetAt": "2999-01-01T00:00:00Z"},
+ "repository": {"pullRequest": {"reviewThreads": {
+  "pageInfo": {"hasNextPage": false, "endCursor": null},
+  "nodes": [
+   {"id": "PRT_2", "isResolved": true, "isOutdated": false, "path": "src/lib.rs", "line": 3, "originalLine": 3,
+    "startLine": null, "diffSide": "RIGHT", "startDiffSide": null,
+    "comments": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [
+      {"id": "PRRC_4", "author": {"login": "alice"}, "body": "Nit: rename.", "createdAt": "2026-01-03T10:00:00Z"}
+    ]}},
+   {"id": "PRT_3", "isResolved": false, "isOutdated": true, "path": "src/new_name.rs", "line": null, "originalLine": 9,
+    "startLine": null, "diffSide": "RIGHT", "startDiffSide": null,
+    "comments": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [
+      {"id": "PRRC_5", "author": null, "body": "Stale.", "createdAt": "2026-01-03T12:00:00Z"}
+    ]}},
+   {"id": "PRT_4", "isResolved": false, "isOutdated": false, "path": "src/lib.rs", "line": 4, "originalLine": 4,
+    "startLine": 3, "diffSide": "RIGHT", "startDiffSide": "RIGHT",
+    "comments": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [
+      {"id": "PRRC_6", "author": {"login": "octo"}, "body": "Try this:\n\n```suggestion\nfn c() -> u8 { 2 }\n```", "createdAt": "2026-01-04T09:00:00Z", "state": "PENDING"}
+    ]}}
+  ]}}}}}

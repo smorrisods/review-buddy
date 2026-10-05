@@ -1,0 +1,5 @@
+{"state": "failure", "statuses": [
+  {"context": "build", "state": "failure", "target_url": "https://legacy.example/build"},
+  {"context": "deploy/preview", "state": "pending", "target_url": "https://legacy.example/deploy"},
+  {"context": "license/cla", "state": "success", "target_url": null}
+]}

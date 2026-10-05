@@ -6,9 +6,9 @@ use rb_core::{
 };
 use url::Url;
 
-use crate::{changes, GithubClient};
+use crate::{changes, checks, files, threads, GithubClient};
 
-/// GitHub behind the `Provider` trait. Listing and detail are implemented; the remaining
+/// GitHub behind the `Provider` trait. Listing, detail, files, threads and checks are implemented; the remaining
 /// methods land with the issues that need them and report `Unsupported` until then.
 #[derive(Debug, Clone)]
 pub struct GithubProvider {
@@ -59,16 +59,16 @@ impl Provider for GithubProvider {
         changes::change_detail(&self.client, &self.source_id, id, self.web_url(id)).await
     }
 
-    async fn files(&self, _id: &ChangeId) -> Result<Vec<FilePatch>> {
-        not_yet("file patches")
+    async fn files(&self, id: &ChangeId) -> Result<Vec<FilePatch>> {
+        files::files(&self.client, id).await
     }
 
-    async fn threads(&self, _id: &ChangeId) -> Result<Vec<Thread>> {
-        not_yet("review threads")
+    async fn threads(&self, id: &ChangeId) -> Result<Vec<Thread>> {
+        threads::threads(&self.client, id).await
     }
 
-    async fn checks(&self, _id: &ChangeId) -> Result<Vec<Check>> {
-        not_yet("checks")
+    async fn checks(&self, id: &ChangeId) -> Result<Vec<Check>> {
+        checks::checks(&self.client, id).await
     }
 
     async fn submit_review(
