@@ -29,6 +29,10 @@ rb-paths.workspace = true
 rb-platform.workspace = true
 rb-store.workspace = true
 rb-theme.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+toml.workspace = true
+toml_edit.workspace = true
 
 [build-dependencies]
 clap.workspace = true
@@ -40,3 +44,4 @@ workspace = true
 [dev-dependencies]
 assert_cmd.workspace = true
 predicates.workspace = true
+tempfile.workspace = true
