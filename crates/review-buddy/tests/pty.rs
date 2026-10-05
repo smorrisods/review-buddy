@@ -453,7 +453,7 @@ mod tty_tables {
 
     #[test]
     fn unbuilt_commands_exit_2_on_a_terminal_too() {
-        let (code, out) = run_to_exit(&["--demo", "queue"], &[], 100);
+        let (code, out) = run_to_exit(&["--demo", "doctor"], &[], 100);
         assert_eq!(code, 2);
         assert!(out.contains("Not built yet."));
     }

@@ -14,18 +14,16 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
         | Command::Pr {
             action: PrAction::Diff { .. },
         } => return None,
+        Command::Queue(_) => return None,
         Command::Config { .. } => "v0.2.0",
         Command::Theme { .. } => "v0.1.0",
         Command::Open { .. }
-        | Command::Queue(_)
         | Command::Doctor
         | Command::Completion { .. }
         | Command::Triage { .. } => "v0.1.0",
         Command::Pr { action } => match action {
-            PrAction::List(_)
-            | PrAction::View { .. }
-            | PrAction::Checks { .. }
-            | PrAction::Open { .. } => "v0.1.0",
+            PrAction::List(_) => return None,
+            PrAction::View { .. } | PrAction::Checks { .. } | PrAction::Open { .. } => "v0.1.0",
             PrAction::Diff { .. } => return None,
         },
         Command::Auth {

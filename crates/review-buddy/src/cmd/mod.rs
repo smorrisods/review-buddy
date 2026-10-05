@@ -10,8 +10,11 @@ pub mod output;
 pub mod prompt;
 pub mod selector;
 
+mod changes;
 mod config;
 mod pr_diff;
+mod pr_list;
+mod queue;
 mod stub;
 mod theme;
 
@@ -69,6 +72,10 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
                 raw: patch,
             },
         ),
+        Command::Queue(args) => queue::run(&ctx, &args),
+        Command::Pr {
+            action: PrAction::List(args),
+        } => pr_list::run(&ctx, &args),
         other => unreachable!("{other:?} has no milestone but no implementation"),
     }
 }
@@ -84,12 +91,7 @@ mod tests {
 
     #[test]
     fn unbuilt_commands_exit_2_before_touching_anything() {
-        for args in [
-            &["queue"][..],
-            &["pr", "list"],
-            &["mr", "view", "!1"],
-            &["doctor"],
-        ] {
+        for args in [&["mr", "view", "!1"][..], &["doctor"]] {
             let err = execute(parse(args), Terminal::detect()).unwrap_err();
             assert_eq!(err.exit(), Exit::Usage, "{args:?}");
             assert!(err.to_string().starts_with("Not built yet."));

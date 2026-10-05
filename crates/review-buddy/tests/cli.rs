@@ -54,12 +54,10 @@ fn unknown_flag_is_a_usage_error() {
 
 #[test]
 fn unimplemented_commands_say_so_and_exit_2() {
-    let cases: [&[&str]; 9] = [
+    let cases: [&[&str]; 7] = [
         &["open", "https://github.com/a/b/pull/1"],
         &["doctor"],
         &["triage", "explain", "https://github.com/a/b/pull/1"],
-        &["queue"],
-        &["pr", "list"],
         &["pr", "checks", "--watch"],
         &["auth", "status"],
         &["source", "list"],
@@ -320,10 +318,9 @@ mod global_flags {
         let out = stdout_of(cmd);
         assert!(!out.contains("\u{1b}[?1049h"));
         let (mut cmd, _h) = demo();
-        cmd.args(["queue"])
-            .assert()
-            .code(2)
-            .stdout(predicate::str::is_empty());
+        cmd.args(["queue"]);
+        let out = stdout_of(cmd);
+        assert!(!out.contains("\u{1b}[?1049h"));
     }
 
     #[test]
