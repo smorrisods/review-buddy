@@ -1,1 +1,2 @@
 *.patch -text
+*.golden text eol=lf
