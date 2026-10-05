@@ -10,3 +10,7 @@ description = "Review Buddy theme loading, role resolution, and colour-depth qua
 
 [lints]
 workspace = true
+
+[dependencies]
+serde.workspace = true
+toml.workspace = true
