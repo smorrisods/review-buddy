@@ -27,6 +27,10 @@ GraphQL `search` with `type: ISSUE` and these queries, merged and de-duplicated:
 
 Each has a source scope added (`org:liminal-hq`, `repo:o/r`, `user:smorris`). One query fetches title, author, draft, timestamps, `headRefName`, `baseRefName`, `headRefOid`, `additions`, `deletions`, `changedFiles`, `reviewRequests`, `latestReviews`, and `commits(last:1){ statusCheckRollup { state } }`, so a full refresh costs about 5 GraphQL calls per source.
 
+A scope with several qualifiers (for example two orgs and a repo) runs the five searches once per qualifier. Results page 50 at a time, up to 10 pages per search. A change's role comes from which searches matched plus its own reviewer, assignee and author fields, and `my_review`, `my_reviewed_sha` and `i_commented` come from `latestReviews` and the last 30 comments.
+
+GraphQL has no ETags, so the page's `etag` is a fingerprint of every change's node id and `updatedAt`. When the `since` you pass matches, the page is `not_modified` and nothing downstream is rebuilt; the searches still run. Before each request the client checks the last `x-ratelimit-remaining` and the query's `rateLimit` block, and below 25 it stops and returns `RateLimited` with the seconds until reset. Partial SAML errors are ignored while any results came back, and become a `Forbidden` asking for SSO authorisation when nothing did.
+
 ### GitLab
 
 `GET /merge_requests?state=opened&scope=all` with:

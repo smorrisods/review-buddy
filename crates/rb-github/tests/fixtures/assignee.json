@@ -1,0 +1,151 @@
+{
+  "data": {
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4990,
+      "resetAt": "2999-01-01T00:00:00Z"
+    },
+    "viewer": {
+      "login": "octo"
+    },
+    "search": {
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      },
+      "nodes": [
+        {
+          "id": "PR_D",
+          "number": 104,
+          "title": "Fix flaky test",
+          "isDraft": false,
+          "state": "OPEN",
+          "createdAt": "2026-09-01T08:00:00Z",
+          "updatedAt": "2026-10-02T09:00:00Z",
+          "headRefName": "feat/104",
+          "baseRefName": "main",
+          "headRefOid": "ddddddd",
+          "baseRefOid": "bbbbbbb",
+          "additions": 1040,
+          "deletions": 104,
+          "changedFiles": 5,
+          "author": {
+            "__typename": "User",
+            "login": "tess"
+          },
+          "repository": {
+            "nameWithOwner": "acme/web"
+          },
+          "labels": {
+            "nodes": []
+          },
+          "assignees": {
+            "nodes": [
+              {
+                "login": "octo"
+              }
+            ]
+          },
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": [
+              {
+                "author": {
+                  "login": "octo"
+                },
+                "state": "APPROVED",
+                "commit": {
+                  "oid": "d0d0d0d"
+                }
+              },
+              {
+                "author": {
+                  "login": "mira"
+                },
+                "state": "COMMENTED",
+                "commit": {
+                  "oid": "ddddddd"
+                }
+              }
+            ]
+          },
+          "comments": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "FAILURE"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "PR_E",
+          "number": 105,
+          "title": "Docs: mention @octo",
+          "isDraft": false,
+          "state": "OPEN",
+          "createdAt": "2026-09-01T08:00:00Z",
+          "updatedAt": "2026-10-01T09:00:00Z",
+          "headRefName": "feat/105",
+          "baseRefName": "main",
+          "headRefOid": "hhhhhhh",
+          "baseRefOid": "bbbbbbb",
+          "additions": 1050,
+          "deletions": 105,
+          "changedFiles": 1,
+          "author": {
+            "__typename": "User",
+            "login": "zed"
+          },
+          "repository": {
+            "nameWithOwner": "acme/web"
+          },
+          "labels": {
+            "nodes": []
+          },
+          "assignees": {
+            "nodes": [
+              {
+                "login": "octo"
+              }
+            ]
+          },
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": []
+          },
+          "comments": {
+            "nodes": [
+              {
+                "author": {
+                  "login": "zed"
+                }
+              }
+            ]
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "ERROR"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "data": {
+    "rateLimit": null,
+    "viewer": {
+      "login": "octo"
+    },
+    "search": {
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      },
+      "nodes": []
+    }
+  },
+  "errors": [
+    {
+      "type": "FORBIDDEN",
+      "message": "Resource protected by organization SAML enforcement."
+    }
+  ]
+}
