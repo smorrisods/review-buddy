@@ -23,6 +23,10 @@ review-buddy/
 
 `ratatui` (rendering) · `crossterm` (terminal, input, mouse, focus events) · `tokio` (async runtime) · `reqwest` + `rustls` · `graphql_client` · `serde` / `toml` / `toml_edit` · `rusqlite` (bundled) · `keyring` · `syntect` · `nucleo` (fuzzy matching) · `pulldown-cmark` (markdown → spans) · `etcetera` (XDG base directories on every Unix, macOS included; `%APPDATA%` on Windows. We don't use `directories`, because it maps macOS to `~/Library`) · `tracing` + `tracing-appender` (logs to `$XDG_STATE_HOME/review-buddy/logs/`, never to the screen) · `insta` (snapshot tests of rendered buffers).
 
+## Binary crate layout
+
+The `review-buddy` crate is a library (`src/lib.rs`) with a thin `main.rs`, so integration tests and later features can reach the code. `app/` holds the `App` state, `Msg`, `Cmd`, `Action` and the pure `update`. `ui/` holds `draw(frame, &App) -> HitMap` (top bar, body placeholder per `Screen`, footer hints, toast stack, the 100×30 minimum-size notice), the `HitMap`, and `ui::style`, the adapter from `rb-theme`'s framework-neutral colours onto ratatui. `runtime/` owns the terminal modes (alternate screen, mouse, bracketed paste, focus events, restored on drop and from a panic hook) and the tokio loop that selects over crossterm's `EventStream`, a tick, and the `Cmd` results channel, and redraws only when the app is dirty and at most about 30 times a second. `cli.rs` is shared with `build.rs` through `include!`.
+
 ## Provider trait
 
 ```rust
