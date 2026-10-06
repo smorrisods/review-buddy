@@ -61,6 +61,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     }
     let Some(change) = app.selected_change() else {
         let text = match app.dashboard.selected {
+            Some(Selected::More(_)) => "The rest of this bucket sits behind ⏎ on the +N more row.",
             Some(Selected::Noise) => "Bot updates are tucked away. ⏎ on the Noise row shows them.",
             _ if app.state.loading => "·  ·  ·",
             _ => "Pick a change to read it here.",

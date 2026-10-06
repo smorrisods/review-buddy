@@ -2,7 +2,7 @@
 //! text of each row. Pure, so selection, scrolling and rendering all agree on one model.
 
 use rb_core::{
-    triage::{triage, Bucket, TriageConfig},
+    triage::{triage, triage_ignoring_noise, Bucket, TriageConfig},
     ChangeState, ChangeSummary, CiState, MyReview, MyRole, SourceId, Timestamp,
 };
 
@@ -55,6 +55,8 @@ pub fn visible(change: &ChangeSummary, show: &[ShowFilter]) -> bool {
 pub enum Item {
     /// An index into `AppState::changes`.
     Change(usize),
+    /// The `+N more` row that expands a bucket cut by `bucket_limit`, or collapses it again.
+    More(Bucket),
     /// The collapsible Noise row.
     Noise,
 }
@@ -65,6 +67,16 @@ pub struct Section {
     pub changes: Vec<usize>,
     /// Changes left out by the bucket limit.
     pub more: usize,
+    /// The bucket holds more than `bucket_limit`, so it gets a `+N more` row.
+    pub cut: bool,
+    pub expanded: bool,
+}
+
+impl Section {
+    /// Every change the bucket holds, shown or not.
+    pub fn total(&self) -> usize {
+        self.changes.len() + self.more
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,6 +90,16 @@ pub struct Queue {
 impl Queue {
     /// Buckets the changes of one source (or of every `in_all` source when `source` is `None`).
     pub fn build(state: &AppState, source: Option<&SourceId>, noise_open: bool) -> Self {
+        Self::build_with(state, source, noise_open, &[])
+    }
+
+    /// Like [`Queue::build`], with the buckets listed in `expanded` shown past `bucket_limit`.
+    pub fn build_with(
+        state: &AppState,
+        source: Option<&SourceId>,
+        noise_open: bool,
+        expanded: &[Bucket],
+    ) -> Self {
         let now = state.now.unwrap_or(Timestamp(0));
         let settings = &state.queue_settings;
         let mut buckets: [Vec<usize>; 4] = Default::default();
@@ -88,7 +110,10 @@ impl Queue {
             {
                 continue;
             }
-            let bucket = triage(change, &settings.triage, now).bucket;
+            let mut bucket = triage(change, &settings.triage, now).bucket;
+            if bucket == Bucket::Noise && settings.show.contains(&ShowFilter::Noise) {
+                bucket = triage_ignoring_noise(change, &settings.triage, now).bucket;
+            }
             let slot = Bucket::ORDER.iter().position(|b| *b == bucket).unwrap_or(2);
             buckets[slot].push(index);
         }
@@ -114,12 +139,20 @@ impl Queue {
         .into_iter()
         .filter(|(_, changes)| !changes.is_empty())
         .map(|(bucket, mut changes)| {
-            let more = changes.len().saturating_sub(settings.bucket_limit);
+            let cut = changes.len() > settings.bucket_limit;
+            let expanded = cut && expanded.contains(&bucket);
+            let more = if expanded {
+                0
+            } else {
+                changes.len().saturating_sub(settings.bucket_limit)
+            };
             changes.truncate(changes.len() - more);
             Section {
                 bucket,
                 changes,
                 more,
+                cut,
+                expanded,
             }
         })
         .collect();
@@ -135,7 +168,12 @@ impl Queue {
         let mut items: Vec<Item> = self
             .sections
             .iter()
-            .flat_map(|s| s.changes.iter().map(|i| Item::Change(*i)))
+            .flat_map(|s| {
+                s.changes
+                    .iter()
+                    .map(|i| Item::Change(*i))
+                    .chain(s.cut.then_some(Item::More(s.bucket)))
+            })
             .collect();
         if !self.noise.is_empty() {
             items.push(Item::Noise);
@@ -157,13 +195,10 @@ impl Queue {
             if !rows.is_empty() {
                 rows.push(Row::Gap);
             }
-            rows.push(Row::Heading(
-                section.bucket,
-                section.changes.len() + section.more,
-            ));
+            rows.push(Row::Heading(section.bucket, section.total()));
             rows.extend(section.changes.iter().map(|i| Row::Item(Item::Change(*i))));
-            if section.more > 0 {
-                rows.push(Row::More(section.more));
+            if section.cut {
+                rows.push(Row::Item(Item::More(section.bucket)));
             }
         }
         if !self.noise.is_empty() {
@@ -189,8 +224,6 @@ pub enum Row {
     Heading(Bucket, usize),
     Item(Item),
     Gap,
-    /// `+N more`, when the bucket limit cut a section short.
-    More(usize),
     /// `── That's everything.` and its note.
     End,
 }
@@ -198,7 +231,7 @@ pub enum Row {
 impl Row {
     pub fn height(self) -> u16 {
         match self {
-            Row::Heading(..) | Row::Gap | Row::More(_) | Row::Item(Item::Noise) => 1,
+            Row::Heading(..) | Row::Gap | Row::Item(Item::More(_) | Item::Noise) => 1,
             Row::Item(Item::Change(_)) | Row::End => 2,
         }
     }
@@ -244,13 +277,32 @@ fn own_failure(change: &ChangeSummary) -> bool {
     change.my_role == MyRole::Authored && change.ci == CiState::Fail
 }
 
-/// How many open changes a source holds (`None` is All).
-pub fn count_in(state: &AppState, source: Option<&SourceId>) -> usize {
+/// How many open changes a source holds, whatever the Show filters say (`None` is All).
+pub fn total_in(state: &AppState, source: Option<&SourceId>) -> usize {
     state
         .changes
         .iter()
         .filter(|c| c.state == ChangeState::Open && in_scope(state, c, source))
         .count()
+}
+
+/// How many open changes the Show filters let through (`None` is All). This is what the
+/// bucket headings add up to, plus Noise.
+pub fn count_in(state: &AppState, source: Option<&SourceId>) -> usize {
+    state
+        .changes
+        .iter()
+        .filter(|c| {
+            c.state == ChangeState::Open
+                && in_scope(state, c, source)
+                && visible(c, &state.queue_settings.show)
+        })
+        .count()
+}
+
+/// How many open changes the Show filters hide (`None` is All).
+pub fn hidden_in(state: &AppState, source: Option<&SourceId>) -> usize {
+    total_in(state, source) - count_in(state, source)
 }
 
 /// The text of one two-line row, before styling.
@@ -525,7 +577,7 @@ pub(crate) mod tests {
                     s.changes[n].id.source_id.as_str().to_string(),
                     s.changes[n].id.number,
                 )),
-                Item::Noise => None,
+                Item::Noise | Item::More(_) => None,
             })
             .collect()
     }
@@ -679,5 +731,106 @@ pub(crate) mod tests {
         assert_eq!(item_span(&rows, Item::Change(0)), Some((1, 2)));
         assert_eq!(item_span(&rows, Item::Noise), None);
         assert!(Queue::build(&state(vec![]), None, false).rows().is_empty());
+    }
+
+    const DAY: i64 = 86_400;
+
+    fn bot(n: u64, updated: i64) -> ChangeSummary {
+        let mut c = change(n, MyRole::Reviewing, updated);
+        c.author = "renovate[bot]".into();
+        c.author_is_bot = true;
+        c
+    }
+
+    fn at(now: i64, mut s: AppState) -> AppState {
+        s.now = Some(Timestamp(now));
+        s
+    }
+
+    #[test]
+    fn stale_after_drops_old_items_to_can_wait_by_age_from_now() {
+        let now = 100 * DAY;
+        let s = at(
+            now,
+            state(vec![
+                change(1, MyRole::Reviewing, now - 13 * DAY),
+                change(2, MyRole::Reviewing, now - 15 * DAY),
+            ]),
+        );
+        let q = Queue::build(&s, None, false);
+        let buckets: Vec<_> = q
+            .sections
+            .iter()
+            .map(|x| (x.bucket, x.changes.clone()))
+            .collect();
+        assert_eq!(buckets, [(Bucket::Wait, vec![0]), (Bucket::Later, vec![1])]);
+
+        let mut tight = s.clone();
+        tight.queue_settings.triage.stale_after = std::time::Duration::from_secs(5 * DAY as u64);
+        let q = Queue::build(&tight, None, false);
+        assert_eq!(q.sections.len(), 1);
+        assert_eq!(q.sections[0].bucket, Bucket::Later);
+    }
+
+    #[test]
+    fn the_noise_filter_mixes_bot_updates_into_their_natural_bucket() {
+        let mut s = at(
+            10 * DAY,
+            state(vec![change(1, MyRole::Reviewing, 9 * DAY), bot(2, 9 * DAY)]),
+        );
+        let q = Queue::build(&s, None, false);
+        assert_eq!(q.noise, vec![1]);
+        assert_eq!(q.sections[0].changes, vec![0]);
+
+        s.queue_settings.show.push(ShowFilter::Noise);
+        let q = Queue::build(&s, None, false);
+        assert!(q.noise.is_empty());
+        assert_eq!(q.sections.len(), 1);
+        assert_eq!(q.sections[0].bucket, Bucket::Wait);
+        assert_eq!(q.sections[0].total(), 2);
+        assert!(!q.items().contains(&Item::Noise));
+    }
+
+    #[test]
+    fn hidden_counts_follow_the_filters_and_the_source() {
+        let mut draft = change(2, MyRole::Reviewing, 10);
+        draft.draft = true;
+        let mut other = change(3, MyRole::Authored, 10);
+        other.id.source_id = SourceId::new("s2");
+        let mut s = state(vec![change(1, MyRole::Reviewing, 10), draft, other]);
+        s.sources = vec![source("s1", true), source("s2", true)];
+        s.queue_settings.show = vec![ShowFilter::Reviewing];
+        assert_eq!(total_in(&s, None), 3);
+        assert_eq!(count_in(&s, None), 1);
+        assert_eq!(hidden_in(&s, None), 2);
+        assert_eq!(hidden_in(&s, Some(&SourceId::new("s1"))), 1);
+        assert_eq!(count_in(&s, Some(&SourceId::new("s2"))), 0);
+        s.queue_settings.show = vec![
+            ShowFilter::Reviewing,
+            ShowFilter::Authored,
+            ShowFilter::Drafts,
+        ];
+        assert_eq!(hidden_in(&s, None), 0);
+    }
+
+    #[test]
+    fn expanding_a_bucket_lists_everything_and_keeps_a_collapse_row() {
+        let mut s = state(
+            (1..=5)
+                .map(|n| change(n, MyRole::Reviewing, n as i64))
+                .collect(),
+        );
+        s.queue_settings.bucket_limit = 2;
+        let q = Queue::build_with(&s, None, false, &[]);
+        assert_eq!(q.sections[0].more, 3);
+        assert_eq!(q.items().last(), Some(&Item::More(Bucket::Wait)));
+        let q = Queue::build_with(&s, None, false, &[Bucket::Wait]);
+        assert_eq!(q.sections[0].changes.len(), 5);
+        assert!(q.sections[0].expanded && q.sections[0].more == 0);
+        assert_eq!(q.items().len(), 6);
+        assert!(matches!(q.rows()[0], Row::Heading(Bucket::Wait, 5)));
+        s.queue_settings.bucket_limit = 5;
+        let q = Queue::build_with(&s, None, false, &[Bucket::Wait]);
+        assert!(!q.sections[0].cut, "nothing to collapse at the limit");
     }
 }

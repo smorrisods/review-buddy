@@ -158,6 +158,13 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     if app.screen == Screen::FirstRun && !quits {
         return setup::on_key(app, key);
     }
+    if app.show.open && app.screen == Screen::Dashboard {
+        return match key.code {
+            KeyCode::Char('c') if ctrl => run(app, Action::Quit),
+            _ if ctrl || alt => Vec::new(),
+            _ => super::show::on_key(app, key),
+        };
+    }
     let overlay = app.screen == Screen::Diff && app.diff.as_ref().is_some_and(|s| s.has_overlay());
     if overlay && !quits {
         return composer::on_key(app, key);
@@ -199,6 +206,18 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
             app.help = !app.help;
             app.help_scroll = 0;
             app.mark_dirty();
+            Vec::new()
+        }
+        Action::OpenShow => {
+            super::show::open(app);
+            Vec::new()
+        }
+        Action::CloseShow => {
+            super::show::close(app);
+            Vec::new()
+        }
+        Action::ToggleShow(filter) => {
+            super::show::toggle(app, filter);
             Vec::new()
         }
         Action::Open => match links::current_url(app) {

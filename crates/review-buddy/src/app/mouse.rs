@@ -19,6 +19,9 @@ pub(super) fn on_mouse(app: &mut App, mouse: MouseEvent) -> Vec<Cmd> {
     if app.help {
         return on_help(app, mouse, shift);
     }
+    if app.show.open {
+        return on_show(app, mouse, shift);
+    }
     if app.diff.as_ref().is_some_and(|s| s.has_overlay()) {
         return on_overlay(app, mouse, shift);
     }
@@ -87,6 +90,19 @@ fn on_help(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
         _ => {}
     }
     Vec::new()
+}
+
+/// The Show control answers its own rows; a click anywhere else closes it.
+fn on_show(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
+    if shift || !matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
+        return Vec::new();
+    }
+    match app.hits.at(mouse.column, mouse.row).cloned() {
+        Some(action @ (Action::ToggleShow(_) | Action::DismissToast(_))) => {
+            update::run(app, action)
+        }
+        _ => update::run(app, Action::CloseShow),
+    }
 }
 
 fn scroll_help(app: &mut App, down: bool) {

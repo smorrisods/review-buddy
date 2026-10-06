@@ -67,6 +67,7 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("Change", "⏎", "diff", Some(Action::Chip(Chip::Diff)), true),
             bind("Change", "o", "open", open, true),
             bind("Change", "y", "copy", copy, true),
+            bind("Change", "s", "show filters", Some(Action::OpenShow), true),
             bind("General", "?", "help", help, true),
             bind("General", "T", "theme", theme, true),
             bind("General", "q", "quit", Some(Action::Quit), true),

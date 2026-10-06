@@ -1,8 +1,8 @@
 ---
-source: crates/review-buddy/tests/frames.rs
-expression: text(& render(& mut app))
+source: crates/review-buddy/tests/show_filters.rs
+expression: text(&render(&mut a))
 ---
- review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+ review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
   1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
 ╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ─────────────────────╮
 │  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus         │
@@ -11,17 +11,17 @@ expression: text(& render(& mut app))
 │  ● Raise muted text contrast in the ligh… 5h ││                                                  │
 │  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  │
 │                                              ││                                                  │
-│  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3  │
-│  ✕ Cache pipeline status lookups          7h ││ ──────────────────────────────────────────────── │
-│  GL flow!1182 · priya · you're mentioned     ││ Adds a menu bar along the top and a Menu type    │
-│  ● Tidy zsh startup                       1d ││ that tracks the selected item.                   │
-│  GH dotfiles#31 · smorris · yours            ││                                                  │
-│                                              ││ • Menu::select_next and Menu::select_prev move   │
-│  Can wait · 1                                ││ the highlight                                    │
-│  · Clarify the install steps              3d ││ • Menu::activate returns the action for the      │
-│  GL notes!12 · kai · approved by you         ││ highlighted item                                 │
-│                                              ││ • The bar itself is a plain Line, so it picks up │
-│  ▸ Noise · 2 bot updates · ⏎ to expand       ││ …                                                │
+│  Worth a look · 2    ╭ Show ──────────────────────────────────────────────╮s 6   Conversation 3  │
+│  ✕ Cache pipeline sta│                                                    │───────────────────── │
+│  GL flow!1182 · priya│▌ [x] reviewing  changes waiting on your review     │op and a Menu type    │
+│  ● Tidy zsh startup  │  [x] assigned   changes assigned to you            │em.                   │
+│  GH dotfiles#31 · smo│  [x] authored   changes you opened                 │                      │
+│                      │  [ ] drafts     drafts, yours and others           │u::select_prev move   │
+│  Can wait · 1        │  [ ] noise      bot updates, mixed into the buckets│                      │
+│  · Clarify the instal│                                                    │e action for the      │
+│  GL notes!12 · kai · │  Nothing is hidden.                                │                      │
+│                      │  space toggle · esc close · this session only      │ Line, so it picks up │
+│  ▸ Noise · 2 bot upda╰────────────────────────────────────────────────────╯                      │
 │                                              ││                                                  │
 │  ── That's everything.                       ││ Reviewers                                        │
 │  7 in this view.                             ││ ◌ smorris requested                              │

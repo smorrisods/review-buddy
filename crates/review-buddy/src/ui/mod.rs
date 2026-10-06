@@ -20,6 +20,7 @@ pub mod first_run;
 pub mod help;
 mod hitmap;
 pub mod layout;
+pub mod show;
 pub mod size;
 pub mod style;
 pub mod text;
@@ -51,6 +52,9 @@ pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
     }
     chrome::draw_footer(frame, app, footer, &mut hits);
     chrome::draw_toasts(frame, app, body.inner(Margin::new(2, 1)), &mut hits);
+    if app.show.open && app.screen == Screen::Dashboard {
+        show::draw(frame, app, body, &mut hits);
+    }
     if app.help {
         help::draw(frame, app, body);
     }

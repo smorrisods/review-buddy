@@ -104,7 +104,12 @@ fn plan(loaded: &Loaded, show: &[ShowFilter], only: &[BucketArg], limit: Option<
         now: Some(loaded.now),
         queue_settings: QueueSettings {
             triage: loaded.triage_config.clone(),
-            show: show.to_vec(),
+            // Noise is listed as its own group here, so the shared queue keeps it apart.
+            show: show
+                .iter()
+                .copied()
+                .filter(|f| *f != ShowFilter::Noise)
+                .collect(),
             bucket_limit: limit.unwrap_or(usize::MAX),
         },
         ..AppState::default()

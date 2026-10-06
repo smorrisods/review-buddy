@@ -131,6 +131,16 @@ pub fn triage(change: &ChangeSummary, config: &TriageConfig, now: Timestamp) -> 
             reason,
         };
     }
+    triage_ignoring_noise(change, config, now)
+}
+
+/// The bucket a change would take if Noise didn't exist: where it sits when the `noise`
+/// Show filter mixes bot updates into the normal buckets.
+pub fn triage_ignoring_noise(
+    change: &ChangeSummary,
+    config: &TriageConfig,
+    now: Timestamp,
+) -> TriageOutcome {
     let (bucket, reason) = match attention(change) {
         Some(found) => found,
         None => (Bucket::Later, TriageReason::Default),

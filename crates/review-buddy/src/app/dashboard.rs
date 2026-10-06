@@ -2,7 +2,7 @@
 //! scrolling and the detail tabs.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rb_core::{ChangeId, ChangeSummary, Source, SourceId};
+use rb_core::{triage::Bucket, ChangeId, ChangeSummary, Source, SourceId};
 
 use super::queue::{item_span, total_height, Item, Queue};
 use super::update::set_status;
@@ -95,6 +95,7 @@ impl Chip {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selected {
     Change(ChangeId),
+    More(Bucket),
     Noise,
 }
 
@@ -105,6 +106,8 @@ pub struct Dashboard {
     pub source: usize,
     pub selected: Option<Selected>,
     pub noise_open: bool,
+    /// Buckets shown past `bucket_limit`.
+    pub expanded: Vec<Bucket>,
     pub tab: Tab,
     pub queue_scroll: u16,
     pub detail_scroll: u16,
@@ -120,6 +123,7 @@ impl Default for Dashboard {
             source: 0,
             selected: None,
             noise_open: false,
+            expanded: Vec::new(),
             tab: Tab::Overview,
             queue_scroll: 0,
             detail_scroll: 0,
@@ -139,7 +143,12 @@ impl App {
 
     pub fn queue(&self) -> Queue {
         let id: Option<&SourceId> = self.active_source().map(|s| &s.id);
-        Queue::build(&self.state, id, self.dashboard.noise_open)
+        Queue::build_with(
+            &self.state,
+            id,
+            self.dashboard.noise_open,
+            &self.dashboard.expanded,
+        )
     }
 
     pub fn selected_change(&self) -> Option<&ChangeSummary> {
@@ -162,6 +171,7 @@ pub fn focus_order(width: u16) -> Vec<Pane> {
 fn selection_of(app: &App, item: Item) -> Option<Selected> {
     match item {
         Item::Noise => Some(Selected::Noise),
+        Item::More(bucket) => Some(Selected::More(bucket)),
         Item::Change(i) => app
             .state
             .changes
@@ -199,6 +209,10 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
         KeyCode::Char('G') | KeyCode::End => jump(app, true),
         KeyCode::Enter => activate(app),
         KeyCode::Char('d') => open_diff(app),
+        KeyCode::Char('s') => {
+            super::show::open(app);
+            Vec::new()
+        }
         KeyCode::Char('a') if has_change => chip_pressed(app, Chip::Approve),
         KeyCode::Char('c') if has_change => chip_pressed(app, Chip::Comment),
         KeyCode::Char('x') if has_change => chip_pressed(app, Chip::RequestChanges),
@@ -231,10 +245,17 @@ pub fn on_action(app: &mut App, action: super::Action) -> Vec<Cmd> {
         Action::SelectItem(n) => {
             app.dashboard.focus = Pane::Queue;
             let items = app.queue().items();
-            if let Some(item) = items.get(n) {
-                select_item(app, *item, n);
+            match items.get(n) {
+                Some(item) => {
+                    select_item(app, *item, n);
+                    if matches!(item, Item::More(_)) {
+                        activate(app)
+                    } else {
+                        Vec::new()
+                    }
+                }
+                None => Vec::new(),
             }
-            Vec::new()
         }
         Action::SelectTab(tab) => switch_tab(app, tab),
         Action::Chip(chip) => chip_pressed(app, chip),
@@ -398,6 +419,17 @@ fn jump(app: &mut App, to_end: bool) -> Vec<Cmd> {
 
 pub(super) fn activate(app: &mut App) -> Vec<Cmd> {
     match (&app.dashboard.selected, app.dashboard.focus) {
+        (Some(Selected::More(bucket)), Pane::Queue) => {
+            let bucket = *bucket;
+            match app.dashboard.expanded.iter().position(|b| *b == bucket) {
+                Some(at) => {
+                    app.dashboard.expanded.remove(at);
+                }
+                None => app.dashboard.expanded.push(bucket),
+            }
+            reconcile(app);
+            Vec::new()
+        }
         (Some(Selected::Noise), Pane::Queue) => {
             app.dashboard.noise_open = !app.dashboard.noise_open;
             reconcile(app);
@@ -768,8 +800,10 @@ mod tests {
         let queue = app.queue();
         assert_eq!(queue.sections[0].changes.len(), 2);
         assert_eq!(queue.sections[0].more, 3);
-        assert_eq!(queue.items().len(), 2);
-        assert!(queue.rows().contains(&crate::app::queue::Row::More(3)));
+        assert_eq!(queue.items().len(), 3, "two changes and the more row");
+        assert!(queue
+            .rows()
+            .contains(&crate::app::queue::Row::Item(Item::More(Bucket::Wait))));
     }
 
     #[test]
@@ -843,5 +877,85 @@ mod tests {
         assert_eq!(app.dashboard.queue_scroll, 0);
         on_scroll(&mut app, 0, 0, true);
         assert_eq!(app.dashboard.queue_scroll, 0);
+    }
+
+    fn many() -> App {
+        let changes: Vec<_> = (1..=5)
+            .map(|n| change(n, MyRole::Reviewing, 100 + n as i64))
+            .collect();
+        let mut app = loaded(160, changes);
+        app.state.queue_settings.bucket_limit = 2;
+        reconcile(&mut app);
+        app
+    }
+
+    #[test]
+    fn enter_on_the_more_row_expands_and_collapses_its_bucket() {
+        let mut app = many();
+        press(&mut app, KeyCode::Char('G'));
+        assert_eq!(app.dashboard.selected, Some(Selected::More(Bucket::Wait)));
+        press(&mut app, KeyCode::Enter);
+        assert_eq!(app.queue().sections[0].changes.len(), 5);
+        assert_eq!(app.dashboard.selected, Some(Selected::More(Bucket::Wait)));
+        press(&mut app, KeyCode::Enter);
+        assert_eq!(app.queue().sections[0].changes.len(), 2);
+        assert_eq!(app.dashboard.selected, Some(Selected::More(Bucket::Wait)));
+    }
+
+    #[test]
+    fn a_click_on_the_more_row_expands_it() {
+        let mut app = many();
+        on_action(&mut app, crate::app::Action::SelectItem(2));
+        assert_eq!(app.queue().sections[0].changes.len(), 5);
+    }
+
+    #[test]
+    fn s_opens_the_show_control_and_space_toggles_at_once() {
+        let mut app = loaded(160, sample());
+        press(&mut app, KeyCode::Char('s'));
+        assert!(app.show.open);
+        assert!(app.queue().noise.len() == 1);
+        press(&mut app, KeyCode::Char('5'));
+        assert!(app.queue().noise.is_empty());
+        assert_eq!(app.queue().items().len(), 5);
+        press(&mut app, KeyCode::Char('j'));
+        press(&mut app, KeyCode::Char('x'));
+        assert!(app.show.open, "other keys don't leak through");
+        press(&mut app, KeyCode::Char(' '));
+        assert!(!crate::app::show::is_on(
+            &app,
+            crate::config::ShowFilter::Noise
+        ));
+        press(&mut app, KeyCode::Esc);
+        assert!(!app.show.open);
+    }
+
+    #[test]
+    fn narrowing_the_filters_keeps_the_selection_or_settles_nearby() {
+        let mut app = loaded(160, sample());
+        press(&mut app, KeyCode::Char('j'));
+        press(&mut app, KeyCode::Char('j'));
+        assert_eq!(selected_number(&app), Some(2));
+        crate::app::show::toggle(&mut app, crate::config::ShowFilter::Authored);
+        assert_eq!(selected_number(&app), Some(2), "still visible, so it stays");
+        crate::app::show::toggle(&mut app, crate::config::ShowFilter::Reviewing);
+        assert_eq!(app.dashboard.index, 0);
+        assert_eq!(
+            selected_number(&app),
+            Some(3),
+            "the mention is all that's left"
+        );
+        crate::app::show::toggle(&mut app, crate::config::ShowFilter::Reviewing);
+        assert!(app.selected_change().is_some());
+    }
+
+    #[test]
+    fn the_noise_row_stays_open_across_filter_changes() {
+        let mut app = loaded(160, sample());
+        app.dashboard.noise_open = true;
+        crate::app::show::toggle(&mut app, crate::config::ShowFilter::Drafts);
+        assert!(app.dashboard.noise_open);
+        crate::app::show::toggle(&mut app, crate::config::ShowFilter::Drafts);
+        assert!(app.dashboard.noise_open);
     }
 }

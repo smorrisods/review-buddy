@@ -1,6 +1,5 @@
 ---
 source: crates/review-buddy/tests/dashboard.rs
-assertion_line: 112
 expression: text(&buffer)
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                        Liminal HQ
@@ -42,4 +41,4 @@ expression: text(&buffer)
 │                                              ││                                                                               │
 │                                              ││                                                                               │
 ╰──────────────────────────────────────────────╯╰───────────────────────────────────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  ? help  T theme  q quit
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

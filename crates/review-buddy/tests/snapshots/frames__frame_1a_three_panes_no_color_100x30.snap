@@ -31,7 +31,7 @@ expression: plain_dump(& mut app)
 │                                              ││ ● 2 passing  ◐ 1 running                         │
 │                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  ? help  T theme  q quit
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
 
 -- modifiers --
 0:1 B "review buddy"
@@ -210,9 +210,11 @@ expression: plain_dump(& mut app)
 29:10 D " open"
 29:17 B "y"
 29:18 D " copy"
-29:25 B "?"
-29:26 D " help"
-29:33 B "T"
-29:34 D " theme"
-29:42 B "q"
-29:43 D " quit"
+29:25 B "s"
+29:26 D " show filters"
+29:41 B "?"
+29:42 D " help"
+29:49 B "T"
+29:50 D " theme"
+29:58 B "q"
+29:59 D " quit"
