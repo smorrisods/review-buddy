@@ -32,10 +32,10 @@ expression: text(&render(&mut a))
 │                                ││              ╰──│  q          back to the queue                        │──────────────────────────────────────────────────╯│
 │                                ││         45 +    │  ?          help                                     │                                                   │
 │                                ││         46 +    │  T          theme                                    │                                                   │
-│                                ││         47 +    │                                                      │                                                   │
-│                                ││         48 +    │esc or ? to close                                     │                                                   │
-│ Your review · pending ─────────││         49 +    ╰──────────────────────────────────────────────────────╯                                                   │
-│1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
+│                                ││         47 +    │  B          background: theme / yes / no             │                                                   │
+│                                ││         48 +    │                                                      │                                                   │
+│ Your review · pending ─────────││         49 +    │esc or ? to close                                     │                                                   │
+│1 suggestion · 0 comments       ││         50 +    ╰──────────────────────────────────────────────────────╯                                                   │
 │0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
 │Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
 │a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││

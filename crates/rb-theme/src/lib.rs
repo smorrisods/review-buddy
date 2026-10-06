@@ -12,7 +12,7 @@ pub use colour::{
     TagColourError,
 };
 pub use palette::{
-    indexed_rgb, nearest_ansi, no_color_requested, quantise_256, ColourDepth, Modifiers, Palette,
-    Style,
+    indexed_rgb, nearest_ansi, no_color_requested, quantise_256, resolve_background,
+    BackgroundMode, BackgroundSettings, ColourDepth, Modifiers, Palette, Style,
 };
 pub use theme::{Appearance, Role, SyntaxRole, Theme, ThemeError, BUILTIN_IDS, DEFAULT_THEME_ID};

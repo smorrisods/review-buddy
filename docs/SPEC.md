@@ -21,7 +21,7 @@ This spec describes the whole product. Nothing has been tagged yet. **The first 
 | §7 Feedback | Toasts (on state changes only) and footer status, last-refreshed time, the `offline · cached HH:MM` banner, errors with a next step, per-source failures keep cached rows | Offline action queue (1.0); banner times are UTC until local time lands |
 | §8 Demo | `--demo`, `--frozen-time`, offline fixtures (all four sources, GitHub and GitLab, seven changes), writes labelled `(demo)` | `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet |
 | §9 Jax | No | v0.4 |
-| §10 Theming | Built-ins, `T`, `ui.theme`, colour depth, `NO_COLOR` | User theme files, hot reload (v0.4) |
+| §10 Theming | Built-ins, `T`, `ui.theme`, colour depth, `NO_COLOR`, the painted background (`ui.background`, `[ui.theme_background]`, `[theme] paint_background`, `REVIEW_BUDDY_BACKGROUND`, `B`) | User theme files, hot reload (v0.4) |
 | §11 Performance | Cached rows paint first; refresh engine: launch, `r`, `refresh.interval` and focus, per-source state, per-host concurrency cap, ETag/not-modified, backoff with jitter, rate-limit pause | Lazy huge diffs |
 | §12 Accessibility | Glyphs plus colour, `NO_COLOR`, `ui.reduced_motion` (a still glyph for the refresh spinner) | `--no-unicode`, and reduced motion for Jax and cursors (nothing else animates yet) |
 | §13 Platforms | All release targets built by the `Release` workflow | |

@@ -27,6 +27,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
 | `T` | Cycle theme |
+| `B` | Cycle the background: theme → yes → no, for the session (not on first run) |
 | `?` | Help overlay for the current screen (`esc` or `?` closes it) |
 | `q` / `⌃C` | Quit. If there are unsent comments, it asks you to quit again |
 | `esc` | Dismiss status messages |
@@ -51,7 +52,7 @@ Open with `⏎` or `d` from the dashboard.
 | `a` | Approve: opens a preview (`Approve with N comments`, the pending comments listed, the verdict) with **Cancel** and **Approve**. On success your pending comments are cleared and a toast says `Approved` (with `(demo)` under `--demo`); on failure they stay pending and the toast says what to do next |
 | `x` | Request changes. Not built yet: the footer says so and points to `a` and `c`. Where the forge can't do it at all, it says that instead |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
-| `T` / `?` | Cycle theme / help |
+| `T` / `B` / `?` | Cycle theme / cycle the background / help |
 | `esc` / `q` | Clear the selected range, then go back to the dashboard (`q` also asks first if there are unsent drafts) |
 
 **Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
@@ -123,7 +124,7 @@ The kinds start from `triage.show` and, when the Sources pane is showing, are al
 | `a` / `n` | Add a source. Hosts found on this machine are offered first, then **Another host…** |
 | `space` | Switch the source on or off (it stays in the config) |
 | `x` / `del` | Remove the source, after a confirm that starts on **No, keep it** |
-| `?` · `T` · `esc` | Help · theme · back to the queue |
+| `?` · `T` · `B` · `esc` | Help · theme · background · back to the queue |
 
 In the form, `tab` / `⇧tab` (or `↓` `↑`) move between fields, `← →` or `space` change a choice, `⏎` saves and `esc` cancels. A token typed in the form is hidden, is tested before anything is written, and goes only to your OS keyring; the config file never holds it. Leave it blank to keep the token already saved.
 

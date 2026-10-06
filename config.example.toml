@@ -13,7 +13,14 @@ jax = true                  # J toggles
 reduced_motion = false
 unicode = true
 colour_depth = "auto"       # auto | truecolor | 256 | 16
+background = "theme"        # theme | yes | no  (B cycles for the session; REVIEW_BUDDY_BACKGROUND for one run)
+                            # theme = paint what the theme sets (afterglow does, liminal-hq and dusk don't); yes = always paint; no = never
 mouse = true
+
+# Per-theme background, beating ui.background for that theme.
+# [ui.theme_background]
+# dusk = "yes"
+# afterglow-light = "no"
 
 [review]
 merge_method = "squash"     # merge | squash | rebase

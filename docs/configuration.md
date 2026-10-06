@@ -4,7 +4,7 @@
 
 | Applied | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.mouse`, `ui.sources`, `ui.detail`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.sources`, `ui.detail`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
 
 ## File locations (XDG Base Directory)
 
@@ -58,7 +58,7 @@ Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at,
 
 ## `[ui]`
 
-Applied: `theme`, `colour_depth`, `mouse`, `reduced_motion`, `sources` and `detail`.
+Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `reduced_motion`, `sources` and `detail`.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -70,6 +70,8 @@ Applied: `theme`, `colour_depth`, `mouse`, `reduced_motion`, `sources` and `deta
 | `reduced_motion` | `false` | Swaps the refresh spinner for a still glyph; will also freeze Jax and disable blinking cursors. The env var `REVIEW_BUDDY_REDUCED_MOTION` sets it |
 | `unicode` | `true` | `false` = ASCII glyphs and plain borders. Not applied yet |
 | `colour_depth` | `"auto"` | `auto` · `truecolor` · `256` · `16` |
+| `background` | `"theme"` | `theme` · `yes` · `no`. Whether the frame paints a background: `theme` follows the theme (Afterglow paints, Liminal HQ and Dusk don't), `yes` always paints, `no` never does. `NO_COLOR` never paints, and 16 colours paint only with `yes`. `B` cycles it for the session and `REVIEW_BUDDY_BACKGROUND` overrides it for one run. See [theming](theming.md#background) |
+| `theme_background` | _none_ | A `[ui.theme_background]` table of theme id to `theme` · `yes` · `no`, for example `dusk = "yes"`. Beats `background` for that theme. Precedence, strongest first: the `B` key, `REVIEW_BUDDY_BACKGROUND`, this table, `background`, the theme's own default |
 | `mouse` | `true` | Click, drag-select, scroll. `false` leaves mouse capture off so the terminal handles the mouse. Demo mode never reads the config and always captures it |
 | `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale. Not applied yet |
 
@@ -217,6 +219,7 @@ Parsed but not applied yet. See `keybindings.md`.
 | `REVIEW_BUDDY_CONFIG` | Path to an alternate config file (replaces the user config layers) |
 | `XDG_CONFIG_HOME`, `XDG_CONFIG_DIRS`, `XDG_DATA_HOME`, `XDG_DATA_DIRS`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`, `XDG_RUNTIME_DIR` | Standard base directories; see above |
 | `REVIEW_BUDDY_THEME` | Overrides `ui.theme` for this run |
+| `REVIEW_BUDDY_BACKGROUND` | `theme`, `yes` or `no` for this run: whether the frame paints a background. Beats `ui.background` and `[ui.theme_background]`; `B` beats it. Other values are ignored |
 | `REVIEW_BUDDY_COLOUR_DEPTH` | Forces the colour depth for this run: `truecolor`, `256` or `16` (overrides detection; `ui.colour_depth` in `config.toml` does the same persistently) |
 | `REVIEW_BUDDY_REDUCED_MOTION=1` | Same as `ui.reduced_motion = true` (only the refresh spinner animates today) |
 | `GITHUB_TOKEN`, `GITLAB_TOKEN` | Used only by sources with `auth = "env:…"` |

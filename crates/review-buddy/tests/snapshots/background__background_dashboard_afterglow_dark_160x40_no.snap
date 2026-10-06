@@ -1,0 +1,6 @@
+---
+source: crates/review-buddy/tests/background.rs
+expression: "pinned(\"afterglow-dark\", (160, 40), BackgroundMode :: No)"
+---
+Reset: 6250
+Rgb(39, 34, 62): 150

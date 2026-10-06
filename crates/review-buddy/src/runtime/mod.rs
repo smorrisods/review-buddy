@@ -59,9 +59,24 @@ pub struct Settings {
     pub tab_width: u8,
     pub confirm_post_now: bool,
     pub reduced_motion: bool,
+    pub background: rb_theme::BackgroundMode,
+    pub per_theme_background: std::collections::BTreeMap<String, rb_theme::BackgroundMode>,
     pub layout: crate::ui::layout::Options,
     /// Where `w` in the Show control writes `hide_repos`; `None` when there's nowhere to write.
     pub write_target: Option<std::path::PathBuf>,
+}
+
+fn background_mode(choice: crate::config::Background) -> rb_theme::BackgroundMode {
+    match choice {
+        crate::config::Background::Theme => rb_theme::BackgroundMode::Theme,
+        crate::config::Background::Yes => rb_theme::BackgroundMode::Yes,
+        crate::config::Background::No => rb_theme::BackgroundMode::No,
+    }
+}
+
+/// `REVIEW_BUDDY_BACKGROUND` for this run. Values that aren't `theme`, `yes` or `no` are ignored.
+pub fn background_from_env() -> Option<rb_theme::BackgroundMode> {
+    std::env::var("REVIEW_BUDDY_BACKGROUND").ok()?.parse().ok()
 }
 
 impl Settings {
@@ -83,6 +98,13 @@ impl Settings {
             tab_width: config.diff.tab_width.clamp(1, 16),
             confirm_post_now: config.review.confirm_post_now,
             reduced_motion: config.ui.reduced_motion,
+            background: background_mode(config.ui.background),
+            per_theme_background: config
+                .ui
+                .theme_background
+                .iter()
+                .map(|(id, mode)| (id.clone(), background_mode(*mode)))
+                .collect(),
             layout: crate::ui::layout::Options {
                 sources: config.ui.sources,
                 detail: config.ui.detail,
@@ -105,6 +127,11 @@ impl Settings {
         app.tab_width = self.tab_width;
         app.reduced_motion = self.reduced_motion;
         app.layout = self.layout;
+        app.background.global = self.background;
+        app.background
+            .per_theme
+            .clone_from(&self.per_theme_background);
+        app.rebuild_palette();
         app.state.queue_settings = self.queue.clone();
         app.project_save.clone_from(&self.write_target);
     }
@@ -430,9 +457,11 @@ async fn event_loop(options: RunOptions) -> Result<()> {
         Some(settings) => settings.app_config(base),
         None => base,
     });
+    app.background.env = background_from_env();
     if let Some(settings) = &options.settings {
         settings.apply(&mut app);
     }
+    app.rebuild_palette();
 
     app.demo = backend.is_demo();
 

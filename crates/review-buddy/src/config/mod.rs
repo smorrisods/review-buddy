@@ -145,6 +145,27 @@ mod tests {
     }
 
     #[test]
+    fn background_settings_parse_with_per_theme_overrides() {
+        let l = load(&[(
+            "/c.toml",
+            "[ui]\nbackground = \"yes\"\n\n[ui.theme_background]\ndusk = \"no\"\nafterglow-light = \"theme\"\n",
+        )])
+        .unwrap();
+        assert_eq!(l.config.ui.background, Background::Yes);
+        assert_eq!(l.config.ui.theme_background["dusk"], Background::No);
+        assert_eq!(l.config.ui.theme_background.len(), 2);
+        assert_eq!(Config::default().ui.background, Background::Theme);
+    }
+
+    #[test]
+    fn a_bad_background_names_the_file_and_line() {
+        let e = load(&[("/c.toml", "[ui]\nbackground = \"always\"\n")]).unwrap_err();
+        assert!(e.to_string().contains("/c.toml:2"), "{e}");
+        let e = load(&[("/c.toml", "[ui.theme_background]\ndusk = \"maybe\"\n")]).unwrap_err();
+        assert!(e.to_string().contains("/c.toml:2"), "{e}");
+    }
+
+    #[test]
     fn arrays_and_sources_replace() {
         let src = |n: &str| {
             format!("[[source]]\nname = \"{n}\"\nkind = \"github\"\nhost = \"github.com\"\n")

@@ -103,6 +103,24 @@ impl Pty {
         self.parser.lock().unwrap().screen().contents()
     }
 
+    /// The background colour of the cell at `row`, `col` on the parsed screen.
+    pub fn bg_at(&self, row: u16, col: u16) -> vt100::Color {
+        let parser = self.parser.lock().unwrap();
+        parser.screen().cell(row, col).unwrap().bgcolor()
+    }
+
+    /// Polls until the cell's background is `want`; returns the last colour seen.
+    pub fn wait_for_bg(&self, row: u16, col: u16, want: vt100::Color) -> vt100::Color {
+        let deadline = Instant::now() + LIMIT;
+        loop {
+            let got = self.bg_at(row, col);
+            if got == want || Instant::now() >= deadline {
+                return got;
+            }
+            std::thread::sleep(POLL);
+        }
+    }
+
     pub fn sees(&self, needle: &str) -> bool {
         self.screen().contains(needle)
     }

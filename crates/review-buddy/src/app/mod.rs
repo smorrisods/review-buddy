@@ -8,7 +8,9 @@ use rb_core::{
     ChangeId, ChangeSummary, Check, Comment, FeatureAction, ProbeOutcome, ReviewDraft, Source,
     SourceId, Thread, ThreadId, Timestamp, Verdict,
 };
-use rb_theme::{ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID};
+use rb_theme::{
+    BackgroundMode, BackgroundSettings, ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID,
+};
 
 use crate::ui::HitMap;
 
@@ -90,6 +92,7 @@ pub struct Entry {
 pub enum Action {
     Quit,
     CycleTheme,
+    CycleBackground,
     /// Close or reopen the Detail pane.
     ToggleDetail,
     /// Cycle where the Sources sit: auto, left, top.
@@ -387,6 +390,8 @@ pub struct App {
     /// Refresh when the terminal regains focus.
     pub refresh_on_focus: bool,
     pub palette: Palette,
+    /// The background setting by layer: config, `REVIEW_BUDDY_BACKGROUND`, and this session.
+    pub background: BackgroundSettings,
     pub status: Option<Entry>,
     pub toasts: Vec<Entry>,
     /// Rectangles from the last draw, used to resolve clicks.
@@ -443,6 +448,7 @@ impl App {
             focused: true,
             refresh_on_focus: true,
             palette: Palette::new(builtin(theme_index), config.depth, config.no_color),
+            background: BackgroundSettings::default(),
             status: None,
             toasts: Vec::new(),
             hits: HitMap::default(),
@@ -511,18 +517,34 @@ impl App {
     pub fn set_theme(&mut self, id: &str) {
         if let Some(i) = BUILTIN_IDS.iter().position(|b| *b == id) {
             self.theme_index = i;
-            self.palette = Palette::new(builtin(i), self.palette.depth(), self.palette.no_color());
+            self.rebuild_palette();
             self.mark_dirty();
         }
     }
 
     fn cycle_theme(&mut self) {
         self.theme_index = (self.theme_index + 1) % BUILTIN_IDS.len();
-        self.palette = Palette::new(
-            builtin(self.theme_index),
-            self.palette.depth(),
-            self.palette.no_color(),
-        );
+        self.rebuild_palette();
+    }
+
+    /// The background mode in force for the current theme, after every layer.
+    pub fn background_mode(&self) -> BackgroundMode {
+        self.background.mode_for(&self.palette.theme().id)
+    }
+
+    /// Steps the session's background through theme, yes and no.
+    pub fn cycle_background(&mut self) {
+        self.background.session = Some(self.background_mode().next());
+        self.rebuild_palette();
+        self.mark_dirty();
+    }
+
+    /// Rebuilds the palette for the current theme and background mode.
+    pub fn rebuild_palette(&mut self) {
+        let theme = builtin(self.theme_index);
+        let mode = self.background.mode_for(&theme.id);
+        self.palette = Palette::new(theme, self.palette.depth(), self.palette.no_color())
+            .with_background_mode(mode);
     }
 
     fn take_id(&mut self) -> u64 {

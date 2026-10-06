@@ -1,4 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use rb_theme::BackgroundMode;
 
 use super::{
     composer, dashboard, diff, links, live, mouse, settings, setup, Action, App, AppState, Cmd,
@@ -199,6 +200,9 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char('o') if !ctrl && !alt => run(app, Action::Open),
         KeyCode::Char('y') if !ctrl && !alt => run(app, Action::Copy),
         KeyCode::Char('T') if !ctrl => run(app, Action::CycleTheme),
+        KeyCode::Char('B') if !ctrl && app.screen != Screen::FirstRun => {
+            run(app, Action::CycleBackground)
+        }
         KeyCode::Char('r') if !ctrl && app.screen == Screen::Dashboard => {
             live::request_refresh(app, true)
         }
@@ -264,6 +268,15 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
             app.cycle_theme();
             diff::refresh_theme(app);
             let text = format!("Theme: {}", app.theme_name());
+            set_status(app, Notice::new(NoticeKind::Info, text))
+        }
+        Action::CycleBackground => {
+            app.cycle_background();
+            let text = match app.background_mode() {
+                BackgroundMode::Theme => "Background: follows the theme",
+                BackgroundMode::Yes => "Background: painted",
+                BackgroundMode::No => "Background: your terminal's own",
+            };
             set_status(app, Notice::new(NoticeKind::Info, text))
         }
         Action::DismissToast(id) => {

@@ -1,6 +1,6 @@
 # Theming
 
-**Status.** The four built-in themes work, `T` cycles through them, `ui.theme` (and `REVIEW_BUDDY_THEME`) picks one, colour depth is detected and `NO_COLOR` is honoured. `review-buddy theme list` lists the built-ins. **Not built yet:** loading theme files from disk (the search order below is the plan), hot reload, the Settings → Theme screen and palette commands, `theme check` and `theme export` (both exit `2` for now), and the Jax roles, since Jax isn't drawn yet. The format and roles below are what user themes will use, and the built-in files in `themes/` follow it.
+**Status.** The four built-in themes work, `T` cycles through them, the frame paints an opaque theme background (`ui.background`, `B`), `ui.theme` (and `REVIEW_BUDDY_THEME`) picks one, colour depth is detected and `NO_COLOR` is honoured. `review-buddy theme list` lists the built-ins. **Not built yet:** loading theme files from disk (the search order below is the plan), hot reload, the Settings → Theme screen and palette commands, `theme check` and `theme export` (both exit `2` for now), and the Jax roles, since Jax isn't drawn yet. The format and roles below are what user themes will use, and the built-in files in `themes/` follow it.
 
 A theme is a TOML file that assigns colours to **roles**. Widgets only ever ask for roles, never raw colours, so a theme can restyle the whole app without touching code.
 
@@ -20,6 +20,7 @@ A theme is a TOML file that assigns colours to **roles**. Widgets only ever ask 
 name    = "Harbour"            # shown in Settings and the top bar
 extends = "liminal-hq"         # optional; defaults to liminal-hq
 appearance = "dark"            # dark | light (used for syntect and 256-colour fallback)
+paint_background = true        # optional; true | false overrides what `background` implies (see Background)
 
 [colours]
 background = "transparent"     # "transparent" = never paint the background
@@ -35,6 +36,22 @@ accent = "yellow"
 ```
 
 Colours are `#rrggbb`, `#rrggbbaa` (alpha is blended against `background`, or against `raised` when `background` is transparent), a 256-colour index (`"237"`), an ANSI name (`"bright-black"`), or `"transparent"` / `"reset"`.
+
+## Background
+
+Themes either paint a background or leave the terminal's own showing. Liminal HQ and Dusk are `transparent`, so they use your terminal's background. Afterglow Dark (`#0f0e1a`) and Afterglow Light (`#fbfaf6`) have an opaque `background`, and the interface fills the whole frame with it, including the cells behind text, the Detail pane and the margins, so those themes look the same whatever your terminal is set to.
+
+Three things decide whether the frame is painted:
+
+- **`ui.background`** is `theme` (the default), `yes` or `no`. `theme` follows the theme: an opaque `background` paints, a transparent one doesn't. `yes` paints even a transparent theme, using the theme's effective background (`#050507` for a dark theme, `#fbfaf6` for a light one, chosen from `appearance`). `no` never paints.
+- **`[ui.theme_background]`** maps a theme id to `theme`, `yes` or `no`, and beats `ui.background` for that theme (for example `dusk = "yes"` or `afterglow-light = "no"`).
+- **`[theme] paint_background = true | false`** in a theme file sets what `theme` means for that theme, instead of inferring it from `background`. It is inherited through `extends`, like the other `[theme]` keys. `true` on a transparent theme paints the effective background; `false` on an opaque one leaves the terminal's own.
+
+`REVIEW_BUDDY_BACKGROUND=theme|yes|no` overrides the settings for one run, and `B` cycles theme → yes → no for the session (with a toast). From strongest to weakest, the order is: the `B` key, `REVIEW_BUDDY_BACKGROUND`, the theme's `[ui.theme_background]` entry, `ui.background`, then the theme's own default. Neither the key nor the variable is saved to the file.
+
+Two rules sit above all of that. `NO_COLOR` never paints. At 16 colours nothing is painted unless the setting is `yes` (a theme's hex background maps poorly onto the terminal's own 16-colour palette, and `yes` is an explicit ask). At 256 colours the background is quantised to the nearest palette entry like every other role.
+
+Overlays (Show, help, the composer, confirmations, toasts and Settings dialogs) keep their `raised` surface on top of the painted frame, so nothing is left on the terminal's own colour. The selection and the diff add/remove tints are blended against `background` (or `raised` when it's transparent) when the theme loads. Forcing `yes` on a transparent theme therefore uses `raised` for those blends, which is within a shade of the dark fallback.
 
 ## Roles
 
