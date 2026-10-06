@@ -8,6 +8,37 @@ pub fn cells(s: &str) -> usize {
 }
 
 /// Word-wraps `text` to `width` cells. Words longer than a line are split.
+/// Shortens `text` to at most `max` cells by replacing the middle with `…`, keeping both ends
+/// (so `git.ontariogovernment.ca` stays recognisable as `git.onta…ent.ca`).
+pub fn elide_middle(text: &str, max: usize) -> String {
+    if cells(text) <= max {
+        return text.to_string();
+    }
+    if max == 0 {
+        return String::new();
+    }
+    let keep = max - 1;
+    let tail_cells = keep / 2;
+    let head_cells = keep - tail_cells;
+    let take = |chars: &mut dyn Iterator<Item = char>, limit: usize| {
+        let mut out = Vec::new();
+        let mut used = 0;
+        for ch in chars {
+            let w = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+            if used + w > limit {
+                break;
+            }
+            used += w;
+            out.push(ch);
+        }
+        out
+    };
+    let head: String = take(&mut text.chars(), head_cells).into_iter().collect();
+    let mut tail = take(&mut text.chars().rev(), tail_cells);
+    tail.reverse();
+    format!("{head}…{}", tail.into_iter().collect::<String>())
+}
+
 pub fn wrap(text: &str, width: usize) -> Vec<String> {
     let width = width.max(1);
     let mut lines = Vec::new();
@@ -165,5 +196,24 @@ mod tests {
             .map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect())
             .collect();
         assert_eq!(text, ["a   x", "b   "]);
+    }
+}
+
+#[cfg(test)]
+mod elide_tests {
+    use super::*;
+
+    #[test]
+    fn elides_the_middle_and_keeps_both_ends() {
+        assert_eq!(elide_middle("github.com", 12), "github.com");
+        let e = elide_middle("git.ontariogovernment.ca", 14);
+        assert_eq!(cells(&e), 14);
+        assert!(
+            e.starts_with("git.on") && e.ends_with("ent.ca") || e.ends_with(".ca"),
+            "{e}"
+        );
+        assert!(e.contains('…'));
+        assert_eq!(elide_middle("abcdef", 1), "…");
+        assert_eq!(elide_middle("abcdef", 0), "");
     }
 }

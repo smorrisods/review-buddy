@@ -157,7 +157,7 @@ fn strip_scrolls_to_keep_the_active_tab_visible_and_marks_hidden_ones() {
         "{first}"
     );
     assert!(!first.contains('‹'));
-    for key in ['5', '9'] {
+    for key in ['7', '9'] {
         press(&mut a, KeyCode::Char(key));
         let line = rows(&render(&mut a), 1, 2, 100);
         assert!(line.contains(&format!(" {key} ")), "{key}: {line}");
@@ -169,16 +169,16 @@ fn strip_scrolls_to_keep_the_active_tab_visible_and_marks_hidden_ones() {
 
 #[test]
 fn strip_markers_are_click_targets() {
-    let mut a = many_sources(9);
-    press(&mut a, KeyCode::Char('5'));
+    let mut a = many_sources(12);
+    press(&mut a, KeyCode::Char('8'));
     let buffer = render(&mut a);
     let (x, y) = find(&buffer, "‹").unwrap();
     click(&mut a, x, y);
-    assert_eq!(a.dashboard.source, 3);
+    assert_eq!(a.dashboard.source, 6);
     let buffer = render(&mut a);
     let (x, y) = find(&buffer, "›").unwrap();
     click(&mut a, x, y);
-    assert_eq!(a.dashboard.source, 4);
+    assert_eq!(a.dashboard.source, 7);
 }
 
 #[test]

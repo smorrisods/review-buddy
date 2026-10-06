@@ -37,6 +37,8 @@ macro_rules! choice {
 }
 
 choice!(Layout { Panes = "panes", Split = "split", Queue = "queue" });
+choice!(SourcesLayout { Auto = "auto", Left = "left", Top = "top" });
+choice!(DetailMode { Auto = "auto", Open = "open", Closed = "closed" });
 choice!(ColourDepth { Auto = "auto", Truecolor = "truecolor", Colour256 = "256", Colour16 = "16" });
 choice!(MergeMethod { Merge = "merge", Squash = "squash", Rebase = "rebase" });
 choice!(DiffView { Unified = "unified", SideBySide = "side-by-side" });
@@ -48,6 +50,8 @@ choice!(ShowFilter { Reviewing = "reviewing", Assigned = "assigned", Authored = 
 pub struct UiConfig {
     pub theme: String,
     pub layout: Layout,
+    pub sources: SourcesLayout,
+    pub detail: DetailMode,
     pub jax: bool,
     pub reduced_motion: bool,
     pub unicode: bool,
@@ -61,6 +65,8 @@ impl Default for UiConfig {
         Self {
             theme: "liminal-hq".into(),
             layout: Layout::Panes,
+            sources: SourcesLayout::Auto,
+            detail: DetailMode::Auto,
             jax: true,
             reduced_motion: false,
             unicode: true,

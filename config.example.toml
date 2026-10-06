@@ -7,6 +7,8 @@
 [ui]
 theme = "liminal-hq"        # liminal-hq | afterglow-dark | afterglow-light | any file in themes/
 layout = "panes"            # panes | split | queue   (L cycles)
+sources = "auto"            # auto | left | top  (S cycles for the session; auto = pane at 130+ columns)
+detail = "auto"             # auto | open | closed  (p toggles for the session)
 jax = true                  # J toggles
 reduced_motion = false
 unicode = true

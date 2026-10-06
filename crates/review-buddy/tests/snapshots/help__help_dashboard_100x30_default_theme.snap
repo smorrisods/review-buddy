@@ -3,32 +3,32 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
-  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
-╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ─────────────────────╮
-│  Waiting on you · 2 ╭ Keys · Queue ────────────────────────────────────────╮driven menus         │
-│▌ ◐ Add a menu bar an│Move                                                  │                     │
-│▌ GH review-buddy#214│  j/k  move in the focused pane                       │ ago                 │
-│  ● Raise muted text │  g/G  first / last row                               │                     │
-│  GH review-buddy#209│  tab  next pane                                      │  c Comment  ⏎ Diff  │
-│                     │  h/l  previous / next pane                           │                     │
-│  Worth a look · 2   │  1-9  switch source                                  │ 6   Conversation 3  │
-│  ✕ Cache pipeline st│  [/]  previous / next detail tab                     │──────────────────── │
-│  GL flow!1182 · priy│                                                      │p and a Menu type    │
-│  ● Tidy zsh startup │Change                                                │m.                   │
-│  GH dotfiles#31 · sm│  ⏎    diff                                           │                     │
-│                     │  o    open                                           │::select_prev move   │
-│  Can wait · 1       │  y    copy                                           │                     │
-│  · Clarify the insta│  s    show filters                                   │ action for the      │
-│  GL notes!12 · kai ·│                                                      │                     │
-│                     │General                                               │Line, so it picks up │
-│  ▸ Noise · 2 bot upd│  ?    help                                           │                     │
-│                     │  ,    settings                                       │                     │
-│  ── That's everythin│  T    theme                                          │                     │
-│  7 in this view.    │  q    quit                                           │                     │
+  1 ● All 7   2 ● limi╭ Keys · Queue ────────────────────────────────────────╮om 1
+╭ queue ──────────────│Move                                                  │────────────────── ⟩ ╮
+│  Waiting on you · 2 │  j/k  move in the focused pane                       │driven menus         │
+│▌ ◐ Add a menu bar an│  g/G  first / last row                               │                     │
+│▌ GH review-buddy#214│  tab  next pane                                      │ ago                 │
+│  ● Raise muted text │  h/l  previous / next pane                           │                     │
+│  GH review-buddy#209│  1-9  switch source                                  │  c Comment  ⏎ Diff  │
+│                     │  [/]  previous / next detail tab                     │                     │
+│  Worth a look · 2   │                                                      │ 6   Conversation 3  │
+│  ✕ Cache pipeline st│Change                                                │──────────────────── │
+│  GL flow!1182 · priy│  ⏎    diff                                           │p and a Menu type    │
+│  ● Tidy zsh startup │  o    open                                           │m.                   │
+│  GH dotfiles#31 · sm│  y    copy                                           │                     │
+│                     │  s    show filters                                   │::select_prev move   │
+│  Can wait · 1       │                                                      │                     │
+│  · Clarify the insta│View                                                  │ action for the      │
+│  GL notes!12 · kai ·│  p    close / reopen the detail pane                 │                     │
+│                     │  S    sources: auto / left / top                     │Line, so it picks up │
+│  ▸ Noise · 2 bot upd│                                                      │                     │
+│                     │General                                               │                     │
+│  ── That's everythin│  ?    help                                           │                     │
+│  7 in this view.    │  ,    settings                                       │                     │
+│                     │  T    theme                                          │                     │
+│                     │  q    quit                                           │                     │
 │                     │                                                      │                     │
 │                     │esc or ? to close                                     │                     │
-│                     ╰──────────────────────────────────────────────────────╯                     │
-│                                              ││ ● 2 passing  ◐ 1 running                         │
-│                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
+│                     ╰──────────────────────────────────────────────────────╯1 cancelled          │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

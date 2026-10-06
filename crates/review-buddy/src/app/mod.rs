@@ -89,6 +89,10 @@ pub struct Entry {
 pub enum Action {
     Quit,
     CycleTheme,
+    /// Close or reopen the Detail pane.
+    ToggleDetail,
+    /// Cycle where the Sources sit: auto, left, top.
+    CycleSources,
     /// Open the current change (or its diff page) in the browser.
     Open,
     /// Copy the current change's URL.
@@ -403,6 +407,8 @@ pub struct App {
     pub tab_width: u8,
     /// Still glyphs instead of a spinner (`ui.reduced_motion`).
     pub reduced_motion: bool,
+    /// Where Sources and Detail sit (`ui.sources`, `ui.detail`), as changed this session.
+    pub layout: crate::ui::layout::Options,
     quit_armed: bool,
     pub(crate) syntax: Syntax,
     pub(crate) ticks: u64,
@@ -442,6 +448,7 @@ impl App {
             confirm_post_now: true,
             tab_width: diffview::TAB_WIDTH,
             reduced_motion: false,
+            layout: crate::ui::layout::Options::default(),
             quit_armed: false,
             syntax: Syntax::default(),
             ticks: 0,

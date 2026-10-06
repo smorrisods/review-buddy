@@ -3,7 +3,7 @@ source: crates/review-buddy/tests/refresh_state.rs
 expression: text(& mut app)
 ---
  review buddy  ·  live · 2 sources · 2 changes                                                                                                       Liminal HQ
-╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ acme/web#1 ────────────────────────────────────────────────────────────────────────╮
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ acme/web#1 ───────────────────────────────────────────────────────────────────── ⟩ ╮
 │▌ ● All               2 ││  Waiting on you · 2                          ││ Add retry to sync                                                                  │
 │    every source        ││▌ ● Add retry to sync                      1h ││ mira wants feat → main                                                             │
 │  ● work              1 ││▌ GH web#1 · mira · review requested          ││ +4 −2 · 1 file · opened 2h ago                                                     │

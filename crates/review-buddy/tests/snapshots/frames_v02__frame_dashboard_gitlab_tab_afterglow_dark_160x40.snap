@@ -3,7 +3,7 @@ source: crates/review-buddy/tests/frames_v02.rs
 expression: text(& render(& mut app))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                   Afterglow Dark
-╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ platform/flow!1182 ────────────────────────────────────────────────────────────────╮
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ platform/flow!1182 ───────────────────────────────────────────────────────────── ⟩ ╮
 │  ● All               7 ││  Worth a look · 1                            ││ Cache pipeline status lookups                                                      │
 │    every source        ││▌ ✕ Cache pipeline status lookups          7h ││ priya wants priya/status-cache → main                                              │
 │  ● liminal-hq        3 ││▌ GL flow!1182 · priya · you're mentioned     ││ +8 −2 · 1 file · opened 2d ago                                                     │

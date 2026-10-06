@@ -59,6 +59,7 @@ pub struct Settings {
     pub tab_width: u8,
     pub confirm_post_now: bool,
     pub reduced_motion: bool,
+    pub layout: crate::ui::layout::Options,
 }
 
 impl Settings {
@@ -74,6 +75,10 @@ impl Settings {
             tab_width: config.diff.tab_width.clamp(1, 16),
             confirm_post_now: config.review.confirm_post_now,
             reduced_motion: config.ui.reduced_motion,
+            layout: crate::ui::layout::Options {
+                sources: config.ui.sources,
+                detail: config.ui.detail,
+            },
         }
     }
 
@@ -90,6 +95,7 @@ impl Settings {
         app.confirm_post_now = self.confirm_post_now;
         app.tab_width = self.tab_width;
         app.reduced_motion = self.reduced_motion;
+        app.layout = self.layout;
         app.state.queue_settings = self.queue.clone();
     }
 }

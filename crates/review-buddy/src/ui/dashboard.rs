@@ -11,7 +11,7 @@ use ratatui::{
 use rb_core::{CiState, Source};
 use rb_theme::Role;
 
-use super::text::{cells, justify};
+use super::text::{cells, elide_middle, justify};
 use super::{chrome::truncate, detail, layout, style, HitMap};
 use crate::app::{
     queue::{self, Item, Queue, Row},
@@ -35,8 +35,11 @@ pub fn ci_look(state: CiState) -> (&'static str, Role) {
 }
 
 pub fn draw(frame: &mut Frame, app: &App, body: Rect, hits: &mut HitMap) {
-    let l = layout::dashboard(body);
-    let mut panes = vec![(l.queue, Pane::Queue), (l.detail, Pane::Detail)];
+    let l = layout::dashboard(body, app.layout);
+    let mut panes = vec![(l.queue, Pane::Queue)];
+    if app.layout.detail_open() {
+        panes.push((l.detail, Pane::Detail));
+    }
     if let Some(strip) = l.strip {
         draw_source_strip(frame, app, strip, hits);
     }
@@ -47,12 +50,32 @@ pub fn draw(frame: &mut Frame, app: &App, body: Rect, hits: &mut HitMap) {
     }
     let inner = pane(frame, app, l.queue, "queue", Pane::Queue);
     draw_queue(frame, app, inner, hits);
-    let title = app
-        .selected_change()
-        .map_or_else(|| "detail".to_string(), |c| c.id.short_ref());
-    pane(frame, app, l.detail, &title, Pane::Detail);
-    detail::draw(frame, app, l.detail, hits);
+    if app.layout.detail_open() {
+        let title = app
+            .selected_change()
+            .map_or_else(|| "detail".to_string(), |c| c.id.short_ref());
+        pane(frame, app, l.detail, &title, Pane::Detail);
+        detail::draw(frame, app, l.detail, hits);
+        affordance(frame, app, l.detail, CLOSE_DETAIL, hits);
+    } else {
+        affordance(frame, app, l.queue, REOPEN_DETAIL, hits);
+    }
     hits.set_panes(panes);
+}
+
+const CLOSE_DETAIL: &str = " ⟩ ";
+const REOPEN_DETAIL: &str = " ⟨ detail ";
+
+/// A clickable marker on a pane's top border, near its right corner, that toggles Detail.
+fn affordance(frame: &mut Frame, app: &App, area: Rect, text: &'static str, hits: &mut HitMap) {
+    let w = cells(text) as u16;
+    if area.width < w + 12 {
+        return;
+    }
+    let rect = Rect::new(area.right() - w - 1, area.y, w, 1);
+    let line = Line::styled(text, style::fg(&app.palette, Role::TextSecondary));
+    frame.render_widget(Paragraph::new(line), rect);
+    hits.push(rect, Action::ToggleDetail);
 }
 
 /// Draws a pane's border and title. The focused pane gets the accent.
@@ -255,7 +278,57 @@ fn source_row(app: &App, source: Option<&Source>) -> (String, String, String, St
     }
 }
 
-const TAB_NAME_MAX: usize = 18;
+/// The fewest cells a tab's name is squeezed to before the strip scrolls instead.
+const TAB_NAME_MIN: usize = 8;
+/// Longest name a tab ever shows.
+const TAB_NAME_MAX: usize = 28;
+
+/// How many cells each tab's name gets in `width` cells. `overhead` is what a tab spends on
+/// everything but its name (number, dot and count) and `gap` sits between tabs. Names that fit
+/// keep their full width; the active tab is kept whole while the others can still have
+/// [`TAB_NAME_MIN`]; what is left is shared by water-filling, so short names give room to long ones.
+pub(super) fn allocate_names(
+    natural: &[usize],
+    overhead: &[usize],
+    gap: usize,
+    width: usize,
+    active: usize,
+) -> Vec<usize> {
+    let n = natural.len();
+    let natural: Vec<usize> = natural.iter().map(|w| (*w).min(TAB_NAME_MAX)).collect();
+    let fixed: usize = overhead.iter().sum::<usize>() + gap * n.saturating_sub(1);
+    let budget = width.saturating_sub(fixed);
+    if natural.iter().sum::<usize>() <= budget {
+        return natural;
+    }
+    let floor = |w: usize| w.min(TAB_NAME_MIN);
+    let mut out: Vec<usize> = natural.iter().map(|w| floor(*w)).collect();
+    let active = active.min(n.saturating_sub(1));
+    let others_floor: usize = (0..n).filter(|i| *i != active).map(|i| out[i]).sum();
+    let mut left = budget.saturating_sub(others_floor + out.get(active).copied().unwrap_or(0));
+    if n > 0 && budget >= others_floor + natural[active] {
+        left += out[active];
+        out[active] = natural[active];
+        left -= out[active];
+    }
+    let mut open: Vec<usize> = (0..n).filter(|i| out[*i] < natural[*i]).collect();
+    while left > 0 && !open.is_empty() {
+        let share = (left / open.len()).max(1);
+        let mut spent = 0;
+        for &i in &open {
+            let add = share.min(natural[i] - out[i]).min(left - spent);
+            out[i] += add;
+            spent += add;
+        }
+        left -= spent;
+        open.retain(|i| out[*i] < natural[*i]);
+        if spent == 0 {
+            break;
+        }
+    }
+    out
+}
+
 const MORE_LEFT: &str = "‹ ";
 const MORE_RIGHT: &str = " ›";
 
@@ -302,12 +375,25 @@ fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap
         return;
     }
     let total = app.state.sources.len() + 1;
-    let tabs: Vec<Vec<Span<'static>>> = (0..total)
-        .map(|n| {
-            let source = n.checked_sub(1).and_then(|i| app.state.sources.get(i));
-            let (name, _, count, dot) = source_row(app, source);
-            let active = app.dashboard.source == n;
-            let base = if active {
+    let active = app.dashboard.source;
+    let rows: Vec<_> = (0..total)
+        .map(|n| source_row(app, n.checked_sub(1).and_then(|i| app.state.sources.get(i))))
+        .collect();
+    let number = |n: usize| format!(" {} ", n + 1);
+    let overhead: Vec<usize> = rows
+        .iter()
+        .enumerate()
+        .map(|(n, (_, _, count, _))| cells(&number(n)) + 2 + 1 + cells(count) + 1)
+        .collect();
+    let natural: Vec<usize> = rows.iter().map(|(name, ..)| cells(name)).collect();
+    let room = usize::from(area.width.saturating_sub(1));
+    let names = allocate_names(&natural, &overhead, 1, room, active);
+    let tabs: Vec<Vec<Span<'static>>> = rows
+        .iter()
+        .enumerate()
+        .map(|(n, (name, _, count, dot))| {
+            let on = active == n;
+            let base = if on {
                 style::fg(palette, Role::TextBright)
                     .patch(style::bg(palette, Role::Selection))
                     .add_modifier(Modifier::BOLD)
@@ -315,15 +401,12 @@ fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap
                 style::fg(palette, Role::TextSecondary)
             };
             vec![
-                Span::styled(
-                    format!(" {} ", n + 1),
-                    style::fg(palette, Role::Accent).patch(base),
-                ),
+                Span::styled(number(n), style::fg(palette, Role::Accent).patch(base)),
                 Span::styled("● ", dot.patch(base)),
-                Span::styled(truncate(&name, TAB_NAME_MAX), base),
+                Span::styled(elide_middle(name, names[n]), base),
                 Span::styled(
                     format!(" {count} "),
-                    if active {
+                    if on {
                         base
                     } else {
                         style::fg(palette, Role::Muted)
@@ -337,8 +420,7 @@ fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap
         .map(|t| t.iter().map(|s| cells(&s.content)).sum())
         .collect();
     let x0 = area.x + 1;
-    let width = usize::from(area.width.saturating_sub(1));
-    let active = app.dashboard.source;
+    let width = room;
     let window = strip_window(&widths, 1, width, active);
     let muted = style::fg(palette, Role::Muted);
     let mut spans = Vec::new();
@@ -637,7 +719,7 @@ fn row_lines(
 
 #[cfg(test)]
 mod tests {
-    use super::strip_window;
+    use super::{allocate_names, strip_window, TAB_NAME_MIN};
 
     #[test]
     fn everything_fits_when_there_is_room() {
@@ -666,5 +748,76 @@ mod tests {
         assert_eq!(strip_window(&widths, 1, 40, 5), 3..6);
         let mid = strip_window(&widths, 1, 40, 3);
         assert!(mid.start > 0 && mid.end < 6);
+    }
+
+    const OVER: usize = 3 + 2 + 1 + 2 + 1;
+
+    fn alloc(natural: &[usize], width: usize, active: usize) -> Vec<usize> {
+        allocate_names(natural, &vec![OVER; natural.len()], 1, width, active)
+    }
+
+    #[test]
+    fn full_names_when_they_fit() {
+        let natural = [3, 10, 24, 9];
+        assert_eq!(alloc(&natural, 200, 0), vec![3, 10, 24, 9]);
+    }
+
+    #[test]
+    fn the_active_tab_keeps_its_whole_name_while_others_share_the_rest() {
+        // All, github.com, git.ontariogovernment.ca, ui-system
+        let natural = [3, 10, 24, 9];
+        let width = 3 + 4 * OVER + 3 + 10 + 24 + 9 - 3;
+        let got = alloc(&natural, width, 2);
+        assert_eq!(got[2], 24);
+        assert!(got[1] >= TAB_NAME_MIN && got[3] >= TAB_NAME_MIN, "{got:?}");
+        assert!(got.iter().sum::<usize>() + 4 * OVER + 3 <= width, "{got:?}");
+    }
+
+    #[test]
+    fn a_squeezed_strip_shares_the_active_tab_too() {
+        let natural = [3, 10, 24, 9];
+        let width = 3 + 4 * OVER + 3 + 10 + 24 + 9 - 14;
+        let got = alloc(&natural, width, 2);
+        assert!(got[2] < 24 && got[2] >= TAB_NAME_MIN, "{got:?}");
+        assert!(got.iter().sum::<usize>() + 4 * OVER + 3 <= width, "{got:?}");
+    }
+
+    #[test]
+    fn long_names_give_way_before_short_ones() {
+        let natural = [3, 10, 24, 24];
+        let width = 3 + 4 * OVER + 3 + 10 + 24 + 24 - 20;
+        let got = alloc(&natural, width, 0);
+        assert_eq!((got[0], got[1]), (3, 10), "{got:?}");
+        assert!(got[2] < 24 && got[3] < 24);
+        assert!(got[2].abs_diff(got[3]) <= 1);
+    }
+
+    #[test]
+    fn many_tabs_fall_back_to_the_floor_and_scroll() {
+        let natural = [24; 8];
+        let got = alloc(&natural, 60, 3);
+        assert!(got.iter().all(|w| *w >= TAB_NAME_MIN), "{got:?}");
+        assert_eq!(got[3], 24.min(got[3].max(TAB_NAME_MIN)));
+    }
+
+    #[test]
+    fn never_exceeds_the_budget_when_the_floor_fits() {
+        for width in 60..200 {
+            let natural = [3, 10, 24, 9, 12];
+            for active in 0..5 {
+                let got = alloc(&natural, width, active);
+                let used: usize = got.iter().sum::<usize>() + 5 * OVER + 4;
+                let floors: usize = natural
+                    .iter()
+                    .map(|w| (*w).min(TAB_NAME_MIN))
+                    .sum::<usize>()
+                    + 5 * OVER
+                    + 4;
+                if floors <= width {
+                    assert!(used <= width, "{width} {active} {got:?}");
+                }
+                assert!(got.iter().zip(natural).all(|(g, n)| g <= &n));
+            }
+        }
     }
 }

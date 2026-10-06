@@ -3,7 +3,7 @@ source: crates/review-buddy/tests/render.rs
 expression: text(&buffer)
 ---
  review buddy  ·  no sources · 0 changes                                                                                                             Liminal HQ
-╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ detail ────────────────────────────────────────────────────────────────────────────╮
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ detail ───────────────────────────────────────────────────────────────────────── ⟩ ╮
 │                        ││                                              ││ Pick a change to read it here.                                                     │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │

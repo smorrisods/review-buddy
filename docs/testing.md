@@ -2,6 +2,10 @@
 
 How the tests are organised, and how to review and accept snapshot changes. Run everything with `cargo test --workspace`.
 
+## Layout option snapshots
+
+`tests/layout_options.rs` renders the dashboard at 160×40, 129×40 and 100×30 for each combination of the `ui.sources` and `ui.detail` options (the default, Sources on top, Detail closed, both) in `liminal-hq`, plus `dusk` for two of them, and checks the toggle keys, the clickable markers and the footer hint. `tests/pty_layout.rs` presses `p` and `S` in the real binary under `--demo`.
+
 ## Frame snapshots
 
 `crates/review-buddy/tests/frames.rs` renders the canonical demo frames headlessly with ratatui's `TestBackend` and pins them with `insta`:

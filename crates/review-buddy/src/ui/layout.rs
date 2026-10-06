@@ -3,13 +3,64 @@
 
 use ratatui::layout::{Constraint, Layout, Rect};
 
+use crate::config::{DetailMode, SourcesLayout};
+
 pub const SOURCES_WIDTH: u16 = 26;
 pub const QUEUE_WIDTH: u16 = 48;
 /// Below this many columns the Sources pane folds into a strip of tabs.
 pub const COLLAPSE_BELOW: u16 = 130;
 
-pub fn is_collapsed(width: u16) -> bool {
-    width < COLLAPSE_BELOW
+/// With the Sources pane replaced by the strip (`ui.sources = "top"`), the Queue takes some of
+/// the freed width once the terminal is wide enough to have shown the pane.
+pub const QUEUE_WIDTH_TOP: u16 = 60;
+
+/// The dashboard's layout choices: `ui.sources` and `ui.detail`, as changed during a session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Options {
+    pub sources: SourcesLayout,
+    pub detail: DetailMode,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            sources: SourcesLayout::Auto,
+            detail: DetailMode::Auto,
+        }
+    }
+}
+
+impl Options {
+    /// Whether Sources is the strip of tabs rather than a pane.
+    pub fn collapsed(self, width: u16) -> bool {
+        match self.sources {
+            SourcesLayout::Auto => width < COLLAPSE_BELOW,
+            SourcesLayout::Left => false,
+            SourcesLayout::Top => true,
+        }
+    }
+
+    pub fn detail_open(self) -> bool {
+        self.detail != DetailMode::Closed
+    }
+
+    /// `p`: closes the Detail pane, or reopens it.
+    pub fn toggled_detail(self) -> DetailMode {
+        if self.detail_open() {
+            DetailMode::Closed
+        } else {
+            DetailMode::Open
+        }
+    }
+
+    /// `S`: auto, then left, then top.
+    pub fn next_sources(self) -> SourcesLayout {
+        match self.sources {
+            SourcesLayout::Auto => SourcesLayout::Left,
+            SourcesLayout::Left => SourcesLayout::Top,
+            SourcesLayout::Top => SourcesLayout::Auto,
+        }
+    }
 }
 
 /// The area between the top bar and the footer.
@@ -26,8 +77,8 @@ pub struct DashboardLayout {
     pub detail: Rect,
 }
 
-pub fn dashboard(body: Rect) -> DashboardLayout {
-    let collapsed = is_collapsed(body.width);
+pub fn dashboard(body: Rect, options: Options) -> DashboardLayout {
+    let collapsed = options.collapsed(body.width);
     let (strip, rest) = if collapsed {
         let [strip, rest] =
             Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(body);
@@ -35,28 +86,32 @@ pub fn dashboard(body: Rect) -> DashboardLayout {
     } else {
         (None, body)
     };
-    if collapsed {
-        let [queue, detail] =
-            Layout::horizontal([Constraint::Length(QUEUE_WIDTH), Constraint::Min(0)]).areas(rest);
-        DashboardLayout {
-            strip,
-            sources: None,
-            queue,
-            detail,
-        }
+    let (sources, rest) = if collapsed {
+        (None, rest)
     } else {
-        let [sources, queue, detail] = Layout::horizontal([
-            Constraint::Length(SOURCES_WIDTH),
-            Constraint::Length(QUEUE_WIDTH),
-            Constraint::Min(0),
-        ])
-        .areas(rest);
-        DashboardLayout {
-            strip,
-            sources: Some(sources),
-            queue,
-            detail,
-        }
+        let [sources, rest] =
+            Layout::horizontal([Constraint::Length(SOURCES_WIDTH), Constraint::Min(0)]).areas(rest);
+        (Some(sources), rest)
+    };
+    let wide_top = options.sources == SourcesLayout::Top && body.width >= COLLAPSE_BELOW;
+    let (queue, detail) = if !options.detail_open() {
+        let detail = Rect::new(rest.right(), rest.y, 0, rest.height);
+        (rest, detail)
+    } else {
+        let width = if wide_top {
+            QUEUE_WIDTH_TOP
+        } else {
+            QUEUE_WIDTH
+        };
+        let [queue, detail] =
+            Layout::horizontal([Constraint::Length(width), Constraint::Min(0)]).areas(rest);
+        (queue, detail)
+    };
+    DashboardLayout {
+        strip,
+        sources,
+        queue,
+        detail,
     }
 }
 
@@ -152,7 +207,7 @@ mod tests {
 
     #[test]
     fn wide_layout_has_three_panes_that_fill_the_width() {
-        let l = dashboard(body((160, 40)));
+        let l = dashboard(body((160, 40)), Options::default());
         assert_eq!(l.strip, None);
         let s = l.sources.unwrap();
         assert_eq!((s.width, l.queue.width, l.detail.width), (26, 48, 86));
@@ -163,11 +218,11 @@ mod tests {
 
     #[test]
     fn collapse_starts_below_130() {
-        assert!(!is_collapsed(130));
-        assert!(is_collapsed(129));
-        let l = dashboard(body((130, 40)));
+        assert!(!Options::default().collapsed(130));
+        assert!(Options::default().collapsed(129));
+        let l = dashboard(body((130, 40)), Options::default());
         assert!(l.sources.is_some());
-        let l = dashboard(body((129, 40)));
+        let l = dashboard(body((129, 40)), Options::default());
         assert!(l.sources.is_none());
         let strip = l.strip.unwrap();
         assert_eq!((strip.y, strip.height), (1, 1));
@@ -180,5 +235,72 @@ mod tests {
         assert_eq!(inner(Rect::new(2, 3, 10, 8)), Rect::new(3, 4, 8, 6));
         assert_eq!(inner(Rect::new(0, 0, 1, 1)).width, 0);
         assert_eq!(detail_content(Rect::new(0, 0, 20, 10)).width, 16);
+    }
+
+    fn opts(sources: SourcesLayout, detail: DetailMode) -> Options {
+        Options { sources, detail }
+    }
+
+    fn fills(l: &DashboardLayout, width: u16) {
+        let left = l.sources.map_or(0, |s| s.width);
+        assert_eq!(left + l.queue.width + l.detail.width, width);
+    }
+
+    #[test]
+    fn left_keeps_the_pane_even_when_narrow() {
+        let l = dashboard(body((110, 40)), opts(SourcesLayout::Left, DetailMode::Auto));
+        assert!(l.strip.is_none() && l.sources.is_some());
+        fills(&l, 110);
+    }
+
+    #[test]
+    fn top_forces_the_strip_and_hands_width_to_the_queue_when_wide() {
+        let o = opts(SourcesLayout::Top, DetailMode::Auto);
+        let l = dashboard(body((160, 40)), o);
+        assert!(l.strip.is_some() && l.sources.is_none());
+        assert_eq!((l.queue.width, l.detail.width), (QUEUE_WIDTH_TOP, 100));
+        let l = dashboard(body((129, 40)), o);
+        assert_eq!(l.queue.width, QUEUE_WIDTH);
+        fills(&l, 129);
+    }
+
+    #[test]
+    fn closed_detail_gives_the_queue_the_rest() {
+        for width in [100, 129, 130, 160] {
+            let l = dashboard(
+                body((width, 40)),
+                opts(SourcesLayout::Auto, DetailMode::Closed),
+            );
+            assert_eq!(l.detail.width, 0);
+            fills(&l, width);
+        }
+        let l = dashboard(
+            body((160, 40)),
+            opts(SourcesLayout::Top, DetailMode::Closed),
+        );
+        assert_eq!(l.queue.width, 160);
+        assert_eq!(l.queue.y, 2);
+        let l = dashboard(
+            body((160, 40)),
+            opts(SourcesLayout::Auto, DetailMode::Closed),
+        );
+        assert_eq!(l.queue.width, 134);
+    }
+
+    #[test]
+    fn open_and_auto_detail_are_alike_and_toggles_cycle() {
+        let a = dashboard(body((160, 40)), opts(SourcesLayout::Auto, DetailMode::Open));
+        assert_eq!(a, dashboard(body((160, 40)), Options::default()));
+        let o = Options::default();
+        assert_eq!(o.toggled_detail(), DetailMode::Closed);
+        assert_eq!(
+            opts(SourcesLayout::Auto, DetailMode::Closed).toggled_detail(),
+            DetailMode::Open
+        );
+        assert_eq!(o.next_sources(), SourcesLayout::Left);
+        assert_eq!(
+            opts(SourcesLayout::Top, DetailMode::Auto).next_sources(),
+            SourcesLayout::Auto
+        );
     }
 }

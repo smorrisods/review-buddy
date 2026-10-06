@@ -22,6 +22,8 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `⏎` on a `+N more` row | Show the rest of that bucket, past `triage.bucket_limit`. `⏎` again on the `show fewer` row collapses it |
 | `,` | Open Settings → Sources (see [Settings](#settings)) |
 | `s` | Open the Show filters control: `reviewing`, `assigned`, `authored`, `drafts` and `noise`. Changes apply to the queue at once and last for the session |
+| `p` | Close or reopen the Detail pane (`ui.detail`). Closed, the Queue takes the full width and the footer adds `p show detail`. Selection and `⏎` are unchanged. Lasts for the session |
+| `S` | Cycle where the Sources sit: `auto` (pane at 130 columns or more, tabs below), `left` (always the pane) and `top` (always the tab strip). Lasts for the session (`ui.sources`) |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
 | `T` | Cycle theme |
@@ -129,7 +131,8 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 |---|---|
 | Top bar theme name | Cycles the theme (`T`) |
 | Footer hints | Run the hint's action |
-| Sources rows, or the source tabs when Sources is collapsed | Show that source. When the tabs overflow they scroll to keep the active one in view, and `‹` / `›` step to the previous or next source |
+| Sources rows, or the source tabs when Sources is collapsed | Show that source. Tab names are shortened to share the width (the active one stays whole while it can, long names lose their middle, counts always show). When the tabs still overflow they scroll to keep the active one in view, and `‹` / `›` step to the previous or next source |
+| `⟩` on the Detail pane's top border / `⟨ detail` on the Queue's | Closes / reopens the Detail pane (`p`) |
 | Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff. Clicking a `+N more` row expands or collapses its bucket |
 | `N hidden by your Show filters` (the queue's end note) | Opens the Show filters control |
 | Show filters (the checkboxes under the sources, or the control) | Tick or clear a filter. A click outside the control closes it |

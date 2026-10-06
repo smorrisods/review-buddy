@@ -168,12 +168,16 @@ impl App {
 }
 
 /// The panes focus visits, in order.
-pub fn focus_order(width: u16) -> Vec<Pane> {
-    if layout::is_collapsed(width) {
-        vec![Pane::Queue, Pane::Detail]
-    } else {
-        vec![Pane::Sources, Pane::Queue, Pane::Detail]
+pub fn focus_order(width: u16, options: layout::Options) -> Vec<Pane> {
+    let mut order = Vec::new();
+    if !options.collapsed(width) {
+        order.push(Pane::Sources);
     }
+    order.push(Pane::Queue);
+    if options.detail_open() {
+        order.push(Pane::Detail);
+    }
+    order
 }
 
 fn selection_of(app: &App, item: Item) -> Option<Selected> {
@@ -189,7 +193,7 @@ fn selection_of(app: &App, item: Item) -> Option<Selected> {
 }
 
 pub fn queue_view_height(app: &App) -> u16 {
-    let l = layout::dashboard(layout::body(app.size));
+    let l = layout::dashboard(layout::body(app.size), app.layout);
     layout::inner(l.queue).height
 }
 
@@ -221,6 +225,8 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
             super::show::open(app);
             Vec::new()
         }
+        KeyCode::Char('S') => cycle_sources(app),
+        KeyCode::Char('p') => toggle_detail(app),
         KeyCode::Char('a') if has_change => chip_pressed(app, Chip::Approve),
         KeyCode::Char('c') if has_change => chip_pressed(app, Chip::Comment),
         KeyCode::Char('x') if has_change => chip_pressed(app, Chip::RequestChanges),
@@ -303,7 +309,7 @@ pub fn on_scroll(app: &mut App, column: u16, row: u16, down: bool) {
 }
 
 pub fn on_resize(app: &mut App) {
-    if !focus_order(app.size.0).contains(&app.dashboard.focus) {
+    if !focus_order(app.size.0, app.layout).contains(&app.dashboard.focus) {
         app.dashboard.focus = Pane::Queue;
     }
     clamp_scrolls(app);
@@ -356,8 +362,30 @@ fn select_source(app: &mut App, n: usize) {
     reconcile(app);
 }
 
+pub fn toggle_detail(app: &mut App) -> Vec<Cmd> {
+    app.layout.detail = app.layout.toggled_detail();
+    on_resize(app);
+    ensure_visible(app);
+    app.mark_dirty();
+    let text = if app.layout.detail_open() {
+        "Detail pane open."
+    } else {
+        "Detail pane closed. Press p to bring it back."
+    };
+    super::update::set_status(app, Notice::new(NoticeKind::Info, text))
+}
+
+pub fn cycle_sources(app: &mut App) -> Vec<Cmd> {
+    app.layout.sources = app.layout.next_sources();
+    on_resize(app);
+    ensure_visible(app);
+    app.mark_dirty();
+    let text = format!("Sources: {}", app.layout.sources.as_str());
+    super::update::set_status(app, Notice::new(NoticeKind::Info, text))
+}
+
 fn cycle_focus(app: &mut App, step: isize) -> Vec<Cmd> {
-    let order = focus_order(app.size.0);
+    let order = focus_order(app.size.0, app.layout);
     let at = order
         .iter()
         .position(|p| *p == app.dashboard.focus)
