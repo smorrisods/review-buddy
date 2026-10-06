@@ -131,6 +131,48 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
     }
 }
 
+/// The footer for the first-run step on screen: the keys differ by step, because `←`/`→` change
+/// the theme on the look step, belong to the text cursor in the token field, and there is
+/// nothing to go back to on the welcome step.
+pub fn first_run_hints(flow: &crate::setup::Flow) -> Vec<Hint> {
+    use crate::setup::Step;
+    let hint = |key, label| Hint {
+        key,
+        label,
+        action: None,
+    };
+    if flow.token_open {
+        return vec![
+            hint("⏎", "continue"),
+            hint("tab", "buttons"),
+            hint("esc", "skip for now"),
+        ];
+    }
+    match flow.step {
+        Step::Welcome => vec![hint("⏎", "continue"), hint("esc", "skip for now")],
+        Step::Look => vec![
+            hint("⏎", "continue"),
+            hint("← →", "theme"),
+            hint("tab", "buttons"),
+            hint("⌫", "back"),
+            hint("esc", "skip for now"),
+        ],
+        Step::Connect | Step::Scope | Step::Jax => vec![
+            hint("⏎", "continue"),
+            hint("← →", "buttons"),
+            hint("⌫", "back"),
+            hint("space", "pick"),
+            hint("esc", "skip for now"),
+        ],
+        Step::Summary | Step::Done => vec![
+            hint("⏎", "continue"),
+            hint("← →", "buttons"),
+            hint("⌫", "back"),
+            hint("esc", "skip for now"),
+        ],
+    }
+}
+
 /// The footer while a composer is open.
 pub fn composer_hints() -> Vec<Hint> {
     let hint = |key, label| Hint {
@@ -243,6 +285,12 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
         .and_then(super::settings::modal_hints)
     {
         hints
+    } else if let Some(flow) = app
+        .setup
+        .as_ref()
+        .filter(|_| app.screen == Screen::FirstRun)
+    {
+        first_run_hints(flow)
     } else {
         hints_for(app.screen)
     };
@@ -368,6 +416,28 @@ pub fn truncate(text: &str, max: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn first_run_hints_follow_the_step() {
+        use crate::setup::{Flow, Step};
+        let mut flow = Flow::new("/c/config.toml".into(), false, "liminal-hq", true);
+        let keys = |f: &Flow| {
+            first_run_hints(f)
+                .iter()
+                .map(|h| format!("{} {}", h.key, h.label))
+                .collect::<Vec<_>>()
+        };
+        flow.step = Step::Welcome;
+        assert!(!keys(&flow).iter().any(|k| k.contains("back")));
+        flow.step = Step::Look;
+        assert!(keys(&flow).contains(&"← → theme".to_string()));
+        assert!(keys(&flow).contains(&"tab buttons".to_string()));
+        assert!(!keys(&flow).iter().any(|k| k == "← → buttons"));
+        flow.step = Step::Scope;
+        assert!(keys(&flow).contains(&"← → buttons".to_string()));
+        flow.token_open = true;
+        assert!(!keys(&flow).iter().any(|k| k.starts_with('⌫')));
+    }
 
     #[test]
     fn truncate_cuts_on_cell_width() {
