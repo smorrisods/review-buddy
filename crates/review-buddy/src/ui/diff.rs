@@ -27,6 +27,7 @@ pub fn draw(frame: &mut Frame, app: &App, body: ratatui::layout::Rect, hits: &mu
     let l = layout::diff_screen(body);
     draw_files(frame, app, state, &l, hits);
     draw_diff(frame, app, state, &l, hits);
+    super::composer::draw(frame, app, state, &l, body);
 }
 
 fn pane_block(app: &App, title: String, focused: bool) -> Block<'static> {

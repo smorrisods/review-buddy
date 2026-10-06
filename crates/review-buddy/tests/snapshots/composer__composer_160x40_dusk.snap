@@ -1,6 +1,6 @@
 ---
-source: crates/review-buddy/tests/diff.rs
-expression: text(&render(&mut a))
+source: crates/review-buddy/tests/composer.rs
+expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
@@ -35,10 +35,10 @@ expression: text(&render(&mut a))
 │                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │
 │                                ││         48 +         if self.items.is_empty() {                                                                            │
 │ Your review · pending ─────────││         49 +             return;                                                                                           │
-│1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
-│0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
-│Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
-│                                ││              │ Fewer branches this way:                                                                                   ││
-│                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 10 ──────────────────────────────────────────────────────────────────────────────────────────────╮│
+│0 of 3 files viewed             │││ This could return early.                                                                                                 ││
+│Your verdict: not started       │││ Worth a guard?                                                                                                           ││
+│                                │││                                                                                                                          ││
+│                                ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────────────────────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
+ ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard

@@ -3,32 +3,32 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
-╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
-│› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
-│  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
-│  · src/ui/mod.rs    ╭ Keys · Diff ─────────────────────────────────────────╮                     │
-│                     │Move                                                  │                     │
-│                     │  j/k        move                                     │                     │
-│                     │  g/G        first / last line                        │                     │
+╭ files 3 ────────────╭ Keys · Diff ─────────────────────────────────────────╮─────────────────────╮
+│› · src/ui/menus.rs  │Move                                                  │app::Action;         │
+│  · src/ui/menubar.rs│  j/k        move                                     │                     │
+│  · src/ui/mod.rs    │  g/G        first / last line                        │                     │
 │                     │  pgup/pgdn  page up / down                           │                     │
 │                     │  n/p        hunk                                     │                     │
 │                     │  ]/[        file                                     │                     │
-│                     │  tab        pane                                     │uItem>) -> Self {    │
-│                     │                                                      │{                    │
-│                     │Change                                                │e {                  │
-│                     │  o          open                                     │                     │
-│                     │  y          copy                                     │                     │
+│                     │  tab        pane                                     │                     │
 │                     │                                                      │                     │
-│                     │General                                               │elf) {               │
-│                     │  esc        back                                     │y() {                │
-│                     │  q          back to the queue                        │                     │
-│                     │  ?          help                                     │                     │
-│                     │  T          theme                                    │.selected + 1) % sel…│
-│ Your review · pendin│                                                      │────────────────────╮│
-│1 suggestion · 0 comm│esc or ? to close                                     │                    ││
-│0 of 3 files viewed  ╰──────────────────────────────────────────────────────╯he first item? Most ││
-│Your verdict: not started       ││              │ menus I use stop at the end.                   ││
-│                                ││              │ ada · 20h                                      ││
-│                                ││              │ I went with wrapping so a held key never gets  ││
+│                     │Review                                                │                     │
+│                     │  c          comment                                  │uItem>) -> Self {    │
+│                     │  r          reply to the thread                      │{                    │
+│                     │  a          approve                                  │e {                  │
+│                     │  x          request changes                          │                     │
+│                     │                                                      │                     │
+│                     │Change                                                │                     │
+│                     │  o          open                                     │elf) {               │
+│                     │  y          copy                                     │y() {                │
+│                     │                                                      │                     │
+│                     │General                                               │                     │
+│                     │  esc        back                                     │.selected + 1) % sel…│
+│ Your review · pendin│  q          back to the queue                        │────────────────────╮│
+│1 suggestion · 0 comm│  ?          help                                     │                    ││
+│0 of 3 files viewed  │  T          theme                                    │he first item? Most ││
+│Your verdict: not sta│                                                      │.                   ││
+│                     │esc or ? to close                                     │                    ││
+│                     ╰──────────────────────────────────────────────────────╯eld key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

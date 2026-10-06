@@ -4,14 +4,19 @@
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
-use rb_core::{ChangeId, ChangeSummary, Check, Source, SourceId, Thread, Timestamp};
+use rb_core::{
+    ChangeId, ChangeSummary, Check, Comment, ReviewDraft, Source, SourceId, Thread, ThreadId,
+    Timestamp, Verdict,
+};
 use rb_theme::{ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID};
 
 use crate::ui::HitMap;
 
+pub mod composer;
 mod dashboard;
 mod diff;
 pub mod diffview;
+pub mod editor;
 pub mod failure;
 pub mod links;
 mod live;
@@ -127,6 +132,20 @@ pub enum Msg {
         id: ChangeId,
         result: Result<Box<DiffData>, String>,
     },
+    /// The answer to a [`Cmd::SubmitReview`]. `demo` marks results that only changed memory.
+    ReviewSubmitted {
+        id: ChangeId,
+        verdict: Verdict,
+        result: Result<(), String>,
+        demo: bool,
+    },
+    /// The answer to a [`Cmd::Reply`].
+    ReplyPosted {
+        id: ChangeId,
+        thread: ThreadId,
+        result: Result<Comment, String>,
+        demo: bool,
+    },
 }
 
 /// Effects, run by the runtime. They never run inside `update`.
@@ -140,6 +159,18 @@ pub enum Cmd {
     LoadInfo(ChangeId),
     /// Fetch the files, threads and your pending comments for one change.
     LoadDiff(ChangeId),
+    /// Submit `draft` to the forge with `verdict`.
+    SubmitReview {
+        id: ChangeId,
+        draft: ReviewDraft,
+        verdict: Verdict,
+    },
+    /// Reply on an existing thread.
+    Reply {
+        id: ChangeId,
+        thread: ThreadId,
+        body: String,
+    },
     /// Open a web address in the browser.
     OpenUrl(String),
     /// Put text on the clipboard.
@@ -225,6 +256,8 @@ pub struct App {
     pub diff: Option<DiffState>,
     /// The help overlay is showing.
     pub help: bool,
+    /// Preview before posting a single comment now (`review.confirm_post_now`).
+    pub confirm_post_now: bool,
     quit_armed: bool,
     pub(crate) syntax: Syntax,
     pub(crate) ticks: u64,
@@ -255,6 +288,7 @@ impl App {
             dashboard: Dashboard::default(),
             diff: None,
             help: false,
+            confirm_post_now: true,
             quit_armed: false,
             syntax: Syntax::default(),
             ticks: 0,
@@ -291,10 +325,12 @@ impl App {
 
     /// Whether quitting would lose review text that hasn't been sent.
     pub fn has_unsent_drafts(&self) -> bool {
-        self.diff
-            .as_ref()
-            .and_then(|s| s.data.as_ref())
-            .is_some_and(|d| !d.draft.is_empty())
+        self.diff.as_ref().is_some_and(|s| {
+            s.data.as_ref().is_some_and(|d| !d.draft.is_empty())
+                || s.composer
+                    .as_ref()
+                    .is_some_and(composer::Composer::is_dirty)
+        })
     }
 
     fn cycle_theme(&mut self) {

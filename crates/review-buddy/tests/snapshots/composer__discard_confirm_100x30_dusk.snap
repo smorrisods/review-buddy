@@ -1,8 +1,8 @@
 ---
-source: crates/review-buddy/tests/diff.rs
-expression: text(&render(&mut a))
+source: crates/review-buddy/tests/composer.rs
+expression: text(& render(& mut a))
 ---
- review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+ review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
@@ -14,21 +14,21 @@ expression: text(&render(&mut a))
 │                                ││    14   16                                                     │
 │                                ││    15   17   impl Menu {                                       │
 │                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {    │
-│                                ││              @@ -34,6 +36,24 @@ impl Menu {                    │
-│                                ││    34   36       pub fn len(&self) -> usize {                  │
-│                                ││    35   37           self.items.len()                          │
-│                                ││    36   38       }                                             │
-│                                ││         39 +                                                   │
+│                 ╭ Discard this comment? ───────────────────────────────────────╮                 │
+│                 │ Your unsent text will be lost.                               │                 │
+│                 │                                                              │                 │
+│                 │ › No, keep editing ‹    Discard     ⏎ choose · esc cancel    │                 │
+│                 ╰──────────────────────────────────────────────────────────────╯                 │
 │                                ││         40 +     pub fn select_next(&mut self) {               │
 │                                ││         41 +         if self.items.is_empty() {                │
 │                                ││         42 +             return;                               │
 │                                ││         43 +         }                                         │
 │                                ││         44 +         self.selected = (self.selected + 1) % sel…│
 │ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
-│1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
-│0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
-│Your verdict: not started       ││              │ menus I use stop at the end.                   ││
-│                                ││              │ ada · 20h                                      ││
-│                                ││              │ I went with wrapping so a held key never gets  ││
+│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
+│0 of 3 files viewed             │││ This could return early.                                     ││
+│Your verdict: not started       │││ Worth a guard?                                               ││
+│                                │││                                                              ││
+│                                ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard

@@ -3,8 +3,8 @@ use crossterm::event::{
 };
 
 use super::{
-    dashboard, diff, links, live, Action, App, AppState, Cmd, Entry, Msg, Notice, NoticeKind,
-    Screen, Snapshot, MAX_TOASTS, NOTICE_TTL,
+    composer, dashboard, diff, links, live, Action, App, AppState, Cmd, Entry, Msg, Notice,
+    NoticeKind, Screen, Snapshot, MAX_TOASTS, NOTICE_TTL,
 };
 
 /// Applies one message and returns the effects to run. Does no I/O.
@@ -17,6 +17,7 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
 fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
     match msg {
         Msg::Key(key) => on_key(app, key),
+        Msg::Mouse(_) if app.diff.as_ref().is_some_and(|s| s.has_overlay()) => Vec::new(),
         Msg::Mouse(mouse) if app.help => {
             if matches!(mouse.kind, MouseEventKind::Down(_)) {
                 close_help(app);
@@ -61,7 +62,7 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             app.focused = false;
             Vec::new()
         }
-        Msg::Paste(_) => Vec::new(),
+        Msg::Paste(text) => composer::on_paste(app, &text),
         Msg::Notify(notice) => push_toast(app, notice),
         Msg::Status(notice) => set_status(app, notice),
         Msg::StatusExpired(id) => {
@@ -93,6 +94,18 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             diff::on_loaded(app, &id, result);
             Vec::new()
         }
+        Msg::ReviewSubmitted {
+            id,
+            verdict,
+            result,
+            demo,
+        } => composer::on_submitted(app, &id, verdict, result, demo),
+        Msg::ReplyPosted {
+            id,
+            thread,
+            result,
+            demo,
+        } => composer::on_replied(app, &id, &thread, result, demo),
     }
 }
 
@@ -147,6 +160,10 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
             KeyCode::Char('c') if ctrl => run(app, Action::Quit),
             _ => Vec::new(),
         };
+    }
+    let overlay = app.screen == Screen::Diff && app.diff.as_ref().is_some_and(|s| s.has_overlay());
+    if overlay && !quits {
+        return composer::on_key(app, key);
     }
     match key.code {
         _ if quits => run(app, Action::Quit),

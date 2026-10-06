@@ -112,6 +112,18 @@ pub fn diff_screen(body: Rect) -> DiffLayout {
     }
 }
 
+/// Text rows the composer shows before it scrolls.
+pub const COMPOSER_MIN_ROWS: usize = 3;
+pub const COMPOSER_MAX_ROWS: usize = 8;
+
+/// The composer's bottom-docked rectangle over the diff's rows, border included.
+pub fn composer_dock(code: Rect, lines: usize) -> Rect {
+    let rows = lines.clamp(COMPOSER_MIN_ROWS, COMPOSER_MAX_ROWS) as u16;
+    let height = (rows + 2).min(code.height.saturating_sub(3)).max(3);
+    let height = height.min(code.height);
+    Rect::new(code.x, code.bottom() - height, code.width, height)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -125,6 +137,17 @@ mod tests {
         assert_eq!(l.code.height, 36);
         assert_eq!(l.review.height, REVIEW_HEIGHT);
         assert_eq!(l.file_list.height + l.review.height, 36);
+    }
+
+    #[test]
+    fn the_composer_docks_at_the_bottom_and_grows_with_its_text() {
+        let code = Rect::new(35, 2, 124, 36);
+        let one = composer_dock(code, 1);
+        assert_eq!((one.x, one.width, one.bottom()), (35, 124, 38));
+        assert_eq!(one.height, 5);
+        assert_eq!(composer_dock(code, 6).height, 8);
+        assert_eq!(composer_dock(code, 50).height, 10, "capped");
+        assert!(composer_dock(Rect::new(0, 0, 40, 6), 8).height <= 6);
     }
 
     #[test]

@@ -31,4 +31,4 @@ expression: shown
 │                                ││                                                                │
 │                                ││                                                                │
 ╰────────────────────────────────╯╰────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

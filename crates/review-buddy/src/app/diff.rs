@@ -5,11 +5,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rb_core::{ChangeId, FilePatch, ReviewDraft, Thread, Timestamp};
+use rb_core::{Capabilities, ChangeId, FilePatch, ReviewDraft, Thread, Timestamp};
 use rb_diff::{
     DiffBody, FileDiff, HighlightedFile, Highlighter, Hunk, HunkHeader, LineId, ParsedPatch,
 };
 
+use super::composer::{self, Composer, Confirm};
 use super::diffview::{self, Inputs, Rows, TAB_WIDTH};
 use super::{Action, App, Cmd, Screen};
 use crate::ui::layout;
@@ -33,6 +34,8 @@ pub struct DiffData {
     pub threads: Vec<Thread>,
     /// Your pending, unsubmitted comments.
     pub draft: ReviewDraft,
+    /// What the forge behind this change can do.
+    pub caps: Capabilities,
 }
 
 impl DiffData {
@@ -49,7 +52,13 @@ impl DiffData {
             files,
             threads,
             draft,
+            caps: Capabilities::all(),
         }
+    }
+
+    pub fn with_capabilities(mut self, caps: Capabilities) -> Self {
+        self.caps = caps;
+        self
     }
 }
 
@@ -131,6 +140,12 @@ pub struct DiffState {
     pub file: usize,
     pub files_scroll: usize,
     pub view: FileView,
+    /// The docked composer, while one is open.
+    pub composer: Option<Composer>,
+    /// A preview or discard confirmation, shown over everything else.
+    pub confirm: Option<Confirm>,
+    /// A write is on its way to the forge and hasn't answered yet.
+    pub submitting: bool,
 }
 
 impl DiffState {
@@ -143,7 +158,15 @@ impl DiffState {
             file: 0,
             files_scroll: 0,
             view: FileView::default(),
+            composer: None,
+            confirm: None,
+            submitting: false,
         }
+    }
+
+    /// Whether a composer or confirmation holds the keyboard.
+    pub fn has_overlay(&self) -> bool {
+        self.composer.is_some() || self.confirm.is_some()
     }
 
     pub fn files(&self) -> &[DiffFile] {
@@ -200,13 +223,13 @@ pub fn on_loaded(app: &mut App, id: &ChangeId, result: Result<Box<DiffData>, Str
     app.mark_dirty();
 }
 
-fn viewport(app: &App) -> layout::DiffLayout {
+pub(super) fn viewport(app: &App) -> layout::DiffLayout {
     layout::diff_screen(layout::body(app.size))
 }
 
 /// Rebuilds the rows and highlight for the current file, keeping the cursor on `keep` if it
 /// still exists.
-fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
+pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
     let code = viewport(app).code;
     let now = app.state.now.unwrap_or(Timestamp(0));
     let App {
@@ -355,7 +378,7 @@ pub fn refresh_theme(app: &mut App) {
     }
 }
 
-fn reveal_cursor(state: &mut DiffState, height: usize) {
+pub(super) fn reveal_cursor(state: &mut DiffState, height: usize) {
     let view = &mut state.view;
     let (top, bottom) = view.rows.reveal_span(view.cursor);
     view.scroll = diffview::reveal(view.scroll, top, bottom, height, view.rows.len());
@@ -451,6 +474,10 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char('p' | '{') => move_cursor(app, |rows, c| rows.prev_hunk(c)),
         KeyCode::Char(']') => step_file(app, true),
         KeyCode::Char('[') => step_file(app, false),
+        KeyCode::Char('c') => return composer::open_comment(app),
+        KeyCode::Char('r') => return composer::open_reply(app),
+        KeyCode::Char('a') => return composer::open_approve(app),
+        KeyCode::Char('x') => return composer::request_changes(app),
         _ => return Vec::new(),
     }
     settle(app);

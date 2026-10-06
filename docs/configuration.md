@@ -69,6 +69,7 @@ The app edits the config with `toml_edit`, so your comments and ordering are kep
 |---|---|---|
 | `merge_method` | `"squash"` | `merge` · `squash` · `rebase`; falls back to the repo default if not allowed |
 | `confirm_merge` | `true` | Can't be turned off for protected branches |
+| `confirm_post_now` | `true` | Preview a comment or reply before `⌃⏎` posts it on its own. Approving always shows a preview |
 | `delete_branch_on_merge` | `true` | |
 | `mark_viewed_on_open` | `true` | Marks a file viewed on GitHub; local-only on GitLab |
 | `request_changes_needs_summary` | `true` | Opens the composer before submitting |

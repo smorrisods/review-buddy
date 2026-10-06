@@ -1,6 +1,6 @@
 ---
-source: crates/review-buddy/tests/diff.rs
-expression: text(&render(&mut a))
+source: crates/review-buddy/tests/composer.rs
+expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
@@ -18,14 +18,14 @@ expression: text(&render(&mut a))
 │                                ││    34   36       pub fn len(&self) -> usize {                                                                              │
 │                                ││    35   37           self.items.len()                                                                                      │
 │                                ││    36   38       }                                                                                                         │
-│                                ││         39 +                                                                                                               │
-│                                ││         40 +     pub fn select_next(&mut self) {                                                                           │
-│                                ││         41 +         if self.items.is_empty() {                                                                            │
-│                                ││         42 +             return;                                                                                           │
-│                                ││         43 +         }                                                                                                     │
-│                                ││         44 +         self.selected = (self.selected + 1) % self.items.len();                                               │
-│                                ││              ╭─ thread · line 44 ─────────────────────────────────────────────────────────────────────────────────────────╮│
-│                                ││              │ jo · 1d                                                                                                    ││
+│                                ││         39 +╭ Approve this change? ────────────────────────────────────────╮                                               │
+│                                ││         40 +│ Approve with 1 comment                                       │                                               │
+│                                ││         41 +│ Verdict: approve                                             │                                               │
+│                                ││         42 +│                                                              │                                               │
+│                                ││         43 +│ • menus.rs line 51 · Fewer branches this way:                │                                               │
+│                                ││         44 +│                                                              │                                               │
+│                                ││             │   Cancel    › Approve ‹   ⏎ choose · esc cancel              │──────────────────────────────────────────────╮│
+│                                ││             ╰──────────────────────────────────────────────────────────────╯                                              ││
 │                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
 │                                ││              │ ada · 20h                                                                                                  ││
 │                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
