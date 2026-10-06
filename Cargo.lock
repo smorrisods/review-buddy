@@ -2843,7 +2843,16 @@ dependencies = [
 name = "rb-gitlab"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
  "rb-core",
+ "rb-platform",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "url",
+ "wiremock",
 ]
 
 [[package]]

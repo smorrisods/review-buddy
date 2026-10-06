@@ -4,7 +4,7 @@ Both forges sit behind one `Provider` trait (see `architecture.md`). This page l
 
 ## Status (v0.1.0)
 
-`rb-github` implements listing, change detail, files, threads, checks and review writes (comment-only, approve, and replies), behind the `Provider` trait. Merge and re-run failed jobs report `Unsupported` until v0.3, and checkout isn't built yet. `rb-gitlab` is a placeholder crate, so every GitLab section on this page is the **v0.2 plan**: a GitLab source is listed in the interface and says "GitLab arrives in v0.2". Request changes, suggestions (`⌃S`), range comments, viewed-file marks and the `GitLab` columns throughout describe later milestones. Token expiry warnings in the footer and Settings → Sources, and Enterprise API-version checks beyond `doctor`, are planned too.
+`rb-github` implements listing, change detail, files, threads, checks and review writes (comment-only, approve, and replies), behind the `Provider` trait. Merge and re-run failed jobs report `Unsupported` until v0.3, and checkout isn't built yet. `rb-gitlab` so far implements sign-in only (token resolution, `whoami`, token test, rate-limit tracking); listing, diffs, threads and review writes are the **v0.2 plan**, so a GitLab source signs in and shows its token details in `auth status` and `doctor`, but loads no merge requests yet. Request changes, suggestions (`⌃S`), range comments, viewed-file marks and the `GitLab` columns throughout describe later milestones. Token expiry warnings in the footer and Settings → Sources, and Enterprise API-version checks beyond `doctor`, are planned too.
 
 ## Authentication
 
@@ -14,6 +14,8 @@ Both forges sit behind one `Provider` trait (see `architecture.md`). This page l
 | Token | Fine-grained or classic PAT. Scopes: `repo`, `read:org` (plus `workflow` for re-running CI) | PAT or group/project access token. Scopes: `api`, `read_user` |
 | Storage | OS keyring, `review-buddy/<host>` | same |
 | Test | `GET /user` + `GET /rate_limit` | `GET /user` + `GET /personal_access_tokens/self` (shows expiry) |
+
+On GitLab, a token read from `glab` is sent as `Authorization: Bearer` (it may be an OAuth token, and GitLab accepts personal access tokens that way too); every other token is sent as `PRIVATE-TOKEN`. The API base is `https://<host>/api/v4` unless `api_url` overrides it (a trailing slash is fine). If `GET /personal_access_tokens/self` answers 401, 403 or 404, the test still reports the user and just omits scopes and expiry. `RateLimit-Remaining` and `RateLimit-Reset` are tracked, and a 429 reports its `Retry-After`.
 
 Token expiry is planned to surface 7 days ahead in the footer and in Settings → Sources.
 
@@ -131,7 +133,7 @@ Shells out to `git` in the repo found under `checkout.root`:
 
 ## Live loading in the interface
 
-- A provider is built per enabled `[[source]]` by the factory in `providers/`, and `review-buddy` commands and the interface share it. GitHub tokens come from `gh auth token --hostname <host>` (then the keyring), the keyring, an `env:VAR` reference or a `token_command`; `api_url` points Enterprise or a test stub at its API. GitLab sources report "GitLab arrives in v0.2" and don't stop the others.
+- A provider is built per enabled `[[source]]` by the factory in `providers/`, and `review-buddy` commands and the interface share it. GitHub tokens come from `gh auth token --hostname <host>` (then the keyring), the keyring, an `env:VAR` reference or a `token_command`; `api_url` points Enterprise or a test stub at its API. GitLab tokens come from `glab config get token --host <host>` (then `glab auth status -t`), the keyring, `env:VAR` or a `token_command`, with the same `api_url` override.
 - On launch, cached rows from the SQLite cache paint first, then every source refreshes at once (bounded by `max_concurrency_per_host`) and replaces its cached rows. Refresh runs on launch, on `r` and when the terminal regains focus (`refresh.on_focus`); there is no background polling yet.
 - A source that fails keeps its cached rows and shows a short reason in the Sources pane and the Detail pane, plus a toast with the next step. With no cache and no sign-in, the queue says "Sign in to see your reviews." and how to fix it. Rate limits say when the limit resets.
 - Details, checks and threads load the first time a change is selected; files and threads load when its diff opens.

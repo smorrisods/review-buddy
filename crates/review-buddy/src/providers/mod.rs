@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use rb_core::{Error, ForgeKind, Provider, Source, SourceId};
 use rb_github::{Auth, AuthError, GithubClient, GithubProvider, TokenOrigin};
+use rb_gitlab::{GitlabClient, GitlabProvider};
 use rb_platform::auth::AuthMode;
 use rb_platform::{CommandRunner, SecretStore, SystemRunner};
 
@@ -50,8 +51,8 @@ pub enum ProviderError {
     Auth(AuthError),
     #[error("{0}")]
     Client(Error),
-    #[error("GitLab arrives in v0.2.")]
-    GitlabLater,
+    #[error("{0}")]
+    GitlabAuth(rb_gitlab::AuthError),
 }
 
 impl ProviderError {
@@ -64,10 +65,18 @@ impl ProviderError {
                 failure
             }
             Self::Client(error) => SourceFailure::from_error(error, host),
-            Self::GitlabLater => SourceFailure::unavailable(
-                "GitLab arrives in v0.2.",
-                "GitHub sources work today; this one will load after the upgrade.",
-            ),
+            Self::GitlabAuth(rb_gitlab::AuthError::NoToken { .. }) => {
+                let mut failure = SourceFailure::sign_in(host);
+                failure.next_step = format!(
+                    "Run glab auth login --hostname {host}, or review-buddy auth login --host {host}."
+                );
+                failure
+            }
+            Self::GitlabAuth(rb_gitlab::AuthError::Unavailable { reason, .. }) => {
+                let mut failure = SourceFailure::sign_in(host);
+                failure.summary = format!("Couldn't read the token for {host}: {reason}.");
+                failure
+            }
             Self::UnknownSource(_) => SourceFailure::unavailable(
                 self.to_string(),
                 "Check the source's name in config.toml.",
@@ -154,11 +163,42 @@ impl Factory {
         self.entries.iter().find(|e| &e.source.id == id)
     }
 
+    /// A signed-in HTTP client for one GitLab source, and where its token came from. Tokens
+    /// read from `glab` go out as `Authorization: Bearer` (they may be OAuth tokens); all others
+    /// use `PRIVATE-TOKEN`. Resolves the token afresh each call; blocking.
+    pub fn gitlab_client(
+        &self,
+        id: &SourceId,
+    ) -> Result<(GitlabClient, rb_gitlab::TokenOrigin), ProviderError> {
+        let entry = self
+            .entry(id)
+            .ok_or_else(|| ProviderError::UnknownSource(id.to_string()))?;
+        self.gitlab_client_for(entry)
+    }
+
+    fn gitlab_client_for(
+        &self,
+        entry: &Entry,
+    ) -> Result<(GitlabClient, rb_gitlab::TokenOrigin), ProviderError> {
+        let source = &entry.source;
+        let mut auth = rb_gitlab::Auth::new(&source.host, entry.auth.clone());
+        if let Some(command) = &entry.token_command {
+            auth = auth.with_token_command(command);
+        }
+        let getenv = &self.deps.getenv;
+        let token = auth
+            .resolve(&*self.deps.runner, &*self.deps.store, |key| getenv(key))
+            .map_err(ProviderError::GitlabAuth)?;
+        let mut client = GitlabClient::new(&source.host, entry.api_url.as_deref(), token.secret)
+            .map_err(ProviderError::Client)?;
+        if token.origin == rb_gitlab::TokenOrigin::GlabCli {
+            client = client.with_bearer();
+        }
+        Ok((client, token.origin))
+    }
+
     fn client_for(&self, entry: &Entry) -> Result<(GithubClient, TokenOrigin), ProviderError> {
         let source = &entry.source;
-        if source.kind == ForgeKind::GitLab {
-            return Err(ProviderError::GitlabLater);
-        }
         let mut auth = Auth::new(&source.host, entry.auth.clone());
         if let Some(command) = &entry.token_command {
             auth = auth.with_token_command(command);
@@ -173,6 +213,10 @@ impl Factory {
     }
 
     fn build(&self, entry: &Entry) -> Result<Arc<dyn Provider>, ProviderError> {
+        if entry.source.kind == ForgeKind::GitLab {
+            let (client, _) = self.gitlab_client_for(entry)?;
+            return Ok(Arc::new(GitlabProvider::new(client)));
+        }
         let (client, _) = self.client_for(entry)?;
         Ok(Arc::new(
             GithubProvider::new(client).with_source_id(entry.source.id.clone()),
@@ -344,19 +388,45 @@ auth = "env:NOPE_TOKEN"
     }
 
     #[test]
-    fn gitlab_sources_report_v0_2_instead_of_failing_hard() {
+    fn gitlab_sources_build_a_provider_using_glab() {
         let text = r#"
 [[source]]
 name = "lab"
 kind = "gitlab"
-host = "gitlab.com"
+host = "gitlab.example.com"
+api_url = "http://127.0.0.1:9/api/v4"
 "#;
-        let (deps, _) = deps(Arc::new(FakeRunner::default()), &[]);
+        let runner = Arc::new(FakeRunner {
+            stdout: Some("glpat-abc\n".into()),
+            ..FakeRunner::default()
+        });
+        let (deps, _) = deps(runner.clone(), &[]);
         let factory = Factory::from_config(&config(text), deps);
         assert_eq!(factory.sources().len(), 1);
+        let provider = factory.provider(&id("lab")).unwrap();
+        assert_eq!(provider.kind(), ForgeKind::GitLab);
+        let calls = runner.calls.lock().unwrap();
+        assert_eq!(calls[0].0, "glab");
+        assert_eq!(
+            calls[0].1,
+            ["config", "get", "token", "--host", "gitlab.example.com"]
+        );
+    }
+
+    #[test]
+    fn gitlab_without_a_token_asks_to_sign_in_with_glab() {
+        let text = "[[source]]\nname = \"lab\"\nkind = \"gitlab\"\nhost = \"gitlab.com\"\n";
+        let (deps, _) = deps(Arc::new(FakeRunner::default()), &[]);
+        let factory = Factory::from_config(&config(text), deps);
         let err = factory.provider(&id("lab")).err().unwrap();
-        assert_eq!(err, ProviderError::GitlabLater);
-        assert!(err.failure("gitlab.com").summary.contains("v0.2"));
+        assert!(matches!(
+            err,
+            ProviderError::GitlabAuth(rb_gitlab::AuthError::NoToken { .. })
+        ));
+        assert!(err
+            .failure("gitlab.com")
+            .next_step
+            .contains("glab auth login"));
     }
 
     #[test]

@@ -4,7 +4,7 @@
 use rb_github::API_VERSION;
 use serde_json::{json, Value};
 
-use super::auth::{self, SourceAuth, State};
+use super::auth::{self, SourceAuth};
 use super::context::Context;
 use super::error::CmdError;
 use super::output::{self, json};
@@ -41,7 +41,6 @@ fn rate_lines(auths: &[SourceAuth]) -> Vec<String> {
                     }
                     text
                 }
-                (State::Unchecked { note }, None) => format!("not checked yet · {note}"),
                 _ if a.is_demo() => format!("not reported {DEMO_LABEL}"),
                 _ => return None,
             };
@@ -66,7 +65,17 @@ fn api_line(a: &SourceAuth) -> String {
                 format!("{}  GitHub REST {API_VERSION} · {base}", a.label())
             }
         }
-        ForgeKind::GitLab => format!("{}  not checked yet · checked in v0.2", a.label()),
+        ForgeKind::GitLab => {
+            let base = a
+                .api_url
+                .clone()
+                .unwrap_or_else(|| format!("https://{}/api/v4", a.host));
+            if a.is_demo() {
+                format!("{}  GitLab REST v4 {DEMO_LABEL}", a.label())
+            } else {
+                format!("{}  GitLab REST v4 · {base}", a.label())
+            }
+        }
     }
 }
 
