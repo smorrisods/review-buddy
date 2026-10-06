@@ -68,6 +68,20 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("Change", "o", "open", open, true),
             bind("Change", "y", "copy", copy, true),
             bind("Change", "s", "show filters", Some(Action::OpenShow), true),
+            bind(
+                "View",
+                "p",
+                "close / reopen the detail pane",
+                Some(Action::ToggleDetail),
+                false,
+            ),
+            bind(
+                "View",
+                "S",
+                "sources: auto / left / top",
+                Some(Action::CycleSources),
+                false,
+            ),
             bind("General", "?", "help", help, true),
             bind(
                 "General",
@@ -292,7 +306,22 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
     {
         first_run_hints(flow)
     } else {
-        hints_for(app.screen)
+        let mut hints = hints_for(app.screen);
+        if app.screen == Screen::Dashboard && !app.layout.detail_open() {
+            let at = hints
+                .iter()
+                .position(|h| h.key == "?")
+                .unwrap_or(hints.len());
+            hints.insert(
+                at,
+                Hint {
+                    key: "p",
+                    label: "show detail",
+                    action: Some(Action::ToggleDetail),
+                },
+            );
+        }
+        hints
     };
 
     let fit = |text: String, role| {

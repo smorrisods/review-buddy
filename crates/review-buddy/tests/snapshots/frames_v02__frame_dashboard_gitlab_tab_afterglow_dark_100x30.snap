@@ -4,7 +4,7 @@ expression: text(& render(& mut app))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                       Afterglow Dark
   1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
-╭ queue ───────────────────────────────────────╮╭ platform/flow!1182 ──────────────────────────────╮
+╭ queue ───────────────────────────────────────╮╭ platform/flow!1182 ─────────────────────────── ⟩ ╮
 │  Worth a look · 1                            ││ Cache pipeline status lookups                    │
 │▌ ✕ Cache pipeline status lookups          7h ││ priya wants priya/status-cache → main            │
 │▌ GL flow!1182 · priya · you're mentioned     ││ +8 −2 · 1 file · opened 2d ago                   │

@@ -4,7 +4,7 @@ expression: text(& render(& mut app))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                              Dusk
   1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
-╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────╮
+╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ─────────────────────────────────────────────── ⟩ ╮
 │  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus                                      │
 │▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                                                    │
 │▌ GH review-buddy#214 · ada · review requested││ +32 −1 · 3 files · opened 3d ago                                              │

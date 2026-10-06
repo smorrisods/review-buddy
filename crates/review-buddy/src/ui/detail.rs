@@ -23,7 +23,7 @@ const EXCERPT_LINES: usize = 8;
 const SIDE_BY_SIDE: u16 = 54;
 
 fn content_rect(app: &App) -> Rect {
-    layout::detail_content(layout::dashboard(layout::body(app.size)).detail)
+    layout::detail_content(layout::dashboard(layout::body(app.size), app.layout).detail)
 }
 
 fn title_lines(change: &ChangeSummary, width: usize) -> Vec<String> {

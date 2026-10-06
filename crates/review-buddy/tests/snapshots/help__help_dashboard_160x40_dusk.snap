@@ -3,28 +3,30 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
-╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ───────────────────────────────────────────────────────╮
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
 │▌ ● All               7 ││  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus                                           │
 │    every source        ││▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                                                         │
 │  ● liminal-hq        3 ││▌ GH review-buddy#214 · ada · review requested││ +32 −1 · 3 files · opened 3d ago                                                   │
 │    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
-│  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
-│    github.com          ││                                              ││                                                                                    │
-│  ● platform          2 ││  Worth a look · 2       ╭ Keys · Queue ────────────────────────────────────────╮ Conversation 3                                    │
-│    gitlab.platform.ex… ││  ✕ Cache pipeline status│Move                                                  │────────────────────────────────────────────────── │
-│  ● gitlab.com        1 ││  GL flow!1182 · priya · │  j/k  move in the focused pane                       │d a Menu type that tracks the selected item.       │
-│    gitlab.com          ││  ● Tidy zsh startup     │  g/G  first / last row                               │                                                   │
-│                        ││  GH dotfiles#31 · smorri│  tab  next pane                                      │lect_prev move the highlight                       │
-│  Show  s to change     ││                         │  h/l  previous / next pane                           │ion for the highlighted item                       │
-│  [x] reviewing         ││  Can wait · 1           │  1-9  switch source                                  │, so it picks up the active theme                  │
-│  [x] assigned          ││  · Clarify the install s│  [/]  previous / next detail tab                     │                                                   │
-│  [x] authored          ││  GL notes!12 · kai · app│                                                      │         Checks                                    │
-│  [ ] drafts            ││                         │Change                                                │         ● 2 passing  ◐ 1 running                  │
-│  [ ] noise             ││  ▸ Noise · 2 bot updates│  ⏎    diff                                           │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
-│                        ││                         │  o    open                                           │                                                   │
-│                        ││  ── That's everything.  │  y    copy                                           │                                                   │
-│                        ││  7 in this view.        │  s    show filters                                   │                                                   │
-│                        ││                         │                                                      │oin. Is the intermediate Vec doing anything for    │
+│  ● smorris           1 ││  GH review-buddy#209 · j╭ Keys · Queue ────────────────────────────────────────╮Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                         │Move                                                  │                                                   │
+│  ● platform          2 ││  Worth a look · 2       │  j/k  move in the focused pane                       │ Conversation 3                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status│  g/G  first / last row                               │────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · │  tab  next pane                                      │d a Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ● Tidy zsh startup     │  h/l  previous / next pane                           │                                                   │
+│                        ││  GH dotfiles#31 · smorri│  1-9  switch source                                  │lect_prev move the highlight                       │
+│  Show  s to change     ││                         │  [/]  previous / next detail tab                     │ion for the highlighted item                       │
+│  [x] reviewing         ││  Can wait · 1           │                                                      │, so it picks up the active theme                  │
+│  [x] assigned          ││  · Clarify the install s│Change                                                │                                                   │
+│  [x] authored          ││  GL notes!12 · kai · app│  ⏎    diff                                           │         Checks                                    │
+│  [ ] drafts            ││                         │  o    open                                           │         ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates│  y    copy                                           │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││                         │  s    show filters                                   │                                                   │
+│                        ││  ── That's everything.  │                                                      │                                                   │
+│                        ││  7 in this view.        │View                                                  │                                                   │
+│                        ││                         │  p    close / reopen the detail pane                 │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │  S    sources: auto / left / top                     │                                                   │
+│                        ││                         │                                                      │                                                   │
 │                        ││                         │General                                               │                                                   │
 │                        ││                         │  ?    help                                           │                                                   │
 │                        ││                         │  ,    settings                                       │                                                   │
@@ -33,8 +35,6 @@ expression: text(&render(&mut a))
 │                        ││                         │                                                      │                                                   │
 │                        ││                         │esc or ? to close                                     │                                                   │
 │                        ││                         ╰──────────────────────────────────────────────────────╯                                                   │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │

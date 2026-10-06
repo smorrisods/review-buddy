@@ -229,6 +229,35 @@ mod tests {
     }
 
     #[test]
+    fn layout_options_parse_and_default_to_auto() {
+        let l = load(&[("/c.toml", "[ui]\nsources = \"top\"\ndetail = \"closed\"\n")]).unwrap();
+        assert_eq!(l.config.ui.sources, SourcesLayout::Top);
+        assert_eq!(l.config.ui.detail, DetailMode::Closed);
+        let d = load(&[("/c.toml", "")]).unwrap();
+        assert_eq!(d.config.ui.sources, SourcesLayout::Auto);
+        assert_eq!(d.config.ui.detail, DetailMode::Auto);
+    }
+
+    #[test]
+    fn bad_layout_values_name_the_file_line_and_choices() {
+        let e = load(&[(
+            "/c/config.toml",
+            "[ui]\nmouse = true\nsources = \"bottom\"\n",
+        )])
+        .unwrap_err();
+        assert_eq!(e.path(), Path::new("/c/config.toml"));
+        assert_eq!(e.line(), Some(3));
+        let msg = e.to_string();
+        assert!(
+            msg.contains("bottom") && msg.contains("left") && msg.contains("top"),
+            "{msg}"
+        );
+        let e = load(&[("/c.toml", "[ui]\ndetail = \"hidden\"\n")]).unwrap_err();
+        assert_eq!(e.line(), Some(2));
+        assert!(e.to_string().contains("closed"), "{e}");
+    }
+
+    #[test]
     fn typos_in_known_tables_are_errors() {
         let e = load(&[("/c.toml", "[review]\nconfim_merge = false\n")]).unwrap_err();
         assert_eq!(e.line(), Some(2));

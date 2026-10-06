@@ -48,6 +48,8 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     let mut put = |key: &str, value: Value| out.push((key.to_string(), value));
     put("ui.theme", json!(ui.theme));
     put("ui.layout", json!(ui.layout.as_str()));
+    put("ui.sources", json!(ui.sources.as_str()));
+    put("ui.detail", json!(ui.detail.as_str()));
     put("ui.jax", json!(ui.jax));
     put("ui.reduced_motion", json!(ui.reduced_motion));
     put("ui.unicode", json!(ui.unicode));
