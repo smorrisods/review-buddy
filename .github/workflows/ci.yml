@@ -199,6 +199,30 @@ jobs:
       - name: Run script tests
         run: bash scripts/tests/run.sh
 
+      - name: Parse-check PowerShell scripts
+        run: |
+          if command -v pwsh >/dev/null 2>&1; then
+            pwsh -NoProfile -Command '$e = $null; foreach ($f in Get-ChildItem scripts/*.ps1) { [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$e); if ($e) { $e; exit 1 } }'
+          else
+            echo "pwsh not available; skipping"
+          fi
+
+  scripts-windows:
+    name: Release scripts (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Parse-check PowerShell scripts
+        shell: pwsh
+        run: |
+          $e = $null
+          foreach ($f in Get-ChildItem scripts/*.ps1) {
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$e)
+            if ($e) { $e; exit 1 }
+          }
+
   audit:
     name: Security audit
     runs-on: ubuntu-24.04
