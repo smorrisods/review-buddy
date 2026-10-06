@@ -4,20 +4,46 @@
 
 Review Buddy is a terminal dashboard (Rust + [ratatui](https://ratatui.rs)) that brings GitHub pull requests and GitLab merge requests from any number of hosts into one place. You can read the diff, leave line comments and suggestions, approve, request changes and merge, all without leaving the terminal. It is Release Buddy's sibling, and the default look is Liminal HQ's Afterglow.
 
+## Implementation status (v0.1.0)
+
+This spec describes the whole product. **v0.1.0 is the first slice** (see §14): GitHub only, the three-pane dashboard, the unified diff with comments and approve, open and copy, the mouse, demo mode, four built-in themes and the read-only command line. Each section below is the target design; this table says where 0.1 stops.
+
+| Section | In 0.1 | Planned |
+|---|---|---|
+| §4.1 First run | No. With no sources the queue says "Nothing connected yet. Add a source to config.toml, or try review-buddy --demo."; `--setup` is accepted and does nothing | v0.2 |
+| §4.2 Dashboard | 1a three panes, with the Overview, Files, Checks and Conversation tabs, the collapsed Noise row and "That's everything." The Show filters follow `triage.show` in the CLI only. Action chips other than Diff say they aren't available yet | 1b and 1c layouts and `L` (v0.4), Show filter toggles |
+| §4.3 Diff | Unified diff with syntax highlighting, files pane, line cursor, inline threads, hunk and file jumps, mouse cursor, drag and shift-click range selection | Side by side, `⇧↑↓`/`V`, range comments, resolve, viewed marks (v0.3) |
+| §4.4 Composer | Comment and reply on a line, add to the pending review, post now with a preview, word-wise editing, discard confirm | Suggestions and `⌃S`, `⌃E`, saved drafts (v0.3 and 1.0) |
+| §4.5 Palette and search | No | v0.4 |
+| §4.6 Merge confirm | No | v0.3 |
+| §4.7 Settings | No | v0.4 |
+| §6 Actions | Approve and comment in the diff; open `o` and copy `y` everywhere | Request changes, merge, re-run, checkout (v0.3); GitLab (v0.2) |
+| §7 Feedback | Toasts and footer status, errors with a next step, per-source failures keep cached rows | Offline action queue (1.0) |
+| §8 Demo | `--demo`, `--frozen-time`, offline fixtures (all four sources, seven changes), writes labelled `(demo)` | `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet |
+| §9 Jax | No | v0.4 |
+| §10 Theming | Built-ins, `T`, `ui.theme`, colour depth, `NO_COLOR` | User theme files, hot reload (v0.4) |
+| §11 Performance | Cached rows paint first; refresh on launch, `r` and focus | Timed refresh (`refresh.interval`), lazy huge diffs |
+| §12 Accessibility | Glyphs plus colour, `NO_COLOR` | `--no-unicode`, reduced motion (nothing animates yet) |
+| §13 Platforms | All release targets built by the `Release` workflow | |
+
 The interactive design lives alongside this file:
 
-- `Review Buddy Board.dc.html`: every layout and screen side by side (frames 1a–1m)
-- `ReviewBuddy.dc.html`: a single working prototype; click into it and use the keys
+- `archive/design/Review Buddy Board.dc.html`: every layout and screen side by side (frames 1a–1m)
+- `archive/design/ReviewBuddy.dc.html`: a single working prototype; click into it and use the keys
+
+The prototype is kept for reference only. Where it and the shipped app disagree, the app and this spec win.
 
 Supporting docs:
 
-- `docs/keybindings.md`: the full key map, per screen and per pane
+- `docs/keybindings.md`: the key map (what works in 0.1, and what is planned)
 - `docs/theming.md`: theme file format, roles and the built-in themes
 - `docs/configuration.md`: `config.toml` reference
 - `docs/cli.md`: the `gh`-style command line (commands, selectors, output, exit codes)
 - `docs/integrations.md`: GitHub and GitLab API mapping
 - `docs/architecture.md`: crate layout, state model, rendering, caching
-- `docs/release.md`: platforms, build targets, distribution, running unsigned builds
+- `docs/release.md`: platforms, build targets, distribution, running unsigned builds, the release checklist
+- `docs/testing.md`: running tests and reviewing snapshots
+- `CHANGELOG.md`: what changed in each release
 - `config.example.toml`, `themes/*.toml`: ready-to-copy files
 
 ---
@@ -279,7 +305,7 @@ Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default,
 
 | Milestone | Scope |
 |---|---|
-| 0.1 | GitHub only, 1a layout, unified diff, approve, comment, open in browser, the Liminal HQ theme. Read-only command line (`queue`, `pr list/view/diff/checks/open`, `auth status`, `--json`/`--jq`). Releases for every target from day one (Linux amd64/arm64 musl + glibc packages, macOS universal, Windows amd64/arm64), with `--demo` for smoke tests (Linux tested by hand; Windows and macOS smoke-tested in CI) |
+| 0.1 (first release, pending the tag) | GitHub only, 1a layout, unified diff, approve, comment, open in browser, the Liminal HQ theme. Read-only command line (`queue`, `pr list/view/diff/checks/open`, `auth status`, `--json`/`--jq`). Releases for every target from day one (Linux amd64/arm64 musl + glibc packages, macOS universal, Windows amd64/arm64), with `--demo` for smoke tests (Linux tested by hand; Windows and macOS smoke-tested in CI). Also shipped: `open`, `config paths`, `theme list`, `doctor`, shell completions and a man page. Declared for 0.1 but not built: `triage explain`, `theme check` and `theme export` |
 | 0.2 | GitLab (gitlab.com and self-hosted), aggregation, buckets and filters, first-run detection, GitLab parity for the command line plus `auth login` and `source` commands |
 | 0.3 | Ranges, suggestions, side-by-side diff, merge, re-run CI, checkout, and the command line's `pr review`, `pr merge`, `pr checkout`, `pr rerun` |
 | 0.4 | Layouts 1b and 1c, command palette and search, user themes, Jax, triage rules, demo scenes |
@@ -299,6 +325,8 @@ Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default,
 | macOS artefacts | Universal only |
 | musl | Ships in 1.0, for tarballs and `install.sh`; glibc for `.deb` / `.rpm` |
 | Channels | GitHub Releases, `install.sh`, `install.ps1`, `.deb` / `.rpm` |
+| GraphQL client | Hand-written queries with typed `serde` responses, not `graphql_client` (see `docs/architecture.md`) |
+| Demo fixtures | Include GitLab sources even though live GitLab isn't built, so the dashboard and `--json` shapes can be explored |
 | Licence | MIT |
 | Repo | `smorrisods/review-buddy` |
 

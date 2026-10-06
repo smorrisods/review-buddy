@@ -2,6 +2,10 @@
 
 Both forges sit behind one `Provider` trait (see `architecture.md`). This page lists what each trait method calls. Endpoint versions are the ones the 1.0 targets; `review-buddy doctor` reports anything an instance doesn't support.
 
+## Status (v0.1.0)
+
+`rb-github` implements listing, change detail, files, threads, checks and review writes (comment-only, approve, and replies), behind the `Provider` trait. Merge and re-run failed jobs report `Unsupported` until v0.3, and checkout isn't built yet. `rb-gitlab` is a placeholder crate, so every GitLab section on this page is the **v0.2 plan**: a GitLab source is listed in the interface and says "GitLab arrives in v0.2". Request changes, suggestions (`⌃S`), range comments, viewed-file marks and the `GitLab` columns throughout describe later milestones. Token expiry warnings in the footer and Settings → Sources, and Enterprise API-version checks beyond `doctor`, are planned too.
+
 ## Authentication
 
 | | GitHub | GitLab |
@@ -11,7 +15,7 @@ Both forges sit behind one `Provider` trait (see `architecture.md`). This page l
 | Storage | OS keyring, `review-buddy/<host>` | same |
 | Test | `GET /user` + `GET /rate_limit` | `GET /user` + `GET /personal_access_tokens/self` (shows expiry) |
 
-Token expiry is surfaced 7 days ahead in the footer and in Settings → Sources.
+Token expiry is planned to surface 7 days ahead in the footer and in Settings → Sources.
 
 ## Listing changes
 
@@ -73,7 +77,7 @@ Both forges render a fenced suggestion block in a comment body as an applicable 
 - **GitHub:** ` ```suggestion ` … ` ``` `. It replaces exactly the commented line or range.
 - **GitLab:** ` ```suggestion:-0+0 ` … ` ``` `. Review Buddy writes the offsets from the range: for a comment anchored on the last line of an N-line range, `-{N-1}+0`.
 
-`⌃S` builds the block from the selected lines, leaving deleted lines out, and keeps their indentation. If the range contains only deleted lines, the composer says "Suggestions apply to the new file. Select added or unchanged lines."
+Planned for v0.3: `⌃S` builds the block from the selected lines, leaving deleted lines out, and keeps their indentation. If the range contains only deleted lines, the composer says "Suggestions apply to the new file. Select added or unchanged lines."
 
 ## Submitting a review
 

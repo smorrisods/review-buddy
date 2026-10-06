@@ -4,6 +4,16 @@ Review Buddy has two faces. Run `review-buddy` with no command and it opens the 
 
 This doc is the design for the command line. `docs/configuration.md` keeps a short summary, and `crates/review-buddy/src/cli.rs` is the single source of truth for the flags themselves (the man page is generated from it).
 
+## Status (v0.1.0)
+
+This page is the design for the whole command line. What runs in 0.1 is the **read-only core**, against GitHub and `--demo`:
+
+| Runs in 0.1 | Planned |
+|---|---|
+| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `config get|list`, `auth login|logout|token`, `source test|add` (v0.2); `pr review|comment|merge|checkout|rerun` (v0.3); `triage explain` and `theme check|export` (declared for v0.1 in the code, but not built yet); `api` (later) |
+
+Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. Only GitHub sources load against a live forge (the demo fixtures include GitLab, so `--demo` shows what GitLab output will look like), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood`, `--size` and `--setup` are accepted, and have no effect yet.
+
 ## Principles
 
 - **No command, TUI. Any command, no TUI.** A command never enters the alternate screen, never draws a full-screen UI and never waits for a key unless it is a confirmation on a TTY. `review-buddy open <selector>` is the one command that deliberately launches the TUI (straight into a diff).
@@ -225,7 +235,7 @@ Tokens are never read from `REVIEW_BUDDY_*`; use `auth = "env:VAR"` on a source.
 | Milestone | Commands |
 |---|---|
 | Foundation | The skeleton from `cli.rs`: flags, stubs that exit `2`, man page |
-| v0.1.0 | CLI core (output modes, `--json`/`--jq`, selectors, exit codes), `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `auth status`, `source list`, `completion`, all against GitHub and `--demo` |
+| v0.1.0 | **Shipped:** CLI core (output modes, `--json`/`--jq`, selectors, exit codes), `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, all against GitHub and `--demo`. Not built, though planned for 0.1: `triage explain`, `theme check`, `theme export` |
 | v0.2.0 | GitLab parity for every read command, `mr` alias exercised, `auth login`/`logout`/`token`, `source test`/`add`, `config get`/`list` |
 | v0.3.0 | Writes: `pr review`, `pr comment`, `pr merge`, `pr checkout`, `pr rerun` |
 | Later | `api`, dynamic completions, `pr checks --watch` polish |

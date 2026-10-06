@@ -1,110 +1,74 @@
 # Key bindings
 
-Review Buddy uses arrows plus mnemonic letters. Vim-style `j`/`k` also work for movement in lists. Every binding can be changed under `[keys]` in `config.toml`. Arrows, `tab`, `⏎` and `esc` always work, even if you rebind something on top of them.
+Review Buddy uses arrows plus mnemonic letters. Vim-style `j`/`k` also work for movement. Arrows, `tab`, `⏎` and `esc` always work.
 
-Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens the palette.
+**Status (v0.1.0).** This page has two halves. The first covers what the 0.1 binary does today, and it matches the registry in `ui::chrome` (the footer hints and the `?` overlay are built from it) and the key handlers in `app/`. [Planned keys](#planned-keys) lists what the spec describes for later milestones. Press `?` in the app for the keys on the current screen.
 
-## Global
-
-| Key | Action |
-|---|---|
-| `⌃K` | Command palette |
-| `/` | Search all sources |
-| `tab` / `⇧tab` | Next / previous pane (the focused pane gets the accent border) |
-| `1`–`9` | Switch source (`1` is always All) |
-| `,` | Settings |
-| `L` | Cycle layout: three panes → list + diff → one at a time |
-| `T` | Cycle theme |
-| `J` | Toggle Jax |
-| `r` | Refresh now |
-| `?` | Help overlay listing the keys for the current screen (`esc` or `?` closes it; it is built from the same registry as the footer hints) |
-| `o` / `y` | Open the current change in the browser / copy its URL. In the diff they use the change's files page. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
-| `q` | Quit from the queue; in the diff, go back (asks first if there are unsent drafts) |
-| `esc` | Close overlay → clear selection → back one screen |
+Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 
 ## Dashboard
 
 | Key | Action |
 |---|---|
-| `↑↓` / `j k` | Move in the focused pane |
-| `g` `G` | Jump to the first / last row in the focused pane |
-| `h` `l` | Previous / next pane (same as `⇧tab` / `tab`) |
-| `⏎` on the Noise row | Expand or collapse the bot updates |
-| `⏎` / `d` | Open the diff for the selected change |
+| `↑↓` / `j` `k` | Move in the focused pane |
+| `g` `G` / `home` `end` | Jump to the first / last row in the focused pane |
+| `tab` / `⇧tab` | Next / previous pane |
+| `h` `l` | Previous / next pane |
+| `← →` | Previous / next detail tab when the detail pane is focused, otherwise previous / next pane |
 | `[` `]` | Previous / next detail tab (Overview, Files, Checks, Conversation) |
-| `← →` | Same as `[` `]` when the detail pane is focused |
-| `space` | Toggle the Show filter under the cursor (Sources pane) |
-| `a` | Approve |
-| `x` | Request changes (opens the composer for the required summary) |
-| `c` | Comment on the change |
-| `m` | Merge… (confirm defaults to No) |
-| `R` | Re-run failed CI |
-| `b` | Check out the branch locally |
-| `o` | Open in browser |
-| `y` | Copy the change URL |
+| `1`–`9` | Switch source (`1` is All) |
+| `⏎` / `d` | Open the diff for the selected change |
+| `⏎` on the Noise row | Expand or collapse the bot updates |
+| `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
+| `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
+| `T` | Cycle theme |
+| `?` | Help overlay for the current screen (`esc` or `?` closes it) |
+| `q` / `⌃C` | Quit. If there are unsent comments, it asks you to quit again |
+| `esc` | Dismiss status messages |
 
-### One at a time (1c)
-
-| Key | Action |
-|---|---|
-| `a` | Approve and move to the next change |
-| `n` | Skip for now (next) |
-| `p` | Previous |
+The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable but not built on the dashboard yet: pressing one says `… isn't available yet in this build.` Approve and comment from the diff instead.
 
 ## Diff
 
+Open with `⏎` or `d` from the dashboard.
+
 | Key | Action |
 |---|---|
-| `tab` | Switch focus between Files and Diff |
+| `tab` / `⇧tab` | Switch focus between Files and Diff |
 | `↑↓` / `j` `k` | Files pane: choose a file · Diff pane: move the line cursor |
-| `g` `G` | First / last line (Files pane: first / last file) |
+| `g` `G` / `home` `end` | First / last line (Files pane: first / last file) |
 | `PgUp` `PgDn` · `⌃U` `⌃D` | Move a page or half a page |
-| `⏎` | Files pane: open the file · on a thread marker: expand it |
-| `⇧↑↓` | Extend the line range |
-| `V` | Toggle the range anchor at the cursor |
-| `esc` / `q` | Clear the range, then go back to the dashboard |
-| `{` `}` · `p` `n` | Previous / next hunk |
-| `[` `]` | Previous / next file |
-| `v` | Unified ↔ side by side |
-| `w` | Toggle whitespace-only changes |
-| `c` | Comment on the line or range |
-| `s` | Comment with a suggestion prefilled from the line or range |
+| `⏎` | Files pane: focus the diff |
+| `n` `}` / `p` `{` | Next / previous hunk |
+| `]` / `[` | Next / previous file |
+| `c` | Comment on the cursor line (ranges are selectable but not commentable yet) |
 | `r` | Reply to the thread at the cursor |
-| `e` | Resolve / unresolve the thread at the cursor |
-| `f` | Mark the file as viewed |
-| `a` | Approve: opens a preview (`Approve with N comments`, the pending comments listed, the verdict) with **Cancel** and **Approve**. `⏎` confirms the focused button (Approve by default), `esc` cancels. On success your pending comments are cleared and a toast says `Approved` (with `(demo)` under `--demo`); on failure they stay pending and the toast says what to do next |
-| `x` | Request changes. Not built yet; where the forge can't do it at all the footer says so and points to `c` |
-| `b` / `o` | Check out / open in browser |
+| `a` | Approve: opens a preview (`Approve with N comments`, the pending comments listed, the verdict) with **Cancel** and **Approve**. On success your pending comments are cleared and a toast says `Approved` (with `(demo)` under `--demo`); on failure they stay pending and the toast says what to do next |
+| `x` | Request changes. Not built yet: the footer says so and points to `a` and `c`. Where the forge can't do it at all, it says that instead |
+| `o` / `y` | Open the change's files page in the browser / copy its URL |
+| `T` / `?` | Cycle theme / help |
+| `esc` / `q` | Clear the selected range, then go back to the dashboard (`q` also asks first if there are unsent drafts) |
 
-**Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · click the Files pane or its review block to focus it · the wheel scrolls the pane under the pointer · `esc` clears a selected range before it leaves the diff. See [Mouse](#mouse) for the full list.
+**Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
 
 ## Composer
 
+Docked at the bottom of the diff. It opens with `c` on the cursor line, or with `r` on a line that has a thread.
+
 | Key | Action |
 |---|---|
-| `⌃S` | Insert a ` ```suggestion ` block from the selected lines |
 | `⏎` | Add to your pending review. On a reply, post the reply |
 | `⌃⏎` | Post now as a standalone comment, after a preview (turn the preview off with `review.confirm_post_now = false`). `⌃P` does the same on terminals that can't tell `⌃⏎` from `⏎` |
 | `⇧⏎` · `⌥⏎` · `⌃J` | Newline |
 | `← → ↑ ↓` · `home` `end` | Move the cursor |
 | `⌥←` `⌥→` · `⌃←` `⌃→` · `⌥b` `⌥f` | Move by word |
 | `⌃home` `⌃end` | Start / end of the draft |
-| `⌫` · `del` · `⌃W` | Delete back / forward / the word before the cursor |
+| `⌫` · `del` · `⌃W` · `⌃⌫` · `⌥⌫` | Delete back / forward / the word before the cursor |
+| `tab` | Insert a tab |
 | paste | Bracketed paste inserts the text as typed |
-| `⌃E` | Edit the draft in `$EDITOR` |
 | `esc` | Close. If you've typed anything it asks first, and the answer defaults to **No, keep editing** |
 
-The composer is docked at the bottom of the diff and opens with `c` on the cursor line, or with `r` on a line that has a thread (`r` replies to that thread). Drafts live in memory for now; they are not saved between sessions, and quitting asks first if any are unsent. `⌃⏎` and `⇧⏎` need a terminal that reports those modifiers (kitty, WezTerm, foot, Ghostty and recent iTerm2 do); `⌥⏎`, `⌃J` and `⌃P` work everywhere.
-
-## Command palette and search
-
-| Key | Action |
-|---|---|
-| type | Filter (fuzzy) |
-| `↑↓` | Choose |
-| `⏎` | Run the command / open the change |
-| `⌫` | Delete a character |
-| `esc` | Close |
+Drafts live in memory for now; they are not saved between sessions, and quitting asks first if any are unsent. `⌃⏎` and `⇧⏎` need a terminal that reports those modifiers (kitty, WezTerm, foot, Ghostty and recent iTerm2 do); `⌥⏎`, `⌃J` and `⌃P` work everywhere.
 
 ## Preview and discard confirms
 
@@ -112,39 +76,10 @@ The same two-button modal is used for approving, posting now, and discarding a d
 
 | Key | Action |
 |---|---|
-| `← →` / `tab` | Switch buttons. Approve and post now start on the action; discard starts on **No, keep editing** |
+| `← →` / `tab` / `h` `l` | Switch buttons. Approve and post now start on the action; discard starts on **No, keep editing** |
 | `y` / `n` | Answer yes / no directly |
 | `⏎` | Confirm the highlighted button |
 | `esc` | Cancel |
-
-## Merge confirm
-
-| Key | Action |
-|---|---|
-| `← →` / `tab` | Switch between **No, not yet** (default) and **Merge** |
-| `⏎` | Confirm the highlighted button |
-| `esc` | Cancel |
-
-## First run
-
-| Key | Action |
-|---|---|
-| `↑↓` | Move between sources |
-| `⏎` | Add a token / test and save / continue |
-| `← →` / `t` | Change theme (live preview) |
-| `J` | Toggle Jax |
-| `esc` | Skip for now |
-
-## Settings
-
-| Key | Action |
-|---|---|
-| `tab` | Switch between nav and content |
-| `↑↓` | Nav: section · Content: rows (Theme: preview each theme) |
-| `space` | Toggle / enable |
-| `e` / `t` | Edit / test a token |
-| `n` / `del` | New source / remove (asks first) |
-| `esc` / `,` | Back to the queue |
 
 ## Mouse
 
@@ -157,11 +92,11 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | Sources rows, or the source tabs when Sources is collapsed | Show that source |
 | Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff |
 | Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
-| Action chips (Approve, Request changes, Comment, Diff) | Same as their keys |
+| Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; the others say they are not available on the dashboard yet |
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
 | Diff: files | Click a file to open it |
 | Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from |
-| Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. Groundwork only: nothing is commented on yet |
+| Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. Groundwork only: `c` still comments on the cursor line, not the range |
 | Diff: shift-click | Extends the range from the cursor (or the range's anchor) to the line clicked |
 | Composer text | Click to place the caret. The wheel moves the caret a line. Clicks outside the composer are ignored and never discard the draft |
 | Preview and discard confirms | Click **Cancel** or the confirm button. Clicks outside are ignored |
@@ -170,7 +105,33 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 
 **Shift always belongs to the terminal.** With mouse capture on, terminals keep Shift-drag for their own text selection and don't send it to the app. If a terminal forwards Shift events anyway, Review Buddy ignores all of them except a Shift-click in the diff, which extends the selected range. Shift-drag and Shift-wheel are never consumed.
 
+## Planned keys
+
+These are in the spec and not built in 0.1. Pressing them does nothing, or says it isn't available yet.
+
+| Key | Planned for | Action |
+|---|---|---|
+| `⌃K` · `/` | v0.4 | Command palette · search all sources |
+| `,` | v0.4 | Settings |
+| `L` · `J` | v0.4 | Cycle layout · toggle Jax |
+| `space` | v0.4 | Toggle the Show filter under the cursor (the filters follow `triage.show`) |
+| `a` `x` `c` on the dashboard | v0.3 | Approve, request changes and comment without opening the diff |
+| `m` | v0.3 | Merge, with a confirm that defaults to **No, not yet** |
+| `R` · `b` | v0.3 | Re-run failed CI · check out the branch |
+| `n` `p` (one at a time) | v0.4 | Skip / previous in the `queue` layout |
+| `v` · `w` | v0.3 | Unified ↔ side by side · toggle whitespace-only changes |
+| `s` · `⌃S` | v0.3 | Comment with a suggestion · insert a suggestion block in the composer |
+| `⇧↑↓` · `V` | v0.3 | Extend the range from the keyboard, and comment on a range (drag and shift-click select one today) |
+| `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed |
+| `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
+| `x` in the diff | v0.3 | Request changes, with a required summary |
+| First run (`--setup`) | v0.2 | Source detection and the theme picker |
+
+The merge confirm modal (`← →` / `tab` switch between **No, not yet** and **Merge**, `⏎` confirms, `esc` cancels) arrives with merge.
+
 ## Remapping
+
+`[keys]` in `config.toml` is parsed and kept, but not applied yet: every key in 0.1 is fixed. The table below is the planned shape.
 
 ```toml
 [keys]
