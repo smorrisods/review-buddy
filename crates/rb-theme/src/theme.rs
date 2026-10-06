@@ -137,6 +137,7 @@ struct RawMeta {
     name: Option<String>,
     extends: Option<String>,
     appearance: Option<Appearance>,
+    paint_background: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
@@ -157,6 +158,7 @@ pub struct Theme {
     pub id: String,
     pub name: String,
     pub appearance: Appearance,
+    paint_background: Option<bool>,
     roles: BTreeMap<Role, Colour>,
     syntax: BTreeMap<SyntaxRole, Colour>,
     wordmark: Vec<Colour>,
@@ -226,6 +228,13 @@ impl Theme {
         self.ansi.get(&role).copied()
     }
 
+    /// Whether this theme paints its background when the setting is `theme`: the file's
+    /// `[theme] paint_background`, or else whether `background` is an opaque colour.
+    pub fn paints_background(&self) -> bool {
+        self.paint_background
+            .unwrap_or_else(|| matches!(self.colour(Role::Background), Colour::Rgb(_)))
+    }
+
     /// The background to measure contrast against: the theme's own, or a dark/light
     /// stand-in when the background is transparent.
     pub fn effective_background(&self) -> Rgb {
@@ -269,6 +278,7 @@ fn build(id: &str, chain: Vec<RawTheme>) -> Result<Theme, ThemeError> {
 
     let mut name = None;
     let mut appearance = None;
+    let mut paint_background = None;
     let mut colours: BTreeMap<String, RawValue> = BTreeMap::new();
     let mut syntax = BTreeMap::new();
     let mut ansi = BTreeMap::new();
@@ -278,6 +288,7 @@ fn build(id: &str, chain: Vec<RawTheme>) -> Result<Theme, ThemeError> {
             name = Some(raw.theme.name.unwrap_or_else(|| id.to_string()));
         }
         appearance = appearance.or(raw.theme.appearance);
+        paint_background = paint_background.or(raw.theme.paint_background);
         for (k, v) in raw.colours {
             colours.entry(k).or_insert(v);
         }
@@ -365,6 +376,7 @@ fn build(id: &str, chain: Vec<RawTheme>) -> Result<Theme, ThemeError> {
         id: id.to_string(),
         name: name.unwrap_or_else(|| id.to_string()),
         appearance,
+        paint_background,
         roles,
         syntax: syntax_out,
         wordmark,
@@ -516,5 +528,36 @@ mod tests {
                 "{bad}"
             );
         }
+    }
+
+    #[test]
+    fn paint_background_is_inferred_or_declared() {
+        let inferred = |id| Theme::builtin(id).unwrap().paints_background();
+        assert!(!inferred("liminal-hq"));
+        assert!(!inferred("dusk"));
+        assert!(inferred("afterglow-dark"));
+        assert!(inferred("afterglow-light"));
+
+        let load = |extra: &str, parent: &str| {
+            let src = format!("[theme]\nextends = \"{parent}\"\n{extra}\n");
+            Theme::from_toml("mine", &src, &|_| None).unwrap()
+        };
+        assert!(load("paint_background = true", "dusk").paints_background());
+        assert!(!load("paint_background = false", "afterglow-dark").paints_background());
+        assert!(load("", "afterglow-dark").paints_background());
+    }
+
+    #[test]
+    fn paint_background_is_inherited_and_validated() {
+        let parent = "[theme]\nextends = \"dusk\"\npaint_background = true\n";
+        let lookup = |id: &str| (id == "base").then(|| parent.to_string());
+        let child = Theme::from_toml("kid", "[theme]\nextends = \"base\"\n", &lookup).unwrap();
+        assert!(child.paints_background());
+        let bad = Theme::from_toml(
+            "bad",
+            "[theme]\npaint_background = \"sometimes\"\n",
+            &|_| None,
+        );
+        assert!(matches!(bad, Err(ThemeError::Parse { .. })));
     }
 }

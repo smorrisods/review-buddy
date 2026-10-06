@@ -99,3 +99,63 @@ pub fn find(buffer: &Buffer, needle: &str) -> Option<(u16, u16)> {
 pub fn role(app: &App, role: Role) -> Option<Color> {
     app.palette.colour(role).map(style::colour)
 }
+
+/// Background colours a surface may carry on top of the painted frame: raised overlays, selection
+/// rows, and the diff tints.
+pub fn surface_backgrounds(app: &App) -> Vec<Color> {
+    [
+        Role::Raised,
+        Role::Selection,
+        Role::AddedBg,
+        Role::RemovedBg,
+    ]
+    .into_iter()
+    .filter_map(|r| role(app, r))
+    .collect()
+}
+
+/// Every cell carries `expected`, or one of the `surfaces`: no cell is left on the terminal's
+/// own background (`Color::Reset`), and at least one cell is `expected`.
+pub fn assert_fully_painted(buffer: &Buffer, expected: Color, surfaces: &[Color], what: &str) {
+    let width = usize::from(buffer.area.width);
+    for (i, cell) in buffer.content().iter().enumerate() {
+        assert!(
+            cell.bg == expected || surfaces.contains(&cell.bg),
+            "{what}: cell ({}, {}) {:?} has bg {:?}, expected {expected:?} or a surface",
+            i % width,
+            i / width,
+            cell.symbol(),
+            cell.bg
+        );
+    }
+    assert!(buffer.content().iter().any(|c| c.bg == expected), "{what}");
+}
+
+/// No cell carries the painted colour, and every cell is either on the terminal's own
+/// background or a surface.
+pub fn assert_unpainted(buffer: &Buffer, surfaces: &[Color], what: &str) {
+    let width = usize::from(buffer.area.width);
+    for (i, cell) in buffer.content().iter().enumerate() {
+        assert!(
+            cell.bg == Color::Reset || surfaces.contains(&cell.bg),
+            "{what}: cell ({}, {}) {:?} has bg {:?}, expected the terminal's own",
+            i % width,
+            i / width,
+            cell.symbol(),
+            cell.bg
+        );
+    }
+}
+
+/// How many cells carry each background, one `colour: count` line per colour.
+pub fn bg_histogram(buffer: &Buffer) -> String {
+    let mut counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for cell in buffer.content() {
+        *counts.entry(format!("{:?}", cell.bg)).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .map(|(c, n)| format!("{c}: {n}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}

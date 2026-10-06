@@ -1,0 +1,6 @@
+---
+source: crates/review-buddy/tests/background.rs
+expression: bg_histogram(&buffer)
+---
+Reset: 2887
+Rgb(244, 233, 222): 113

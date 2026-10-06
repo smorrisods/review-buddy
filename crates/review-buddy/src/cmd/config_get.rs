@@ -54,6 +54,13 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     put("ui.reduced_motion", json!(ui.reduced_motion));
     put("ui.unicode", json!(ui.unicode));
     put("ui.colour_depth", json!(ui.colour_depth.as_str()));
+    put("ui.background", json!(ui.background.as_str()));
+    for (theme, mode) in &ui.theme_background {
+        put(
+            &format!("ui.theme_background.{theme}"),
+            json!(mode.as_str()),
+        );
+    }
     put("ui.mouse", json!(ui.mouse));
     put("ui.date_locale", json!(ui.date_locale));
     put("review.merge_method", json!(review.merge_method.as_str()));
@@ -144,6 +151,10 @@ fn origin_of(key: &str, files: &[(PathBuf, toml::Table)], env: &dyn Env) -> Stri
             .var("REVIEW_BUDDY_THEME")
             .filter(|v| !v.is_empty())
             .map(|_| "$REVIEW_BUDDY_THEME"),
+        "ui.background" => env
+            .var("REVIEW_BUDDY_BACKGROUND")
+            .filter(|v| v.parse::<rb_theme::BackgroundMode>().is_ok())
+            .map(|_| "$REVIEW_BUDDY_BACKGROUND"),
         "ui.reduced_motion" => env
             .var("REVIEW_BUDDY_REDUCED_MOTION")
             .filter(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
@@ -384,6 +395,23 @@ mod tests {
             json!(["reviewing", "assigned", "authored"])
         );
         assert_eq!(all["diff.tab_width"], json!(4));
+    }
+
+    #[test]
+    fn background_settings_are_listed_with_the_env_origin() {
+        let mut config = Config::default();
+        config
+            .ui
+            .theme_background
+            .insert("dusk".into(), crate::config::Background::Yes);
+        let all: std::collections::HashMap<_, _> = values(&config).into_iter().collect();
+        assert_eq!(all["ui.background"], json!("theme"));
+        assert_eq!(all["ui.theme_background.dusk"], json!("yes"));
+        let env = env().with_var("REVIEW_BUDDY_BACKGROUND", "no");
+        assert_eq!(
+            origin_of("ui.background", &[], &env),
+            "$REVIEW_BUDDY_BACKGROUND"
+        );
     }
 
     #[test]

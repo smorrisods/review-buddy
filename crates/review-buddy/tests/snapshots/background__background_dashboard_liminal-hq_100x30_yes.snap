@@ -1,0 +1,6 @@
+---
+source: crates/review-buddy/tests/background.rs
+expression: bg_histogram(&buffer)
+---
+Rgb(46, 36, 27): 113
+Rgb(5, 5, 7): 2887

@@ -27,8 +27,8 @@ expression: text(&render(&mut a))
 │ Your review · pendin│  q          back to the queue                        │────────────────────╮│
 │1 suggestion · 0 comm│  ?          help                                     │                    ││
 │0 of 3 files viewed  │  T          theme                                    │he first item? Most ││
-│Your verdict: not sta│                                                      │.                   ││
-│a approve · c comment│esc or ? to close                                     │                    ││
-│x request changes    ╰──────────────────────────────────────────────────────╯eld key never gets  ││
-╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
+│Your verdict: not sta│  B          background: theme / yes / no             │.                   ││
+│a approve · c comment│                                                      │                    ││
+│x request changes    │esc or ? to close                                     │eld key never gets  ││
+╰─────────────────────╰──────────────────────────────────────────────────────╯─────────────────────╯
  j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

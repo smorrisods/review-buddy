@@ -40,6 +40,7 @@ choice!(Layout { Panes = "panes", Split = "split", Queue = "queue" });
 choice!(SourcesLayout { Auto = "auto", Left = "left", Top = "top" });
 choice!(DetailMode { Auto = "auto", Open = "open", Closed = "closed" });
 choice!(ColourDepth { Auto = "auto", Truecolor = "truecolor", Colour256 = "256", Colour16 = "16" });
+choice!(Background { Theme = "theme", Yes = "yes", No = "no" });
 choice!(MergeMethod { Merge = "merge", Squash = "squash", Rebase = "rebase" });
 choice!(DiffView { Unified = "unified", SideBySide = "side-by-side" });
 choice!(CloneIfMissing { Ask = "ask", Always = "always", Never = "never" });
@@ -56,6 +57,9 @@ pub struct UiConfig {
     pub reduced_motion: bool,
     pub unicode: bool,
     pub colour_depth: ColourDepth,
+    pub background: Background,
+    /// Per-theme `background` settings, by theme id; each beats the global one.
+    pub theme_background: BTreeMap<String, Background>,
     pub mouse: bool,
     pub date_locale: String,
 }
@@ -71,6 +75,8 @@ impl Default for UiConfig {
             reduced_motion: false,
             unicode: true,
             colour_depth: ColourDepth::Auto,
+            background: Background::Theme,
+            theme_background: BTreeMap::new(),
             mouse: true,
             date_locale: "en-CA".into(),
         }

@@ -140,6 +140,110 @@ pub struct Palette {
     theme: Theme,
     depth: ColourDepth,
     no_color: bool,
+    background_mode: BackgroundMode,
+}
+
+/// Whether the interface paints a background of its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BackgroundMode {
+    /// Follow the theme: paint when it has an opaque background.
+    #[default]
+    Theme,
+    /// Paint, using the theme's effective background when it is transparent.
+    Yes,
+    /// Never paint.
+    No,
+}
+
+impl BackgroundMode {
+    pub const ALL: [BackgroundMode; 3] = [Self::Theme, Self::Yes, Self::No];
+
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Theme => "theme",
+            Self::Yes => "yes",
+            Self::No => "no",
+        }
+    }
+
+    /// The next mode in the session cycle: theme, yes, no, then theme again.
+    pub fn next(self) -> Self {
+        match self {
+            Self::Theme => Self::Yes,
+            Self::Yes => Self::No,
+            Self::No => Self::Theme,
+        }
+    }
+}
+
+impl FromStr for BackgroundMode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "theme" => Ok(Self::Theme),
+            "yes" => Ok(Self::Yes),
+            "no" => Ok(Self::No),
+            other => Err(format!(
+                "'{other}' isn't a background setting; use theme, yes, or no"
+            )),
+        }
+    }
+}
+
+/// Where each layer of the background setting stands. Precedence, highest first: the session
+/// key, `REVIEW_BUDDY_BACKGROUND`, the per-theme setting, the global setting, then the theme's
+/// own default (which is what `theme` means).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct BackgroundSettings {
+    pub global: BackgroundMode,
+    pub per_theme: std::collections::BTreeMap<String, BackgroundMode>,
+    pub env: Option<BackgroundMode>,
+    pub session: Option<BackgroundMode>,
+}
+
+impl BackgroundSettings {
+    /// The mode in force for a theme.
+    pub fn mode_for(&self, theme_id: &str) -> BackgroundMode {
+        self.session
+            .or(self.env)
+            .or_else(|| self.per_theme.get(theme_id).copied())
+            .unwrap_or(self.global)
+    }
+}
+
+/// The background colour to paint, quantised for `depth`, or `None` to leave the terminal's own.
+///
+/// `NO_COLOR` never paints. A per-theme setting beats the global one. At 16 colours nothing is
+/// painted unless forced with `yes`. `theme` follows the theme (see
+/// [`Theme::paints_background`]); `yes` paints a transparent theme with its effective
+/// background; `no` never paints.
+pub fn resolve_background(
+    theme: &Theme,
+    global: BackgroundMode,
+    per_theme: Option<BackgroundMode>,
+    depth: ColourDepth,
+    no_color: bool,
+) -> Option<Colour> {
+    if no_color {
+        return None;
+    }
+    let paint = match per_theme.unwrap_or(global) {
+        BackgroundMode::No => false,
+        BackgroundMode::Yes => true,
+        BackgroundMode::Theme => depth != ColourDepth::Ansi16 && theme.paints_background(),
+    };
+    paint.then(|| quantise(Colour::Rgb(theme.effective_background()), depth))
+}
+
+fn quantise(colour: Colour, depth: ColourDepth) -> Colour {
+    match (colour, depth) {
+        (Colour::Rgb(rgb), ColourDepth::Ansi256) => Colour::Indexed(quantise_256(rgb)),
+        (Colour::Rgb(_) | Colour::Indexed(_), ColourDepth::Ansi16) => {
+            Colour::Ansi(nearest_ansi(colour))
+        }
+        (c, _) => c,
+    }
 }
 
 impl Palette {
@@ -148,7 +252,31 @@ impl Palette {
             theme,
             depth,
             no_color,
+            background_mode: BackgroundMode::Theme,
         }
+    }
+
+    /// Sets the mode (already merged across config, environment and session) that
+    /// [`Palette::background`] resolves with.
+    pub fn with_background_mode(mut self, mode: BackgroundMode) -> Self {
+        self.background_mode = mode;
+        self
+    }
+
+    pub fn background_mode(&self) -> BackgroundMode {
+        self.background_mode
+    }
+
+    /// The background to paint across the frame, quantised for this depth, or `None` to leave
+    /// the terminal's own.
+    pub fn background(&self) -> Option<Colour> {
+        resolve_background(
+            &self.theme,
+            self.background_mode,
+            None,
+            self.depth,
+            self.no_color,
+        )
     }
 
     pub fn theme(&self) -> &Theme {
@@ -376,6 +504,7 @@ pub fn quantise_256(rgb: Rgb) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::BUILTIN_IDS;
 
     fn palette(id: &str, depth: ColourDepth, no_color: bool) -> Palette {
         Palette::new(Theme::builtin(id).unwrap(), depth, no_color)
@@ -609,5 +738,149 @@ mod tests {
         assert_eq!(p.fg(Role::Text).modifiers, Modifiers::NONE);
         assert!(p.wordmark().is_empty());
         assert_eq!(p.syntax(SyntaxRole::Keyword), None);
+    }
+
+    fn bg(
+        id: &str,
+        global: BackgroundMode,
+        per: Option<BackgroundMode>,
+        depth: ColourDepth,
+        no_color: bool,
+    ) -> Option<Colour> {
+        resolve_background(&Theme::builtin(id).unwrap(), global, per, depth, no_color)
+    }
+
+    const DEPTHS: [ColourDepth; 3] = [
+        ColourDepth::TrueColour,
+        ColourDepth::Ansi256,
+        ColourDepth::Ansi16,
+    ];
+
+    #[test]
+    fn theme_mode_follows_the_theme() {
+        use BackgroundMode::*;
+        let t = ColourDepth::TrueColour;
+        assert_eq!(bg("liminal-hq", Theme, None, t, false), None);
+        assert_eq!(bg("dusk", Theme, None, t, false), None);
+        assert_eq!(
+            bg("afterglow-dark", Theme, None, t, false),
+            Some(Colour::rgb(0x0f, 0x0e, 0x1a))
+        );
+        assert_eq!(
+            bg("afterglow-light", Theme, None, t, false),
+            Some(Colour::rgb(0xfb, 0xfa, 0xf6))
+        );
+    }
+
+    #[test]
+    fn yes_paints_a_transparent_theme_with_its_fallback() {
+        use BackgroundMode::*;
+        let t = ColourDepth::TrueColour;
+        assert_eq!(
+            bg("liminal-hq", Yes, None, t, false),
+            Some(Colour::rgb(0x05, 0x05, 0x07))
+        );
+        assert_eq!(
+            bg("dusk", Yes, None, t, false),
+            Some(Colour::rgb(0x05, 0x05, 0x07))
+        );
+        assert_eq!(
+            bg("afterglow-dark", Yes, None, t, false),
+            Some(Colour::rgb(0x0f, 0x0e, 0x1a))
+        );
+    }
+
+    #[test]
+    fn no_never_paints() {
+        for id in BUILTIN_IDS {
+            for depth in DEPTHS {
+                assert_eq!(bg(id, BackgroundMode::No, None, depth, false), None);
+            }
+        }
+    }
+
+    #[test]
+    fn no_color_never_paints_in_any_mode() {
+        for id in BUILTIN_IDS {
+            for mode in BackgroundMode::ALL {
+                for depth in DEPTHS {
+                    assert_eq!(bg(id, mode, Some(mode), depth, true), None);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn per_theme_beats_global() {
+        use BackgroundMode::*;
+        let t = ColourDepth::TrueColour;
+        assert!(bg("dusk", No, Some(Yes), t, false).is_some());
+        assert_eq!(bg("afterglow-dark", Yes, Some(No), t, false), None);
+        assert!(bg("afterglow-dark", No, Some(Theme), t, false).is_some());
+        assert_eq!(bg("dusk", Yes, Some(Theme), t, false), None);
+    }
+
+    #[test]
+    fn sixteen_colours_paint_only_when_forced() {
+        use BackgroundMode::*;
+        let d = ColourDepth::Ansi16;
+        assert_eq!(bg("afterglow-dark", Theme, None, d, false), None);
+        assert_eq!(bg("afterglow-light", Theme, None, d, false), None);
+        assert!(matches!(
+            bg("afterglow-dark", Yes, None, d, false),
+            Some(Colour::Ansi(_))
+        ));
+        assert!(matches!(
+            bg("dusk", Yes, None, d, false),
+            Some(Colour::Ansi(_))
+        ));
+        assert!(bg("afterglow-dark", Theme, Some(Yes), d, false).is_some());
+    }
+
+    #[test]
+    fn backgrounds_quantise_to_the_depth() {
+        let d = ColourDepth::Ansi256;
+        assert!(matches!(
+            bg("afterglow-dark", BackgroundMode::Theme, None, d, false),
+            Some(Colour::Indexed(_))
+        ));
+    }
+
+    #[test]
+    fn palette_background_uses_its_mode() {
+        let p = palette("dusk", ColourDepth::TrueColour, false);
+        assert_eq!(p.background(), None);
+        let p = p.with_background_mode(BackgroundMode::Yes);
+        assert!(p.background().is_some());
+        assert_eq!(p.background_mode(), BackgroundMode::Yes);
+    }
+
+    #[test]
+    fn settings_precedence_is_session_env_theme_global() {
+        use BackgroundMode::*;
+        let mut s = BackgroundSettings {
+            global: Yes,
+            ..Default::default()
+        };
+        assert_eq!(s.mode_for("dusk"), Yes);
+        s.per_theme.insert("dusk".into(), No);
+        assert_eq!(s.mode_for("dusk"), No);
+        assert_eq!(s.mode_for("other"), Yes);
+        s.env = Some(Theme);
+        assert_eq!(s.mode_for("dusk"), Theme);
+        s.session = Some(Yes);
+        assert_eq!(s.mode_for("dusk"), Yes);
+    }
+
+    #[test]
+    fn modes_parse_and_cycle() {
+        for m in BackgroundMode::ALL {
+            assert_eq!(m.key().parse(), Ok(m));
+        }
+        assert_eq!(" YES ".parse(), Ok(BackgroundMode::Yes));
+        assert!("maybe".parse::<BackgroundMode>().is_err());
+        assert_eq!(BackgroundMode::Theme.next(), BackgroundMode::Yes);
+        assert_eq!(BackgroundMode::Yes.next(), BackgroundMode::No);
+        assert_eq!(BackgroundMode::No.next(), BackgroundMode::Theme);
     }
 }

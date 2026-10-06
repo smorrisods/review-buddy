@@ -32,6 +32,7 @@ pub use hitmap::HitMap;
 pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
     let mut hits = HitMap::default();
     let area = frame.area();
+    paint_background(frame, app, area);
 
     if size::is_too_small(area.width, area.height) {
         draw_too_small(frame, app, area);
@@ -61,6 +62,15 @@ pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
         help::draw(frame, app, body);
     }
     hits
+}
+
+/// Fills the frame with the resolved background, when there is one, so every cell that a
+/// widget leaves alone still carries it.
+fn paint_background(frame: &mut Frame, app: &App, area: Rect) {
+    if let Some(colour) = app.palette.background() {
+        let fill = ratatui::style::Style::default().bg(style::colour(colour));
+        frame.render_widget(ratatui::widgets::Block::default().style(fill), area);
+    }
 }
 
 fn draw_too_small(frame: &mut Frame, app: &App, area: Rect) {

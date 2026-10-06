@@ -56,6 +56,7 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
     let copy = Some(Action::Copy);
     let help = Some(Action::ToggleHelp);
     let theme = Some(Action::CycleTheme);
+    let background = Some(Action::CycleBackground);
     match screen {
         Screen::Dashboard => vec![
             bind("Move", "j/k", "move in the focused pane", None, false),
@@ -98,6 +99,13 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
                 false,
             ),
             bind("General", "T", "theme", theme, true),
+            bind(
+                "General",
+                "B",
+                "background: theme / yes / no",
+                background,
+                false,
+            ),
             bind("General", "q", "quit", Some(Action::Quit), true),
         ],
         Screen::Diff => vec![
@@ -123,6 +131,13 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             ),
             bind("General", "?", "help", help, true),
             bind("General", "T", "theme", theme, true),
+            bind(
+                "General",
+                "B",
+                "background: theme / yes / no",
+                background,
+                false,
+            ),
         ],
         Screen::Settings => {
             use crate::settings::Click;
@@ -138,6 +153,13 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
                 bind("General", "esc", "back", click(Click::Back), true),
                 bind("General", "?", "help", help, true),
                 bind("General", "T", "theme", theme, false),
+                bind(
+                    "General",
+                    "B",
+                    "background: theme / yes / no",
+                    background,
+                    false,
+                ),
             ]
         }
         Screen::FirstRun => vec![

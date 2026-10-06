@@ -1,0 +1,6 @@
+---
+source: crates/review-buddy/tests/background.rs
+expression: bg_histogram(&buffer)
+---
+Reset: 6250
+Rgb(49, 38, 40): 150
