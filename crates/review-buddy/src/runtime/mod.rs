@@ -39,10 +39,6 @@ pub fn msg_from_event(event: Event) -> Option<Msg> {
     }
 }
 
-/// Why review writes aren't sent to live sources yet.
-#[cfg(feature = "live")]
-const NOT_WIRED: &str = "Sending reviews isn't wired up for live sources yet";
-
 /// What answers [`Cmd::LoadChanges`].
 #[derive(Debug, Clone, Default)]
 pub enum Backend {
@@ -54,9 +50,49 @@ pub enum Backend {
     Live(std::sync::Arc<crate::providers::Live>),
 }
 
+/// The parts of `config.toml` the interface applies at launch.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    pub theme: String,
+    pub depth: Option<rb_theme::ColourDepth>,
+    pub tab_width: u8,
+    pub confirm_post_now: bool,
+}
+
+impl Settings {
+    pub fn from_config(config: &crate::config::Config) -> Self {
+        use std::str::FromStr;
+        Self {
+            theme: config.ui.theme.clone(),
+            depth: match config.ui.colour_depth {
+                crate::config::ColourDepth::Auto => None,
+                other => rb_theme::ColourDepth::from_str(other.as_str()).ok(),
+            },
+            tab_width: config.diff.tab_width.clamp(1, 16),
+            confirm_post_now: config.review.confirm_post_now,
+        }
+    }
+
+    /// Applies the settings to a freshly built app config and app.
+    pub fn app_config(&self, mut base: AppConfig) -> AppConfig {
+        base.theme_id.clone_from(&self.theme);
+        if let Some(depth) = self.depth {
+            base.depth = depth;
+        }
+        base
+    }
+
+    pub fn apply(&self, app: &mut App) {
+        app.confirm_post_now = self.confirm_post_now;
+        app.tab_width = self.tab_width;
+    }
+}
+
 /// How the interface should start.
 #[derive(Debug, Default)]
 pub struct RunOptions {
+    /// Config for non-demo runs; demo mode never reads it.
+    pub settings: Option<Settings>,
     #[cfg(feature = "demo")]
     pub demo: Option<crate::demo::Demo>,
     /// Start on this change's diff instead of the dashboard.
@@ -198,15 +234,7 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 });
             }
             #[cfg(feature = "live")]
-            Backend::Live(_) => {
-                let _ = &draft;
-                let _ = tx.send(Msg::ReviewSubmitted {
-                    id,
-                    verdict,
-                    result: Err(NOT_WIRED.to_string()),
-                    demo: false,
-                });
-            }
+            Backend::Live(live) => live.submit_review(id, draft, verdict, tx),
         },
         Cmd::Reply { id, thread, body } => match backend {
             Backend::None => {
@@ -237,15 +265,7 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 });
             }
             #[cfg(feature = "live")]
-            Backend::Live(_) => {
-                let _ = &body;
-                let _ = tx.send(Msg::ReplyPosted {
-                    id,
-                    thread,
-                    result: Err(NOT_WIRED.to_string()),
-                    demo: false,
-                });
-            }
+            Backend::Live(live) => live.reply(id, thread, body, tx),
         },
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
@@ -271,7 +291,14 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     let open = options.open.clone();
     let mut guard = TerminalGuard::enter()?;
     let size = guard.terminal.size()?;
-    let mut app = App::new(AppConfig::from_env((size.width, size.height)));
+    let base = AppConfig::from_env((size.width, size.height));
+    let mut app = App::new(match &options.settings {
+        Some(settings) => settings.app_config(base),
+        None => base,
+    });
+    if let Some(settings) = &options.settings {
+        settings.apply(&mut app);
+    }
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Msg>();
     let mut events = EventStream::new();

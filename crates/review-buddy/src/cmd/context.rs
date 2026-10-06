@@ -234,6 +234,11 @@ impl Context {
         self.demo.as_ref().map(|d| &d.world)
     }
 
+    /// The `file:line: message` text of a config file that didn't load, if any.
+    pub fn config_problem(&self) -> Option<&str> {
+        self.config_error.as_deref()
+    }
+
     pub fn is_demo(&self) -> bool {
         self.args.demo
     }

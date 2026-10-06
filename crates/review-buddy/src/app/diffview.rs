@@ -13,6 +13,7 @@ use crate::ui::text::wrap;
 
 /// Columns before the code: cursor (2), old number (5), new number (5), sign (2).
 pub const GUTTER: u16 = 14;
+/// Used when config doesn't say otherwise (`diff.tab_width`).
 pub const TAB_WIDTH: u8 = 4;
 const BLOCK_PADDING: u16 = 4;
 const MIN_TEXT: u16 = 10;
@@ -69,6 +70,7 @@ pub struct Inputs<'a> {
     pub threads: &'a [Thread],
     pub drafts: &'a [DraftComment],
     pub now: Timestamp,
+    pub tab_width: u8,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -132,7 +134,11 @@ impl Rows {
                 line: draft.line,
             });
             let originals = original_lines(file, draft);
-            place(draft_block(draft, originals, text_width), at, &mut blocks);
+            place(
+                draft_block(draft, originals, text_width, inputs.tab_width),
+                at,
+                &mut blocks,
+            );
         }
 
         let mut rows = Vec::new();
@@ -349,7 +355,7 @@ fn thread_block(thread: &Thread, now: Timestamp, width: usize) -> Block {
     }
 }
 
-fn draft_block(draft: &DraftComment, originals: Vec<String>, width: usize) -> Block {
+fn draft_block(draft: &DraftComment, originals: Vec<String>, width: usize, tab_width: u8) -> Block {
     let (note, replacement) = parse_suggestion(&draft.body);
     let suggestion = replacement.is_some();
     let place = match draft.start_line {
@@ -363,13 +369,13 @@ fn draft_block(draft: &DraftComment, originals: Vec<String>, width: usize) -> Bl
         for text in originals {
             lines.push(BlockLine {
                 kind: BlockLineKind::Removed,
-                text: expand_tabs(&text, TAB_WIDTH),
+                text: expand_tabs(&text, tab_width),
             });
         }
         for text in replacement {
             lines.push(BlockLine {
                 kind: BlockLineKind::Added,
-                text: expand_tabs(&text, TAB_WIDTH),
+                text: expand_tabs(&text, tab_width),
             });
         }
     }
@@ -513,6 +519,7 @@ pub(crate) mod tests {
                 threads,
                 drafts,
                 now: Timestamp(7_200),
+                tab_width: TAB_WIDTH,
             },
             width,
         )
@@ -690,6 +697,7 @@ pub(crate) mod tests {
                 threads: &[],
                 drafts: &[],
                 now: Timestamp(0),
+                tab_width: TAB_WIDTH,
             },
             100,
         );
@@ -729,6 +737,7 @@ pub(crate) mod tests {
                 threads: &[],
                 drafts: &[],
                 now: Timestamp(0),
+                tab_width: TAB_WIDTH,
             },
             120,
         );

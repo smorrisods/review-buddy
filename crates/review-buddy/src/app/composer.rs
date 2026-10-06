@@ -646,6 +646,9 @@ pub fn on_submitted(
                 Notice::new(NoticeKind::Success, format!("{text}{}", demo_suffix(demo))),
             );
             cmds.push(Cmd::LoadChanges);
+            if !demo {
+                cmds.push(Cmd::LoadInfo(id.clone()));
+            }
             cmds
         }
         Err(err) => {
@@ -710,13 +713,17 @@ pub fn on_replied(
             if here {
                 add_reply(app, thread, comment);
             }
-            push_toast(
+            let mut cmds = push_toast(
                 app,
                 Notice::new(
                     NoticeKind::Success,
                     format!("Reply posted{}", demo_suffix(demo)),
                 ),
-            )
+            );
+            if !demo {
+                cmds.push(Cmd::LoadInfo(id.clone()));
+            }
+            cmds
         }
         Err(err) => {
             app.mark_dirty();

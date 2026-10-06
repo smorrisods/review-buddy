@@ -258,6 +258,8 @@ pub struct App {
     pub help: bool,
     /// Preview before posting a single comment now (`review.confirm_post_now`).
     pub confirm_post_now: bool,
+    /// Columns a tab expands to in diffs (`diff.tab_width`).
+    pub tab_width: u8,
     quit_armed: bool,
     pub(crate) syntax: Syntax,
     pub(crate) ticks: u64,
@@ -289,6 +291,7 @@ impl App {
             diff: None,
             help: false,
             confirm_post_now: true,
+            tab_width: diffview::TAB_WIDTH,
             quit_armed: false,
             syntax: Syntax::default(),
             ticks: 0,

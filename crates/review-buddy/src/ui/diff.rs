@@ -15,7 +15,7 @@ use unicode_width::UnicodeWidthChar;
 
 use super::text::cells;
 use super::{chrome::truncate, layout, style, HitMap};
-use crate::app::diffview::{self, BlockKind, BlockLine, BlockLineKind, Row, GUTTER, TAB_WIDTH};
+use crate::app::diffview::{self, BlockKind, BlockLine, BlockLineKind, Row, GUTTER};
 use crate::app::{Action, App, DiffFocus, DiffState, Phase};
 
 const PLACEHOLDER: &str = "·  ·  ·";
@@ -311,7 +311,7 @@ fn row_line(app: &App, state: &DiffState, index: usize, width: usize) -> (Line<'
                 vec![
                     Span::raw(" ".repeat(usize::from(GUTTER))),
                     Span::styled(
-                        expand_tabs(&text, TAB_WIDTH),
+                        expand_tabs(&text, app.tab_width),
                         style::fg(palette, Role::Cyan),
                     ),
                 ],
@@ -377,7 +377,7 @@ fn diff_line(
                 .map(|p| Span::styled(p.text.clone(), style::style(p.style(palette)))),
         ),
         None => spans.push(Span::styled(
-            expand_tabs(&line.text, TAB_WIDTH),
+            expand_tabs(&line.text, app.tab_width),
             style::fg(palette, Role::Text),
         )),
     }

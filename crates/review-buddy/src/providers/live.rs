@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use rb_core::{ChangeId, ReviewDraft, Source, SourceId};
+use rb_core::{ChangeId, Provider, ReviewDraft, Source, SourceId, ThreadId, Verdict};
 use rb_store::Store;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Semaphore;
@@ -170,6 +170,67 @@ impl Live {
         load::fetch_diff(provider.as_ref(), id, ReviewDraft::default())
             .await
             .map_err(|e| SourceFailure::from_error(&e, &host))
+    }
+
+    /// Sends a review (or one standalone comment) to the change's forge. Only called after the
+    /// confirmation step; the app's `submitting` flag keeps a second one from starting.
+    pub fn submit_review(
+        self: &Arc<Self>,
+        id: ChangeId,
+        draft: ReviewDraft,
+        verdict: Verdict,
+        tx: &UnboundedSender<Msg>,
+    ) {
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let result = match live.write_provider(&id).await {
+                Ok(provider) => provider
+                    .submit_review(&id, &draft, verdict)
+                    .await
+                    .map_err(|e| e.to_string()),
+                Err(message) => Err(message),
+            };
+            let _ = tx.send(Msg::ReviewSubmitted {
+                id,
+                verdict,
+                result,
+                demo: false,
+            });
+        });
+    }
+
+    /// Replies on a thread of `id`.
+    pub fn reply(
+        self: &Arc<Self>,
+        id: ChangeId,
+        thread: ThreadId,
+        body: String,
+        tx: &UnboundedSender<Msg>,
+    ) {
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let result = match live.write_provider(&id).await {
+                Ok(provider) => provider
+                    .reply(&thread, &body)
+                    .await
+                    .map_err(|e| e.to_string()),
+                Err(message) => Err(message),
+            };
+            let _ = tx.send(Msg::ReplyPosted {
+                id,
+                thread,
+                result,
+                demo: false,
+            });
+        });
+    }
+
+    /// The provider for a write, or the calm sign-in message when there isn't one.
+    async fn write_provider(&self, id: &ChangeId) -> Result<Arc<dyn Provider>, String> {
+        let host = self.host_of(&id.source_id);
+        self.provider(&id.source_id, &host).await.map_err(describe)
     }
 }
 
