@@ -1,15 +1,17 @@
 # Theming
 
+**Status (v0.1.0).** The four built-in themes work, `T` cycles through them, `ui.theme` (and `REVIEW_BUDDY_THEME`) picks one, colour depth is detected and `NO_COLOR` is honoured. `review-buddy theme list` lists the built-ins. **Not in 0.1:** loading theme files from disk (the search order below is the plan), hot reload, the Settings → Theme screen and palette commands, `theme check` and `theme export` (both exit `2` for now), and the Jax roles, since Jax isn't drawn yet. The format and roles below are what user themes will use, and the built-in files in `themes/` follow it.
+
 A theme is a TOML file that assigns colours to **roles**. Widgets only ever ask for roles, never raw colours, so a theme can restyle the whole app without touching code.
 
 ## Where themes live
 
-- Built-in: Liminal HQ (`liminal-hq`, default), Dusk (`dusk`, the Review Buddy signature look), Afterglow Dark (`afterglow-dark`), Afterglow Light (`afterglow-light`). They are embedded in the binary and also shipped as `themes/*.toml` for reference.
-- Your own: `$XDG_CONFIG_HOME/review-buddy/themes/*.toml` (default `~/.config/review-buddy/themes/`). The file name without `.toml` is the theme id.
-- Installed packs: `$XDG_DATA_HOME/review-buddy/themes/` (default `~/.local/share/…`), then each `$XDG_DATA_DIRS/review-buddy/themes/` (distro packages, e.g. `/usr/share/review-buddy/themes/`).
+- Built-in (the only ones loaded in 0.1): Liminal HQ (`liminal-hq`, default), Dusk (`dusk`, the Review Buddy signature look), Afterglow Dark (`afterglow-dark`), Afterglow Light (`afterglow-light`). They are embedded in the binary and also shipped as `themes/*.toml` for reference.
+- Your own (planned): `$XDG_CONFIG_HOME/review-buddy/themes/*.toml` (default `~/.config/review-buddy/themes/`). The file name without `.toml` is the theme id.
+- Installed packs (planned): `$XDG_DATA_HOME/review-buddy/themes/` (default `~/.local/share/…`), then each `$XDG_DATA_DIRS/review-buddy/themes/` (distro packages, e.g. `/usr/share/review-buddy/themes/`).
 - Search order is config home → data home → data dirs → built-ins; the first matching id wins, so you can shadow a built-in by copying it into your config dir. See `configuration.md` → File locations.
-- Choose one with `ui.theme = "<id>"` in `config.toml`, the Settings → Theme screen, the `Theme: …` palette commands, or `T` to cycle.
-- Theme files hot-reload: save the file and the running app repaints.
+- Choose one with `ui.theme = "<id>"` in `config.toml` or `T` to cycle (the Settings → Theme screen and the `Theme: …` palette commands are planned).
+- Planned: theme files hot-reload, so saving the file repaints the running app.
 
 ## Format
 
@@ -71,6 +73,8 @@ Colours are `#rrggbb`, `#rrggbbaa` (alpha is blended against `background`, or ag
 
 ### Wordmark and Jax
 
+`wordmark` is used in the top bar today. `jax_body` and `jax_box` are defined but unused until Jax arrives.
+
 | Role | Used for |
 |---|---|
 | `wordmark` | List of 2–4 colours; the `review buddy` wordmark is drawn per character along this gradient |
@@ -118,4 +122,4 @@ Force it with `ui.colour_depth = "truecolor" | "256" | "16"`.
 
 ## Checking contrast
 
-`review-buddy theme check <id>` prints each text role's contrast against `background` (or `#050507` / `#fbfaf6` for transparent themes, depending on `appearance`). It warns below 4.5:1, or 3:1 for `muted`.
+Planned: `review-buddy theme check <id>` will print each text role's contrast against `background` (or `#050507` / `#fbfaf6` for transparent themes, depending on `appearance`). It warns below 4.5:1, or 3:1 for `muted`.

@@ -16,7 +16,7 @@ Repo: `smorrisods/review-buddy`. Licence: MIT. Channels for 1.0: **GitHub Releas
 6. It attaches binaries, archives, packages and **one `SHA256SUMS`** covering every artefact.
 7. Smoke-test from the published assets (checklist below), then edit the generated notes if needed.
 
-**Manual dispatch** (`workflow_dispatch`) takes `release_tag` (`vX.Y.Z`; required unless `dry_run` is on, where it defaults to `v` plus the workspace version) and `dry_run` (default **true**). A dry run can start from any branch: it skips the main-ancestry check, builds and smoke-tests every target, uploads the artefacts and a `SHA256SUMS` as workflow artefacts, and publishes nothing. A real run (`dry_run` off) needs the tag to match the `Cargo.toml` version and the commit to be on `main`. `publish-release` refuses to modify a release that is already published and only reattaches assets to a draft. Concurrency is grouped per tag, with cancel-in-progress. Uploads use `gh release upload --clobber`, so reruns against a draft are idempotent. GitHub only lists a `workflow_dispatch` workflow once the file exists on the default branch, so the very first dry run happens after the workflow merges.
+**Manual dispatch** (`workflow_dispatch`) takes `release_tag` (`vX.Y.Z`; required unless `dry_run` is on, where it defaults to `v` plus the workspace version) and `dry_run` (default **true**). A dry run can start from any branch: it skips the main-ancestry check, builds and smoke-tests every target, uploads the artefacts and a `SHA256SUMS` as workflow artefacts, and publishes nothing. A real run (`dry_run` off) needs the tag to match the `Cargo.toml` version and the commit to be on `main`. `publish-release` refuses to modify a release that is already published and only reattaches assets to a draft. Concurrency is grouped per tag, with cancel-in-progress. Uploads use `gh release upload --clobber`, so reruns against a draft are idempotent. A dry run from `main` has already succeeded, so the workflow is listed and works.
 
 ## Release script commands
 
@@ -137,13 +137,63 @@ or right-click → Open in Finder once. `install.sh` downloads with `curl`, whic
 
 Platform code lives behind `cfg` in `rb-paths` and `rb-platform`.
 
-## First release checklist (adapted from jira-tui's)
+## First release checklist (v0.1.0)
 
-- [ ] `cargo fmt --check`, `cargo clippy --all-targets -D warnings` and `cargo nextest run` pass across all three feature sets
-- [ ] `scripts/prepare-release-version.sh --version 0.1.0`; review, then merge the bump PR
-- [ ] Tag `v0.1.0` on `main`; let `Release` build and publish
-- [ ] Linux, both arches: extract, `sha256sum -c SHA256SUMS`, install the `.deb` / `.rpm` in containers, `review-buddy --demo`, `man review-buddy`, `review-buddy config paths`
-- [ ] macOS: `lipo -archs` shows `x86_64 arm64`, `codesign -dv` shows an ad-hoc signature, Gatekeeper behaves as documented, `--demo` runs under Rosetta and natively
-- [ ] Windows, both arches: unzip, check SmartScreen behaviour, `install.ps1` then `-Uninstall`, `--demo` in Windows Terminal and conhost
-- [ ] `install.sh` against the real release on one Linux and one macOS machine
-- [ ] Release notes look right
+Adapted from jira-tui's. Tagging and publishing are a deliberate, separate step after the milestone review; everything above the tag line can be done and re-run safely.
+
+### 1. Pre-flight (on a clean `main`)
+
+- [ ] The milestone's issues are closed and the docs match behaviour (`README.md`, `docs/`, `CHANGELOG.md`)
+- [ ] CI is green on `main` (format, clippy and test across the three feature sets, `test-platforms`, `scripts`, audit)
+- [ ] The same checks pass locally:
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo nextest run --workspace                      # or: cargo test --workspace
+cargo nextest run --workspace --no-default-features
+cargo nextest run --workspace --all-features
+bash scripts/tests/run.sh                          # the release and install script tests
+```
+
+- [ ] `cargo tree -p rb-github | grep -i -E 'openssl|native-tls'` prints nothing, so the musl build stays static
+- [ ] `target/release/review-buddy --demo` opens and `review-buddy --version` prints the version you expect
+
+### 2. Version bump
+
+- [ ] `scripts/prepare-release-version.sh --version 0.1.0 --dry-run`, then without `--dry-run` in a clean tree. It creates `chore/release-v0.1.0` and bumps the workspace `version` and our `Cargo.lock` stanza
+- [ ] In `CHANGELOG.md`, rename `Unreleased` to `0.1.0 - <date>` and add a fresh empty `Unreleased` heading above it, in the same branch
+- [ ] Open the PR (label `release`), wait for green CI and merge it with a merge commit
+
+### 3. Dry run from `main`
+
+- [ ] Actions → Release → Run workflow on `main` with `dry_run` on (the default) and `release_tag` empty, or `gh workflow run release.yml --ref main -f dry_run=true`
+- [ ] Every job is green. Download the workflow artefacts and check `SHA256SUMS` against them: `sha256sum -c SHA256SUMS --ignore-missing`
+- [ ] Spot-check one musl tarball: `tar tzf` shows the layout under [Artefacts](#artefacts), including the man page, the three completions, `themes/`, `config.example.toml` and `LICENSE`
+
+### 4. Tag (only after the milestone review)
+
+- [ ] On `main`: `git tag v0.1.0 && git push origin v0.1.0`. The tag must match the `Cargo.toml` version and the commit must be on `main`
+- [ ] The `Release` workflow publishes the release with generated notes and one `SHA256SUMS`
+
+### 5. Post-release verification
+
+- [ ] **Checksums:** download the assets and `SHA256SUMS`, then `sha256sum -c SHA256SUMS`
+- [ ] **Static check (Linux, both arches):** extract each musl tarball. `file bin/review-buddy` names the right architecture, and `ldd bin/review-buddy` says `not a dynamic executable` (or `statically linked`)
+- [ ] **`--version`:** `review-buddy --version` prints `review-buddy 0.1.0` from each Linux tarball, the macOS binary and the Windows `.exe`
+- [ ] **Linux install script:** `curl -fsSL https://raw.githubusercontent.com/smorrisods/review-buddy/main/scripts/install.sh | sh`, then `review-buddy --version`, `man review-buddy`, `review-buddy config paths` and `review-buddy --demo`. Run it once with `--prefix "$HOME/.local"` and once with `--uninstall` afterwards
+- [ ] **Linux packages:** install the `.deb` in a Debian or Ubuntu 22.04+ container and the `.rpm` in a Fedora or RHEL 9+ container on both arches, and run `review-buddy --version` and `review-buddy --demo`
+- [ ] **macOS:** the install script on one Mac; `lipo -archs $(which review-buddy)` shows `x86_64 arm64`, `codesign -dv` shows an ad-hoc signature, and `--demo` runs natively and under Rosetta. Check the Gatekeeper behaviour for a browser download is as documented
+- [ ] **Windows (both arches where available):** run `install.ps1` from a PowerShell prompt, check `review-buddy --version`, then `install.ps1 -Uninstall`. Check the SmartScreen behaviour for a browser download, and `--demo` in Windows Terminal and conhost
+- [ ] **Completions:** `review-buddy completion bash | head` works, and the installed bash, zsh and fish completions load
+- [ ] The release notes look right; edit the generated notes if needed
+
+### Known gaps for v0.1.0
+
+- **PowerShell in CI:** nothing in CI lints or runs `install.ps1` or `build-release-archive.ps1` yet. A `pwsh` check is pending, because adding it means editing `.github/workflows/`, which needs a token with workflow scope. Until it lands, the Windows steps above are the only check
+- **The real publish path is untested:** dry runs build and verify everything, but the step that creates the GitHub Release (`publish-release` with `dry_run` off) has not run. The first real tag is its first test, so keep an eye on it, and remember it refuses to modify a release that is already published
+- **glibc has only `.deb` and `.rpm`:** there is no glibc tarball. The musl tarballs are static and run on any Linux. `install.sh --libc glibc` asks for a glibc tarball that isn't published, so it will fail until one is added
+- **No signing or notarisation:** macOS is ad-hoc signed only and Windows is unsigned, as described under [Running unsigned builds](#running-unsigned-builds)
+- **Bundled themes aren't read from disk yet:** archives and packages install `themes/` where the `$XDG_DATA_DIRS` search path will find it, but 0.1 only loads the built-in themes

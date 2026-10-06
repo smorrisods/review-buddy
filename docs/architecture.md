@@ -1,18 +1,20 @@
 # Architecture
 
+**Status (v0.1.0).** This page describes the target design. Where 0.1 differs it says so: `rb-gitlab` is a placeholder crate (GitLab arrives in v0.2), `rb-store` holds the SQLite cache only (no drafts or offline queue yet), the app has two screens (Dashboard and Diff), and there is no tracing or log file yet.
+
 ## Workspace
 
 ```text
 review-buddy/
 ├─ Cargo.toml                 workspace
 ├─ crates/
-│  ├─ rb-core/                domain types, triage (built-ins + [[triage.rule]] engine), review drafts, the Provider trait
-│  ├─ rb-github/              GitHub provider (GraphQL via graphql_client + REST via reqwest)
-│  ├─ rb-gitlab/              GitLab provider (REST v4)
-│  ├─ rb-paths/               XDG resolution, config layering, dir creation with 0700
+│  ├─ rb-core/                domain types, triage (the built-in rules; the [[triage.rule]] engine is planned), review drafts, the Provider trait
+│  ├─ rb-github/              GitHub provider (hand-written GraphQL with typed serde structs + REST via reqwest)
+│  ├─ rb-gitlab/              GitLab provider (REST v4). A placeholder in 0.1
+│  ├─ rb-paths/               XDG resolution and dir creation with 0700 (config layering lives in the binary crate's `config/`)
 │  ├─ rb-platform/            open URL, clipboard (OSC 52 first), keyring fallbacks, per-OS cfg
-│  ├─ rb-store/               SQLite cache (rusqlite), ETag store, drafts, offline queue
-│  ├─ rb-theme/               theme loading, role resolution, colour-depth quantisation
+│  ├─ rb-store/               SQLite cache (rusqlite) and ETag store; drafts and the offline queue are planned
+│  ├─ rb-theme/               built-in themes, role resolution, colour-depth quantisation
 │  ├─ rb-diff/                patch parsing, hunk model, side-by-side pairing, syntect bridge
 │  └─ review-buddy/           the binary: app state, event loop, ratatui widgets, and cmd/ (the gh-style command line)
 ├─ themes/                    built-in theme TOML (embedded with include_str!)
@@ -21,11 +23,19 @@ review-buddy/
 
 ## Key crates
 
-`ratatui` (rendering) · `crossterm` (terminal, input, mouse, focus events) · `tokio` (async runtime) · `reqwest` + `rustls` · hand-written GraphQL with typed `serde` structs · `serde` / `toml` / `toml_edit` · `rusqlite` (bundled) · `keyring` · `syntect` · `nucleo` (fuzzy matching) · `pulldown-cmark` (markdown → spans) · `etcetera` (XDG base directories on every Unix, macOS included; `%APPDATA%` on Windows. We don't use `directories`, because it maps macOS to `~/Library`) · `tracing` + `tracing-appender` (logs to `$XDG_STATE_HOME/review-buddy/logs/`, never to the screen) · `insta` (snapshot tests of rendered buffers).
+`ratatui` (rendering) · `crossterm` (terminal, input, mouse, focus events) · `tokio` (async runtime) · `reqwest` + `rustls` · hand-written GraphQL with typed `serde` structs · `serde` / `toml` / `toml_edit` · `rusqlite` (bundled) · `keyring` · `syntect` · `nucleo` (fuzzy matching) · `pulldown-cmark` (markdown → spans) · `jaq` (the built-in jq behind `--jq`) · `clap`, `clap_complete` and `clap_mangen` (the command line, shell completions and the man page) · `insta` (snapshot tests of rendered buffers). XDG base directories are resolved by `rb-paths` itself on every Unix, macOS included (`%APPDATA%` on Windows), because crates such as `directories` map macOS to `~/Library`. Planned and not yet in the tree: `nucleo` (fuzzy matching for the palette) and `tracing` (logs to `$XDG_STATE_HOME/review-buddy/logs/`, never to the screen).
 
 ## Binary crate layout
 
-The `review-buddy` crate is a library (`src/lib.rs`) with a thin `main.rs`, so integration tests and later features can reach the code. `app/` holds the `App` state, `Msg`, `Cmd`, `Action` and the pure `update`. `ui/` holds `draw(frame, &App) -> HitMap` (top bar, body placeholder per `Screen`, footer hints, toast stack, the 100×30 minimum-size notice), the `HitMap`, and `ui::style`, the adapter from `rb-theme`'s framework-neutral colours onto ratatui. `runtime/` owns the terminal modes (alternate screen, mouse, bracketed paste, focus events, restored on drop and from a panic hook) and the tokio loop that selects over crossterm's `EventStream`, a tick, and the `Cmd` results channel, and redraws only when the app is dirty and at most about 30 times a second. `cli.rs` is shared with `build.rs` through `include!`.
+The `review-buddy` crate is a library (`src/lib.rs`) with a thin `main.rs`, so integration tests and later features can reach the code. `cli.rs` is shared with `build.rs` through `include!`. The modules:
+
+- `app/`: the `App` state, `Msg`, `Cmd`, `Action` and the pure `update`, split by concern (`dashboard`, `diff`, `diffview`, `composer`, `editor`, `queue`, `range`, `mouse`, `live`, `links`, `failure`).
+- `ui/`: `draw(frame, &App) -> HitMap`: the top bar and footer hints (`chrome`, which also holds the key registry the footer and the help overlay share), the three-pane dashboard and detail pane, the diff and composer, the help overlay, the `HitMap`, layout and size helpers, and `ui::style`, the adapter from `rb-theme`'s framework-neutral colours onto ratatui. A terminal below 100×30 shows a "make me a little wider" notice.
+- `runtime/`: the terminal modes (alternate screen, mouse, bracketed paste, focus events, restored on drop and from a panic hook), the tokio loop that selects over crossterm's `EventStream`, a tick and the `Cmd` results channel (redrawing only when the app is dirty, at most about 30 times a second), and `effects` that run `Cmd`s.
+- `cmd/`: the `gh`-style command line, one module per command (`queue`, `pr_list`, `pr_view`, `pr_diff`, `pr_checks`, `auth`, `source`, `config`, `theme`, `doctor`, `completion`, `open`) plus shared plumbing (`context`, `selector`, `output`, `prompt`, `error` for exit codes, `git`, `markdown`, and `stub` for declared-but-unbuilt commands).
+- `config/`: the layered `config.toml` (`schema`, `sources`, `edit`, `error`).
+- `providers/`: the live backend that builds one `Provider` per source and refreshes them concurrently, with cached rows painted first.
+- `demo/`: the offline fixtures, the `DemoProvider`, the frozen clock and the throwaway environment behind `--demo`.
 
 ## Provider trait
 
@@ -68,6 +78,8 @@ pub trait Provider: Send + Sync {
 
 ## App state (Elm-style)
 
+The struct below is the target shape. In 0.1 `Screen` is `Dashboard | Diff`, the dashboard layout is fixed at three panes, and the overlays are the help overlay, the composer and the approve/post/discard confirm; there is no palette, search, merge confirm, settings or first-run screen yet. `Cmd`s today are `LoadChanges`, `LoadInfo`, `LoadDiff`, `SubmitReview`, `Reply`, `OpenUrl`, `Copy` and `After`.
+
 ```rust
 struct App {
     screen: Screen,                 // FirstRun | Dashboard | Diff | Settings
@@ -94,11 +106,11 @@ struct App {
 ### Input routing
 
 1. An open overlay gets the key first (palette, then confirm, then composer).
-2. Global keys (`⌃K`, `/`, `tab`, `,`, `T`, `L`, `J`, `q`).
-3. Focused-pane keys (`↑↓`, `space`, `⏎`, `← →`).
-4. Screen action keys (`a x c s m R b o v …`).
+2. Global keys (`?`, `o`, `y`, `T`, `q`, and `r` on the dashboard; `⌃K`, `/`, `,`, `L` and `J` are planned).
+3. Focused-pane keys (`↑↓`, `⏎`, `← →`, `tab`).
+4. Screen action keys (the dashboard and diff handlers; see `keybindings.md`).
 
-Mouse events are hit-tested against the `Rect`s recorded during the last draw (`HitMap`). Line drag-select is `Down(Left)` → anchor, `Drag(Left)` → cursor, `Up(Left)` → finish (and clear if anchor == cursor).
+Mouse events are hit-tested against the `Rect`s recorded during the last draw (`HitMap`). Line drag-select is `Down(Left)` → anchor, `Drag(Left)` → cursor, `Up(Left)` → finish (and clear if anchor == cursor). In 0.1 a range can be selected but only the cursor line is commented on.
 
 ## Command line
 
@@ -114,6 +126,8 @@ With a command, the binary skips the TUI and runs one module under `crates/revie
 
 ## Persistence
 
+In 0.1 only the config file and the SQLite cache exist. The drafts, offline queue, session and lock rows are planned.
+
 | Store | Contents | Format |
 |---|---|---|
 | `$XDG_CONFIG_HOME/review-buddy/config.toml` (+ `config.d/`, `$XDG_CONFIG_DIRS`) | user settings, layered | TOML, edited with `toml_edit` |
@@ -128,9 +142,9 @@ With a command, the binary skips the TUI and runs one module under `crates/revie
 
 - `rb-core`: triage rules and the draft → API payload mapping, tested against fixtures.
 - Providers: recorded HTTP fixtures (`wiremock`) for each endpoint in `integrations.md`, including 304, 401, 403-SSO, 409 and rate-limit cases.
-- UI: `insta` snapshots of `TestBackend` buffers for every frame on the design board (1a–1m) in all three themes, at 160×40 and 100×30.  See `docs/testing.md` for running, reviewing and accepting snapshots.
+- UI: `insta` snapshots of `TestBackend` buffers for the canonical frames (1a three panes, 1d diff, 1f composer) in three themes, at 160×40 and 100×30, plus per-screen snapshots; the other board frames are snapshotted as they are built. See `docs/testing.md` for running, reviewing and accepting snapshots.
 - Cargo features: `live` (HTTP providers, keyring) and `demo` (fixtures, `--demo`), both on by default. `--no-default-features` builds the core with neither and must stay warning-free (the CI clippy and test matrix: default, no-default-features, all-features, as in jira-tui).
 - Demo fixtures live in `crates/review-buddy/src/demo/` as TOML plus patch files. A `DemoProvider` implements `Provider`, so the UI code path is identical; write calls mutate in-memory state only.
-- CI runs tests on Linux x64 and ARM64, Windows x64 and macOS ARM64; release builds cover Linux amd64/arm64, macOS universal and Windows amd64/arm64 (see `release.md`).
+- CI runs the tests on Linux x64 (ubuntu-24.04) across the three feature sets, plus a default-features run on Windows (windows-2022) and macOS ARM64 (macos-14); release builds cover Linux amd64/arm64, macOS universal and Windows amd64/arm64 (see `release.md`).
 - CLI: `assert_cmd` runs every command under `--demo --frozen-time` with temp `XDG_*` dirs, piped and with `--json`, pinned with `insta` (see `docs/cli.md`).
-- `cargo test --features live` runs against a throwaway GitHub repo and a GitLab project (CI only, behind secrets).
+- `#[ignore]`d live tests run only against a throwaway GitHub repository you name yourself (see `docs/integrations.md`); GitLab live tests arrive with GitLab.
