@@ -128,7 +128,7 @@ With a command, the binary skips the TUI and runs one module under `crates/revie
 
 - `rb-core`: triage rules and the draft → API payload mapping, tested against fixtures.
 - Providers: recorded HTTP fixtures (`wiremock`) for each endpoint in `integrations.md`, including 304, 401, 403-SSO, 409 and rate-limit cases.
-- UI: `insta` snapshots of `TestBackend` buffers for every frame on the design board (1a–1m) in all three themes, at 160×40 and 100×30.
+- UI: `insta` snapshots of `TestBackend` buffers for every frame on the design board (1a–1m) in all three themes, at 160×40 and 100×30.  See `docs/testing.md` for running, reviewing and accepting snapshots.
 - Cargo features: `live` (HTTP providers, keyring) and `demo` (fixtures, `--demo`), both on by default. `--no-default-features` builds the core with neither and must stay warning-free (the CI clippy and test matrix: default, no-default-features, all-features, as in jira-tui).
 - Demo fixtures live in `crates/review-buddy/src/demo/` as TOML plus patch files. A `DemoProvider` implements `Provider`, so the UI code path is identical; write calls mutate in-memory state only.
 - CI runs tests on Linux x64 and ARM64, Windows x64 and macOS ARM64; release builds cover Linux amd64/arm64, macOS universal and Windows amd64/arm64 (see `release.md`).
