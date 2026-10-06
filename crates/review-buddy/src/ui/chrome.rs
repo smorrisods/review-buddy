@@ -69,6 +69,13 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("Change", "y", "copy", copy, true),
             bind("Change", "s", "show filters", Some(Action::OpenShow), true),
             bind("General", "?", "help", help, true),
+            bind(
+                "General",
+                ",",
+                "settings",
+                Some(Action::OpenSettings),
+                false,
+            ),
             bind("General", "T", "theme", theme, true),
             bind("General", "q", "quit", Some(Action::Quit), true),
         ],
@@ -96,6 +103,22 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("General", "?", "help", help, true),
             bind("General", "T", "theme", theme, true),
         ],
+        Screen::Settings => {
+            use crate::settings::Click;
+            let click = |c| Some(Action::Settings(c));
+            vec![
+                bind("Move", "j/k", "move between sources", None, false),
+                bind("Move", "g/G", "first / last source", None, false),
+                bind("Source", "t", "test token", click(Click::Test), true),
+                bind("Source", "e", "edit", click(Click::Edit), true),
+                bind("Source", "a", "add", click(Click::Add), true),
+                bind("Source", "space", "on/off", click(Click::Toggle), true),
+                bind("Source", "x", "remove", click(Click::Remove), true),
+                bind("General", "esc", "back", click(Click::Back), true),
+                bind("General", "?", "help", help, true),
+                bind("General", "T", "theme", theme, false),
+            ]
+        }
         Screen::FirstRun => vec![
             bind("First run", "⏎", "continue", None, true),
             bind("First run", "space", "pick", None, true),
@@ -156,6 +179,8 @@ pub fn draw_top_bar(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap)
     spans.extend(wordmark_spans(app));
     let info = if app.screen == Screen::FirstRun {
         "  ·  first run".to_string()
+    } else if app.screen == Screen::Settings {
+        "  ·  settings".to_string()
     } else {
         format!("  ·  {} · {} changes", app.source_label, app.change_count)
     };
@@ -205,6 +230,13 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
     let palette = &app.palette;
     let hints = if app.diff_state().is_some_and(|s| s.composer.is_some()) {
         composer_hints()
+    } else if let Some(hints) = app
+        .settings
+        .as_ref()
+        .filter(|_| app.screen == Screen::Settings)
+        .and_then(super::settings::modal_hints)
+    {
+        hints
     } else {
         hints_for(app.screen)
     };

@@ -28,6 +28,7 @@ expression: text(&render(&mut a))
 │                        ││                         │                                                      │                                                   │
 │                        ││                         │General                                               │                                                   │
 │                        ││                         │  ?    help                                           │                                                   │
+│                        ││                         │  ,    settings                                       │                                                   │
 │                        ││                         │  T    theme                                          │                                                   │
 │                        ││                         │  q    quit                                           │                                                   │
 │                        ││                         │                                                      │                                                   │

@@ -19,10 +19,10 @@ expression: text(&render(&mut a))
 │                     │  ⏎    diff                                           │::select_prev move   │
 │  Can wait · 1       │  o    open                                           │                     │
 │  · Clarify the insta│  y    copy                                           │ action for the      │
-│  GL notes!12 · kai ·│  s    show filters                                   │                     │
-│                     │                                                      │Line, so it picks up │
-│  ▸ Noise · 2 bot upd│General                                               │                     │
-│                     │  ?    help                                           │                     │
+│  GL notes!12 · kai ·│                                                      │                     │
+│                     │General                                               │Line, so it picks up │
+│  ▸ Noise · 2 bot upd│  ?    help                                           │                     │
+│                     │  ,    settings                                       │                     │
 │  ── That's everythin│  T    theme                                          │                     │
 │  7 in this view.    │  q    quit                                           │                     │
 │                     │                                                      │                     │
@@ -31,4 +31,4 @@ expression: text(&render(&mut a))
 │                                              ││ ● 2 passing  ◐ 1 running                         │
 │                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
+ ⏎ diff  o open  y copy  ? help  T theme  q quit

@@ -1,8 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use super::{
-    composer, dashboard, diff, links, live, mouse, setup, Action, App, AppState, Cmd, Entry, Msg,
-    Notice, NoticeKind, Screen, Snapshot, SourceProbe, MAX_TOASTS, NOTICE_TTL,
+    composer, dashboard, diff, links, live, mouse, settings, setup, Action, App, AppState, Cmd,
+    Entry, Msg, Notice, NoticeKind, Screen, Snapshot, SourceProbe, MAX_TOASTS, NOTICE_TTL,
 };
 
 /// Applies one message and returns the effects to run. Does no I/O.
@@ -43,8 +43,10 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             Vec::new()
         }
         Msg::Paste(text) if app.screen == Screen::FirstRun => setup::on_paste(app, text),
+        Msg::Paste(text) if app.screen == Screen::Settings => settings::on_paste(app, text),
         Msg::Paste(text) => composer::on_paste(app, &text),
         Msg::Setup(input) => setup::drive(app, input),
+        Msg::Settings(input) => settings::drive(app, input),
         Msg::Notify(notice) => push_toast(app, notice),
         Msg::Status(notice) => set_status(app, notice),
         Msg::StatusExpired(id) => {
@@ -140,7 +142,7 @@ pub(super) fn scroll(app: &mut App, column: u16, row: u16, down: bool) -> Vec<Cm
     match app.screen {
         Screen::Dashboard => dashboard::on_scroll(app, column, row, down),
         Screen::Diff => diff::on_scroll(app, column, row, down),
-        Screen::FirstRun => {}
+        Screen::FirstRun | Screen::Settings => {}
     }
     Vec::new()
 }
@@ -179,6 +181,11 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
             _ => super::show::on_key(app, key),
         };
     }
+    if app.screen == Screen::Settings && !quits {
+        if let Some(cmds) = settings::on_key(app, key) {
+            return cmds;
+        }
+    }
     let overlay = app.screen == Screen::Diff && app.diff.as_ref().is_some_and(|s| s.has_overlay());
     if overlay && !quits {
         return composer::on_key(app, key);
@@ -186,6 +193,9 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     match key.code {
         _ if quits => run(app, Action::Quit),
         KeyCode::Char('?') if !ctrl && !alt => run(app, Action::ToggleHelp),
+        KeyCode::Char(',') if !ctrl && !alt && app.screen == Screen::Dashboard => {
+            run(app, Action::OpenSettings)
+        }
         KeyCode::Char('o') if !ctrl && !alt => run(app, Action::Open),
         KeyCode::Char('y') if !ctrl && !alt => run(app, Action::Copy),
         KeyCode::Char('T') if !ctrl => run(app, Action::CycleTheme),
@@ -200,7 +210,7 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         _ => match app.screen {
             Screen::Dashboard => dashboard::on_key(app, key).unwrap_or_default(),
             Screen::Diff => diff::on_key(app, key),
-            Screen::FirstRun => Vec::new(),
+            Screen::FirstRun | Screen::Settings => Vec::new(),
         },
     }
 }
@@ -257,6 +267,8 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         }
         Action::ComposerCursor { .. } | Action::Answer(_) => Vec::new(),
         Action::Setup(click) => setup::drive(app, crate::setup::Input::Click(click)),
+        Action::OpenSettings => settings::open(app),
+        Action::Settings(click) => settings::drive(app, crate::settings::Input::Click(click)),
         other => dashboard::on_action(app, other),
     }
 }

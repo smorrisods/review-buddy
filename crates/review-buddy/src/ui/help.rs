@@ -23,6 +23,7 @@ fn screen_name(screen: Screen) -> &'static str {
         Screen::Dashboard => "Queue",
         Screen::Diff => "Diff",
         Screen::FirstRun => "First run",
+        Screen::Settings => "Settings",
     }
 }
 

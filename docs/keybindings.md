@@ -100,6 +100,26 @@ The footer lists the key hints on the left and a status on the right. When space
 
 The filters start from `triage.show` and, when the Sources pane is showing, are also listed under the sources. Changes are kept for the session only and are never written to `config.toml`. The selection stays on the same change when it is still listed, and otherwise settles on the nearest row. Noise stays expanded or collapsed as you left it.
 
+## Settings
+
+`,` opens Settings from the queue. Only **Sources** is built; Review, Keys, Theme and Jax arrive with the rest of Settings in v0.4. Changes save to your config at once, and the queue reloads from it.
+
+| Key | Action |
+|---|---|
+| `j` `k` / `↑` `↓` · `g` `G` | Move between sources · first / last |
+| `t` | Test the selected source's token: who it signs in as, its scopes and any expiry |
+| `e` / `⏎` | Edit the source in a form |
+| `a` / `n` | Add a source. Hosts found on this machine are offered first, then **Another host…** |
+| `space` | Switch the source on or off (it stays in the config) |
+| `x` / `del` | Remove the source, after a confirm that starts on **No, keep it** |
+| `?` · `T` · `esc` | Help · theme · back to the queue |
+
+In the form, `tab` / `⇧tab` (or `↓` `↑`) move between fields, `← →` or `space` change a choice, `⏎` saves and `esc` cancels. A token typed in the form is hidden, is tested before anything is written, and goes only to your OS keyring; the config file never holds it. Leave it blank to keep the token already saved.
+
+The remove confirm names the source and the file it comes out of. `⏎` chooses the highlighted option, `y` removes the source, `d` removes it and its keyring token (offered only when no other source shares that token), and `esc` or `n` keeps it. The keyring token stays unless you choose `d`.
+
+Sources that come from `config.d/*.toml`, `$XDG_CONFIG_DIRS` or a `--config` file other than the write target are shown with where they come from (`from config.d/10-work.toml`). Because a later file's `[[source]]` list replaces an earlier one, they can't be overridden from your own `config.toml`, so edit, add, switch and remove explain this and leave every file alone; testing a token still works. In demo mode Settings lists the demo sources read-only and says `(demo)`.
+
 ## Mouse
 
 Every mouse target is registered while drawing and resolved in `update`, so it behaves like the key it mirrors. Turn the mouse off with `ui.mouse = false`; then the terminal's own selection and wheel work everywhere.
@@ -133,7 +153,6 @@ These are in the spec and not built in 0.1. Pressing them does nothing, or says 
 | Key | Planned for | Action |
 |---|---|---|
 | `⌃K` · `/` | v0.4 | Command palette · search all sources |
-| `,` | v0.4 | Settings |
 | `L` · `J` | v0.4 | Cycle layout · toggle Jax |
 | `x` `m` on the dashboard | v0.3 | Request changes and merge |
 | `m` | v0.3 | Merge, with a confirm that defaults to **No, not yet** |

@@ -10,7 +10,7 @@ pub mod output;
 pub mod prompt;
 pub mod selector;
 
-mod auth;
+pub(crate) mod auth;
 mod auth_login;
 mod auth_logout;
 mod auth_token;

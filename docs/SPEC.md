@@ -16,7 +16,7 @@ This spec describes the whole product. **v0.1.0 is the first slice** (see §14):
 | §4.4 Composer | Comment and reply on a line, add to the pending review, post now with a preview, word-wise editing, discard confirm | Suggestions and `⌃S`, `⌃E`, saved drafts (v0.3 and 1.0) |
 | §4.5 Palette and search | No | v0.4 |
 | §4.6 Merge confirm | No | v0.3 |
-| §4.7 Settings | No | v0.4 |
+| §4.7 Settings | Sources only (v0.2): `,` opens Settings with a Sources table (name, kind, host, scope, sign-in, in All, last token check and expiry), `t` tests a token, `e` edits and `a` adds through a form (hosts found on the machine are suggested; a typed token is tested, hidden and kept only in the keyring), `space` switches a source on or off, `x`/`del` removes after a confirm that starts on No and says the keyring token stays unless you also choose to remove it. Writes go through `toml_edit` to the write target with comments kept. Sources defined in `config.d`, `$XDG_CONFIG_DIRS` or another `--config` file show their origin and are read-only (a later layer replaces the `[[source]]` list wholesale, so an override in the user file can't work); demo mode lists demo sources read-only | Review, Keys, Theme and Jax sections (v0.4) |
 | §6 Actions | Approve and comment in the diff; open `o` and copy `y` everywhere | Request changes, merge, re-run, checkout (v0.3); GitLab (v0.2) |
 | §7 Feedback | Toasts (on state changes only) and footer status, last-refreshed time, the `offline · cached HH:MM` banner, errors with a next step, per-source failures keep cached rows | Offline action queue (1.0); banner times are UTC until local time lands |
 | §8 Demo | `--demo`, `--frozen-time`, offline fixtures (all four sources, seven changes), writes labelled `(demo)` | `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet |
@@ -200,7 +200,7 @@ There is one composer for comments and suggestions, docked over the bottom of th
 - **Theme**: built-in and user themes with swatches; `↑↓` previews live; the user theme directory and an example are shown.
 - **Jax**: show Jax, mood reactions, shift log.
 
-Changes write at once to `$XDG_CONFIG_HOME/review-buddy/config.toml` (atomic write via a temp file + rename, comments preserved via `toml_edit`). Values that come from `$XDG_CONFIG_DIRS` or `config.d/` show their origin (e.g. `from config.d/10-work.toml`) and are written as overrides rather than edited in place.
+Changes write at once to `$XDG_CONFIG_HOME/review-buddy/config.toml` (atomic write via a temp file + rename, comments preserved via `toml_edit`). Values that come from `$XDG_CONFIG_DIRS` or `config.d/` show their origin (e.g. `from config.d/10-work.toml`). In 0.2 Sources shows those read-only with an explanation instead of writing an override: `[[source]]` lists replace each other wholesale across layers, so an override in the user file would either be ignored (a drop-in wins) or hide the other list.
 
 ## 5. Data model and triage
 

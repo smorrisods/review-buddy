@@ -24,6 +24,7 @@ mod mouse;
 pub mod queue;
 pub mod range;
 pub mod refresh;
+pub mod settings;
 pub mod setup;
 pub mod show;
 mod update;
@@ -50,6 +51,8 @@ pub enum Screen {
     Diff,
     /// First run: connecting accounts. See `crate::setup`.
     FirstRun,
+    /// Settings → Sources. See `crate::settings`.
+    Settings,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,6 +127,10 @@ pub enum Action {
     Answer(bool),
     /// A press on part of the first-run screen.
     Setup(crate::setup::Click),
+    /// Open Settings from the dashboard.
+    OpenSettings,
+    /// A press on part of the Settings screen.
+    Settings(crate::settings::Click),
 }
 
 /// Input, timers, and results of effects.
@@ -195,6 +202,8 @@ pub enum Msg {
         outcome: Box<ProbeOutcome>,
         at: Timestamp,
     },
+    /// The result of a Settings [`Cmd::Settings`] effect.
+    Settings(crate::settings::Input),
     /// The answer to a [`Cmd::Reply`].
     ReplyPosted {
         id: ChangeId,
@@ -234,6 +243,8 @@ pub enum Cmd {
     },
     /// Run one first-run effect (detection, a token check, the config write).
     Setup(crate::setup::Effect),
+    /// Run one Settings effect (read the config, test a token, write a change).
+    Settings(crate::settings::Effect),
     /// The config was written: rebuild the sources from it and load the queue.
     FinishSetup,
     /// Open a web address in the browser.
@@ -374,6 +385,10 @@ pub struct App {
     pub diff: Option<DiffState>,
     /// The first-run flow, while it is on screen.
     pub setup: Option<crate::setup::Flow>,
+    /// Settings, while it is on screen.
+    pub settings: Option<crate::settings::State>,
+    /// Running on demo data: Settings shows it read-only and touches nothing real.
+    pub demo: bool,
     /// The help overlay is showing.
     pub help: bool,
     /// Rows the help overlay is scrolled by.
@@ -418,6 +433,8 @@ impl App {
             dashboard: Dashboard::default(),
             diff: None,
             setup: None,
+            settings: None,
+            demo: false,
             help: false,
             help_scroll: 0,
             show: show::ShowControl::default(),
