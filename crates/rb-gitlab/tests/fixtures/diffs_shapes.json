@@ -1,0 +1,62 @@
+[
+  {
+    "old_path": "src/lib.rs",
+    "new_path": "src/lib.rs",
+    "a_mode": "100644",
+    "b_mode": "100644",
+    "diff": "@@ -1,3 +1,3 @@\n one\n-two\n+2\n three\n",
+    "new_file": false,
+    "renamed_file": false,
+    "deleted_file": false
+  },
+  {
+    "old_path": "gone.txt",
+    "new_path": "gone.txt",
+    "a_mode": "100644",
+    "b_mode": "0",
+    "diff": "@@ -1 +0,0 @@\n-bye\n",
+    "new_file": false,
+    "renamed_file": false,
+    "deleted_file": true
+  },
+  {
+    "old_path": "added.txt",
+    "new_path": "added.txt",
+    "a_mode": "0",
+    "b_mode": "100644",
+    "diff": "@@ -0,0 +1,2 @@\n+hello\n+world\n",
+    "new_file": true,
+    "renamed_file": false,
+    "deleted_file": false
+  },
+  {
+    "old_path": "old/name.txt",
+    "new_path": "new/name.txt",
+    "a_mode": "100644",
+    "b_mode": "100644",
+    "diff": "",
+    "new_file": false,
+    "renamed_file": true,
+    "deleted_file": false
+  },
+  {
+    "old_path": "docs/a.md",
+    "new_path": "docs/b.md",
+    "a_mode": "100644",
+    "b_mode": "100644",
+    "diff": "@@ -1,2 +1,2 @@\n alpha\n-beta\n+gamma\n",
+    "new_file": false,
+    "renamed_file": true,
+    "deleted_file": false
+  },
+  {
+    "old_path": "logo.png",
+    "new_path": "logo.png",
+    "a_mode": "100644",
+    "b_mode": "100644",
+    "diff": "",
+    "new_file": false,
+    "renamed_file": false,
+    "deleted_file": false
+  }
+]

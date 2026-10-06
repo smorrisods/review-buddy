@@ -1,0 +1,9 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+pass	build	
+fail	unit tests	
+pass	lint	
+--- stderr ---
+1 check failed.

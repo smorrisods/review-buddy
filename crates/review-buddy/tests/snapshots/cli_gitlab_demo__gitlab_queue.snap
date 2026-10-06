@@ -1,0 +1,5 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+look	platform	platform/flow!1182	fail	priya	2026-10-05T03:00:00Z	Cache pipeline status lookups

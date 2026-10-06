@@ -1,0 +1,5 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+gitlab-com	kai-codes/notes!12	open	none	kai	2026-10-02T10:00:00Z	Clarify the install steps
