@@ -20,6 +20,7 @@ pub struct Loaded {
 }
 
 type Load = Arc<dyn Fn() -> Result<Loaded, String> + Send + Sync>;
+type Forget = Arc<dyn Fn(ForgeKind, &str) + Send + Sync>;
 
 /// What the effects touch outside the process.
 #[derive(Clone)]
@@ -27,6 +28,8 @@ pub struct Services {
     /// Detection, the keyring and token checks, shared with first run.
     pub setup: Arc<setup::Services>,
     load: Load,
+    /// Drops a host's saved capability probe, so the next refresh looks again.
+    forget: Forget,
     #[cfg(feature = "live")]
     deps: crate::providers::Deps,
 }
@@ -51,14 +54,22 @@ impl Services {
         Self {
             setup,
             load: Arc::new(load),
+            forget: Arc::new(|_, _| {}),
             #[cfg(feature = "live")]
             deps,
         }
     }
 
+    /// Sets how a host's saved probe is dropped.
+    pub fn with_forget(mut self, forget: impl Fn(ForgeKind, &str) + Send + Sync + 'static) -> Self {
+        self.forget = Arc::new(forget);
+        self
+    }
+
     /// Reads the config the way the interface does at launch, from the real environment.
     pub fn system(args: crate::cli::GlobalArgs, setup: Arc<setup::Services>) -> Self {
-        Self::new(setup, move || {
+        let forget_args = args.clone();
+        let services = Self::new(setup, move || {
             let ctx = crate::cmd::context::Context::build(
                 args.clone(),
                 crate::cmd::context::Terminal::detect(),
@@ -71,7 +82,25 @@ impl Services {
                 snapshot: snapshot(&ctx.paths, &ctx.config),
                 config: ctx.config.clone(),
             })
-        })
+        });
+        #[cfg(feature = "live")]
+        let services = services.with_forget(move |kind, host| {
+            if let Ok(ctx) = crate::cmd::context::Context::build(
+                forget_args.clone(),
+                crate::cmd::context::Terminal::detect(),
+            ) {
+                crate::cmd::probe::forget(&ctx, kind, host);
+            }
+        });
+        #[cfg(not(feature = "live"))]
+        drop(forget_args);
+        services
+    }
+}
+
+impl Services {
+    fn forget_probe(&self, kind: ForgeKind, host: &str) {
+        (self.forget)(kind, host);
     }
 }
 
@@ -260,6 +289,7 @@ async fn save(
             }
             let (path, added) = (target, spec.clone());
             write(move || edit::add(&path, &added)).await?;
+            services.forget_probe(spec.kind, &spec.host);
             Ok(Saved {
                 message: format!("Added {}.", spec.name),
                 select: Some(spec.name),
@@ -273,8 +303,10 @@ async fn save(
             if let Some(token) = token {
                 keep_token(services, &after, token).await?;
             }
-            let (path, old, new) = (target, before, after.clone());
+            let (path, old, new) = (target, before.clone(), after.clone());
             write(move || edit::update(&path, &old, &new)).await?;
+            services.forget_probe(before.kind, &before.host);
+            services.forget_probe(after.kind, &after.host);
             Ok(Saved {
                 message: format!("Saved {}.", after.name),
                 select: Some(after.name),
@@ -296,6 +328,7 @@ async fn save(
         Change::Remove { spec, forget_token } => {
             let (path, key) = (target, spec.name.clone());
             write(move || edit::remove(&path, &key)).await?;
+            services.forget_probe(spec.kind, &spec.host);
             let message = remove_message(services, &spec, forget_token).await;
             Ok(Saved {
                 message,
@@ -787,6 +820,86 @@ mod tests {
         std::fs::write(&user, "").unwrap();
         let snap = snapshot(&paths, &empty);
         assert!(snap.editable && snap.rows.is_empty());
+    }
+
+    #[tokio::test]
+    async fn adding_editing_and_removing_drop_the_saved_capability_probe() {
+        let t = tempfile::tempdir().unwrap();
+        let file = t.path().join("config.toml");
+        std::fs::write(&file, "# mine\n").unwrap();
+        let calls: Arc<std::sync::Mutex<Vec<(ForgeKind, String)>>> = Default::default();
+        let log = Arc::clone(&calls);
+        let s = {
+            let base = services(&file, Arc::new(MemorySecretStore::new()), t.path());
+            Arc::new(
+                (*base)
+                    .clone()
+                    .with_forget(move |k, h| log.lock().unwrap().push((k, h.to_string()))),
+            )
+        };
+        let spec = SourceSpec {
+            name: "lab".into(),
+            kind: ForgeKind::GitLab,
+            host: "gl.one".into(),
+            api_url: None,
+            auth: AuthKind::Env("T".into()),
+            scope_user: false,
+            owners: Vec::new(),
+        };
+        let save = |change| Effect::Save {
+            target: file.clone(),
+            change,
+        };
+        run_effect(
+            &s,
+            save(Change::Add {
+                spec: spec.clone(),
+                token: None,
+            }),
+        )
+        .await;
+        let moved = SourceSpec {
+            host: "gl.two".into(),
+            ..spec.clone()
+        };
+        run_effect(
+            &s,
+            save(Change::Edit {
+                before: spec.clone(),
+                after: moved.clone(),
+                token: None,
+            }),
+        )
+        .await;
+        run_effect(
+            &s,
+            save(Change::Remove {
+                spec: moved,
+                forget_token: false,
+            }),
+        )
+        .await;
+        let hosts: Vec<String> = calls.lock().unwrap().iter().map(|c| c.1.clone()).collect();
+        assert_eq!(hosts, ["gl.one", "gl.one", "gl.two", "gl.two"]);
+        assert!(calls
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|c| c.0 == ForgeKind::GitLab));
+
+        calls.lock().unwrap().clear();
+        run_effect(
+            &s,
+            save(Change::Toggle {
+                name: "none".into(),
+                enabled: false,
+            }),
+        )
+        .await;
+        assert!(
+            calls.lock().unwrap().is_empty(),
+            "a failed write forgets nothing"
+        );
     }
 
     #[test]
