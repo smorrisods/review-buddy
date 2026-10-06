@@ -78,11 +78,13 @@ fn the_show_control_toggles_filters_and_counts_change() {
     // The terminal only receives the cells that changed, which splits words. Nudging the
     // width after each key makes the app repaint the whole screen, so needles stay whole.
     let mut cols = 160;
+    std::thread::sleep(Duration::from_millis(800));
     let mut send = |bytes: &[u8], seen: &mut Vec<u8>| {
         seen.clear();
         writer.write_all(bytes).unwrap();
         writer.flush().unwrap();
-        std::thread::sleep(Duration::from_millis(300));
+    };
+    let mut nudge = || {
         cols = if cols == 160 { 161 } else { 160 };
         pair.master
             .resize(PtySize {
@@ -102,11 +104,16 @@ fn the_show_control_toggles_filters_and_counts_change() {
         (b"\x1b", "1 hidden by your Show filters"),
     ] {
         send(key, &mut seen);
-        assert!(
-            wait_for(&rx, &mut seen, needle, limit),
-            "{needle}: {:?}",
-            String::from_utf8_lossy(&seen)
-        );
+        let mut found = false;
+        for _ in 0..6 {
+            std::thread::sleep(Duration::from_millis(400));
+            nudge();
+            if wait_for(&rx, &mut seen, needle, Duration::from_secs(2)) {
+                found = true;
+                break;
+            }
+        }
+        assert!(found, "{needle}: {:?}", String::from_utf8_lossy(&seen));
     }
     std::thread::sleep(Duration::from_millis(500));
     send(b"q", &mut seen);

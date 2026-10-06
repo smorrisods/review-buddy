@@ -83,6 +83,10 @@ The same two-button modal is used for approving, posting now, and discarding a d
 | `⏎` | Confirm the highlighted button |
 | `esc` | Cancel |
 
+## Footer
+
+The footer lists the key hints on the left and a status on the right. When space is short, a status message you triggered keeps its place and the later hints drop first. The passive `refreshed HH:MM` time is the first to go: it shows only when every hint still fits, so `s show filters` and the hints before it are never cut for it.
+
 ## Show filters
 
 `s` opens a small control over the queue. Tick a filter to let those changes in, clear it to hide them.

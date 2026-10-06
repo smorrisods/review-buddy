@@ -31,4 +31,4 @@ expression: text(& mut app)
 │                                              ││                                                  │
 │                                              ││                                                  │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  ? help  T theme  q quit                                    refreshed 10:42
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit                    refreshed 10:42
