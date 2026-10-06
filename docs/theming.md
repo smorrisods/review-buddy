@@ -1,12 +1,12 @@
 # Theming
 
-**Status (v0.1.0).** The four built-in themes work, `T` cycles through them, `ui.theme` (and `REVIEW_BUDDY_THEME`) picks one, colour depth is detected and `NO_COLOR` is honoured. `review-buddy theme list` lists the built-ins. **Not in 0.1:** loading theme files from disk (the search order below is the plan), hot reload, the Settings → Theme screen and palette commands, `theme check` and `theme export` (both exit `2` for now), and the Jax roles, since Jax isn't drawn yet. The format and roles below are what user themes will use, and the built-in files in `themes/` follow it.
+**Status.** The four built-in themes work, `T` cycles through them, `ui.theme` (and `REVIEW_BUDDY_THEME`) picks one, colour depth is detected and `NO_COLOR` is honoured. `review-buddy theme list` lists the built-ins. **Not built yet:** loading theme files from disk (the search order below is the plan), hot reload, the Settings → Theme screen and palette commands, `theme check` and `theme export` (both exit `2` for now), and the Jax roles, since Jax isn't drawn yet. The format and roles below are what user themes will use, and the built-in files in `themes/` follow it.
 
 A theme is a TOML file that assigns colours to **roles**. Widgets only ever ask for roles, never raw colours, so a theme can restyle the whole app without touching code.
 
 ## Where themes live
 
-- Built-in (the only ones loaded in 0.1): Liminal HQ (`liminal-hq`, default), Dusk (`dusk`, the Review Buddy signature look), Afterglow Dark (`afterglow-dark`), Afterglow Light (`afterglow-light`). They are embedded in the binary and also shipped as `themes/*.toml` for reference.
+- Built-in (the only ones loaded today): Liminal HQ (`liminal-hq`, default), Dusk (`dusk`, the Review Buddy signature look), Afterglow Dark (`afterglow-dark`), Afterglow Light (`afterglow-light`). They are embedded in the binary and also shipped as `themes/*.toml` for reference.
 - Your own (planned): `$XDG_CONFIG_HOME/review-buddy/themes/*.toml` (default `~/.config/review-buddy/themes/`). The file name without `.toml` is the theme id.
 - Installed packs (planned): `$XDG_DATA_HOME/review-buddy/themes/` (default `~/.local/share/…`), then each `$XDG_DATA_DIRS/review-buddy/themes/` (distro packages, e.g. `/usr/share/review-buddy/themes/`).
 - Search order is config home → data home → data dirs → built-ins; the first matching id wins, so you can shadow a built-in by copying it into your config dir. See `configuration.md` → File locations.

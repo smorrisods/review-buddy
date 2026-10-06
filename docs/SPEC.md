@@ -4,26 +4,26 @@
 
 Review Buddy is a terminal dashboard (Rust + [ratatui](https://ratatui.rs)) that brings GitHub pull requests and GitLab merge requests from any number of hosts into one place. You can read the diff, leave line comments and suggestions, approve, request changes and merge, all without leaving the terminal. It is Release Buddy's sibling, and the default look is Liminal HQ's Afterglow.
 
-## Implementation status (v0.1.0)
+## Implementation status
 
-This spec describes the whole product. **v0.1.0 is the first slice** (see §14): GitHub only, the three-pane dashboard, the unified diff with comments and approve, open and copy, the mouse, demo mode, four built-in themes and the read-only command line. Each section below is the target design; this table says where 0.1 stops.
+This spec describes the whole product. Nothing has been tagged yet. **The first release covers the v0.1 and v0.2 scope** (see §14): GitHub and GitLab, the three-pane dashboard, source aggregation, the unified diff with comments and approve, first run, Settings → Sources, the refresh engine, open and copy, the mouse, demo mode, four built-in themes and the command line. Each section below is the target design; this table says where the built code stops.
 
-| Section | In 0.1 | Planned |
+| Section | Built | Planned |
 |---|---|---|
-| §4.1 First run | Yes (v0.2). A launch with no config file, and `--setup`, open the first-run screen: host detection from `gh`/`glab` sign-ins (`gh auth status`), git config `insteadOf` and shallow `~/src` remotes; accounts and GitHub organisations from `/user/orgs`; token reuse or inline entry saved to the keyring with a live test and scope hints; scope per host; look picker with live preview; Jax toggle; summary, then an atomic `0600` commented `config.toml`. `--setup --plain` (or no TTY) runs the same flow as prompts. Order differs slightly from the list below: tokens come before scope, because listing organisations needs a working token. Not yet: GitLab token checks and group listing (hooks are in place for the GitLab provider), reading `hosts.yml` directly, a configurable scan root, and auto-detected sources without saving. After `esc` the empty queue points to `review-buddy --setup` | Remaining GitLab parts |
-| §4.2 Dashboard | 1a three panes, with the Overview, Files, Checks and Conversation tabs, the collapsed Noise row and "That's everything." The Show filters start from `triage.show`; `s` opens a control to change them for the session, and the Sources pane lists them. `+N more` rows expand and collapse. Action chips other than Diff say they aren't available yet | 1b and 1c layouts and `L` (v0.4), saving Show filters to config |
+| §4.1 First run | Built (v0.2). A launch with no config file, and `--setup`, open the first-run screen: host detection from `gh`/`glab` sign-ins (`gh auth status`), git config `insteadOf` and shallow `~/src` remotes; accounts and GitHub organisations from `/user/orgs`; token reuse or inline entry saved to the keyring with a live test and scope hints; scope per host; look picker with live preview; Jax toggle; summary, then an atomic `0600` commented `config.toml`. `--setup --plain` (or no TTY) runs the same flow as prompts. Order differs slightly from the list below: tokens come before scope, because listing organisations needs a working token. Not yet: GitLab token checks and group listing (a pasted GitLab token is kept in the keyring but taken as it is, and a GitLab host is one source for everything the account can see; `source test` and Settings → Sources do check it), reading `hosts.yml` directly, a configurable scan root, and auto-detected sources without saving. After `esc` the empty queue points to `review-buddy --setup` | Live GitLab token check and group listing in first run |
+| §4.2 Dashboard | 1a three panes, with the Overview, Files, Checks and Conversation tabs, the collapsed Noise row and "That's everything." The Show filters start from `triage.show`; `s` opens a control to change them for the session, and the Sources pane lists them. `+N more` rows expand and collapse. Approve and Comment start in the diff; Request changes and Merge say they're planned for v0.3 | 1b and 1c layouts and `L` (v0.4), saving Show filters to config |
 | §4.3 Diff | Unified diff with syntax highlighting, files pane, line cursor, inline threads, hunk and file jumps, mouse cursor, drag and shift-click range selection | Side by side, `⇧↑↓`/`V`, range comments, resolve, viewed marks (v0.3) |
 | §4.4 Composer | Comment and reply on a line, add to the pending review, post now with a preview, word-wise editing, discard confirm | Suggestions and `⌃S`, `⌃E`, saved drafts (v0.3 and 1.0) |
 | §4.5 Palette and search | No | v0.4 |
 | §4.6 Merge confirm | No | v0.3 |
 | §4.7 Settings | Sources only (v0.2): `,` opens Settings with a Sources table (name, kind, host, scope, sign-in, in All, last token check and expiry), `t` tests a token, `e` edits and `a` adds through a form (hosts found on the machine are suggested; a typed token is tested, hidden and kept only in the keyring), `space` switches a source on or off, `x`/`del` removes after a confirm that starts on No and says the keyring token stays unless you also choose to remove it. Writes go through `toml_edit` to the write target with comments kept. Sources defined in `config.d`, `$XDG_CONFIG_DIRS` or another `--config` file show their origin and are read-only (a later layer replaces the `[[source]]` list wholesale, so an override in the user file can't work); demo mode lists demo sources read-only | Review, Keys, Theme and Jax sections (v0.4) |
-| §6 Actions | Approve and comment in the diff; open `o` and copy `y` everywhere | Request changes, merge, re-run, checkout (v0.3); GitLab (v0.2) |
+| §6 Actions | Approve and comment in the diff, on GitHub and GitLab; open `o` and copy `y` everywhere | Request changes, merge, re-run, checkout (v0.3) |
 | §7 Feedback | Toasts (on state changes only) and footer status, last-refreshed time, the `offline · cached HH:MM` banner, errors with a next step, per-source failures keep cached rows | Offline action queue (1.0); banner times are UTC until local time lands |
-| §8 Demo | `--demo`, `--frozen-time`, offline fixtures (all four sources, seven changes), writes labelled `(demo)` | `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet |
+| §8 Demo | `--demo`, `--frozen-time`, offline fixtures (all four sources, GitHub and GitLab, seven changes), writes labelled `(demo)` | `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet |
 | §9 Jax | No | v0.4 |
 | §10 Theming | Built-ins, `T`, `ui.theme`, colour depth, `NO_COLOR` | User theme files, hot reload (v0.4) |
 | §11 Performance | Cached rows paint first; refresh engine: launch, `r`, `refresh.interval` and focus, per-source state, per-host concurrency cap, ETag/not-modified, backoff with jitter, rate-limit pause | Lazy huge diffs |
-| §12 Accessibility | Glyphs plus colour, `NO_COLOR` | `--no-unicode`, reduced motion (nothing animates yet) |
+| §12 Accessibility | Glyphs plus colour, `NO_COLOR`, `ui.reduced_motion` (a still glyph for the refresh spinner) | `--no-unicode`, and reduced motion for Jax and cursors (nothing else animates yet) |
 | §13 Platforms | All release targets built by the `Release` workflow | |
 
 The interactive design lives alongside this file:
@@ -35,7 +35,7 @@ The prototype is kept for reference only. Where it and the shipped app disagree,
 
 Supporting docs:
 
-- `docs/keybindings.md`: the key map (what works in 0.1, and what is planned)
+- `docs/keybindings.md`: the key map (what works today, and what is planned)
 - `docs/theming.md`: theme file format, roles and the built-in themes
 - `docs/configuration.md`: `config.toml` reference
 - `docs/cli.md`: the `gh`-style command line (commands, selectors, output, exit codes)
@@ -305,8 +305,8 @@ Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default,
 
 | Milestone | Scope |
 |---|---|
-| 0.1 (first release, pending the tag) | GitHub only, 1a layout, unified diff, approve, comment, open in browser, the Liminal HQ theme. Read-only command line (`queue`, `pr list/view/diff/checks/open`, `auth status`, `--json`/`--jq`). Releases for every target from day one (Linux amd64/arm64 musl + glibc packages, macOS universal, Windows amd64/arm64), with `--demo` for smoke tests (Linux tested by hand; Windows and macOS smoke-tested in CI). Also shipped: `open`, `config paths`, `theme list`, `doctor`, shell completions and a man page. Declared for 0.1 but not built: `triage explain`, `theme check` and `theme export` |
-| 0.2 | GitLab (gitlab.com and self-hosted), aggregation, buckets and filters, first-run detection, GitLab parity for the command line plus `auth login` and `source` commands |
+| 0.1 (implemented; ships in the first release) | GitHub, 1a layout, unified diff, approve, comment, open in browser, the Liminal HQ theme. Read-only command line (`queue`, `pr list/view/diff/checks/open`, `auth status`, `--json`/`--jq`). Releases for every target from day one (Linux amd64/arm64 musl + glibc packages, macOS universal, Windows amd64/arm64), with `--demo` for smoke tests (Linux tested by hand; Windows and macOS smoke-tested in CI). Also built: `open`, `config paths`, `theme list`, `doctor`, shell completions and a man page. Declared for 0.1 but still not built: `triage explain`, `theme check` and `theme export` |
+| 0.2 (implemented; ships in the first release, which the maintainer may tag as v0.2.0) | GitLab (gitlab.com and self-hosted) listing, details, diffs, threads, pipelines and review writes; source aggregation with tag colours; Show filters and bucket limits; first-run detection and `--setup`; Settings → Sources; the refresh engine; the capability probe; GitHub Enterprise and self-hosted GitLab addressing with a fuller `doctor`; GitLab parity for the command line, `mr`, `auth login|logout|token`, `source test|add` and `config get|list` |
 | 0.3 | Ranges, suggestions, side-by-side diff, merge, re-run CI, checkout, and the command line's `pr review`, `pr merge`, `pr checkout`, `pr rerun` |
 | 0.4 | Layouts 1b and 1c, command palette and search, user themes, Jax, triage rules, demo scenes |
 | 1.0 | Offline queueing, draft persistence, `--no-unicode`; release channels per `docs/release.md` |
@@ -326,7 +326,7 @@ Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default,
 | musl | Ships in 1.0, for tarballs and `install.sh`; glibc for `.deb` / `.rpm` |
 | Channels | GitHub Releases, `install.sh`, `install.ps1`, `.deb` / `.rpm` |
 | GraphQL client | Hand-written queries with typed `serde` responses, not `graphql_client` (see `docs/architecture.md`) |
-| Demo fixtures | Include GitLab sources even though live GitLab isn't built, so the dashboard and `--json` shapes can be explored |
+| Demo fixtures | Include GitHub and GitLab sources, so the dashboard and `--json` shapes can be explored with no network |
 | Licence | MIT |
 | Repo | `smorrisods/review-buddy` |
 

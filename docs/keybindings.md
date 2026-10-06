@@ -2,7 +2,7 @@
 
 Review Buddy uses arrows plus mnemonic letters. Vim-style `j`/`k` also work for movement. Arrows, `tab`, `⏎` and `esc` always work.
 
-**Status (v0.1.0).** This page has two halves. The first covers what the 0.1 binary does today, and it matches the registry in `ui::chrome` (the footer hints and the `?` overlay are built from it) and the key handlers in `app/`. [Planned keys](#planned-keys) lists what the spec describes for later milestones. Press `?` in the app for the keys on the current screen.
+**Status.** This page has two halves. The first covers what the binary does today. It matches the key handlers in `app/` and, with two exceptions, the registry in `ui::chrome` that the footer hints and the `?` overlay are built from: `r` (refresh) and `d` (open the diff) work on the dashboard but aren't listed in that registry, so the overlay doesn't show them. [Planned keys](#planned-keys) lists what the spec describes for later milestones. Press `?` in the app for the keys on the current screen.
 
 Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 
@@ -20,6 +20,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `⏎` / `d` | Open the diff for the selected change |
 | `⏎` on the Noise row | Expand or collapse the bot updates |
 | `⏎` on a `+N more` row | Show the rest of that bucket, past `triage.bucket_limit`. `⏎` again on the `show fewer` row collapses it |
+| `,` | Open Settings → Sources (see [Settings](#settings)) |
 | `s` | Open the Show filters control: `reviewing`, `assigned`, `authored`, `drafts` and `noise`. Changes apply to the queue at once and last for the session |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
@@ -146,9 +147,13 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 
 **Shift always belongs to the terminal.** With mouse capture on, terminals keep Shift-drag for their own text selection and don't send it to the app. If a terminal forwards Shift events anyway, Review Buddy ignores all of them except a Shift-click in the diff, which extends the selected range. Shift-drag and Shift-wheel are never consumed.
 
+## First run
+
+The first-run screen (a launch with no config, or `--setup`) uses `⏎` to continue, `space` to pick, `← →` to change the theme, `J` to toggle Jax, `esc` to skip and `⌫` to go back.
+
 ## Planned keys
 
-These are in the spec and not built in 0.1. Pressing them does nothing, or says it isn't available yet.
+These are in the spec and not built yet. Pressing them does nothing, or says it isn't available yet.
 
 | Key | Planned for | Action |
 |---|---|---|
@@ -159,18 +164,17 @@ These are in the spec and not built in 0.1. Pressing them does nothing, or says 
 | `R` · `b` | v0.3 | Re-run failed CI · check out the branch |
 | `n` `p` (one at a time) | v0.4 | Skip / previous in the `queue` layout |
 | `v` · `w` | v0.3 | Unified ↔ side by side · toggle whitespace-only changes |
-| `s` · `⌃S` | v0.3 | Comment with a suggestion · insert a suggestion block in the composer |
-| `⇧↑↓` · `V` | v0.3 | Extend the range from the keyboard, (drag and shift-click select a range today) |
+| `⌃S` | v0.3 | Insert a suggestion block in the composer (on the dashboard `s` already opens Show filters, so a suggestion shortcut in the diff will need its own key) |
+| `⇧↑↓` · `V` | v0.3 | Extend the range from the keyboard (drag and shift-click select a range today) |
 | `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed |
 | `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
 | `x` in the diff | v0.3 | Request changes, with a required summary |
-| First run (`--setup`) | Shipped in v0.2 | `⏎` continue, `space` pick, `←→` theme, `J` Jax, `esc` skip, `⌫` back |
 
 The merge confirm modal (`← →` / `tab` switch between **No, not yet** and **Merge**, `⏎` confirms, `esc` cancels) arrives with merge.
 
 ## Remapping
 
-`[keys]` in `config.toml` is parsed and kept, but not applied yet: every key in 0.1 is fixed. The table below is the planned shape.
+`[keys]` in `config.toml` is parsed and kept, but not applied yet: every key is fixed today. The table below is the planned shape.
 
 ```toml
 [keys]

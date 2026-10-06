@@ -4,15 +4,15 @@ Review Buddy has two faces. Run `review-buddy` with no command and it opens the 
 
 This doc is the design for the command line. `docs/configuration.md` keeps a short summary, and `crates/review-buddy/src/cli.rs` is the single source of truth for the flags themselves (the man page is generated from it).
 
-## Status (v0.1.0)
+## Status
 
-This page is the design for the whole command line. What runs in 0.1 is the **read-only core**, against GitHub and `--demo`:
+This page is the design for the whole command line. What runs today is the **read-only core plus sign-in, source and config management**, against GitHub, GitLab and `--demo`:
 
 | Runs today | Planned |
 |---|---|
-| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open`, `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3); `triage explain` and `theme check|export` (declared for v0.1 in the code, but not built yet); `api` (later) |
+| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open` (all also as `mr`), `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3, not declared in the binary yet, so they are a usage error); `triage explain` and `theme check|export` (declared, but not built: they exit `2` with `Not built yet`); `api` (later) |
 
-Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), including GitHub Enterprise Server and self-hosted GitLab (see `integrations.md`), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
+Declared commands that aren't built exit `2` with `Not built yet. It's planned for <milestone>.` (the milestone text for `triage explain` and `theme check|export` still reads v0.1.0). The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), including GitHub Enterprise Server and self-hosted GitLab (see `integrations.md`), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
 
 ## GitLab sources
 
@@ -153,7 +153,7 @@ Human output follows SPEC §2: sentence case, Canadian English, middots for meta
 |---|---|
 | `0` | Success, including an empty list |
 | `1` | Something went wrong (network, forge error, bad config). The message says what to do next |
-| `2` | Usage error, or a command that isn't built yet (`Not built yet. It's planned for v0.3.0.`) |
+| `2` | Usage error, or a declared command that isn't built yet (`Not built yet. It's planned for v0.1.0.`) |
 | `3` | Cancelled: you answered No, or a write needed `--yes` without a TTY |
 | `4` | Authentication needed: no credentials, or the token expired or lacks a scope |
 | `5` | Not supported: the source's `Capabilities` don't allow it (for example request changes on an older GitLab) |
@@ -229,11 +229,12 @@ All three work under `--demo` where it makes sense: `login` and `logout` print w
 - **API versions.** The server's own version and the API Review Buddy speaks: the GitHub Enterprise Server release from the `X-GitHub-Enterprise-Version` header on `GET /meta`, or GitLab's `version` and `revision` from `GET /version`. github.com has no server version.
 - **Endpoints.** The REST and GraphQL addresses Review Buddy will call and the web address it builds links from, after `host` and `api_url` are applied. Check this first when an Enterprise or self-hosted source misbehaves.
 - **Clock.** Compares the server's `Date` header with this machine's clock and says so when they differ by more than five minutes, because token expiry checks compare dates.
+- **Capabilities.** What each source can do, from the same probe as `source test`: when it was probed and which actions are unavailable. The server version isn't repeated here; it is shown once under API versions (and as `probe.version` in `--json`).
 - **Paths.** The XDG directories and which config layers were loaded.
 
 A host that can't be reached, or whose TLS certificate can't be verified, shows up under Auth with a next step: check the host name, `api_url` and VPN, or ask for a publicly trusted certificate. Review Buddy trusts public certificate authorities only for now, so private and self-signed certificates aren't supported yet.
 
-Exit `4` only when a source can't sign in; a missing version or a clock difference is information, not a failure. `--json` fields are `version`, `auth`, `rateLimits`, `apiVersions` (with `product`, `server`, `revision` and `note` per source), `endpoints`, `clock` (`skewSeconds` and `warning`) and `paths` (the same object as `config paths --json`). A self-hosted run looks like this:
+Exit `4` only when a source can't sign in; a missing version or a clock difference is information, not a failure. `--json` fields are `version` (Review Buddy's own), `auth`, `rateLimits`, `apiVersions` (with `product`, `server`, `revision` and `note` per source), `endpoints`, `clock` (`skewSeconds` and `warning`), `capabilities` (per source: the `capabilities` map and a `probe` object with `version`, `probedAt`, `complete` and `reasons`) and `paths` (the same object as `config paths --json`). A self-hosted run looks like this:
 
 ```text
 Review Buddy 0.2.0
@@ -256,6 +257,10 @@ Endpoints
 Clock
   ghe.corp.example:8443 (work)  in step with this machine
   git.corp.example (lab)  the server's clock is 8 min behind this machine. Token expiry checks may be wrong; sync this machine's clock
+
+Capabilities
+  ghe.corp.example:8443 (work)  probed 2026-10-05T10:00:00Z · everything available
+  git.corp.example (lab)  probed 2026-10-05T10:00:00Z · not available: request changes, viewed files
 ```
 
 Under `--demo` nothing is probed. The same sections appear, labelled `(demo)`:
@@ -270,6 +275,10 @@ Endpoints
 
 Clock
   github.com (liminal-hq)  not checked (demo)
+
+Capabilities
+  github.com (liminal-hq)  demo capabilities (demo) · everything available
+  gitlab.platform.example (platform)  demo capabilities (demo) · not available: request changes, viewed files
 ```
 
 ### `config`
@@ -317,8 +326,8 @@ Tokens are never read from `REVIEW_BUDDY_*`; use `auth = "env:VAR"` on a source.
 | Milestone | Commands |
 |---|---|
 | Foundation | The skeleton from `cli.rs`: flags, stubs that exit `2`, man page |
-| v0.1.0 | **Shipped:** CLI core (output modes, `--json`/`--jq`, selectors, exit codes), `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, all against GitHub and `--demo`. Not built, though planned for 0.1: `triage explain`, `theme check`, `theme export` |
-| v0.2.0 | GitLab parity for every read command, `mr` alias exercised, `auth login`/`logout`/`token`, `source test`/`add`, `config get`/`list` (built) |
+| v0.1.0 | **Built:** CLI core (output modes, `--json`/`--jq`, selectors, exit codes), `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, all against GitHub and `--demo`. Not built, though planned for 0.1: `triage explain`, `theme check`, `theme export` |
+| v0.2.0 | **Built:** GitLab parity for every read command, `mr` alias exercised, `auth login`/`logout`/`token`, `source test`/`add`, `config get`/`list` |
 | v0.3.0 | Writes: `pr review`, `pr comment`, `pr merge`, `pr checkout`, `pr rerun` |
 | Later | `api`, dynamic completions, `pr checks --watch` polish |
 

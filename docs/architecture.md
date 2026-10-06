@@ -1,6 +1,6 @@
 # Architecture
 
-**Status (v0.1.0).** This page describes the target design. Where 0.1 differs it says so: `rb-gitlab` lists merge requests and loads their details, with diffs, threads and review writes still to come, `rb-store` holds the SQLite cache only (no drafts or offline queue yet), the app has two screens (Dashboard and Diff), and there is no tracing or log file yet.
+**Status.** This page describes the target design and marks where the code is behind it. `rb-github` and `rb-gitlab` both implement the `Provider` trait for listing, details, diffs, threads, checks and review writes, with merge, re-run and checkout still to come. `rb-store` holds the SQLite cache (changes, ETags and saved capability probes) but no drafts or offline queue yet. The app has four screens (Dashboard, Diff, Settings and FirstRun), and there is no tracing or log file yet.
 
 ## Workspace
 
@@ -8,12 +8,12 @@
 review-buddy/
 ├─ Cargo.toml                 workspace
 ├─ crates/
-│  ├─ rb-core/                domain types, triage (the built-in rules; the [[triage.rule]] engine is planned), review drafts, the Provider trait
+│  ├─ rb-core/                domain types, triage (the built-in rules; the [[triage.rule]] engine is planned), review drafts, the Provider trait and capability probe types
 │  ├─ rb-github/              GitHub provider (hand-written GraphQL with typed serde structs + REST via reqwest)
-│  ├─ rb-gitlab/              GitLab provider (REST v4). Sign-in, list and detail so far
+│  ├─ rb-gitlab/              GitLab provider (REST v4): sign-in, lists, details, diffs, threads, pipeline jobs, draft-note review writes and the capability probe
 │  ├─ rb-paths/               XDG resolution and dir creation with 0700 (config layering lives in the binary crate's `config/`)
 │  ├─ rb-platform/            open URL, clipboard (OSC 52 first), keyring fallbacks, per-OS cfg
-│  ├─ rb-store/               SQLite cache (rusqlite) and ETag store; drafts and the offline queue are planned
+│  ├─ rb-store/               SQLite cache (rusqlite): changes, ETags and saved capability probes (`probes`); drafts and the offline queue are planned
 │  ├─ rb-theme/               built-in themes, role resolution, colour-depth quantisation
 │  ├─ rb-diff/                patch parsing, hunk model, side-by-side pairing, syntect bridge
 │  └─ review-buddy/           the binary: app state, event loop, ratatui widgets, and cmd/ (the gh-style command line)
@@ -29,12 +29,14 @@ review-buddy/
 
 The `review-buddy` crate is a library (`src/lib.rs`) with a thin `main.rs`, so integration tests and later features can reach the code. `cli.rs` is shared with `build.rs` through `include!`. The modules:
 
-- `app/`: the `App` state, `Msg`, `Cmd`, `Action` and the pure `update`, split by concern (`dashboard`, `diff`, `diffview`, `composer`, `editor`, `queue`, `range`, `mouse`, `live`, `links`, `failure`).
-- `ui/`: `draw(frame, &App) -> HitMap`: the top bar and footer hints (`chrome`, which also holds the key registry the footer and the help overlay share), the three-pane dashboard and detail pane, the diff and composer, the help overlay, the `HitMap`, layout and size helpers, and `ui::style`, the adapter from `rb-theme`'s framework-neutral colours onto ratatui. A terminal below 100×30 shows a "make me a little wider" notice.
+- `app/`: the `App` state, `Msg`, `Cmd`, `Action` and the pure `update`, split by concern (`dashboard`, `diff`, `diffview`, `composer`, `editor`, `queue`, `range`, `mouse`, `live`, `links`, `failure`, `refresh`, `show`, `settings`, `setup`).
+- `ui/`: `draw(frame, &App) -> HitMap`: the top bar and footer hints (`chrome`, which also holds the key registry the footer and the help overlay share), the three-pane dashboard and detail pane, the diff and composer, the Show filters control (`show`), Settings (`settings`), first run (`first_run`), the help overlay, the `HitMap`, layout and size helpers, and `ui::style`, the adapter from `rb-theme`'s framework-neutral colours onto ratatui. A terminal below 100×30 shows a "make me a little wider" notice.
 - `runtime/`: the terminal modes (alternate screen, mouse, bracketed paste, focus events, restored on drop and from a panic hook), the tokio loop that selects over crossterm's `EventStream`, a tick and the `Cmd` results channel (redrawing only when the app is dirty, at most about 30 times a second), and `effects` that run `Cmd`s.
-- `cmd/`: the `gh`-style command line, one module per command (`queue`, `pr_list`, `pr_view`, `pr_diff`, `pr_checks`, `auth`, `source`, `config`, `theme`, `doctor`, `completion`, `open`) plus shared plumbing (`context`, `selector`, `output`, `prompt`, `error` for exit codes, `git`, `markdown`, and `stub` for declared-but-unbuilt commands).
+- `cmd/`: the `gh`-style command line, one module per command (`queue`, `pr_list`, `pr_view`, `pr_diff`, `pr_checks`, `auth*`, `source*`, `config*`, `theme`, `doctor`, `completion`, `open`, `probe`) plus shared plumbing (`context`, `selector`, `output`, `prompt`, `error` for exit codes, `git`, `markdown`, and `stub` for declared-but-unbuilt commands).
 - `config/`: the layered `config.toml` (`schema`, `sources`, `edit`, `error`).
-- `providers/`: the live backend that builds one `Provider` per source and refreshes them concurrently, with cached rows painted first.
+- `setup/`: first run as a pure state machine (`flow`) with its effects (`effects`: detection, token checks, the config write), host and account detection (`detect`), the rendered config (`write`, `source`) and the line-based `plain` mode behind `--setup --plain`.
+- `settings/`: Settings → Sources as a state machine (`state`), its config edits through `toml_edit` (`edit`) and its effects (`effects`: read the config, test a token, write a change).
+- `providers/`: the live backend (`live`) that builds one `Provider` per source, the refresh engine (`refresh`: per-source state, ETag short-circuit, backoff, per-host concurrency caps and rate-limit pauses) and the capability probe (`probe`: run once per source per session and cached for 24 hours), with cached rows painted first.
 - `demo/`: the offline fixtures, the `DemoProvider`, the frozen clock and the throwaway environment behind `--demo`.
 
 ## Provider trait
@@ -57,10 +59,11 @@ pub trait Provider: Send + Sync {
     fn checkout_refspec(&self, id: &ChangeId) -> String;
     fn web_url(&self, id: &ChangeId) -> Url;
     fn capabilities(&self) -> Capabilities; // e.g. request_changes, viewed_files, range_comments
+    async fn probe(&self) -> Result<ProbeOutcome>; // what this instance can do; defaults to the static capabilities
 }
 ```
 
-`Capabilities` drives the UI: actions an instance can't do are hidden from the palette, and their key shows an explanation instead of failing.
+`Capabilities` drives the UI: actions an instance can't do are hidden from the chips and the review block, and their key shows an explanation instead of failing. `probe()` asks the instance on connect (GitLab's version and the token's scopes, GitHub's token scopes) and returns a `ProbeOutcome`: the capabilities, the version when there is one, whether the instance answered and a reason for each action that's off. It never fails because a version check did. The binary caches the outcome in `rb-store` per forge and host.
 
 ## GraphQL typing
 
@@ -78,7 +81,7 @@ pub trait Provider: Send + Sync {
 
 ## App state (Elm-style)
 
-The struct below is the target shape. In 0.1 `Screen` is `Dashboard | Diff`, the dashboard layout is fixed at three panes, and the overlays are the help overlay, the composer and the approve/post/discard confirm; there is no palette, search, merge confirm or settings screen yet. First run adds `Screen::FirstRun`, `Msg::Setup`, `Cmd::Setup` and `Cmd::FinishSetup`; its flow is the pure state machine in `crates/review-buddy/src/setup/`. `Cmd`s today are `LoadChanges`, `LoadInfo`, `LoadDiff`, `SubmitReview`, `Reply`, `OpenUrl`, `Copy` and `After`.
+The struct below is the target shape. Today `Screen` is `Dashboard | Diff | FirstRun | Settings`, the dashboard layout is fixed at three panes, and the overlays are the help overlay, the Show filters control, the composer and the approve/post/discard confirm; there is no palette, search or merge confirm yet. First run is `Screen::FirstRun` with `Msg::Setup` and `Cmd::Setup`, driven by the pure state machine in `crates/review-buddy/src/setup/`; Settings → Sources is `Screen::Settings` with `Cmd::Settings`, driven by `crates/review-buddy/src/settings/`. `Cmd`s today are `LoadChanges`, `LoadChangesNow` (`r`), `LoadChangesOnFocus`, `LoadInfo`, `LoadDiff`, `SubmitReview`, `Reply`, `Setup`, `Settings`, `FinishSetup`, `OpenUrl`, `Copy` and `After`.
 
 ```rust
 struct App {
@@ -106,11 +109,11 @@ struct App {
 ### Input routing
 
 1. An open overlay gets the key first (palette, then confirm, then composer).
-2. Global keys (`?`, `o`, `y`, `T`, `q`, and `r` on the dashboard; `⌃K`, `/`, `,`, `L` and `J` are planned).
+2. Global keys (`?`, `o`, `y`, `T`, `q`, and `r` and `,` on the dashboard; `⌃K`, `/`, `L` and `J` are planned).
 3. Focused-pane keys (`↑↓`, `⏎`, `← →`, `tab`).
 4. Screen action keys (the dashboard and diff handlers; see `keybindings.md`).
 
-Mouse events are hit-tested against the `Rect`s recorded during the last draw (`HitMap`). Line drag-select is `Down(Left)` → anchor, `Drag(Left)` → cursor, `Up(Left)` → finish (and clear if anchor == cursor). In 0.1 a range can be selected but only the cursor line is commented on.
+Mouse events are hit-tested against the `Rect`s recorded during the last draw (`HitMap`). Line drag-select is `Down(Left)` → anchor, `Drag(Left)` → cursor, `Up(Left)` → finish (and clear if anchor == cursor). A range can be selected and commented on; ranges from the keyboard are planned.
 
 ## Command line
 
@@ -126,12 +129,12 @@ With a command, the binary skips the TUI and runs one module under `crates/revie
 
 ## Persistence
 
-In 0.1 only the config file and the SQLite cache exist. The drafts, offline queue, session and lock rows are planned.
+Today only the config file and the SQLite cache exist (migrations create `changes`, `etags` and `probes`). The drafts, offline queue, session and lock rows are planned.
 
 | Store | Contents | Format |
 |---|---|---|
 | `$XDG_CONFIG_HOME/review-buddy/config.toml` (+ `config.d/`, `$XDG_CONFIG_DIRS`) | user settings, layered | TOML, edited with `toml_edit` |
-| `$XDG_CACHE_HOME/review-buddy/cache.sqlite` | summaries, details, patches, threads, ETags | SQLite, WAL mode, versioned migrations; safe to delete |
+| `$XDG_CACHE_HOME/review-buddy/cache.sqlite` | summaries, details, ETags, capability probes | SQLite, WAL mode, versioned migrations; safe to delete |
 | `$XDG_STATE_HOME/review-buddy/drafts/` | composer text per change | Markdown files, so you can recover them by hand |
 | `$XDG_STATE_HOME/review-buddy/queue.jsonl` | actions made while offline | JSON lines, replayed after you confirm |
 | `$XDG_STATE_HOME/review-buddy/session.toml` | last source, selection, layout, diff view | TOML |
@@ -147,4 +150,4 @@ In 0.1 only the config file and the SQLite cache exist. The drafts, offline queu
 - Demo fixtures live in `crates/review-buddy/src/demo/` as TOML plus patch files. A `DemoProvider` implements `Provider`, so the UI code path is identical; write calls mutate in-memory state only.
 - CI runs the tests on Linux x64 (ubuntu-24.04) across the three feature sets, plus a default-features run on Windows (windows-2022) and macOS ARM64 (macos-14); release builds cover Linux amd64/arm64, macOS universal and Windows amd64/arm64 (see `release.md`).
 - CLI: `assert_cmd` runs every command under `--demo --frozen-time` with temp `XDG_*` dirs, piped and with `--json`, pinned with `insta` (see `docs/cli.md`).
-- `#[ignore]`d live tests run only against a throwaway GitHub repository you name yourself (see `docs/integrations.md`); GitLab live tests arrive with GitLab.
+- `#[ignore]`d live tests run only against a throwaway GitHub repository or GitLab project you name yourself (see `docs/integrations.md`).
