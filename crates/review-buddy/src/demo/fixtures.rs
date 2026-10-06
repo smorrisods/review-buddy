@@ -96,6 +96,9 @@ struct RawSource {
     #[serde(default)]
     user: bool,
     auth: Option<AuthMode>,
+    #[serde(default = "yes")]
+    in_all: bool,
+    tag_colour: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -187,6 +190,10 @@ struct RawComment {
     created_ago: String,
 }
 
+fn yes() -> bool {
+    true
+}
+
 fn open() -> ChangeState {
     ChangeState::Open
 }
@@ -212,9 +219,9 @@ pub fn load(now: Timestamp) -> Result<Fixtures> {
                 user: s.user,
             },
             auth: s.auth.unwrap_or(AuthMode::Cli),
-            in_all: true,
+            in_all: s.in_all,
             include_drafts: true,
-            tag_colour: None,
+            tag_colour: s.tag_colour.clone(),
         })
         .collect::<Vec<_>>();
     let changes = raw

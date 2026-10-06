@@ -91,6 +91,28 @@ pub fn gradient_at(stops: &[Colour], t: f32) -> Option<Colour> {
     }
 }
 
+/// The foreground for a source's dot and `GH`/`GL` tag: its `tag_colour` when it has a valid
+/// one, otherwise the forge's own role.
+pub fn tag_fg(
+    palette: &Palette,
+    source: Option<&rb_core::Source>,
+    kind: rb_core::ForgeKind,
+) -> Style {
+    let parsed = source
+        .and_then(|s| s.tag_colour.as_deref())
+        .and_then(|t| t.parse::<rb_theme::TagColour>().ok());
+    match parsed {
+        Some(tag) => style(palette.tag_fg(&tag)),
+        None => fg(
+            palette,
+            match kind {
+                rb_core::ForgeKind::GitHub => Role::Github,
+                rb_core::ForgeKind::GitLab => Role::Gitlab,
+            },
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

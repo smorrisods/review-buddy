@@ -1,0 +1,5 @@
+---
+source: crates/review-buddy/tests/sources.rs
+expression: "rows(&render(&mut a), 1, 2, 129)"
+---
+  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
