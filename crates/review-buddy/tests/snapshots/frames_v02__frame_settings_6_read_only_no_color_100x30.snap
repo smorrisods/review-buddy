@@ -1,0 +1,144 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  settings                                                               Liminal HQ
+ Settings       ╭ Sources ─────────────────────────────────────────────────────────────────────────╮
+                │ Where your pull and merge requests come from. Changes save to your config right… │
+› Sources       │ These sources come from /etc/xdg/review-buddy/config.toml. Review Buddy doesn't  │
+                │ edit that file. Change them there, or move them into                             │
+                │ /home/u/.config/review-buddy/config.toml.                                        │
+                │                                                                                  │
+                │   on     name           host               sign-in    all token                  │
+                │ › on  GH github.com     github.com         gh         yes ✓ smorris · expires …  │
+                │   on  GL work           gitlab.work.ca     keyring    yes ✗ Couldn't sign in t…  │
+                │   off GL old-lab        gitlab.old.example env:OLD_L… yes · not tested           │
+                │                                                                                  │
+                │ github.com  ·  github.com                                                        │
+                │ Signs in with your gh sign-in                                                    │
+                │ Covers        liminal-hq, acme, you                                              │
+                │ Last check    ✓ signed in as smorris · scopes repo, read:org · expires 2027-03-… │
+                │ Queue         in All · drafts left out · tag cyan                                │
+                │ Defined       from /etc/xdg/review-buddy/config.toml (read-only here)            │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                     ╭──────────────────────────────────────────────────────────╮ │
+                │                     │· These sources come from /etc/xdg/review-buddy/config.…  │ │
+                │                     ╰──────────────────────────────────────────────────────────╯ │
+                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ t test token  e edit  a add  space on/off  x remove  esc back  ? help
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  settings"
+0:88 D " Liminal HQ"
+1:0 B " Settings"
+1:16 D "╭"
+1:17 BD " Sources"
+1:26 D "─────────────────────────────────────────────────────────────────────────╮"
+2:16 D "│"
+2:18 D "Where your pull and merge requests come from. Changes save to your config right…"
+2:99 D "│"
+3:0 BR "› Sources"
+3:16 D "│"
+3:18 D "These sources come from /etc/xdg/review-buddy/config.toml. Review Buddy doesn't"
+3:99 D "│"
+4:16 D "│"
+4:18 D "edit that file. Change them there, or move them into"
+4:99 D "│"
+5:16 D "│"
+5:18 D "/home/u/.config/review-buddy/config.toml."
+5:99 D "│"
+6:16 D "│"
+6:99 D "│"
+7:16 D "│"
+7:18 BD "  on     name           host               sign-in    all token"
+7:99 D "│"
+8:16 D "│"
+8:18 BR "›"
+8:20 R "on"
+8:24 BR "GH"
+8:26 R " github.com     github.com         gh"
+8:72 DR "yes"
+8:75 R " ✓ smorris · expires …"
+8:99 D "│"
+9:16 D "│"
+9:18 B ""
+9:24 B "GL"
+9:72 D "yes"
+9:99 D "│"
+10:16 D "│"
+10:18 B ""
+10:20 D "off"
+10:24 B "GL"
+10:27 D "old-lab"
+10:42 D "gitlab.old.example"
+10:61 D "env:OLD_L…"
+10:72 D "yes"
+10:76 D "· not tested"
+10:99 D "│"
+11:16 D "│"
+11:99 D "│"
+12:16 D "│"
+12:18 B "github.com"
+12:28 D "  ·  github.com"
+12:99 D "│"
+13:16 D "│"
+13:18 D "Signs in with"
+13:99 D "│"
+14:16 D "│"
+14:18 D "Covers"
+14:99 D "│"
+15:16 D "│"
+15:18 D "Last check"
+15:99 D "│"
+16:16 D "│"
+16:18 D "Queue"
+16:99 D "│"
+17:16 D "│"
+17:18 D "Defined       from /etc/xdg/review-buddy/config.toml (read-only here)"
+17:99 D "│"
+18:16 D "│"
+18:99 D "│"
+19:16 D "│"
+19:99 D "│"
+20:16 D "│"
+20:99 D "│"
+21:16 D "│"
+21:99 D "│"
+22:16 D "│"
+22:99 D "│"
+23:16 D "│"
+23:99 D "│"
+24:16 D "│"
+24:99 D "│"
+25:16 D "│"
+25:38 D "╭──────────────────────────────────────────────────────────╮"
+25:99 D "│"
+26:16 D "│"
+26:38 D "│"
+26:97 D "│"
+26:99 D "│"
+27:16 D "│"
+27:38 D "╰──────────────────────────────────────────────────────────╯"
+27:99 D "│"
+28:16 D "╰──────────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "t"
+29:2 D " test token"
+29:15 B "e"
+29:16 D " edit"
+29:23 B "a"
+29:24 D " add"
+29:30 B "space"
+29:35 D " on/off"
+29:44 B "x"
+29:45 D " remove"
+29:54 B "esc"
+29:57 D " back"
+29:64 B "?"
+29:65 D " help"

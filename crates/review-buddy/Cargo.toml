@@ -62,5 +62,6 @@ insta.workspace = true
 portable-pty.workspace = true
 predicates.workspace = true
 tempfile.workspace = true
+vt100.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 wiremock.workspace = true

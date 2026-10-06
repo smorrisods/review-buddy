@@ -14,6 +14,16 @@ Each frame is rendered in `liminal-hq` (the default, transparent background), `d
 
 The frames are deterministic. They use the demo data at its frozen time, a fixed size and truecolour forced in the `AppConfig`, so nothing depends on the terminal, the environment or the clock. Snapshots are plain text, stored with LF line endings (`.gitattributes` marks `*.snap` as `eol=lf`), so they match on Windows too. The older per-screen snapshots in `dashboard.rs`, `diff.rs`, `composer.rs`, `help.rs` and `render.rs` cover other sizes, states and screens, and stay.
 
+## v0.2 frames
+
+`crates/review-buddy/tests/frames_v02.rs` pins the v0.2 screens the same way, sharing its render helpers with `frames.rs` through `tests/support/render.rs`:
+
+- **1i First run**: each step (welcome, connect accounts, a masked token entry, scope, look, Jax, summary).
+- **1j Settings → Sources**: the table with check results, the edit form with a typed token, the add picker and form, the remove confirm, and a table whose file is read-only because it comes from another config file.
+- **Mixed dashboard**: the All view, a GitLab source tab, and the collapsed source strip below 130 columns (129×40).
+
+Every frame is rendered in `liminal-hq`, `dusk` and `afterglow-dark` at 160×40 and 100×30, with `NO_COLOR` text-and-modifier variants for `liminal-hq`. Colour assertions live in the same file: the first-run card border uses `accent`, source tags take their forge colour from `style::tag_fg`, the selected Settings row carries a background the others lack, and the wordmark keeps its gradient. The offline banner, rate-limit note and refreshing states are pinned in `refresh_state.rs` in all three themes. The first-run and Settings behaviour tests (`first_run.rs`, `settings.rs`) no longer keep their own screen snapshots: add new screens to `frames_v02.rs` instead of duplicating them.
+
 ## Reviewing and accepting snapshot changes
 
 A failing snapshot prints a diff of the old and new frame. To review the changes interactively, install `cargo-insta` once (`cargo install cargo-insta`) and run:
@@ -35,6 +45,14 @@ INSTA_UPDATE=always cargo test -p review-buddy
 ## Snapshot hygiene
 
 `tests/snapshot_hygiene.rs` is a cheap file scan that fails when a `.snap.new` or `.pending-snap` file exists anywhere in the crate, or when a file in `tests/snapshots` has no test that still produces it (its `<test file>__<name>.snap` name must point at an existing `tests/<test file>.rs` that mentions `<name>`). When you rename or delete a snapshot test, delete its `.snap` file too.
+
+## Recorded fixtures
+
+`crates/rb-gitlab/tests/fixtures` and `crates/rb-github/tests/fixtures` hold the JSON the wiremock stubs serve. They are hand-written to match the documented API shapes (GitLab 16.x and 17.x, GitHub GraphQL and REST), not captured from live accounts, and each directory's `README.md` says which endpoint each file stands for. `tests/fixtures_hygiene.rs` in each crate fails when a fixture is invalid JSON, is not named by any test, or is missing from the README table. Fixtures are stored with LF endings (`.gitattributes`).
+
+## Pseudo-terminal tests
+
+`crates/review-buddy/tests/support/pty.rs` (include it with `#[path = "support/pty.rs"] mod pty;`) runs the real binary in a pty and feeds its output into a `vt100` parser, so assertions run against the rendered screen rather than raw escape-sequence bytes. `pty::command(home)` returns a command with a cleared environment and a sandboxed home; `Pty::spawn(cmd, cols, rows)` starts it; `wait_for_screen(needle, timeout)` polls the parsed screen, `expect` and `send_expect` do the same with the default limit and print the screen on failure, and `send_until` resends an idempotent key until its effect shows, for the first key after start-up on a loaded runner. There are no repaint nudges or fixed sleeps. `pty_show.rs`, `pty_setup.rs` and `pty_composer.rs` use it; the other pty tests still match raw bytes and can move over as they prove flaky.
 
 ## CLI end-to-end tests
 

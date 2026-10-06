@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  settings                                                                                                                                 Dusk
+ Settings       ╭ Sources ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+                │ Where your pull and merge requests come from. Changes save to your config right away.                                                        │
+› Sources       │                                                                                                                                              │
+                │   on     name               host                   sign-in        all scope                      token                                       │
+                │   on  GH github.com         github.com             gh             yes liminal-hq, acme, you      ✓ smorris · expires 2027-03-01              │
+                │ › on  GL work               gitlab.work.ca         keyring        yes platform                   ✗ Couldn't sign in to gitlab.work.ca: the…  │
+                │   off GL old-lab            gitlab.old.example     env:OLD_LAB_T… yes everything you can see     · not tested                                │
+                │                                                                                                                                              │
+                │ work  ·  gitlab.work.ca                                                                                                                      │
+                │ Signs in with a token in your OS keyring (never shown)                                                                                       │
+                │ Covers        platform                                                                                                                       │
+                │ Last check    ✗ Couldn't sign in to gitlab.work.ca: the token was rejected. To fix it, run review-buddy auth login --host gitlab.work.ca.    │
+                │ Queue         in All · drafts left out · tag cyan                                                                                            │
+                │                         ╭ Edit source ─────────────────────────────────────────────────────────────╮                                         │
+                │                         │   Name          work                                                     │                                         │
+                │                         │   Host          gitlab.work.ca                                           │                                         │
+                │                         │   API address   (default for the host)                                   │                                         │
+                │                         │   Sign in with  token in the keyring                                     │                                         │
+                │                         │   Groups        platform                                                 │                                         │
+                │                         │ › Token         ••••••••••••                                             │                                         │
+                │                         │                                                                          │                                         │
+                │                         │ Only what you change is written; the rest of the file stays as it is.    │                                         │
+                │                         │                                                                          │                                         │
+                │                         │ [ Save ⏎ ]  [ Cancel · esc ]                                             │                                         │
+                │                         ╰──────────────────────────────────────────────────────────────────────────╯                                         │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ tab next field  ⏎ save  ←/→ change choice  esc cancel

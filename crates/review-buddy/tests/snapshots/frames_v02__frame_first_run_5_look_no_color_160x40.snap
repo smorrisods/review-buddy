@@ -1,0 +1,82 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  first run                                                                                                                                Dusk
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                         ╭ 3 · Pick a look ───────────────────────────────────────────────────────────╮
+                                         │ ← → changes the screen live. You can change it later with T.               │
+                                         │                                                                            │
+                                         │   Liminal HQ       ██ ██ ██ ██                                             │
+                                         │ › Dusk             ██ ██ ██ ██                                             │
+                                         │   Afterglow Dark   ██ ██ ██ ██                                             │
+                                         │   Afterglow Light  ██ ██ ██ ██                                             │
+                                         │                                                                            │
+                                         │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+                                         ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:154 D " Dusk"
+15:41 B "╭ 3 · Pick a look ───────────────────────────────────────────────────────────╮"
+16:41 B "│"
+16:43 D "← → changes the screen live. You can change it later with T."
+16:118 B "│"
+17:41 B "│"
+17:118 B "│"
+18:41 B "│"
+18:43 B ""
+18:118 B "│"
+19:41 B "│"
+19:43 BR "› Dusk"
+19:62 R "██ ██ ██ ██"
+19:118 B "│"
+20:41 B "│"
+20:43 B ""
+20:118 B "│"
+21:41 B "│"
+21:43 B ""
+21:118 B "│"
+22:41 B "│"
+22:118 B "│"
+23:41 B "│"
+23:43 D "[ Back ]"
+23:53 B "[ Continue ⏎ ]"
+23:69 D "[ Skip for now · esc ]"
+23:118 B "│"
+24:41 B "╰────────────────────────────────────────────────────────────────────────────╯"
+39:1 B "⏎"
+39:2 D " continue"
+39:13 B "space"
+39:18 D " pick"
+39:25 B "esc"
+39:28 D " skip for now"

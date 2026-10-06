@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  first run                                                                                                                      Afterglow Dark
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                         ╭ 1 · Connect your sources ──────────────────────────────────────────────────╮
+                                         │ space picks a row · ⏎ continues · a row with no credentials asks for a     │
+                                         │ token                                                                      │
+                                         │                                                                            │
+                                         │ › [x] ✓ GH github.com  signed in as smorris via gh · 2 orgs                │
+                                         │   [ ] ○ GL gitlab.work.ca  found in your git config, no credentials yet…   │
+                                         │                                                                            │
+                                         │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+                                         ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now

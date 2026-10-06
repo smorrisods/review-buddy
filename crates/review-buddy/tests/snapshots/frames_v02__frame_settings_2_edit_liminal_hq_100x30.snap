@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  settings                                                               Liminal HQ
+ Settings       ╭ Sources ─────────────────────────────────────────────────────────────────────────╮
+                │ Where your pull and merge requests come from. Changes save to your config right… │
+› Sources       │                                                                                  │
+                │   on     name           host               sign-in    all token                  │
+                │   on  GH github.com     github.com         gh         yes ✓ smorris · expires …  │
+                │ › on  GL work           gitlab.work.ca     keyring    yes ✗ Couldn't sign in t…  │
+                │   off GL old-lab        gitlab.old.example env:OLD_L… yes · not tested           │
+                │                                                                                  │
+            ╭ Edit source ─────────────────────────────────────────────────────────────╮           │
+            │   Name          work                                                     │           │
+            │   Host          gitlab.work.ca                                           │           │
+            │   API address   (default for the host)                                   │cted. To … │
+            │   Sign in with  token in the keyring                                     │           │
+            │   Groups        platform                                                 │           │
+            │ › Token         ••••••••••••                                             │           │
+            │                                                                          │           │
+            │ Only what you change is written; the rest of the file stays as it is.    │           │
+            │                                                                          │           │
+            │ [ Save ⏎ ]  [ Cancel · esc ]                                             │           │
+            ╰──────────────────────────────────────────────────────────────────────────╯           │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ tab next field  ⏎ save  ←/→ change choice  esc cancel

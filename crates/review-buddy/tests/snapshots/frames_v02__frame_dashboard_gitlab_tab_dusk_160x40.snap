@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ platform/flow!1182 ────────────────────────────────────────────────────────────────╮
+│  ● All               7 ││  Worth a look · 1                            ││ Cache pipeline status lookups                                                      │
+│    every source        ││▌ ✕ Cache pipeline status lookups          7h ││ priya wants priya/status-cache → main                                              │
+│  ● liminal-hq        3 ││▌ GL flow!1182 · priya · you're mentioned     ││ +8 −2 · 1 file · opened 2d ago                                                     │
+│    github.com          ││                                              ││                                                                                    │
+│  ● smorris           1 ││  ▸ Noise · 1 bot update · ⏎ to expand        ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                                              ││                                                                                    │
+│▌ ● platform          2 ││  ── That's everything.                       ││  Overview   Files 1   Checks 3   Conversation 0                                    │
+│    gitlab.platform.ex… ││  2 in this view.                             ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││                                              ││ The status panel asks for the same pipeline many times a second. This keeps        │
+│    gitlab.com          ││                                              ││ results for a short time to coax the load down. @smorris, does the TTL look right  │
+│                        ││                                              ││ to you?                                                                            │
+│  Show  s to change     ││                                              ││                                                                                    │
+│  [x] reviewing         ││                                              ││ Reviewers                                Checks                                    │
+│  [x] assigned          ││                                              ││ ◌ tomas requested                        ● 2 passing  ✕ 1 failing                  │
+│  [x] authored          ││                                              ││                                                                                    │
+│  [ ] drafts            ││                                              ││ Latest comment                                                                     │
+│  [ ] noise             ││                                              ││ No comments yet                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││ Your review  not started                                                           │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

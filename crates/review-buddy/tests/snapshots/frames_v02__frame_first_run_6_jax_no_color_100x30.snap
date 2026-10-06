@@ -1,0 +1,67 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  first run                                                                    Dusk
+
+
+
+
+
+
+
+
+
+
+           ╭ 4 · A little company ──────────────────────────────────────────────────────╮
+           │ Jax is a small otter who keeps you company in a corner of the screen. He   │
+           │ stays out of the way.                                                      │
+           │                                                                            │
+           │ [x] Keep Jax around  (J or space)                                          │
+           │                                                                            │
+           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:94 D " Dusk"
+11:11 B "╭ 4 · A little company ──────────────────────────────────────────────────────╮"
+12:11 B "│"
+12:13 D "Jax is a small otter who keeps you company in a corner of the screen. He"
+12:88 B "│"
+13:11 B "│"
+13:13 D "stays out of the way."
+13:88 B "│"
+14:11 B "│"
+14:88 B "│"
+15:11 B "│"
+15:13 R "[x]"
+15:17 BR "Keep Jax around"
+15:32 DR "  (J or space)"
+15:88 B "│"
+16:11 B "│"
+16:88 B "│"
+17:11 B "│"
+17:13 D "[ Back ]"
+17:23 B "[ Continue ⏎ ]"
+17:39 D "[ Skip for now · esc ]"
+17:88 B "│"
+18:11 B "╰────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " continue"
+29:13 B "space"
+29:18 D " pick"
+29:25 B "esc"
+29:28 D " skip for now"

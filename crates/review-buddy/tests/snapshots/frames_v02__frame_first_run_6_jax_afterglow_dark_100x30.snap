@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  first run                                                         Afterglow Light
+
+
+
+
+
+
+
+
+
+
+           ╭ 4 · A little company ──────────────────────────────────────────────────────╮
+           │ Jax is a small otter who keeps you company in a corner of the screen. He   │
+           │ stays out of the way.                                                      │
+           │                                                                            │
+           │ [x] Keep Jax around  (J or space)                                          │
+           │                                                                            │
+           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now

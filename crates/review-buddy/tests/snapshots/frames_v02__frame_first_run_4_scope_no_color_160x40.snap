@@ -1,0 +1,88 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  first run                                                                                                                          Liminal HQ
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                         ╭ 2 · What to include ───────────────────────────────────────────────────────╮
+                                         │ Pick what each account covers. Leave everything unticked to include        │
+                                         │ everything you can see.                                                    │
+                                         │                                                                            │
+                                         │ › [x] github.com · my own repositories                                     │
+                                         │   [ ] github.com · org liminal-hq                                          │
+                                         │   [ ] github.com · org acme                                                │
+                                         │                                                                            │
+                                         │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+                                         ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:148 D " Liminal HQ"
+15:41 B "╭ 2 · What to include ───────────────────────────────────────────────────────╮"
+16:41 B "│"
+16:43 D "Pick what each account covers. Leave everything unticked to include"
+16:118 B "│"
+17:41 B "│"
+17:43 D "everything you can see."
+17:118 B "│"
+18:41 B "│"
+18:118 B "│"
+19:41 B "│"
+19:43 BR "›"
+19:45 R "[x]"
+19:49 BR "github.com"
+19:59 DR " · my own repositories"
+19:118 B "│"
+20:41 B "│"
+20:43 B ""
+20:49 B "github.com"
+20:59 D " · org liminal-hq"
+20:118 B "│"
+21:41 B "│"
+21:43 B ""
+21:49 B "github.com"
+21:59 D " · org acme"
+21:118 B "│"
+22:41 B "│"
+22:118 B "│"
+23:41 B "│"
+23:43 D "[ Back ]"
+23:53 B "[ Continue ⏎ ]"
+23:69 D "[ Skip for now · esc ]"
+23:118 B "│"
+24:41 B "╰────────────────────────────────────────────────────────────────────────────╯"
+39:1 B "⏎"
+39:2 D " continue"
+39:13 B "space"
+39:18 D " pick"
+39:25 B "esc"
+39:28 D " skip for now"

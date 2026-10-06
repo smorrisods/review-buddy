@@ -1,0 +1,11 @@
+{
+  "version": "17.5.1-ee",
+  "revision": "3a7b0f5c1d2",
+  "kas": {
+    "enabled": true,
+    "externalUrl": "wss://kas.gitlab.test",
+    "externalK8sProxyUrl": "https://gitlab.test/-/kubernetes-agent/k8s-proxy/",
+    "version": "17.5.1"
+  },
+  "enterprise": true
+}

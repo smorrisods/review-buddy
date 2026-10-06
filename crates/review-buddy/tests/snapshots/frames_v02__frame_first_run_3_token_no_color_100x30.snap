@@ -1,0 +1,82 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  first run                                                              Liminal HQ
+
+
+
+
+
+
+
+
+           ╭ 1 · Connect your sources ──────────────────────────────────────────────────╮
+           │ space picks a row · ⏎ continues · a row with no credentials asks for a     │
+           │ token                                                                      │
+           │                                                                            │
+           │   [x] ✓ GH github.com  signed in as smorris via gh · 2 orgs                │
+           │ › [x] ○ GL gitlab.work.ca  found in your git config, no credentials yet…   │
+           │       Token  ••••••••••••▏                                                 │
+           │       Needs api, read_user · ⏎ test and save to your keyring · esc cancel  │
+           │                                                                            │
+           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:88 D " Liminal HQ"
+9:11 B "╭ 1 · Connect your sources ──────────────────────────────────────────────────╮"
+10:11 B "│"
+10:13 D "space picks a row · ⏎ continues · a row with no credentials asks for a"
+10:88 B "│"
+11:11 B "│"
+11:13 D "token"
+11:88 B "│"
+12:11 B "│"
+12:88 B "│"
+13:11 B "│"
+13:13 B ""
+13:21 D "GH"
+13:24 B "github.com"
+13:34 D "  signed in as smorris via gh · 2 orgs"
+13:88 B "│"
+14:11 B "│"
+14:13 BR "›"
+14:15 R "[x]"
+14:19 DR "○ GL"
+14:24 BR "gitlab.work.ca"
+14:38 DR "  found in your git config, no credentials yet…"
+14:88 B "│"
+15:11 B "│"
+15:13 D "      Token"
+15:26 B "••••••••••••▏"
+15:88 B "│"
+16:11 B "│"
+16:13 D "      Needs api, read_user · ⏎ test and save to your keyring · esc cancel"
+16:88 B "│"
+17:11 B "│"
+17:88 B "│"
+18:11 B "│"
+18:13 D "[ Back ]"
+18:23 B "[ Continue ⏎ ]"
+18:39 D "[ Skip for now · esc ]"
+18:88 B "│"
+19:11 B "╰────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " continue"
+29:13 B "space"
+29:18 D " pick"
+29:25 B "esc"
+29:28 D " skip for now"

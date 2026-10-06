@@ -1,1 +1,2 @@
 *.snap text eol=lf
+crates/*/tests/fixtures/** text eol=lf

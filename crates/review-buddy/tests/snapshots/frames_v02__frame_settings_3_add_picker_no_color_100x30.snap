@@ -1,0 +1,134 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  settings                                                               Liminal HQ
+ Settings       ╭ Sources ─────────────────────────────────────────────────────────────────────────╮
+                │ Where your pull and merge requests come from. Changes save to your config right… │
+› Sources       │                                                                                  │
+                │   on     name           host               sign-in    all token                  │
+                │ › on  GH github.com     github.com         gh         yes ✓ smorris · expires …  │
+                │   on  GL work           gitlab.work.ca     keyring    yes ✗ Couldn't sign in t…  │
+                │   off GL old-lab        gitlab.old.example env:OLD_L… yes · not tested           │
+                │                                                                                  │
+                │ github.com  ·  github.com                                                        │
+                │ Signs in with your gh sign-in                                                    │
+            ╭ Add a source ────────────────────────────────────────────────────────────╮           │
+            │ Found on this machine. Pick one, or add another host.                    │ 2027-03-… │
+            │                                                                          │           │
+            │ › 1  GL  gitlab.example.org  ·  signed in with glab ‹                    │           │
+            │   2  GH  git.sr.ht  ·  found in your git config                          │           │
+            │   3  Another host…                                                       │           │
+            ╰──────────────────────────────────────────────────────────────────────────╯           │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ choose  1-9 pick  esc cancel
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  settings"
+0:88 D " Liminal HQ"
+1:0 B " Settings"
+1:16 D "╭"
+1:17 BD " Sources"
+1:26 D "─────────────────────────────────────────────────────────────────────────╮"
+2:16 D "│"
+2:18 D "Where your pull and merge requests come from. Changes save to your config right…"
+2:99 D "│"
+3:0 BR "› Sources"
+3:16 D "│"
+3:99 D "│"
+4:16 D "│"
+4:18 BD "  on     name           host               sign-in    all token"
+4:99 D "│"
+5:16 D "│"
+5:18 BR "›"
+5:20 R "on"
+5:24 BR "GH"
+5:26 R " github.com     github.com         gh"
+5:72 DR "yes"
+5:75 R " ✓ smorris · expires …"
+5:99 D "│"
+6:16 D "│"
+6:18 B ""
+6:24 B "GL"
+6:72 D "yes"
+6:99 D "│"
+7:16 D "│"
+7:18 B ""
+7:20 D "off"
+7:24 B "GL"
+7:27 D "old-lab"
+7:42 D "gitlab.old.example"
+7:61 D "env:OLD_L…"
+7:72 D "yes"
+7:76 D "· not tested"
+7:99 D "│"
+8:16 D "│"
+8:99 D "│"
+9:16 D "│"
+9:18 B "github.com"
+9:28 D "  ·  github.com"
+9:99 D "│"
+10:16 D "│"
+10:18 D "Signs in with"
+10:99 D "│"
+11:12 B "╭ Add a source ────────────────────────────────────────────────────────────╮"
+11:99 D "│"
+12:12 B "│"
+12:14 D "Found on this machine. Pick one, or add another host."
+12:87 B "│"
+12:99 D "│"
+13:12 B "│"
+13:87 B "│"
+13:99 D "│"
+14:12 B "│"
+14:14 BR "› 1  GL  gitlab.example.org  ·  signed in with glab ‹"
+14:87 B "│"
+14:99 D "│"
+15:12 B "│"
+15:14 D "  2  GH  git.sr.ht  ·  found in your git config"
+15:87 B "│"
+15:99 D "│"
+16:12 B "│"
+16:14 D "  3  Another host…"
+16:87 B "│"
+16:99 D "│"
+17:12 B "╰──────────────────────────────────────────────────────────────────────────╯"
+17:99 D "│"
+18:16 D "│"
+18:99 D "│"
+19:16 D "│"
+19:99 D "│"
+20:16 D "│"
+20:99 D "│"
+21:16 D "│"
+21:99 D "│"
+22:16 D "│"
+22:99 D "│"
+23:16 D "│"
+23:99 D "│"
+24:16 D "│"
+24:99 D "│"
+25:16 D "│"
+25:99 D "│"
+26:16 D "│"
+26:99 D "│"
+27:16 D "│"
+27:99 D "│"
+28:16 D "╰──────────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " choose"
+29:11 B "1-9"
+29:14 D " pick"
+29:21 B "esc"
+29:24 D " cancel"

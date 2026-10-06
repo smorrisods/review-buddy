@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  first run                                                                                                                                Dusk
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                         ╭ 5 · Ready to save ─────────────────────────────────────────────────────────╮
+                                         │ Here's what will be saved:                                                 │
+                                         │                                                                            │
+                                         │   github.com (smorris) · my repositories                                   │
+                                         │                                                                            │
+                                         │ Look: Dusk · Jax around                                                    │
+                                         │ Config: /home/u/.config/review-buddy/config.toml                           │
+                                         │                                                                            │
+                                         │ [ Back ]  [ Save ⏎ ]  [ Skip for now · esc ]                               │
+                                         ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now

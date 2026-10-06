@@ -1,0 +1,150 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  settings                                                               Liminal HQ
+ Settings       ╭ Sources ─────────────────────────────────────────────────────────────────────────╮
+                │ Where your pull and merge requests come from. Changes save to your config right… │
+› Sources       │                                                                                  │
+                │   on     name           host               sign-in    all token                  │
+                │ › on  GH github.com     github.com         gh         yes ✓ smorris · expires …  │
+                │   on  GL work           gitlab.work.ca     keyring    yes ✗ Couldn't sign in t…  │
+                │   off GL old-lab        gitlab.old.example env:OLD_L… yes · not tested           │
+                │                                                                                  │
+            ╭ Add a source ────────────────────────────────────────────────────────────╮           │
+            │ › Name          gitlab.example.org                                       │           │
+            │   Forge         GitLab                                                   │           │
+            │   Host          gitlab.example.org                                       │ 2027-03-… │
+            │   API address   (default for the host)                                   │           │
+            │   Sign in with  glab sign-in                                             │           │
+            │   Groups        (everything you can see)                                 │           │
+            │                                                                          │           │
+            │ Saved to your config. The token itself never goes in the file.           │           │
+            │                                                                          │           │
+            │ [ Save ⏎ ]  [ Cancel · esc ]                                             │           │
+            ╰──────────────────────────────────────────────────────────────────────────╯           │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ tab next field  ⏎ save  ←/→ change choice  esc cancel
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  settings"
+0:88 D " Liminal HQ"
+1:0 B " Settings"
+1:16 D "╭"
+1:17 BD " Sources"
+1:26 D "─────────────────────────────────────────────────────────────────────────╮"
+2:16 D "│"
+2:18 D "Where your pull and merge requests come from. Changes save to your config right…"
+2:99 D "│"
+3:0 BR "› Sources"
+3:16 D "│"
+3:99 D "│"
+4:16 D "│"
+4:18 BD "  on     name           host               sign-in    all token"
+4:99 D "│"
+5:16 D "│"
+5:18 BR "›"
+5:20 R "on"
+5:24 BR "GH"
+5:26 R " github.com     github.com         gh"
+5:72 DR "yes"
+5:75 R " ✓ smorris · expires …"
+5:99 D "│"
+6:16 D "│"
+6:18 B ""
+6:24 B "GL"
+6:72 D "yes"
+6:99 D "│"
+7:16 D "│"
+7:18 B ""
+7:20 D "off"
+7:24 B "GL"
+7:27 D "old-lab"
+7:42 D "gitlab.old.example"
+7:61 D "env:OLD_L…"
+7:72 D "yes"
+7:76 D "· not tested"
+7:99 D "│"
+8:16 D "│"
+8:99 D "│"
+9:12 B "╭ Add a source ────────────────────────────────────────────────────────────╮"
+9:99 D "│"
+10:12 B "│"
+10:14 B "›"
+10:16 D "Name"
+10:48 R ""
+10:87 B "│"
+10:99 D "│"
+11:12 B "│"
+11:14 B ""
+11:16 D "Forge"
+11:87 B "│"
+11:99 D "│"
+12:12 B "│"
+12:14 B ""
+12:16 D "Host"
+12:87 B "│"
+12:99 D "│"
+13:12 B "│"
+13:14 B ""
+13:16 D "API address   (default for the host)"
+13:87 B "│"
+13:99 D "│"
+14:12 B "│"
+14:14 B ""
+14:16 D "Sign in with"
+14:87 B "│"
+14:99 D "│"
+15:12 B "│"
+15:14 B ""
+15:16 D "Groups        (everything you can see)"
+15:87 B "│"
+15:99 D "│"
+16:12 B "│"
+16:87 B "│"
+16:99 D "│"
+17:12 B "│"
+17:14 D "Saved to your config. The token itself never goes in the file."
+17:87 B "│"
+17:99 D "│"
+18:12 B "│"
+18:87 B "│"
+18:99 D "│"
+19:12 B "│"
+19:14 B "[ Save ⏎ ]"
+19:26 D "[ Cancel · esc ]"
+19:87 B "│"
+19:99 D "│"
+20:12 B "╰──────────────────────────────────────────────────────────────────────────╯"
+20:99 D "│"
+21:16 D "│"
+21:99 D "│"
+22:16 D "│"
+22:99 D "│"
+23:16 D "│"
+23:99 D "│"
+24:16 D "│"
+24:99 D "│"
+25:16 D "│"
+25:99 D "│"
+26:16 D "│"
+26:99 D "│"
+27:16 D "│"
+27:99 D "│"
+28:16 D "╰──────────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "tab"
+29:4 D " next field"
+29:17 B "⏎"
+29:18 D " save"
+29:25 B "←/→"
+29:28 D " change choice"
+29:44 B "esc"
+29:47 D " cancel"
