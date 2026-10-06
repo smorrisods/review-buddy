@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use rb_core::{Error, ForgeKind, Provider, Source, SourceId};
-use rb_github::{Auth, AuthError, GithubClient, GithubProvider};
+use rb_github::{Auth, AuthError, GithubClient, GithubProvider, TokenOrigin};
 use rb_platform::auth::AuthMode;
 use rb_platform::{CommandRunner, SecretStore, SystemRunner};
 
@@ -126,16 +126,35 @@ impl Factory {
             return Ok(Arc::clone(found));
         }
         let entry = self
-            .entries
-            .iter()
-            .find(|e| &e.source.id == id)
+            .entry(id)
             .ok_or_else(|| ProviderError::UnknownSource(id.to_string()))?;
         let provider = self.build(entry)?;
         self.lock().insert(id.clone(), Arc::clone(&provider));
         Ok(provider)
     }
 
-    fn build(&self, entry: &Entry) -> Result<Arc<dyn Provider>, ProviderError> {
+    /// How the source's token is configured to be found, whether or not that works.
+    pub fn auth_mode(&self, id: &SourceId) -> Option<AuthMode> {
+        self.entry(id).map(|e| e.auth.clone())
+    }
+
+    /// A signed-in HTTP client for one GitHub source, and where its token came from. Resolves
+    /// the token afresh each call; blocking. The token stays inside the client.
+    pub fn github_client(
+        &self,
+        id: &SourceId,
+    ) -> Result<(GithubClient, TokenOrigin), ProviderError> {
+        let entry = self
+            .entry(id)
+            .ok_or_else(|| ProviderError::UnknownSource(id.to_string()))?;
+        self.client_for(entry)
+    }
+
+    fn entry(&self, id: &SourceId) -> Option<&Entry> {
+        self.entries.iter().find(|e| &e.source.id == id)
+    }
+
+    fn client_for(&self, entry: &Entry) -> Result<(GithubClient, TokenOrigin), ProviderError> {
         let source = &entry.source;
         if source.kind == ForgeKind::GitLab {
             return Err(ProviderError::GitlabLater);
@@ -150,8 +169,13 @@ impl Factory {
             .map_err(ProviderError::Auth)?;
         let client = GithubClient::new(&source.host, entry.api_url.as_deref(), token.secret)
             .map_err(ProviderError::Client)?;
+        Ok((client, token.origin))
+    }
+
+    fn build(&self, entry: &Entry) -> Result<Arc<dyn Provider>, ProviderError> {
+        let (client, _) = self.client_for(entry)?;
         Ok(Arc::new(
-            GithubProvider::new(client).with_source_id(source.id.clone()),
+            GithubProvider::new(client).with_source_id(entry.source.id.clone()),
         ))
     }
 

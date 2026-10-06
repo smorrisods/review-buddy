@@ -20,7 +20,7 @@ use super::output::{colour_enabled, pager, OutputMode, Painter};
 use super::prompt::Interaction;
 use super::selector::{self, Inference, RepoRef, Selector, Target};
 use crate::cli::GlobalArgs;
-use crate::config::{ColourDepth as DepthSetting, Config, LoadedConfig};
+use crate::config::{ColourDepth as DepthSetting, Config, LoadedConfig, SourceConfig};
 
 /// Terminal facts, injected so tests can pretend to be either kind of terminal.
 #[derive(Debug, Clone, Copy)]
@@ -270,6 +270,16 @@ impl Context {
                     })
             })
             .collect()
+    }
+
+    /// Every `[[source]]` entry as written, including disabled ones, or the config error.
+    pub fn configured(&self) -> Result<&[SourceConfig], CmdError> {
+        match &self.config_error {
+            Some(problem) => Err(CmdError::failed(format!(
+                "{problem}\nFix the config file, or see review-buddy config paths."
+            ))),
+            None => Ok(&self.config.sources),
+        }
     }
 
     fn all_sources(&self) -> Vec<Source> {

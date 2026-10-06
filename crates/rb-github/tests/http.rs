@@ -77,7 +77,12 @@ async fn test_token_reports_scopes_limits_and_sso() {
     let server = MockServer::start().await;
     Mock::given(path("/user"))
         .respond_with(
-            user_response().insert_header("x-github-sso", "partial-results; organizations=12,34"),
+            user_response()
+                .insert_header("x-github-sso", "partial-results; organizations=12,34")
+                .insert_header(
+                    "github-authentication-token-expiration",
+                    "2027-01-12 10:00:00 UTC",
+                ),
         )
         .mount(&server)
         .await;
@@ -96,6 +101,7 @@ async fn test_token_reports_scopes_limits_and_sso() {
     assert_eq!(report.core.remaining, 4989);
     assert_eq!(report.graphql.unwrap().remaining, 4000);
     assert!(report.sso_hint.unwrap().contains("SSO"));
+    assert_eq!(report.expires.as_deref(), Some("2027-01-12"));
 }
 
 #[tokio::test]
