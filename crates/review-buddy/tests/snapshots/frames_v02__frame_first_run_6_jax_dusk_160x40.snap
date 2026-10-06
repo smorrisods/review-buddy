@@ -41,4 +41,4 @@ expression: text(& render(& mut app))
 
 
 
- ⏎ continue  space pick  esc skip for now
+ ⏎ continue  ← → buttons  ⌫ back  space pick  esc skip for now

@@ -126,3 +126,28 @@ async fn a_first_launch_with_no_config_shows_first_run_and_esc_leaves_a_hint() {
     s.send(b"q");
     assert!(s.wait_exit(Duration::from_secs(10)));
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn left_focuses_back_and_enter_returns_to_the_previous_step() {
+    let server = stub_github().await;
+    let home = tempfile::tempdir().unwrap();
+    let bin = home.path().join("bin");
+    stub_bin(&bin);
+    let dir = home.path().join("XDG_CONFIG_HOME/review-buddy");
+    std::fs::create_dir_all(&dir).unwrap();
+    let old = format!(
+        "[[source]]\nname = \"ghe.test\"\nkind = \"github\"\nhost = \"ghe.test\"\napi_url = \"{}\"\nauth = \"cli\"\n",
+        server.uri()
+    );
+    std::fs::write(dir.join("config.toml"), old).unwrap();
+    let mut s = spawn(home.path(), &bin, &["--setup"]);
+    s.expect("Getting started", "first run opens");
+    s.send_until(b"\r", "signed in as octo via gh", "the account is found");
+    s.send_expect(b"\r", "What to include", "step 2");
+    s.send_expect(b"\x1b[D", "[› Back ‹]", "left focuses Back");
+    s.send_expect(b"\r", "Connect your sources", "enter on Back goes back");
+    assert!(!s.screen().contains("What to include"), "{}", s.screen());
+    s.send_until(b"\x1b", "review-buddy --setup", "esc leaves a hint");
+    s.send(b"q");
+    assert!(s.wait_exit(Duration::from_secs(10)));
+}

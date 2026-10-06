@@ -121,8 +121,12 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
         }
         Screen::FirstRun => vec![
             bind("First run", "⏎", "continue", None, true),
+            bind("First run", "← →", "buttons", None, true),
+            bind("First run", "⌫", "back", None, true),
             bind("First run", "space", "pick", None, true),
             bind("First run", "esc", "skip for now", None, true),
+            bind("First run", "tab", "list / buttons", None, false),
+            bind("First run", "← →", "theme (look step)", None, false),
         ],
     }
 }

@@ -319,6 +319,21 @@ fn dashboard_strip(theme: &str, size: (u16, u16), no_color: bool) -> App {
     mixed(theme, size, no_color, 0)
 }
 
+/// The scope step with the Back button focused (←) or the Skip button focused (tab, tab, tab).
+fn first_run_4_scope_back_focused(theme: &str, size: (u16, u16), no_color: bool) -> App {
+    let mut app = first_run(4, theme, size, no_color);
+    press(&mut app, KeyCode::Left);
+    app
+}
+
+fn first_run_5_look_skip_focused(theme: &str, size: (u16, u16), no_color: bool) -> App {
+    let mut app = first_run(5, theme, size, no_color);
+    for _ in 0..3 {
+        press(&mut app, KeyCode::Tab);
+    }
+    app
+}
+
 macro_rules! steps {
     ($($name:ident: $f:ident($step:literal);)*) => {
         $(fn $name(theme: &str, size: (u16, u16), no_color: bool) -> App {
@@ -368,6 +383,8 @@ macro_rules! plain_frames {
 }
 
 frames! {
+    frame_first_run_4_scope_back_focused_liminal_hq_160x40: first_run_4_scope_back_focused("liminal-hq", 160, 40);
+    frame_first_run_5_look_skip_focused_dusk_100x30: first_run_5_look_skip_focused("dusk", 100, 30);
     frame_first_run_1_welcome_liminal_hq_160x40: first_run_1_welcome("liminal-hq", 160, 40);
     frame_first_run_1_welcome_liminal_hq_100x30: first_run_1_welcome("liminal-hq", 100, 30);
     frame_first_run_1_welcome_dusk_160x40: first_run_1_welcome("dusk", 160, 40);
@@ -464,6 +481,8 @@ frames! {
 }
 
 plain_frames! {
+    frame_first_run_4_scope_back_focused_no_color_100x30: first_run_4_scope_back_focused(100, 30);
+    frame_first_run_5_look_skip_focused_no_color_100x30: first_run_5_look_skip_focused(100, 30);
     frame_first_run_1_welcome_no_color_160x40: first_run_1_welcome(160, 40);
     frame_first_run_1_welcome_no_color_100x30: first_run_1_welcome(100, 30);
     frame_first_run_2_connect_no_color_160x40: first_run_2_connect(160, 40);

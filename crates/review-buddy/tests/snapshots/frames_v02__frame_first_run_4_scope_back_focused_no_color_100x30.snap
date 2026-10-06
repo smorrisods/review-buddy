@@ -20,7 +20,7 @@ expression: plain_dump(& mut app)
            │   [ ] github.com · org liminal-hq                                          │
            │   [ ] github.com · org acme                                                │
            │                                                                            │
-           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           │ [› Back ‹]  [ Continue ⏎ ]  [ Skip for now · esc ]                         │
            ╰────────────────────────────────────────────────────────────────────────────╯
 
 
@@ -65,9 +65,9 @@ expression: plain_dump(& mut app)
 17:11 B "│"
 17:88 B "│"
 18:11 B "│"
-18:13 D "[ Back ]"
-18:23 B "[ Continue ⏎ ]"
-18:39 D "[ Skip for now · esc ]"
+18:13 BR "[› Back ‹]"
+18:25 B "[ Continue ⏎ ]"
+18:41 D "[ Skip for now · esc ]"
 18:88 B "│"
 19:11 B "╰────────────────────────────────────────────────────────────────────────────╯"
 29:1 B "⏎"

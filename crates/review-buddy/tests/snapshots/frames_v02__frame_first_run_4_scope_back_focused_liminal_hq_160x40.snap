@@ -2,7 +2,7 @@
 source: crates/review-buddy/tests/frames_v02.rs
 expression: text(& render(& mut app))
 ---
- review buddy  ·  first run                                                                                                                      Afterglow Dark
+ review buddy  ·  first run                                                                                                                          Liminal HQ
 
 
 
@@ -25,7 +25,7 @@ expression: text(& render(& mut app))
                                          │   [ ] github.com · org liminal-hq                                          │
                                          │   [ ] github.com · org acme                                                │
                                          │                                                                            │
-                                         │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+                                         │ [› Back ‹]  [ Continue ⏎ ]  [ Skip for now · esc ]                         │
                                          ╰────────────────────────────────────────────────────────────────────────────╯
 
 
