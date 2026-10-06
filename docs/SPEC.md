@@ -275,7 +275,7 @@ Jax is optional (`J` toggles; persisted). He appears in the 1a detail pane and t
 
 ## 10. Theming (summary)
 
-Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default, transparent background), **Afterglow Dark**, **Afterglow Light**. User themes go in `$XDG_CONFIG_HOME/review-buddy/themes/*.toml`, with installed packs under `$XDG_DATA_HOME` and `$XDG_DATA_DIRS`; missing keys fall back to Liminal HQ. `T` cycles at runtime. Truecolour is used when `COLORTERM` is `truecolor`/`24bit`; otherwise roles are quantised to the 256-colour palette, and below that to 16 named ANSI colours via each theme's `[ansi]` table. Full spec: `docs/theming.md`.
+Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default, transparent background), **Afterglow Dark**, **Afterglow Light**. User themes go in `$XDG_CONFIG_HOME/review-buddy/themes/*.toml`, with installed packs under `$XDG_DATA_HOME` and `$XDG_DATA_DIRS`; missing keys fall back to Liminal HQ. `T` cycles at runtime. Truecolour is used when `COLORTERM` is `truecolor`/`24bit` or the terminal is a known 24-bit one (Windows Terminal, iTerm2, kitty, WezTerm and others; see `docs/theming.md`); otherwise roles are quantised to the 256-colour palette, and below that to 16 named ANSI colours via each theme's `[ansi]` table. Full spec: `docs/theming.md`.
 
 ## 11. Performance and limits
 

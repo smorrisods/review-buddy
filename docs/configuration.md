@@ -214,6 +214,7 @@ Parsed but not applied yet. See `keybindings.md`.
 | `REVIEW_BUDDY_CONFIG` | Path to an alternate config file (replaces the user config layers) |
 | `XDG_CONFIG_HOME`, `XDG_CONFIG_DIRS`, `XDG_DATA_HOME`, `XDG_DATA_DIRS`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`, `XDG_RUNTIME_DIR` | Standard base directories; see above |
 | `REVIEW_BUDDY_THEME` | Overrides `ui.theme` for this run |
+| `REVIEW_BUDDY_COLOUR_DEPTH` | Forces the colour depth for this run: `truecolor`, `256` or `16` (overrides detection; `ui.colour_depth` in `config.toml` does the same persistently) |
 | `REVIEW_BUDDY_REDUCED_MOTION=1` | Same as `ui.reduced_motion = true` (only the refresh spinner animates today) |
 | `GITHUB_TOKEN`, `GITLAB_TOKEN` | Used only by sources with `auth = "env:…"` |
 | `NO_COLOR` | Honoured: roles collapse to bold, dim and reverse. On the command line, output is uncoloured |

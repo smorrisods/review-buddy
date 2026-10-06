@@ -11,23 +11,69 @@ pub enum ColourDepth {
 }
 
 impl ColourDepth {
-    /// Picks a depth from `COLORTERM` and `TERM` values.
-    pub fn detect(colorterm: Option<&str>, term: Option<&str>) -> Self {
-        let colorterm = colorterm.unwrap_or_default().to_ascii_lowercase();
+    /// Detects the depth from the process environment. See [`ColourDepth::detect_with`].
+    pub fn from_env() -> Self {
+        Self::detect_with(|key| std::env::var(key).ok())
+    }
+
+    /// Picks a depth from environment variables read through `get`, so tests can inject them.
+    ///
+    /// In order: `REVIEW_BUDDY_COLOUR_DEPTH` (`truecolor`, `256` or `16`); `COLORTERM` of
+    /// `truecolor` or `24bit`; a `TERM` that names 24-bit colour (`*-direct`, `*truecolor*`,
+    /// kitty, alacritty, wezterm, ghostty); then terminals that are known to support 24-bit
+    /// colour but don't always set `COLORTERM` (Windows Terminal through `WT_SESSION`, which
+    /// WSL passes along, iTerm2, VS Code, WezTerm, Ghostty, kitty, and VTE 0.36 or newer).
+    /// Those hints are ignored under tmux or screen, which only pass 24-bit colour through when
+    /// told to. After that a `TERM` containing `256color` gives 256 colours, and anything else
+    /// gives 16.
+    pub fn detect_with(get: impl Fn(&str) -> Option<String>) -> Self {
+        let var = |key: &str| get(key).filter(|v| !v.is_empty());
+        if let Some(depth) = var("REVIEW_BUDDY_COLOUR_DEPTH").and_then(|v| v.parse().ok()) {
+            return depth;
+        }
+        let colorterm = var("COLORTERM").unwrap_or_default().to_ascii_lowercase();
         if colorterm == "truecolor" || colorterm == "24bit" {
-            ColourDepth::TrueColour
-        } else if term.is_some_and(|t| t.contains("256color")) {
+            return ColourDepth::TrueColour;
+        }
+        let term = var("TERM").unwrap_or_default().to_ascii_lowercase();
+        let named_truecolour = term.ends_with("-direct")
+            || term.contains("truecolor")
+            || term.contains("24bit")
+            || ["kitty", "alacritty", "wezterm", "ghostty"]
+                .iter()
+                .any(|n| term.contains(n));
+        if named_truecolour {
+            return ColourDepth::TrueColour;
+        }
+        let multiplexed =
+            var("TMUX").is_some() || term.starts_with("screen") || term.starts_with("tmux");
+        if !multiplexed {
+            let program = var("TERM_PROGRAM").unwrap_or_default();
+            let vte_ok = var("VTE_VERSION")
+                .and_then(|v| v.parse::<u32>().ok())
+                .is_some_and(|v| v >= 3600);
+            let known = var("WT_SESSION").is_some()
+                || var("KITTY_WINDOW_ID").is_some()
+                || ["iTerm.app", "vscode", "WezTerm", "ghostty"].contains(&program.as_str())
+                || vte_ok;
+            if known {
+                return ColourDepth::TrueColour;
+            }
+        }
+        if term.contains("256color") {
             ColourDepth::Ansi256
         } else {
             ColourDepth::Ansi16
         }
     }
 
-    pub fn from_env() -> Self {
-        Self::detect(
-            std::env::var("COLORTERM").ok().as_deref(),
-            std::env::var("TERM").ok().as_deref(),
-        )
+    /// Picks a depth from `COLORTERM` and `TERM` values alone.
+    pub fn detect(colorterm: Option<&str>, term: Option<&str>) -> Self {
+        Self::detect_with(|key| match key {
+            "COLORTERM" => colorterm.map(str::to_string),
+            "TERM" => term.map(str::to_string),
+            _ => None,
+        })
     }
 }
 
@@ -323,6 +369,87 @@ mod tests {
         assert_eq!("truecolor".parse(), Ok(TrueColour));
         assert_eq!("16".parse(), Ok(Ansi16));
         assert!("8".parse::<ColourDepth>().is_err());
+    }
+
+    fn env(pairs: &[(&str, &str)]) -> ColourDepth {
+        let owned: Vec<(String, String)> = pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        ColourDepth::detect_with(|key| owned.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone()))
+    }
+
+    #[test]
+    fn windows_terminal_in_wsl_is_truecolour_without_colorterm() {
+        use ColourDepth::*;
+        // WSL passes WT_SESSION through but not COLORTERM.
+        assert_eq!(
+            env(&[("TERM", "xterm-256color"), ("WT_SESSION", "abc")]),
+            TrueColour
+        );
+        assert_eq!(env(&[("TERM", "xterm-256color")]), Ansi256);
+        assert_eq!(
+            env(&[("TERM", "xterm-256color"), ("TERM_PROGRAM", "iTerm.app")]),
+            TrueColour
+        );
+        assert_eq!(
+            env(&[("TERM", "xterm-256color"), ("VTE_VERSION", "7603")]),
+            TrueColour
+        );
+        assert_eq!(
+            env(&[("TERM", "xterm-256color"), ("VTE_VERSION", "3000")]),
+            Ansi256
+        );
+        assert_eq!(env(&[("TERM", "xterm-kitty")]), TrueColour);
+        assert_eq!(env(&[("TERM", "xterm-direct")]), TrueColour);
+    }
+
+    #[test]
+    fn multiplexers_do_not_inherit_the_outer_terminal_hints() {
+        use ColourDepth::*;
+        assert_eq!(
+            env(&[("TERM", "tmux-256color"), ("WT_SESSION", "abc")]),
+            Ansi256
+        );
+        assert_eq!(
+            env(&[
+                ("TERM", "xterm-256color"),
+                ("TMUX", "/tmp/x"),
+                ("WT_SESSION", "abc")
+            ]),
+            Ansi256
+        );
+        assert_eq!(
+            env(&[
+                ("TERM", "screen"),
+                ("COLORTERM", "truecolor"),
+                ("WT_SESSION", "abc")
+            ]),
+            TrueColour
+        );
+    }
+
+    #[test]
+    fn the_override_wins_over_every_hint() {
+        use ColourDepth::*;
+        assert_eq!(
+            env(&[
+                ("REVIEW_BUDDY_COLOUR_DEPTH", "256"),
+                ("COLORTERM", "truecolor")
+            ]),
+            Ansi256
+        );
+        assert_eq!(
+            env(&[
+                ("REVIEW_BUDDY_COLOUR_DEPTH", "truecolor"),
+                ("TERM", "xterm")
+            ]),
+            TrueColour
+        );
+        assert_eq!(
+            env(&[("REVIEW_BUDDY_COLOUR_DEPTH", "nonsense"), ("TERM", "xterm")]),
+            Ansi16
+        );
     }
 
     #[test]

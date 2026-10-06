@@ -114,11 +114,13 @@ Warm paper with deeper accents for ≥ 4.5:1 contrast. `background #fbfaf6`, `ra
 
 Detected once at start-up:
 
-1. `COLORTERM=truecolor|24bit` → 24-bit colour.
-2. A `TERM` containing `256color` → each role quantised to the nearest xterm-256 colour (in OKLab, not RGB).
-3. Otherwise → the theme's `[ansi]` table, falling back to the built-in 16-colour mapping (accent → yellow, interactive → magenta, success → green, danger → red, muted → bright-black).
+1. `REVIEW_BUDDY_COLOUR_DEPTH=truecolor|256|16` forces a depth for this run.
+2. `COLORTERM=truecolor|24bit`, or a `TERM` that names 24-bit colour (`*-direct`, kitty, alacritty, wezterm, ghostty) → 24-bit colour.
+3. Terminals that support 24-bit colour but don't always set `COLORTERM` → 24-bit colour: Windows Terminal (`WT_SESSION`, which WSL passes through), iTerm2, VS Code, WezTerm, Ghostty, kitty and VTE 0.36 or newer. These hints are ignored under tmux or screen, which only pass 24-bit colour through when they're configured to; set `COLORTERM=truecolor` there.
+4. A `TERM` containing `256color` → each role quantised to the nearest xterm-256 colour (in OKLab, not RGB). Similar themes (Liminal HQ and Dusk, for example) can look almost identical here, because their colours land on the same 256-colour entries.
+5. Otherwise → the theme's `[ansi]` table, falling back to the built-in 16-colour mapping (accent → yellow, interactive → magenta, success → green, danger → red, muted → bright-black).
 
-Force it with `ui.colour_depth = "truecolor" | "256" | "16"`.
+Force it with `ui.colour_depth = "truecolor" | "256" | "16"` in `config.toml`.
 
 ## Checking contrast
 
