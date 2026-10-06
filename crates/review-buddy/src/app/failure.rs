@@ -60,6 +60,11 @@ impl SourceFailure {
                 ),
                 next_step: "Check the token's access, then press r to try again.".to_string(),
             },
+            Error::Api(text) if is_server_error(text) => Self {
+                kind: FailureKind::Offline,
+                summary: format!("{host} isn't answering properly right now."),
+                next_step: "It usually clears by itself. Press r to try again.".to_string(),
+            },
             other => Self {
                 kind: FailureKind::Other,
                 summary: format!("{}.", other.to_string().trim_end_matches('.')),
@@ -100,6 +105,14 @@ impl SourceFailure {
     }
 }
 
+/// A forge answer that was a 5xx, from the `<host> answered 5xx` text the providers write.
+pub fn is_server_error(text: &str) -> bool {
+    text.split("answered ")
+        .nth(1)
+        .and_then(|rest| rest.get(..3))
+        .is_some_and(|code| code.starts_with('5') && code.bytes().all(|b| b.is_ascii_digit()))
+}
+
 fn wait_phrase(secs: u64) -> String {
     let plural = |n: u64, unit: &str| format!("{n} {unit}{}", if n == 1 { "" } else { "s" });
     match secs {
@@ -118,6 +131,15 @@ fn wait_phrase(secs: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_server_error_reads_as_offline_with_a_next_step() {
+        let f = SourceFailure::from_error(&Error::Api("h answered 503: busy".into()), "h");
+        assert_eq!(f.kind, FailureKind::Offline);
+        assert!(f.next_step.contains("Press r"));
+        let f = SourceFailure::from_error(&Error::Api("h answered 418".into()), "h");
+        assert_eq!(f.kind, FailureKind::Other);
+    }
 
     #[test]
     fn unauthorized_says_how_to_sign_in() {

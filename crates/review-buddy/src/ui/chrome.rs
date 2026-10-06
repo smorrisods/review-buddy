@@ -11,7 +11,7 @@ use rb_theme::Role;
 use unicode_width::UnicodeWidthStr;
 
 use super::{style, HitMap};
-use crate::app::{Action, App, Chip, Entry, NoticeKind, Screen};
+use crate::app::{refresh, Action, App, Chip, Entry, NoticeKind, Screen};
 
 fn width(s: &str) -> u16 {
     UnicodeWidthStr::width(s).min(usize::from(u16::MAX)) as u16
@@ -159,6 +159,18 @@ pub fn draw_top_bar(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap)
         format!("  ·  {} · {} changes", app.source_label, app.change_count)
     };
     spans.push(Span::styled(info, style::fg(palette, Role::Muted)));
+    if let Some(cached) = app.state.offline_since_cache() {
+        spans.push(Span::styled(
+            format!("  ·  offline · cached {}", refresh::hhmm(cached)),
+            style::fg(palette, Role::TextSecondary).add_modifier(Modifier::BOLD),
+        ));
+    } else if app.state.pending_sources > 0 {
+        let glyph = refresh::spinner(app.ticks(), app.reduced_motion);
+        spans.push(Span::styled(
+            format!("  ·  {glyph} refreshing"),
+            style::fg(palette, Role::Muted),
+        ));
+    }
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 
     let theme = format!(" {} ", app.theme_name());
@@ -196,10 +208,18 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
         hints_for(app.screen)
     };
 
-    let status = app.status.as_ref().map(status_text).map(|(text, role)| {
-        let room = usize::from(area.width.saturating_sub(4));
-        (truncate(&text, room), role)
-    });
+    let status = app
+        .status
+        .as_ref()
+        .map(status_text)
+        .or_else(|| {
+            let at = app.state.last_refreshed?;
+            Some((format!("refreshed {}", refresh::hhmm(at)), Role::Muted))
+        })
+        .map(|(text, role)| {
+            let room = usize::from(area.width.saturating_sub(4));
+            (truncate(&text, room), role)
+        });
     let status_w = status.as_ref().map_or(0, |(t, _)| width(t) + 1);
     let hint_room = area.width.saturating_sub(1 + status_w);
 

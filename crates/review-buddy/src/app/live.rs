@@ -4,28 +4,54 @@
 use rb_core::{ChangeSummary, SourceId, Timestamp};
 
 use super::update::{push_toast, set_status};
-use super::{dashboard, diff, App, ChangeInfo, Cmd, Notice, NoticeKind, SourceFailure};
+use super::{
+    dashboard, diff, App, ChangeInfo, Cmd, FailureKind, Notice, NoticeKind, SourceFailure,
+    SourceStatus,
+};
 use rb_core::ChangeId;
 
-/// Asks for every source to be refreshed, unless a refresh is already under way.
+/// How a refresh was asked for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Ask {
+    Auto,
+    Manual,
+    Focus,
+}
+
+/// Asks for every source to be refreshed, unless a refresh is already under way. `announce` is
+/// for a refresh you asked for with `r`.
 pub fn request_refresh(app: &mut App, announce: bool) -> Vec<Cmd> {
+    ask(app, if announce { Ask::Manual } else { Ask::Auto })
+}
+
+/// The terminal regained focus. The runtime skips it if a refresh just ran.
+pub fn request_focus_refresh(app: &mut App) -> Vec<Cmd> {
+    ask(app, Ask::Focus)
+}
+
+fn ask(app: &mut App, how: Ask) -> Vec<Cmd> {
     if app.state.sources.is_empty() {
         return Vec::new();
     }
     if app.state.pending_sources > 0 {
-        if announce {
+        if how == Ask::Manual {
             return set_status(app, Notice::new(NoticeKind::Info, "Already refreshing."));
         }
         return Vec::new();
     }
-    app.state.pending_sources = app.state.sources.len();
     let state = &mut app.state;
+    state.pending_sources = state.sources.len();
+    state.refreshing = state.sources.iter().map(|s| s.id.clone()).collect();
     state
         .info_requested
         .retain(|id| state.details.contains_key(id));
     app.mark_dirty();
-    let mut cmds = vec![Cmd::LoadChanges];
-    if announce {
+    let mut cmds = vec![match how {
+        Ask::Auto => Cmd::LoadChanges,
+        Ask::Manual => Cmd::LoadChangesNow,
+        Ask::Focus => Cmd::LoadChangesOnFocus,
+    }];
+    if how == Ask::Manual {
         cmds.extend(set_status(
             app,
             Notice::new(NoticeKind::Info, "Refreshing…"),
@@ -34,7 +60,53 @@ pub fn request_refresh(app: &mut App, announce: bool) -> Vec<Cmd> {
     cmds
 }
 
+/// The interval elapsed. Only refreshes a focused app that has finished loading.
+pub fn on_refresh_due(app: &mut App) -> Vec<Cmd> {
+    if app.focused && app.state.loaded {
+        return request_refresh(app, false);
+    }
+    Vec::new()
+}
+
+/// A refresh was skipped because one ran moments ago.
+pub fn on_refresh_skipped(app: &mut App) -> Vec<Cmd> {
+    let state = &mut app.state;
+    state.pending_sources = 0;
+    state.refreshing.clear();
+    app.mark_dirty();
+    Vec::new()
+}
+
+pub fn on_source_status(app: &mut App, source: SourceId, status: SourceStatus) -> Vec<Cmd> {
+    app.state.statuses.insert(source, status);
+    app.mark_dirty();
+    Vec::new()
+}
+
 pub fn on_source_loaded(
+    app: &mut App,
+    source: SourceId,
+    result: Result<Vec<ChangeSummary>, SourceFailure>,
+    now: Timestamp,
+) -> Vec<Cmd> {
+    if app.state.sources.iter().any(|s| s.id == source) {
+        let state = &mut app.state;
+        state.pending_sources = state.pending_sources.saturating_sub(1);
+        state.refreshing.remove(&source);
+    }
+    apply_result(app, source, result, now)
+}
+
+pub fn on_source_updated(
+    app: &mut App,
+    source: SourceId,
+    result: Result<Vec<ChangeSummary>, SourceFailure>,
+    now: Timestamp,
+) -> Vec<Cmd> {
+    apply_result(app, source, result, now)
+}
+
+fn apply_result(
     app: &mut App,
     source: SourceId,
     result: Result<Vec<ChangeSummary>, SourceFailure>,
@@ -50,8 +122,8 @@ pub fn on_source_loaded(
         return Vec::new();
     };
     let state = &mut app.state;
-    state.pending_sources = state.pending_sources.saturating_sub(1);
     state.now = Some(now);
+    let before = state.failures.get(&source).map(|f| f.kind);
     let mut cmds = Vec::new();
     match result {
         Ok(items) => {
@@ -77,17 +149,48 @@ pub fn on_source_loaded(
                 .retain(|id, _| id.source_id != source || items.iter().any(|i| &i.id == id));
             state.changes.extend(items);
             state.failures.remove(&source);
+            state.statuses.insert(source, SourceStatus::Ok);
+            state.last_refreshed = Some(now);
+            if before.is_some() {
+                cmds = push_toast(
+                    app,
+                    Notice::new(NoticeKind::Success, format!("{label} is back.")),
+                );
+            }
         }
         Err(failure) => {
+            let kept = state.statuses.get(&source).copied();
+            let status = match failure.kind {
+                FailureKind::Offline => match kept {
+                    Some(s @ SourceStatus::Offline { .. }) => s,
+                    _ => SourceStatus::Offline { since: now },
+                },
+                FailureKind::RateLimited => match kept {
+                    Some(s @ SourceStatus::RateLimited { .. }) => s,
+                    _ => SourceStatus::Failed,
+                },
+                FailureKind::SignIn => SourceStatus::AuthFailed,
+                _ => SourceStatus::Failed,
+            };
+            state.statuses.insert(source.clone(), status);
             let text = failure.toast(&label);
+            let changed = before != Some(failure.kind);
             state.failures.insert(source, failure);
-            cmds = push_toast(app, Notice::new(NoticeKind::Warning, text));
+            if changed {
+                cmds = push_toast(app, Notice::new(NoticeKind::Warning, text));
+            }
         }
     }
     app.change_count = app.state.changes.len();
     dashboard::reconcile(app);
     app.mark_dirty();
     cmds
+}
+
+pub fn on_cache_time(app: &mut App, at: Timestamp) -> Vec<Cmd> {
+    app.state.last_refreshed.get_or_insert(at);
+    app.mark_dirty();
+    Vec::new()
 }
 
 pub fn on_info_loaded(
@@ -296,7 +399,7 @@ mod tests {
         assert!(update(&mut a, Msg::FocusGained).is_empty());
         a.refresh_on_focus = true;
         let cmds = update(&mut a, Msg::FocusGained);
-        assert!(matches!(cmds.first(), Some(Cmd::LoadChanges)));
+        assert!(matches!(cmds.first(), Some(Cmd::LoadChangesOnFocus)));
         assert!(update(&mut a, Msg::FocusGained).is_empty());
     }
 }

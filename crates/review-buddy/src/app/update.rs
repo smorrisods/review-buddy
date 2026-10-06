@@ -25,13 +25,16 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
         }
         Msg::Tick => {
             app.ticks = app.ticks.wrapping_add(1);
+            if app.state.pending_sources > 0 && !app.reduced_motion {
+                app.mark_dirty();
+            }
             Vec::new()
         }
         Msg::FocusGained => {
             app.focused = true;
             app.mark_dirty();
             if app.refresh_on_focus && app.state.loaded {
-                return live::request_refresh(app, false);
+                return live::request_focus_refresh(app);
             }
             Vec::new()
         }
@@ -68,6 +71,15 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             result,
             now,
         } => live::on_source_loaded(app, source, result, now),
+        Msg::SourceUpdated {
+            source,
+            result,
+            now,
+        } => live::on_source_updated(app, source, result, now),
+        Msg::SourceStatus { source, status } => live::on_source_status(app, source, status),
+        Msg::CacheTime(at) => live::on_cache_time(app, at),
+        Msg::RefreshDue => live::on_refresh_due(app),
+        Msg::RefreshSkipped => live::on_refresh_skipped(app),
         Msg::InfoLoaded { id, result } => live::on_info_loaded(app, id, result),
         Msg::DiffLoaded { id, result } => {
             diff::on_loaded(app, &id, result);

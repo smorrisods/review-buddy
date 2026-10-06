@@ -58,6 +58,7 @@ pub struct Settings {
     pub depth: Option<rb_theme::ColourDepth>,
     pub tab_width: u8,
     pub confirm_post_now: bool,
+    pub reduced_motion: bool,
 }
 
 impl Settings {
@@ -72,6 +73,7 @@ impl Settings {
             },
             tab_width: config.diff.tab_width.clamp(1, 16),
             confirm_post_now: config.review.confirm_post_now,
+            reduced_motion: config.ui.reduced_motion,
         }
     }
 
@@ -87,6 +89,7 @@ impl Settings {
     pub fn apply(&self, app: &mut App) {
         app.confirm_post_now = self.confirm_post_now;
         app.tab_width = self.tab_width;
+        app.reduced_motion = self.reduced_motion;
         app.state.queue_settings = self.queue.clone();
     }
 }
@@ -171,7 +174,7 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
         Cmd::Copy(text) => {
             let _ = tx.send(Msg::Status(platform.copy(&text)));
         }
-        Cmd::LoadChanges => match backend {
+        Cmd::LoadChanges | Cmd::LoadChangesNow | Cmd::LoadChangesOnFocus => match backend {
             Backend::None => {}
             #[cfg(feature = "demo")]
             Backend::Demo(world) => {
@@ -189,7 +192,11 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 });
             }
             #[cfg(feature = "live")]
-            Backend::Live(live) => live.refresh(tx),
+            Backend::Live(live) => match cmd {
+                Cmd::LoadChangesNow => live.refresh_now(tx),
+                Cmd::LoadChangesOnFocus => live.refresh_on_focus_gap(tx),
+                _ => live.refresh(tx),
+            },
         },
         Cmd::LoadInfo(id) => match backend {
             Backend::None => drop(id),
@@ -357,6 +364,12 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     if let Backend::Live(live) = &backend {
         app.refresh_on_focus = live.refresh_on_focus;
         app.state.loading = true;
+        if let Some(at) = live.cached_at() {
+            update(&mut app, Msg::CacheTime(at));
+        }
+        if let Some(interval) = live.refresh_interval {
+            live.spawn_interval(interval, &tx);
+        }
         // Saved rows paint on the first frame; the refresh they trigger fills in behind them.
         for cmd in update(&mut app, Msg::Cached(Box::new(live.cached_snapshot()))) {
             execute(cmd, &tx, &backend, &platform);

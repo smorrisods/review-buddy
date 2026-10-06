@@ -300,10 +300,14 @@ fn duration<'de, D: Deserializer<'de>>(d: D) -> Result<Duration, D::Error> {
 
 fn optional_duration<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Duration>, D::Error> {
     let text = String::deserialize(d)?;
-    if text.trim() == "off" {
+    if matches!(text.trim(), "off" | "0") {
         return Ok(None);
     }
-    parse_duration(&text).map(Some).map_err(de::Error::custom)
+    match parse_duration(&text) {
+        Ok(d) if d.is_zero() => Ok(None),
+        Ok(d) => Ok(Some(d)),
+        Err(e) => Err(de::Error::custom(e)),
+    }
 }
 
 #[cfg(test)]
@@ -318,6 +322,19 @@ mod tests {
         assert!(parse_duration("5").is_err());
         assert!(parse_duration("m").is_err());
         assert!(parse_duration("5y").is_err());
+    }
+
+    #[test]
+    fn the_refresh_interval_can_be_switched_off() {
+        let parse = |text: &str| {
+            toml::from_str::<RefreshConfig>(&format!("interval = \"{text}\"")).map(|c| c.interval)
+        };
+        assert_eq!(parse("2m"), Ok(Some(Duration::from_secs(120))));
+        assert_eq!(parse("90s"), Ok(Some(Duration::from_secs(90))));
+        assert_eq!(parse("off"), Ok(None));
+        assert_eq!(parse("0"), Ok(None));
+        assert_eq!(parse("0s"), Ok(None));
+        assert!(parse("soon").is_err());
     }
 
     #[test]

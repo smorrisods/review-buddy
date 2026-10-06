@@ -4,7 +4,7 @@
 
 | Applied in 0.1 | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.mouse`, `diff.tab_width`, `review.confirm_post_now`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key for GitHub, the config layering below | `ui.layout`, `ui.jax`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`), `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `refresh.interval`, `noise_collapsed`, `[[triage.rule]]`, `[checkout]`, `[keys]` |
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.mouse`, `diff.tab_width`, `review.confirm_post_now`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key for GitHub, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `noise_collapsed`, `[[triage.rule]]`, `[checkout]`, `[keys]` |
 
 
 ## File locations (XDG Base Directory)
@@ -66,7 +66,7 @@ Applied in 0.1: `theme`, `colour_depth`, `mouse`.
 | `theme` | `"liminal-hq"` | Any built-in or user theme id |
 | `layout` | `"panes"` | `panes` · `split` · `queue`. Only `panes` exists in 0.1 |
 | `jax` | `true` | Jax is not drawn in 0.1 |
-| `reduced_motion` | `false` | Will freeze Jax and disable blinking cursors. The env var `REVIEW_BUDDY_REDUCED_MOTION` sets it, but nothing animates in 0.1 |
+| `reduced_motion` | `false` | Swaps the refresh spinner for a still glyph; will also freeze Jax and disable blinking cursors. The env var `REVIEW_BUDDY_REDUCED_MOTION` sets it |
 | `unicode` | `true` | `false` = ASCII glyphs and plain borders. Not applied in 0.1 |
 | `colour_depth` | `"auto"` | `auto` · `truecolor` · `256` · `16` |
 | `mouse` | `true` | Click, drag-select, scroll. `false` leaves mouse capture off so the terminal handles the mouse. Demo mode never reads the config and always captures it |
@@ -101,13 +101,23 @@ Applied in 0.1: `tab_width` (1–16). The diff is always unified, with syntax hi
 
 ## `[refresh]`
 
-Applied in 0.1: `on_focus` and `max_concurrency_per_host`. A refresh runs on launch, on `r` and on focus; there is no background polling yet, so `interval` is accepted but unused.
+Applied: all three keys. A refresh runs on launch, on `r`, on a timer (`interval`) and when the terminal regains focus. Every refresh is a pull; nothing runs while the app is closed.
 
 | Key | Default | Notes |
 |---|---|---|
-| `interval` | `"5m"` | Pull only, while the app is open. `"off"` = manual `r` only |
-| `on_focus` | `true` | Refresh when the terminal regains focus (if the terminal reports focus events) |
-| `max_concurrency_per_host` | `4` | |
+| `interval` | `"5m"` | How often to refresh while the app is open and focused, as `"90s"`, `"2m"`, `"1h"`. Each wait is spread by up to 10% either way so windows don't line up. `"off"`, `"0"` or `"0s"` means manual `r` only |
+| `on_focus` | `true` | Refresh when the terminal regains focus (if the terminal reports focus events), unless one started in the last 30 seconds |
+| `max_concurrency_per_host` | `4` | Requests in flight at once to one host, shared by every source on it |
+
+How a refresh behaves:
+
+- **Each source is independent.** A failing source keeps its cached rows and never holds up the others. The Sources pane shows a spinner while it refreshes, then `offline`, `paused until HH:MM` or `sign-in needed` when something needs saying.
+- **Conditional requests.** The page's ETag (or, for GitHub's GraphQL search, a fingerprint of the results) is saved per source and scope. When nothing changed, the cached rows are kept and nothing is rebuilt.
+- **Transient failures back off.** Network errors and 5xx answers retry after 5 s, 10 s, 20 s and so on, up to 5 minutes, with the delay partly randomised. Pressing `r` retries straight away. Rejected tokens and other errors don't retry by themselves.
+- **Rate limits pause the host.** When a host says it is rate limiting you, nothing is sent to it until the reset time (the Sources pane says `paused until HH:MM`), then the refresh resumes by itself. `r` doesn't override a pause.
+- **Refreshes never stack.** Asking again while a refresh is under way, or while a source is waiting to retry, joins the one in flight.
+- **Quiet by design.** Toasts appear when a source changes state (goes offline, is rate limited, comes back), not on every poll. When every source is offline and something is cached, the top bar reads `offline · cached HH:MM`. The footer shows when the last refresh finished. Times are UTC for now. With `ui.reduced_motion` the spinner is a still `…`.
+- **Demo mode** never schedules refreshes.
 
 ## `[triage]`
 

@@ -18,11 +18,11 @@ This spec describes the whole product. **v0.1.0 is the first slice** (see §14):
 | §4.6 Merge confirm | No | v0.3 |
 | §4.7 Settings | No | v0.4 |
 | §6 Actions | Approve and comment in the diff; open `o` and copy `y` everywhere | Request changes, merge, re-run, checkout (v0.3); GitLab (v0.2) |
-| §7 Feedback | Toasts and footer status, errors with a next step, per-source failures keep cached rows | Offline action queue (1.0) |
+| §7 Feedback | Toasts (on state changes only) and footer status, last-refreshed time, the `offline · cached HH:MM` banner, errors with a next step, per-source failures keep cached rows | Offline action queue (1.0); banner times are UTC until local time lands |
 | §8 Demo | `--demo`, `--frozen-time`, offline fixtures (all four sources, seven changes), writes labelled `(demo)` | `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet |
 | §9 Jax | No | v0.4 |
 | §10 Theming | Built-ins, `T`, `ui.theme`, colour depth, `NO_COLOR` | User theme files, hot reload (v0.4) |
-| §11 Performance | Cached rows paint first; refresh on launch, `r` and focus | Timed refresh (`refresh.interval`), lazy huge diffs |
+| §11 Performance | Cached rows paint first; refresh engine: launch, `r`, `refresh.interval` and focus, per-source state, per-host concurrency cap, ETag/not-modified, backoff with jitter, rate-limit pause | Lazy huge diffs |
 | §12 Accessibility | Glyphs plus colour, `NO_COLOR` | `--no-unicode`, reduced motion (nothing animates yet) |
 | §13 Platforms | All release targets built by the `Release` workflow | |
 
