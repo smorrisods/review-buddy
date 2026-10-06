@@ -1,0 +1,11 @@
+[
+  {"old_path": "/dev/null", "new_path": "added.txt", "new_file": true, "renamed_file": false, "deleted_file": false,
+   "diff": "@@ -0,0 +1,2 @@\n+one\n+two\n"},
+  {"old_path": "gone.rs", "new_path": "gone.rs", "new_file": false, "renamed_file": false, "deleted_file": true,
+   "diff": "@@ -1,2 +0,0 @@\n-a\n-b\n"},
+  {"old_path": "logo.png", "new_path": "logo.png", "new_file": false, "renamed_file": false, "deleted_file": false, "diff": ""},
+  {"old_path": "huge.json", "new_path": "huge.json", "new_file": false, "renamed_file": false, "deleted_file": false,
+   "too_large": true, "collapsed": false, "diff": ""},
+  {"old_path": "lock.lock", "new_path": "lock.lock", "new_file": false, "renamed_file": false, "deleted_file": false,
+   "generated_file": true, "diff": "@@ -1 +1 @@\n-a\n+b\n"}
+]

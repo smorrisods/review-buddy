@@ -201,6 +201,17 @@ impl GitlabClient {
             .await
     }
 
+    /// A JSON write (`POST` or `PUT`) with the body serialised once; returns the response body.
+    pub(crate) async fn write_json(
+        &self,
+        method: reqwest::Method,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<Vec<u8>> {
+        self.send(self.http.request(method, self.url(path)).json(body))
+            .await
+    }
+
     pub(crate) async fn send(&self, req: reqwest::RequestBuilder) -> Result<Vec<u8>> {
         self.send_full(req).await.map(|(body, _)| body)
     }

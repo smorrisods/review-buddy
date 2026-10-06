@@ -251,8 +251,21 @@ async fn provider_skeleton() {
         "https://gitlab.test/grp/sub/proj/-/merge_requests/7"
     );
     assert!(matches!(
-        p.files(&id).await.unwrap_err(),
+        p.merge(
+            &id,
+            &rb_core::MergeOpts {
+                method: rb_core::MergeMethod::Merge,
+                delete_branch: false
+            }
+        )
+        .await
+        .unwrap_err(),
         Error::Unsupported(_)
     ));
-    assert_eq!(p.capabilities(), rb_core::Capabilities::none());
+    assert!(matches!(
+        p.rerun_failed(&id).await.unwrap_err(),
+        Error::Unsupported(_)
+    ));
+    let caps = p.capabilities();
+    assert!(!caps.request_changes && !caps.viewed_files && caps.range_comments);
 }

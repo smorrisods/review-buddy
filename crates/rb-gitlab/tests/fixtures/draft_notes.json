@@ -1,0 +1,7 @@
+[
+  {"id": 7, "author_id": 1, "merge_request_id": 5, "note": "Pending thought", "discussion_id": null,
+   "resolve_discussion": false,
+   "position": {"position_type": "text", "new_path": "b.rs", "old_path": "b.rs", "new_line": 9, "old_line": null}},
+  {"id": 8, "author_id": 1, "merge_request_id": 5, "note": "Pending reply", "discussion_id": "d_old",
+   "resolve_discussion": false, "position": null}
+]
