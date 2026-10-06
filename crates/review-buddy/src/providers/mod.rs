@@ -40,8 +40,26 @@ impl Deps {
     }
 }
 
-fn system_store() -> Arc<dyn SecretStore> {
-    Arc::new(rb_platform::KeyringStore::new())
+/// The OS keyring.
+///
+/// Test-only seam: when `REVIEW_BUDDY_TEST_KEYRING` is set, an in-memory store is used instead,
+/// seeded from its value as `host=token,host=token`. It lets the binary's tests run without a
+/// keyring and never touches the real one.
+pub fn system_store() -> Arc<dyn SecretStore> {
+    match std::env::var("REVIEW_BUDDY_TEST_KEYRING") {
+        Ok(seed) => Arc::new(memory_store_from(&seed)),
+        Err(_) => Arc::new(rb_platform::KeyringStore::new()),
+    }
+}
+
+fn memory_store_from(seed: &str) -> rb_platform::MemorySecretStore {
+    let store = rb_platform::MemorySecretStore::new();
+    for pair in seed.split(',') {
+        if let Some((host, token)) = pair.split_once('=') {
+            let _ = store.set(host.trim(), &rb_platform::Secret::new(token.trim()));
+        }
+    }
+    store
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -246,6 +264,14 @@ mod tests {
     use rb_platform::{CommandOutput, MemorySecretStore, PlatformError, Secret};
 
     use super::*;
+
+    #[test]
+    fn the_test_keyring_seed_reads_host_token_pairs() {
+        let store = memory_store_from("a.test=tok1, b.test=tok2,junk");
+        assert_eq!(store.get("a.test").unwrap().unwrap().expose(), "tok1");
+        assert_eq!(store.get("b.test").unwrap().unwrap().expose(), "tok2");
+        assert!(memory_store_from("").get("a.test").unwrap().is_none());
+    }
 
     #[derive(Default)]
     struct FakeRunner {

@@ -278,12 +278,96 @@ pub struct PrListArgs {
 pub enum AuthAction {
     /// Who you are on every host, and how you're signed in
     Status,
+    /// Test a token and keep it in the OS keyring
+    Login {
+        /// The host to sign in to; defaults to the only configured source
+        #[arg(long, value_name = "HOST")]
+        host: Option<String>,
+        /// Read the token from standard input instead of asking for it
+        #[arg(long)]
+        with_token: bool,
+    },
+    /// Remove a token review-buddy stored in the OS keyring
+    Logout {
+        /// The host to sign out of; defaults to the only configured source
+        #[arg(long, value_name = "HOST")]
+        host: Option<String>,
+    },
+    /// Print the token review-buddy would use (refuses on a terminal without --show)
+    Token {
+        /// The host whose token to print; defaults to the only configured source
+        #[arg(long, value_name = "HOST")]
+        host: Option<String>,
+        /// Print even though standard output is a terminal
+        #[arg(long)]
+        show: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum SourceAction {
     /// Configured sources, enabled state and auth method
     List,
+    /// Sign in to a source and show what it can do
+    Test {
+        /// The source to test; defaults to every enabled source
+        name: Option<String>,
+        /// Exit 5 unless every tested source supports these
+        #[arg(long, value_enum, value_delimiter = ',', value_name = "CAPABILITY")]
+        require: Vec<CapabilityArg>,
+    },
+    /// Append a [[source]] to the config file
+    Add(SourceAddArgs),
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CapabilityArg {
+    RequestChanges,
+    ViewedFiles,
+    RangeComments,
+    Suggestions,
+    ResolveThreads,
+    RerunFailed,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KindArg {
+    Github,
+    Gitlab,
+}
+
+#[derive(Args, Debug, Clone, Default)]
+pub struct SourceAddArgs {
+    /// github or gitlab; guessed from the host when left out
+    #[arg(long, value_enum)]
+    pub kind: Option<KindArg>,
+    /// The forge host; defaults to github.com or gitlab.com
+    #[arg(long, value_name = "HOST")]
+    pub host: Option<String>,
+    /// A short name for the source; defaults to the host
+    #[arg(long, value_name = "NAME")]
+    pub name: Option<String>,
+    /// How to sign in: cli, token, command or env:VAR
+    #[arg(long, value_name = "METHOD", default_value = "cli")]
+    pub auth: String,
+    /// The command that prints a token (with --auth command)
+    #[arg(long, value_name = "COMMAND")]
+    pub token_command: Option<String>,
+    /// A GitHub organisation to include (repeatable)
+    #[arg(long, value_name = "ORG")]
+    pub org: Vec<String>,
+    /// A GitLab group to include (repeatable)
+    #[arg(long, value_name = "GROUP")]
+    pub group: Vec<String>,
+    /// GitHub only: include your own repositories
+    #[arg(long)]
+    pub user: bool,
+    /// Override the API address, for GitHub Enterprise or a self-hosted GitLab
+    #[arg(long, value_name = "URL")]
+    pub api_url: Option<String>,
+    /// Add the source without testing its sign-in
+    #[arg(long)]
+    pub no_test: bool,
 }
 
 #[derive(Subcommand, Debug)]

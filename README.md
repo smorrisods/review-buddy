@@ -27,7 +27,7 @@ Every pull and merge request, in one quiet queue. **review buddy** is a keyboard
 | Diff | Unified diff, file list, line cursor, inline threads, hunk and file jumps, syntax highlighting with tinted added and removed lines | Ranges, suggestions, side by side, merge, re-run CI, checkout (v0.3) |
 | Review | Line comments that collect into a pending review, replies, approve with a preview, open and copy the URL | Request changes (v0.3), draft persistence (1.0) |
 | Mouse | Click, double-click, drag a range, wheel, tabs and chips. Shift always falls through to the terminal | |
-| Command line | `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, with `--json` and `--jq` | `auth login`, `source add`, `config get` (v0.2); writes (v0.3) |
+| Command line | `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status|login|logout|token`, `source list|test|add`, `config paths|get|list`, `theme list`, `doctor`, `completion`, with `--json` and `--jq` | writes (v0.3) |
 | Demo | `--demo` with frozen time and scenes, writes labelled `(demo)` | |
 | Themes | Four built-ins, `NO_COLOR`, colour-depth detection | User theme files (v0.4) |
 | Install | `install.sh`, `install.ps1`, archives, `.deb` and `.rpm`, shell completions and a man page | Homebrew, Scoop and friends are not planned yet |
@@ -45,6 +45,8 @@ The terminal needs to be at least 100×30. Press `?` for the keys on the current
 ### First run
 
 When you're ready to use your own accounts, just run `review-buddy`. With no config file it opens a calm first-run screen that finds the hosts you already use (from `gh` and `glab` sign-ins, your `~/.gitconfig` `insteadOf` rewrites and repositories under `~/src`), lists your accounts and organisations, lets you reuse a CLI sign-in or paste a token (tested live, then kept in your OS keyring and never in `config.toml`), previews a theme, and writes a commented `config.toml` only when you confirm. Press `esc` to skip it. Run `review-buddy --setup` any time to go through it again (an existing file is replaced only if you say yes, and a copy is kept as `config.toml.bak`), or `review-buddy --setup --plain` for a line-based version that also runs when there's no terminal to draw in.
+
+Add another account later with `review-buddy source add --host ghe.example.com --org my-team` (it previews the `[[source]]` block, keeps your comments, and checks the sign-in), store a token with `review-buddy auth login --host ghe.example.com`, and see what each source can do with `review-buddy source test`. `review-buddy config get ui.theme` shows a setting and the file it came from.
 
 You can still write the config by hand: copy [`config.example.toml`](config.example.toml) to `~/.config/review-buddy/config.toml` (or `$XDG_CONFIG_HOME/review-buddy/config.toml`). GitLab sources list their merge requests and open details; diffs and reviews on GitLab arrive later in v0.2. `review-buddy doctor` checks sign-in, rate limits and the paths in use.
 

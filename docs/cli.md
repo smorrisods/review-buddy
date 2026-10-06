@@ -8,9 +8,9 @@ This doc is the design for the command line. `docs/configuration.md` keeps a sho
 
 This page is the design for the whole command line. What runs in 0.1 is the **read-only core**, against GitHub and `--demo`:
 
-| Runs in 0.1 | Planned |
+| Runs today | Planned |
 |---|---|
-| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `config get|list`, `auth login|logout|token`, `source test|add` (v0.2); `pr review|comment|merge|checkout|rerun` (v0.3); `triage explain` and `theme check|export` (declared for v0.1 in the code, but not built yet); `api` (later) |
+| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open`, `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3); `triage explain` and `theme check|export` (declared for v0.1 in the code, but not built yet); `api` (later) |
 
 Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. Only GitHub sources load against a live forge (the demo fixtures include GitLab, so `--demo` shows what GitLab output will look like), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
 
@@ -188,11 +188,27 @@ Runs `git fetch` with the provider's `checkout_refspec` and switches to the bran
 
 ### `auth`
 
-`auth status` prints one line per host: `✓ github.com  signed in as smorris via gh · scopes repo, read:org` or `✕ gitlab.work.ca  token expired 12 Jan · run review-buddy auth login --host gitlab.work.ca`. Exits `4` if any enabled source can't sign in. `auth login` reads a token from `--with-token` stdin (or prompts hidden on a TTY), tests it, and stores it in the keyring; it never writes the token to `config.toml`. `auth token` exists for scripts and refuses to print to a TTY without `--show`.
+`auth status` prints one line per host: `✓ github.com  signed in as smorris via gh · scopes repo, read:org` or `✕ gitlab.work.ca  token expired 12 Jan · run review-buddy auth login --host gitlab.work.ca`. Exits `4` if any enabled source can't sign in.
+
+`auth login [--host H] [--with-token]` reads a token from standard input with `--with-token`, or from a hidden prompt on a TTY, and refuses (exit `2`) when there is neither. It tests the token against the forge (`GET /user` on GitHub, `GET /user` and `GET /personal_access_tokens/self` on GitLab), keeps it in the OS keyring as `review-buddy/<host>` only if the test passes, and says who it signed in as and the scopes. The token is never printed and never written to `config.toml`, the cache or a log. The host comes from `--host`, `--source`, or the only configured source; a host with no source is treated as GitLab when its name contains `gitlab`, and as GitHub otherwise. A rejected token exits `4` and a keyring that won't keep it exits `1`, each with a fix.
+
+`auth logout [--host H]` removes the keyring entry after a confirmation that defaults to No on a TTY; without a TTY it needs `--yes`. It never touches `gh` or `glab` sign-ins, and says so. Nothing stored is a calm no-op.
+
+`auth token [--host H] [--show]` prints the token review-buddy would use for the host, following its source's `auth` setting (a host with no source tries the keyring, then `gh` or `glab`). It exists for scripts: the token goes to stdout only, where it came from goes to stderr, and a TTY on stdout gets a refusal (exit `2`) unless `--show` is passed. Under `--demo` it exits `2`, because demo mode has no tokens.
+
+All three work under `--demo` where it makes sense: `login` and `logout` print what they would do, labelled `(demo)`, and read or change nothing.
 
 ### `source`
 
-`source list` reads config only, no network. `source test` signs in, probes `Capabilities` (request changes, range comments, viewed files) and prints them. `source add --kind github --host github.com --name work [--auth cli|token|env:VAR|command] [--org …]` appends a `[[source]]` with `toml_edit`, keeping comments; it doesn't prompt unless stdin is a TTY and a required flag is missing.
+`source list` reads config only, no network.
+
+`source test [name] [--require <capability>,…]` signs in to the named source (or every enabled one, or the ones `--source` names), prints who you are, and prints the source's `Capabilities` (request changes, range comments, viewed files, suggestions, resolve threads, re-run failed checks). `--json` adds a `capabilities` object. Exit `4` if a source can't sign in; with `--require`, exit `5` when a tested source lacks a named capability (`request-changes`, `viewed-files`, `range-comments`, `suggestions`, `resolve-threads`, `rerun-failed`).
+
+`source add [--kind github|gitlab] [--host H] [--name N] [--auth cli|token|env:VAR|command] [--token-command CMD] [--org O]… [--group G]… [--user] [--api-url URL] [--no-test]` appends a `[[source]]` to the config write target (the `--config` file when given), with `toml_edit` so comments and ordering stay. It validates the result first, previews the block, and asks to confirm with a default of No on a TTY; without a TTY it needs `--yes`. Kind is guessed from the host and the host defaults to `github.com` or `gitlab.com`, so `source add --yes` is enough for the common case. `--org` is GitHub's scope and `--group` GitLab's. Afterwards it tests the sign-in unless `--no-test`; a failed test leaves the source added, says so, and exits `4` with the fix (for `auth = "token"`, run `auth login`). Under `--demo` it prints the block and writes nothing.
+
+### `config`
+
+`config paths` lists the resolved directories and loaded files. `config get <key>` prints one effective value, for example `ui.theme`, and `config list` prints every one in a stable order (the sections of `config.example.toml`, then `keys.*`, then each source as `source.<name>.<field>`). On a TTY `get` adds `(from <layer>)`; piped, it prints the bare value so it's safe in `$(…)`. `config list` piped is `key<TAB>value<TAB>origin`. With `--json key,value,origin` both give the origin: the config file that last set the key, `default`, or the override (`$REVIEW_BUDDY_THEME`). Lists print as JSON and durations as `5m`. An unknown key exits `2` with the closest matches.
 
 ### `api` (later)
 
@@ -236,7 +252,7 @@ Tokens are never read from `REVIEW_BUDDY_*`; use `auth = "env:VAR"` on a source.
 |---|---|
 | Foundation | The skeleton from `cli.rs`: flags, stubs that exit `2`, man page |
 | v0.1.0 | **Shipped:** CLI core (output modes, `--json`/`--jq`, selectors, exit codes), `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, all against GitHub and `--demo`. Not built, though planned for 0.1: `triage explain`, `theme check`, `theme export` |
-| v0.2.0 | GitLab parity for every read command, `mr` alias exercised, `auth login`/`logout`/`token`, `source test`/`add`, `config get`/`list` |
+| v0.2.0 | GitLab parity for every read command, `mr` alias exercised, `auth login`/`logout`/`token`, `source test`/`add`, `config get`/`list` (built) |
 | v0.3.0 | Writes: `pr review`, `pr comment`, `pr merge`, `pr checkout`, `pr rerun` |
 | Later | `api`, dynamic completions, `pr checks --watch` polish |
 

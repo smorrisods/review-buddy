@@ -61,7 +61,7 @@ pub fn load(ctx: &Context, with_me: bool) -> Result<Loaded, CmdError> {
     let sources = ctx.sources()?;
     if sources.is_empty() {
         return Err(CmdError::usage(
-            "No sources are configured yet.\nAdd a [[source]] to config.toml (see docs/configuration.md), or try --demo.",
+            "No sources are configured yet.\nRun review-buddy --setup or review-buddy source add, or try --demo.",
         ));
     }
     let mut providers = HashMap::new();
