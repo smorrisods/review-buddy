@@ -33,6 +33,17 @@ impl Detected {
         }
     }
 
+    /// Like `summary` without the server version, for views that already show it elsewhere.
+    pub fn probed(&self) -> String {
+        let Some(at) = self.at else {
+            return format!("demo capabilities {DEMO_LABEL}");
+        };
+        if self.outcome.version.is_none() && !self.outcome.complete {
+            return "version unknown, using what the forge always offers".to_string();
+        }
+        format!("probed {}", iso(at))
+    }
+
     pub fn json(&self) -> Value {
         json!({
             "version": self.outcome.version,
@@ -130,6 +141,15 @@ mod tests {
             "probed 1970-01-01T00:00:00Z"
         );
         assert!(detected(None, false).summary("GitLab").contains("unknown"));
+    }
+
+    #[test]
+    fn probed_leaves_the_version_to_other_views() {
+        assert_eq!(
+            detected(Some("17.4.1"), true).probed(),
+            "probed 1970-01-01T00:00:00Z"
+        );
+        assert!(detected(None, false).probed().contains("unknown"));
     }
 
     #[test]

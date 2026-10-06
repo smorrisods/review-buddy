@@ -2,9 +2,9 @@
 
 Both forges sit behind one `Provider` trait (see `architecture.md`). This page lists what each trait method calls. Endpoint versions are the ones the 1.0 targets; `review-buddy doctor` reports anything an instance doesn't support.
 
-## Status (v0.1.0)
+## Status
 
-`rb-github` implements listing, change detail, files, threads, checks and review writes (comment-only, approve, and replies), behind the `Provider` trait. Merge and re-run failed jobs report `Unsupported` until v0.3, and checkout isn't built yet. `rb-gitlab` implements sign-in, listing, change detail, files, threads, pipeline jobs and review writes (comment, approve, reply, resolve) behind the same trait. GitLab merge and re-run report `Unsupported` until v0.3. A capability probe on connect (see "Capability probe") decides which optional actions each source offers. Suggestions (`⌃S`), range comments, viewed-file marks and the `GitLab` columns throughout describe later milestones. Token expiry warnings in the footer and Settings → Sources, and Enterprise API-version checks beyond `doctor`, are planned too.
+`rb-github` implements listing, change detail, files, threads, checks and review writes (comment-only, approve, and replies), behind the `Provider` trait. `rb-gitlab` implements sign-in, listing, change detail, files, threads, pipeline jobs and review writes (comment, approve, reply, resolve) behind the same trait, for gitlab.com and self-hosted GitLab. On both, merge and re-run failed jobs report `Unsupported` until v0.3, and checkout isn't built yet. A capability probe on connect (see "Capability probe") decides which optional actions each source offers, and GitHub Enterprise Server and self-hosted GitLab are covered by "GitHub Enterprise Server and self-hosted GitLab" below. Suggestions (`⌃S`), range comments from the keyboard and viewed-file marks describe later milestones. Token expiry warnings in the footer and Settings → Sources are planned too (Settings → Sources shows the expiry after you test a token).
 
 ## Authentication
 
@@ -180,7 +180,7 @@ Shells out to `git` in the repo found under `checkout.root`:
 - Every GET uses an ETag cache (`If-None-Match`) stored in SQLite; 304s don't count against GitHub's REST limit.
 - GitHub GraphQL cost is read from `rateLimit { remaining, resetAt }`. Below 10% left, refresh pauses for that source until the reset (the Sources pane says `paused until HH:MM`), and no other request goes to that host meanwhile.
 - GitLab `RateLimit-Remaining` / `Retry-After` are honoured.
-- Retries use exponential backoff with full jitter (max 3) on 5xx and network errors, but never on 4xx.
+- A refresh that fails on a 5xx or a network error retries with exponential backoff and jitter, from 5 s up to 5 minutes, and never retries a 4xx by itself (see `docs/configuration.md`, `[refresh]`).
 - Error copy maps status codes to fixes: 401 "Token rejected. Press e to paste a new one." · 403 with SSO "This org needs SSO approval for your token. o to open the approval page." · 404 on an MR "It may have been closed or moved. r to refresh." · 409 on merge "Head moved since you reviewed. Refresh and look again."
 
 ## Live loading in the interface

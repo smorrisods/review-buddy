@@ -1,11 +1,10 @@
 # Configuration
 
-**Status (v0.1.0).** The whole file is parsed and validated (unknown keys under `[ui]`, `[review]`, `[diff]` and `[refresh]` are errors, so typos are caught), but only some options change behaviour yet. Each table below has an **Applied in 0.1** note. Everything else is accepted and kept so your file keeps working as the options arrive. `config.example.toml` at the repo root is the complete, commented starting point.
+**Status.** The whole file is parsed and validated (unknown keys under `[ui]`, `[review]`, `[diff]` and `[refresh]` are errors, so typos are caught), but only some options change behaviour yet. Each table below has an **Applied** note. Everything else is accepted and kept so your file keeps working as the options arrive. `config.example.toml` at the repo root is the complete, commented starting point, and `review-buddy config list` prints every resolved value with where it came from.
 
-| Applied in 0.1 | Parsed, not applied yet |
+| Applied | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.mouse`, `diff.tab_width`, `review.confirm_post_now`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key for GitHub, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `noise_collapsed`, `[[triage.rule]]`, `[checkout]`, `[keys]` |
-
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.mouse`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
 
 ## File locations (XDG Base Directory)
 
@@ -13,13 +12,13 @@ Review Buddy follows the [XDG Base Directory spec](https://specifications.freede
 
 | What | Variable | Default | Path used | Contents |
 |---|---|---|---|---|
-| Config | `$XDG_CONFIG_HOME` | `~/.config` | `…/review-buddy/` | `config.toml`, `config.d/*.toml`, `themes/*.toml` (user themes are not loaded in 0.1) |
+| Config | `$XDG_CONFIG_HOME` | `~/.config` | `…/review-buddy/` | `config.toml`, `config.d/*.toml`, `themes/*.toml` (user themes are not loaded yet) |
 | System config | `$XDG_CONFIG_DIRS` | `/etc/xdg` | `…/review-buddy/` | Admin or distro defaults, same layout. Read-only |
 | Data | `$XDG_DATA_HOME` | `~/.local/share` | `…/review-buddy/` | `themes/` installed by theme packs or `review-buddy theme install` |
 | System data | `$XDG_DATA_DIRS` | `/usr/local/share:/usr/share` | `…/review-buddy/` | `themes/` shipped by distro packages |
-| Cache | `$XDG_CACHE_HOME` | `~/.cache` | `…/review-buddy/` | `cache.sqlite` (summaries, details, patches, threads, ETags). Safe to delete at any time |
-| State | `$XDG_STATE_HOME` | `~/.local/state` | `…/review-buddy/` | Planned: `drafts/`, `queue.jsonl` (offline actions), `session.toml` (last source, selection, layout), `logs/`. Nothing is written here in 0.1 |
-| Runtime | `$XDG_RUNTIME_DIR` | none (falls back to the state dir) | `…/review-buddy/` | Planned: `instance.lock` so two copies don't refresh the same cache at once. Not used in 0.1 |
+| Cache | `$XDG_CACHE_HOME` | `~/.cache` | `…/review-buddy/` | `cache.sqlite` (summaries, details, ETags, capability probes). Safe to delete at any time |
+| State | `$XDG_STATE_HOME` | `~/.local/state` | `…/review-buddy/` | Planned: `drafts/`, `queue.jsonl` (offline actions), `session.toml` (last source, selection, layout), `logs/`. Nothing is written here yet |
+| Runtime | `$XDG_RUNTIME_DIR` | none (falls back to the state dir) | `…/review-buddy/` | Planned: `instance.lock` so two copies don't refresh the same cache at once. Not used yet |
 
 Secrets never go to disk. They live in the OS keyring (Secret Service on Linux, Keychain on macOS, Credential Manager on Windows) under service `review-buddy`, account `<host>`.
 
@@ -36,11 +35,11 @@ Later layers override earlier ones key by key (tables merge; arrays and `[[sourc
 5. `$REVIEW_BUDDY_CONFIG` or `--config <path>`. If set, this replaces steps 3–4 rather than layering on top
 6. Environment overrides (`REVIEW_BUDDY_THEME` …) and command-line flags
 
-The app only ever **writes** to step 3 (or the file from step 5). First run (`--setup`), `review-buddy source add` and Settings → Sources (`,`, v0.2) write there; the rest of Settings follows in v0.4. Settings edits only the file that defines your `[[source]]` list: if a `config.d` file, a `$XDG_CONFIG_DIRS` file or a `--config` file other than the write target defines it, Settings shows where it comes from and leaves it alone. Edits will use `toml_edit`, so your comments and ordering are kept. `review-buddy config paths` prints every resolved location and which files were loaded.
+The app only ever **writes** to step 3 (or the file from step 5). First run (`--setup`), `review-buddy source add` and Settings → Sources (`,`) write there; the rest of Settings follows in v0.4. Settings edits only the file that defines your `[[source]]` list: if a `config.d` file, a `$XDG_CONFIG_DIRS` file or a `--config` file other than the write target defines it, Settings shows where it comes from and leaves it alone. Edits use `toml_edit`, so your comments and ordering are kept. `review-buddy config paths` prints every resolved location and which files were loaded.
 
 ### Themes search order
 
-**Planned.** In 0.1 only the four built-in themes are available (`theme list` shows them, and `T` cycles through them); theme files on disk aren't read yet.
+**Planned.** Only the four built-in themes are available today (`theme list` shows them, and `T` cycles through them); theme files on disk aren't read yet.
 
 The first match by id wins:
 
@@ -55,26 +54,26 @@ Directories are created only when something is first written. Created directorie
 
 ### Migration
 
-Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at in 0.1, since there are no earlier releases to migrate from.
+Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at, since there are no earlier releases to migrate from.
 
 ## `[ui]`
 
-Applied in 0.1: `theme`, `colour_depth`, `mouse`.
+Applied: `theme`, `colour_depth`, `mouse` and `reduced_motion`.
 
 | Key | Default | Notes |
 |---|---|---|
 | `theme` | `"liminal-hq"` | Any built-in or user theme id |
-| `layout` | `"panes"` | `panes` · `split` · `queue`. Only `panes` exists in 0.1 |
-| `jax` | `true` | Jax is not drawn in 0.1 |
+| `layout` | `"panes"` | `panes` · `split` · `queue`. Only `panes` exists today |
+| `jax` | `true` | Jax is not drawn yet |
 | `reduced_motion` | `false` | Swaps the refresh spinner for a still glyph; will also freeze Jax and disable blinking cursors. The env var `REVIEW_BUDDY_REDUCED_MOTION` sets it |
-| `unicode` | `true` | `false` = ASCII glyphs and plain borders. Not applied in 0.1 |
+| `unicode` | `true` | `false` = ASCII glyphs and plain borders. Not applied yet |
 | `colour_depth` | `"auto"` | `auto` · `truecolor` · `256` · `16` |
 | `mouse` | `true` | Click, drag-select, scroll. `false` leaves mouse capture off so the terminal handles the mouse. Demo mode never reads the config and always captures it |
-| `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale. Not applied in 0.1 |
+| `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale. Not applied yet |
 
 ## `[review]`
 
-Applied in 0.1: `confirm_post_now`. The merge, viewed and request-changes options arrive with those features in v0.3.
+Applied: `confirm_post_now`. The merge, viewed and request-changes options arrive with those features in v0.3.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -87,7 +86,7 @@ Applied in 0.1: `confirm_post_now`. The merge, viewed and request-changes option
 
 ## `[diff]`
 
-Applied in 0.1: `tab_width` (1–16). The diff is always unified, with syntax highlighting on; the other options arrive with side by side in v0.3.
+Applied: `tab_width` (1–16). The diff is always unified, with syntax highlighting on; the other options arrive with side by side in v0.3.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -128,12 +127,12 @@ The dashboard and the commands share one implementation: `noise_authors` and `st
 | `noise_authors` | `["renovate[bot]", "dependabot[bot]", "release-please[bot]"]` | Exact logins or globs (`*[bot]`) |
 | `bucket_limit` | `20` | Rows shown per bucket before `+N more`. `⏎` or a click on that row shows the rest |
 | `show` | `["reviewing", "assigned", "authored"]` | The starting Show filters. Add `"drafts"` to show drafts, or `"noise"` to mix Noise into the normal buckets (the `queue` command lists it as its own group instead) |
-| `noise_collapsed` | `true` | Show Noise as one collapsed row at the end of the queue |
+| `noise_collapsed` | `true` | Not applied yet. Noise is always shown as one collapsed row at the end of the queue |
 | `stale_after` | `"14d"` | Older items drop to Can wait |
 
 ### `[[triage.rule]]`
 
-Planned for v0.4. The rules are parsed but not run in 0.1.
+Planned for v0.4. The rules are parsed but not run yet.
 
 Ordered rules, tried **before** the built-in bucket rules. The first match wins. Every condition in a rule must match (AND). A list inside a condition matches any entry (OR). Globs use `*` and `**`.
 
@@ -174,11 +173,11 @@ path = ["docs/**", "*.md"]
 bucket = "later"
 ```
 
-Settings → Review will show the active rules in order and which rule bucketed the selected change (`bucketed by rule 3 · repo platform/infra, path **/*.tf`), and `review-buddy triage explain <url>` will print the same from the command line. Neither exists in 0.1.
+Settings → Review will show the active rules in order and which rule bucketed the selected change (`bucketed by rule 3 · repo platform/infra, path **/*.tf`), and `review-buddy triage explain <url>` will print the same from the command line. Neither exists yet.
 
 ## `[checkout]`
 
-Planned for v0.3 with checkout. Parsed, not used in 0.1.
+Planned for v0.3 with checkout. Parsed, not used yet.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -188,7 +187,7 @@ Planned for v0.3 with checkout. Parsed, not used in 0.1.
 
 ## `[[source]]`
 
-Repeat one table per source. Order sets the `2`–`9` keys (`1` is always All). `kind = "github"` sources load fully. A `kind = "gitlab"` source loads its merge request list and details; diffs, threads and review actions on GitLab arrive later in v0.2, and until then they say so without stopping other sources.
+Repeat one table per source. Order sets the `2`–`9` keys (`1` is always All). Both kinds load fully: lists, details, diffs, threads, checks and review writes. A failing source never stops the others.
 
 | Key | Required | Notes |
 |---|---|---|
@@ -200,13 +199,13 @@ Repeat one table per source. Order sets the `2`–`9` keys (`1` is always All). 
 | `token_command` | no | Used when `auth = "command"`, e.g. `"pass show gitlab/work"` or `"secret-tool lookup service gitlab host work"`. Stdout (trimmed) is the token. Run at start and on 401. For SSH or headless Linux without Secret Service |
 | `scope` | no | GitHub: `orgs = [..]`, `repos = [..]`, `user = true`. GitLab: `groups = [..]`, `projects = [..]`. Omit for everything you can see |
 | `in_all` | no | Default `true`. Set `false` to leave the source out of the All view; it stays selectable on its own (`1`–`9`, or its row or tab) and is marked "not in All" |
-| `include_drafts` | no | Default `false` |
+| `include_drafts` | no | Default `false`. Parsed but not applied: drafts are governed by `triage.show` |
 | `tag_colour` | no | Colours the source's dot and its `GH`/`GL` tag. A theme role (`github`, `gitlab`, `accent`, `interactive`, `cyan`, `success`, …) or a `#rrggbb` hex. Background roles aren't allowed, and a bad value is a config error naming the source. Follows the terminal's colour depth, and `NO_COLOR` drops it (the tag text stays) |
 | `enabled` | no | Default `true` |
 
 ## `[keys]`
 
-Parsed but not applied in 0.1. See `keybindings.md`.
+Parsed but not applied yet. See `keybindings.md`.
 
 ## Environment variables
 
@@ -215,7 +214,7 @@ Parsed but not applied in 0.1. See `keybindings.md`.
 | `REVIEW_BUDDY_CONFIG` | Path to an alternate config file (replaces the user config layers) |
 | `XDG_CONFIG_HOME`, `XDG_CONFIG_DIRS`, `XDG_DATA_HOME`, `XDG_DATA_DIRS`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`, `XDG_RUNTIME_DIR` | Standard base directories; see above |
 | `REVIEW_BUDDY_THEME` | Overrides `ui.theme` for this run |
-| `REVIEW_BUDDY_REDUCED_MOTION=1` | Same as `ui.reduced_motion = true` (nothing animates in 0.1) |
+| `REVIEW_BUDDY_REDUCED_MOTION=1` | Same as `ui.reduced_motion = true` (only the refresh spinner animates today) |
 | `GITHUB_TOKEN`, `GITLAB_TOKEN` | Used only by sources with `auth = "env:…"` |
 | `NO_COLOR` | Honoured: roles collapse to bold, dim and reverse. On the command line, output is uncoloured |
 | `REVIEW_BUDDY_SOURCE`, `REVIEW_BUDDY_REPO` | Defaults for the command line's `--source` and `--repo` |
@@ -224,7 +223,7 @@ Parsed but not applied in 0.1. See `keybindings.md`.
 
 ## Command line
 
-With no command, `review-buddy` opens the TUI. With a command it behaves like `gh`: non-interactive, pipe-friendly, with `--json`/`--jq` for scripts. The full design, including selectors, output rules and exit codes, is in `docs/cli.md`. The block below is the target surface; what runs in 0.1 is listed after it.
+With no command, `review-buddy` opens the TUI. With a command it behaves like `gh`: non-interactive, pipe-friendly, with `--json`/`--jq` for scripts. The full design, including selectors, output rules and exit codes, is in `docs/cli.md`. The block below is the target surface; what runs today is listed after it.
 
 ```text
 review-buddy                          open the queue (TUI)
@@ -246,7 +245,7 @@ global: --config <path> · -s/--source <name> · -R/--repo <owner/repo> · --jso
         --demo [--demo-scene <name>] [--frozen-time <iso>] [--jax-mood <mood>] [--size <COLSxROWS>]
 ```
 
-In 0.1 these run: `queue`, `pr list|view|diff|checks|open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor` and `completion`. The rest (including `triage explain`, `theme check|export` and `config get|list`) exit `2` with `Not built yet`. `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet. `--setup` runs first run (see below).
+These run: `queue`, `pr list|view|diff|checks|open` (also as `mr`), `open`, `auth status|login|logout|token`, `source list|test|add`, `config paths|get|list`, `theme list`, `doctor` and `completion`. `triage explain` and `theme check|export` exit `2` with `Not built yet`, and the write commands in the block above (`pr review|comment|merge|checkout|rerun`) aren't declared yet, so they are a usage error (exit `2`). `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet. `--setup` runs first run (see below).
 
 ### First run
 
