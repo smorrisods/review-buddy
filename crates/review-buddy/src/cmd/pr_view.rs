@@ -831,7 +831,7 @@ mod tests {
             "Waiting on you · your review is requested",
             "smorris (requested), jo (commented)",
             "1 running · 2 passing",
-            "running test (linux)",
+            "test (linux)",
             "- `Menu::select_next`",
             "Comments (3)",
             "src/ui/menus.rs:44",

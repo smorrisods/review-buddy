@@ -159,9 +159,12 @@ fn clicking_tabs_switches_the_detail_view() {
 #[test]
 fn clicking_chips_acts_like_their_keys() {
     let mut a = dashboard("liminal-hq", 160, 40);
-    click_text(&mut a, "Approve");
+    click_text(&mut a, "Merge");
     assert!(a.status.is_some(), "the chip explains itself");
     assert_eq!(a.screen, Screen::Dashboard);
+    click_text(&mut a, "Approve");
+    assert_eq!(a.screen, Screen::Diff, "Approve opens the diff");
+    let mut a = dashboard("liminal-hq", 160, 40);
     click_text(&mut a, "Diff");
     assert_eq!(a.screen, Screen::Diff);
 }

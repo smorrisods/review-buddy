@@ -267,7 +267,11 @@ fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
                     style::fg(palette, Role::TextBright),
                 ),
                 Line::styled(
-                    "Run `review-buddy --setup`, or see docs/configuration.md.",
+                    "Run `review-buddy --setup`,",
+                    style::fg(palette, Role::Muted),
+                ),
+                Line::styled(
+                    "or see docs/configuration.md.",
                     style::fg(palette, Role::Muted),
                 ),
             ]
