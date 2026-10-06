@@ -193,7 +193,7 @@ async fn keep_token(services: &Arc<Services>, host: &str, secret: Secret) -> Res
     })
 }
 
-fn scope_hints(scopes: &[String], pasted: bool) -> Vec<String> {
+pub(crate) fn scope_hints(scopes: &[String], pasted: bool) -> Vec<String> {
     if scopes.is_empty() {
         return if pasted {
             vec![
