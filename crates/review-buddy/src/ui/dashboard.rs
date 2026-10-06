@@ -463,13 +463,24 @@ fn hidden_count(app: &App) -> usize {
 }
 
 /// The line under `── That's everything.`: what the Show filters hide, or what's in view.
-fn end_note(app: &App) -> String {
+fn end_note(app: &App, width: u16) -> String {
     let hidden = queue::hidden_split(&app.state, app.active_source().map(|s| &s.id));
     match (hidden.by_kind, hidden.by_project) {
         (0, 0) => {}
         (k, 0) => return format!("{k} hidden by your Show filters · s to change"),
         (0, p) => return format!("{p} hidden by project · s to change"),
-        (k, p) => return format!("{} hidden · {k} by kind, {p} by project", k + p),
+        (k, p) => {
+            let long = format!(
+                "{} hidden by your Show filters: {k} by kind, {p} by project.",
+                k + p
+            );
+            let room = usize::from(width).saturating_sub(BLANK_RULE.len());
+            return if cells(&long) <= room {
+                long
+            } else {
+                format!("{} hidden · {k} by kind, {p} by project", k + p)
+            };
+        }
     }
     let n = queue::count_in(&app.state, app.active_source().map(|s| &s.id));
     format!("{n} in this view.")
@@ -640,7 +651,7 @@ fn row_lines(
                 ]),
                 Line::from(vec![
                     Span::raw(BLANK_RULE),
-                    Span::styled(end_note(app), style::fg(palette, Role::Muted)),
+                    Span::styled(end_note(app, width as u16), style::fg(palette, Role::Muted)),
                 ]),
             ]
         }

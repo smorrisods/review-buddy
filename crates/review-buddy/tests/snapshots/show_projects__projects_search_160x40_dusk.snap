@@ -3,7 +3,7 @@ source: crates/review-buddy/tests/show_projects.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 19 changes                                                                                                            Dusk
-╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ───────────────────────────────────────────────────────╮
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
 │▌ ● All              19 ││  Waiting on you · 14╭ Show ────────────────────────────────────────────────────────╮enus                                           │
 │    every source        ││▌ ◐ Add a menu bar an│                                                              │                                               │
 │  ● liminal-hq       15 ││▌ GH review-buddy#214│  [x] reviewing  changes waiting on your review               │                                               │

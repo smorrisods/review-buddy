@@ -4,7 +4,7 @@ expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 19 changes                                          Liminal HQ
   1 ● All 15   2 ●╭ Show ────────────────────────────────────────────────────────╮ 1
-╭ queue ──────────│                                                              │─────────────────╮
+╭ queue ──────────│                                                              │────────────── ⟩ ╮
 │  Waiting on you │  [x] reviewing  changes waiting on your review               │en menus         │
 │▌ ◐ Add a menu ba│  [x] assigned   changes assigned to you                      │                 │
 │▌ GH review-buddy│  [x] authored   changes you opened                           │                 │

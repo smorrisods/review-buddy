@@ -22,13 +22,13 @@ expression: text(&render(&mut a))
 │  GL notes!12 · kai ·│  p    close / reopen the detail pane                 │                     │
 │                     │  S    sources: auto / left / top                     │Line, so it picks up │
 │  ▸ Noise · 2 bot upd│                                                      │                     │
+│                     │Change                                                │                     │
+│  ── That's everythin│  s /  pick projects in show filters                  │                     │
+│  7 in this view.    │                                                      │                     │
 │                     │General                                               │                     │
-│  ── That's everythin│  ?    help                                           │                     │
-│  7 in this view.    │  ,    settings                                       │                     │
+│                     │  ?    help                                           │                     │
+│                     │  ,    settings                                       │                     │
 │                     │  T    theme                                          │                     │
-│                     │  q    quit                                           │                     │
-│                     │                                                      │                     │
-│                     │esc or ? to close                                     │                     │
-│                     ╰──────────────────────────────────────────────────────╯1 cancelled          │
-╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
+│                     │  q    quit                                           │1 cancelled          │
+╰─────────────────────╰──────────────────────────────────────────────────────╯─────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
