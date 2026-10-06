@@ -22,6 +22,7 @@ mod pr_diff;
 mod pr_list;
 mod pr_view;
 mod queue;
+mod setup;
 mod source;
 mod stub;
 mod theme;
@@ -44,6 +45,11 @@ pub fn run(cli: Cli) -> ExitCode {
             err.exit().into()
         }
     }
+}
+
+/// Runs `--setup` as plain prompts. `Ok` means a config was written and the sign-ins were checked.
+pub fn run_setup(cli: &Cli, terminal: Terminal) -> Result<(), CmdError> {
+    setup::run_plain(&cli.global, terminal)
 }
 
 fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {

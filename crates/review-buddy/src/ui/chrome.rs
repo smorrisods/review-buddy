@@ -95,6 +95,11 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("General", "?", "help", help, true),
             bind("General", "T", "theme", theme, true),
         ],
+        Screen::FirstRun => vec![
+            bind("First run", "⏎", "continue", None, true),
+            bind("First run", "space", "pick", None, true),
+            bind("First run", "esc", "skip for now", None, true),
+        ],
     }
 }
 
@@ -148,7 +153,11 @@ pub fn draw_top_bar(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap)
     let palette = &app.palette;
     let mut spans = vec![Span::raw(" ")];
     spans.extend(wordmark_spans(app));
-    let info = format!("  ·  {} · {} changes", app.source_label, app.change_count);
+    let info = if app.screen == Screen::FirstRun {
+        "  ·  first run".to_string()
+    } else {
+        format!("  ·  {} · {} changes", app.source_label, app.change_count)
+    };
     spans.push(Span::styled(info, style::fg(palette, Role::Muted)));
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 

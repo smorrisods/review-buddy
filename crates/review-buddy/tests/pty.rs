@@ -50,6 +50,10 @@ fn starts_draws_the_wordmark_and_quits_on_q() {
         cmd.env(var, home.path().join(var));
     }
     cmd.env_remove("REVIEW_BUDDY_CONFIG");
+    // A config file with no sources: not a first run, so this opens the empty dashboard.
+    let config_dir = home.path().join("XDG_CONFIG_HOME/review-buddy");
+    std::fs::create_dir_all(&config_dir).unwrap();
+    std::fs::write(config_dir.join("config.toml"), "[ui]\njax = true\n").unwrap();
     let mut child = pair.slave.spawn_command(cmd).unwrap();
     drop(pair.slave);
 

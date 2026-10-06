@@ -22,6 +22,7 @@ fn screen_name(screen: Screen) -> &'static str {
     match screen {
         Screen::Dashboard => "Queue",
         Screen::Diff => "Diff",
+        Screen::FirstRun => "First run",
     }
 }
 

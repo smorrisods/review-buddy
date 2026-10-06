@@ -78,7 +78,7 @@ pub trait Provider: Send + Sync {
 
 ## App state (Elm-style)
 
-The struct below is the target shape. In 0.1 `Screen` is `Dashboard | Diff`, the dashboard layout is fixed at three panes, and the overlays are the help overlay, the composer and the approve/post/discard confirm; there is no palette, search, merge confirm, settings or first-run screen yet. `Cmd`s today are `LoadChanges`, `LoadInfo`, `LoadDiff`, `SubmitReview`, `Reply`, `OpenUrl`, `Copy` and `After`.
+The struct below is the target shape. In 0.1 `Screen` is `Dashboard | Diff`, the dashboard layout is fixed at three panes, and the overlays are the help overlay, the composer and the approve/post/discard confirm; there is no palette, search, merge confirm or settings screen yet. First run adds `Screen::FirstRun`, `Msg::Setup`, `Cmd::Setup` and `Cmd::FinishSetup`; its flow is the pure state machine in `crates/review-buddy/src/setup/`. `Cmd`s today are `LoadChanges`, `LoadInfo`, `LoadDiff`, `SubmitReview`, `Reply`, `OpenUrl`, `Copy` and `After`.
 
 ```rust
 struct App {

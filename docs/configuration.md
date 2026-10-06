@@ -218,7 +218,7 @@ With no command, `review-buddy` opens the TUI. With a command it behaves like `g
 
 ```text
 review-buddy                          open the queue (TUI)
-review-buddy --setup                  re-run first run
+review-buddy --setup [--plain]         connect accounts and write config.toml (first run, re-runnable)
 review-buddy open <selector>          open the TUI straight into one change's diff
 review-buddy queue                    your triaged queue, by bucket
 review-buddy pr list|view|diff|checks|open [<selector>]
@@ -236,6 +236,16 @@ global: --config <path> · -s/--source <name> · -R/--repo <owner/repo> · --jso
         --demo [--demo-scene <name>] [--frozen-time <iso>] [--jax-mood <mood>] [--size <COLSxROWS>]
 ```
 
-In 0.1 these run: `queue`, `pr list|view|diff|checks|open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor` and `completion`. The rest (including `triage explain`, `theme check|export` and `config get|list`) exit `2` with `Not built yet`. `--setup`, `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet.
+In 0.1 these run: `queue`, `pr list|view|diff|checks|open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor` and `completion`. The rest (including `triage explain`, `theme check|export` and `config get|list`) exit `2` with `Not built yet`. `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet. `--setup` runs first run (see below).
+
+### First run
+
+With no config file in any location (and no sources), a TTY launch opens first run. `--setup` opens it again, and `--setup --plain` (alias `--no-tui`), or `--setup` without a terminal, runs the same flow as line prompts. Demo mode never shows first run and never touches your real config or keyring.
+
+- **Where it writes.** The layered write target (`config paths` shows it): `--config` or `$REVIEW_BUDDY_CONFIG` if set, else the user `config.toml`. The file is rendered from `config.example.toml` so it keeps its comments, validated, then written atomically with mode `0600` after the confirm step.
+- **Existing files.** Never overwritten without a confirmation that defaults to No. A confirmed replace keeps the old file as `config.toml.bak`, and keeps any `api_url` you had set for a host.
+- **Tokens.** Reusing `gh`/`glab` writes `auth = "cli"`. A pasted token is tested, then stored in the OS keyring under `review-buddy/<host>` and the source gets `auth = "token"`. Tokens are never written to the config. If the keyring isn't available, the message suggests an `env:VAR` instead.
+- **Scope.** One source per host, named after the host. Leave every organisation and "my repositories" unticked to include everything the account can see.
+- **Plain exit codes.** `0` written and signed in, `1` couldn't write, `2` usage (for example `--demo`), `3` stopped without changes, `4` a new source couldn't sign in.
 
 `pr` is also available as `mr`. Selectors accept a URL, `owner/repo#N`, `source:owner/repo!N`, a bare number with `--repo`, a branch, or nothing (the current branch).

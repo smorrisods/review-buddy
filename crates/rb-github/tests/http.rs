@@ -361,3 +361,40 @@ async fn graphql_http_errors_use_the_shared_mapping() {
         .unwrap_err();
     assert!(matches!(e, Error::Unauthorized { .. }));
 }
+
+#[tokio::test]
+async fn list_orgs_returns_logins_across_pages() {
+    let server = MockServer::start().await;
+    let next = format!(
+        "<{}/user/orgs?per_page=100&page=2>; rel=\"next\"",
+        server.uri()
+    );
+    Mock::given(path("/user/orgs"))
+        .and(wiremock::matchers::query_param("page", "2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([{"login": "infra"}])))
+        .mount(&server)
+        .await;
+    Mock::given(path("/user/orgs"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("link", next.as_str())
+                .set_body_json(json!([{"login": "liminal-hq"}, {"login": "acme"}])),
+        )
+        .mount(&server)
+        .await;
+    let orgs = client(&server, "").list_orgs().await.unwrap();
+    assert_eq!(orgs, ["liminal-hq", "acme", "infra"]);
+}
+
+#[tokio::test]
+async fn list_orgs_reports_a_rejected_token() {
+    let server = MockServer::start().await;
+    Mock::given(path("/user/orgs"))
+        .respond_with(
+            ResponseTemplate::new(401).set_body_json(json!({"message": "Bad credentials"})),
+        )
+        .mount(&server)
+        .await;
+    let e = client(&server, "").list_orgs().await.unwrap_err();
+    assert!(matches!(e, Error::Unauthorized { .. }));
+}
