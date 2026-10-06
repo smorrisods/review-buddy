@@ -41,7 +41,7 @@ expression: plain_dump(& mut app)
 
 
 
- ⏎ continue  ← → buttons  ⌫ back  space pick  esc skip for now
+ ⏎ continue  ← → theme  tab buttons  ⌫ back  esc skip for now
 
 -- modifiers --
 0:1 B "review buddy"
@@ -77,10 +77,10 @@ expression: plain_dump(& mut app)
 39:1 B "⏎"
 39:2 D " continue"
 39:13 B "← →"
-39:16 D " buttons"
-39:26 B "⌫"
-39:27 D " back"
-39:34 B "space"
-39:39 D " pick"
-39:46 B "esc"
-39:49 D " skip for now"
+39:16 D " theme"
+39:24 B "tab"
+39:27 D " buttons"
+39:37 B "⌫"
+39:38 D " back"
+39:45 B "esc"
+39:48 D " skip for now"
