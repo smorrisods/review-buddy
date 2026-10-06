@@ -61,6 +61,7 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
                 anyhow::bail!("{problem}\nFix the config file, or see review-buddy config paths.");
             }
             options.settings = Some(runtime::Settings::from_config(&ctx.config));
+            options.no_mouse = !ctx.config.ui.mouse;
             options.live = Some(std::sync::Arc::new(
                 review_buddy::providers::Live::from_context(&ctx)?,
             ));

@@ -1,0 +1,213 @@
+//! Mouse input as pure transitions. Clicks are resolved against the [`HitMap`](crate::ui::HitMap)
+//! the last draw registered; drags and wheel turns use the same geometry the screens draw with.
+//!
+//! The polite rule: with mouse capture on, a terminal only forwards plain mouse events and keeps
+//! Shift-drag for its own text selection. If one does deliver a Shift event anyway, the only one
+//! used is a Shift-click in the diff, which extends the selected range. Every other Shift event
+//! is ignored, never consumed.
+
+use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+
+use super::{composer, dashboard, diff, update, Action, App, Cmd, Screen};
+use crate::ui::help;
+
+/// Two clicks on the same row this many ticks apart (a tick is 250 ms) make a double-click.
+const DOUBLE_CLICK_TICKS: u64 = 2;
+
+pub(super) fn on_mouse(app: &mut App, mouse: MouseEvent) -> Vec<Cmd> {
+    let shift = mouse.modifiers.contains(KeyModifiers::SHIFT);
+    if app.help {
+        return on_help(app, mouse, shift);
+    }
+    if app.diff.as_ref().is_some_and(|s| s.has_overlay()) {
+        return on_overlay(app, mouse, shift);
+    }
+    match mouse.kind {
+        MouseEventKind::Down(MouseButton::Left) => press(app, mouse, shift),
+        MouseEventKind::Drag(MouseButton::Left) if !shift && app.screen == Screen::Diff => {
+            diff::on_drag(app, mouse.row);
+            Vec::new()
+        }
+        MouseEventKind::Up(MouseButton::Left) => {
+            diff::on_release(app);
+            Vec::new()
+        }
+        MouseEventKind::ScrollDown if !shift => update::scroll(app, mouse.column, mouse.row, true),
+        MouseEventKind::ScrollUp if !shift => update::scroll(app, mouse.column, mouse.row, false),
+        _ => Vec::new(),
+    }
+}
+
+fn press(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
+    let hit = app.hits.at(mouse.column, mouse.row).cloned();
+    if shift {
+        return match hit {
+            Some(Action::DiffRow(row)) if app.screen == Screen::Diff => {
+                diff::on_press(app, row, true)
+            }
+            _ => Vec::new(),
+        };
+    }
+    match hit {
+        Some(Action::DiffRow(row)) if app.screen == Screen::Diff => {
+            app.last_click = None;
+            diff::on_press(app, row, false)
+        }
+        Some(action) => {
+            let double = matches!(action, Action::SelectItem(_))
+                && app.last_click.as_ref().is_some_and(|(last, tick)| {
+                    *last == action && app.ticks.saturating_sub(*tick) <= DOUBLE_CLICK_TICKS
+                });
+            app.last_click = Some((action.clone(), app.ticks));
+            let mut cmds = update::run(app, action);
+            if double {
+                app.last_click = None;
+                cmds.extend(dashboard::activate(app));
+            }
+            cmds
+        }
+        None => {
+            app.last_click = None;
+            match app.hits.pane_at(mouse.column, mouse.row) {
+                Some(pane) => update::run(app, Action::FocusPane(pane)),
+                None => Vec::new(),
+            }
+        }
+    }
+}
+
+fn on_help(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
+    if shift {
+        return Vec::new();
+    }
+    match mouse.kind {
+        MouseEventKind::Down(_) => update::close_help(app),
+        MouseEventKind::ScrollDown => scroll_help(app, true),
+        MouseEventKind::ScrollUp => scroll_help(app, false),
+        _ => {}
+    }
+    Vec::new()
+}
+
+fn scroll_help(app: &mut App, down: bool) {
+    let max = help::max_scroll(app);
+    app.help_scroll = if down {
+        app.help_scroll.saturating_add(1).min(max)
+    } else {
+        app.help_scroll.saturating_sub(1)
+    };
+    app.mark_dirty();
+}
+
+/// A composer or confirmation holds input: only its own targets and toasts answer. A click
+/// anywhere else is ignored, so nothing is discarded or sent by accident.
+fn on_overlay(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
+    if shift {
+        return Vec::new();
+    }
+    let confirming = app.diff.as_ref().is_some_and(|s| s.confirm.is_some());
+    let hit = app.hits.at(mouse.column, mouse.row).cloned();
+    match (mouse.kind, hit) {
+        (MouseEventKind::Down(MouseButton::Left), Some(Action::Answer(yes))) if confirming => {
+            composer::answer(app, yes)
+        }
+        (MouseEventKind::Down(MouseButton::Left), Some(Action::DismissToast(id))) => {
+            update::run(app, Action::DismissToast(id))
+        }
+        (
+            MouseEventKind::Down(MouseButton::Left),
+            Some(Action::ComposerCursor {
+                x,
+                y,
+                first,
+                across,
+            }),
+        ) if !confirming => {
+            composer::place_cursor(app, mouse.column, mouse.row, (x, y, first, across));
+            Vec::new()
+        }
+        (
+            MouseEventKind::ScrollDown | MouseEventKind::ScrollUp,
+            Some(Action::ComposerCursor { .. }),
+        ) if !confirming => {
+            composer::scroll_text(app, mouse.kind == MouseEventKind::ScrollDown);
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use ratatui::layout::Rect;
+    use rb_theme::ColourDepth;
+
+    use super::*;
+    use crate::app::{AppConfig, Msg};
+
+    fn app() -> App {
+        App::new(AppConfig {
+            theme_id: "liminal-hq".into(),
+            depth: ColourDepth::TrueColour,
+            no_color: false,
+            size: (160, 40),
+        })
+    }
+
+    fn event(kind: MouseEventKind, mods: KeyModifiers) -> Msg {
+        Msg::Mouse(MouseEvent {
+            kind,
+            column: 1,
+            row: 1,
+            modifiers: mods,
+        })
+    }
+
+    #[test]
+    fn shift_events_never_run_actions_or_scroll() {
+        let mut a = app();
+        a.hits.push(Rect::new(0, 0, 5, 5), Action::Quit);
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Drag(MouseButton::Left),
+            MouseEventKind::ScrollDown,
+        ] {
+            update::update(&mut a, event(kind, KeyModifiers::SHIFT));
+        }
+        assert!(!a.should_quit());
+        assert!(!a.is_dirty() || a.dashboard.queue_scroll == 0);
+    }
+
+    #[test]
+    fn a_click_on_a_target_remembers_itself_and_empty_space_forgets_it() {
+        let mut a = app();
+        a.hits.push(Rect::new(0, 0, 5, 5), Action::SelectItem(0));
+        update::update(
+            &mut a,
+            event(MouseEventKind::Down(MouseButton::Left), KeyModifiers::NONE),
+        );
+        assert!(matches!(a.last_click, Some((Action::SelectItem(0), _))));
+        let far = Msg::Mouse(MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 100,
+            row: 30,
+            modifiers: KeyModifiers::NONE,
+        });
+        update::update(&mut a, far);
+        assert!(a.last_click.is_none());
+    }
+
+    #[test]
+    fn help_swallows_clicks_and_resets_its_scroll_when_closed() {
+        let mut a = app();
+        a.hits.push(Rect::new(0, 0, 5, 5), Action::Quit);
+        a.help = true;
+        a.help_scroll = 3;
+        update::update(
+            &mut a,
+            event(MouseEventKind::Down(MouseButton::Left), KeyModifiers::NONE),
+        );
+        assert!(!a.help && a.help_scroll == 0 && !a.should_quit());
+    }
+}

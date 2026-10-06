@@ -24,7 +24,7 @@ pub struct TerminalGuard {
 }
 
 impl TerminalGuard {
-    pub fn enter() -> io::Result<Self> {
+    pub fn enter(mouse: bool) -> io::Result<Self> {
         install_panic_hook();
         enable_raw_mode()?;
         ACTIVE.store(true, Ordering::SeqCst);
@@ -32,11 +32,17 @@ impl TerminalGuard {
         let setup = execute!(
             stdout,
             EnterAlternateScreen,
-            EnableMouseCapture,
             EnableBracketedPaste,
             EnableFocusChange,
             Hide
         );
+        let setup = setup.and_then(|()| {
+            if mouse {
+                execute!(stdout, EnableMouseCapture)
+            } else {
+                Ok(())
+            }
+        });
         if let Err(err) = setup {
             restore();
             return Err(err);

@@ -76,7 +76,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | `x` | Request changes. Not built yet; where the forge can't do it at all the footer says so and points to `c` |
 | `b` / `o` | Check out / open in browser |
 
-**Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend · click the `unified │ side by side` toggle · click a file to open it · the wheel scrolls the diff.
+**Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · click the Files pane or its review block to focus it · the wheel scrolls the pane under the pointer · `esc` clears a selected range before it leaves the diff. See [Mouse](#mouse) for the full list.
 
 ## Composer
 
@@ -145,6 +145,30 @@ The same two-button modal is used for approving, posting now, and discarding a d
 | `e` / `t` | Edit / test a token |
 | `n` / `del` | New source / remove (asks first) |
 | `esc` / `,` | Back to the queue |
+
+## Mouse
+
+Every mouse target is registered while drawing and resolved in `update`, so it behaves like the key it mirrors. Turn the mouse off with `ui.mouse = false`; then the terminal's own selection and wheel work everywhere.
+
+| Where | What it does |
+|---|---|
+| Top bar theme name | Cycles the theme (`T`) |
+| Footer hints | Run the hint's action |
+| Sources rows, or the source tabs when Sources is collapsed | Show that source |
+| Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff |
+| Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
+| Action chips (Approve, Request changes, Comment, Diff) | Same as their keys |
+| Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
+| Diff: files | Click a file to open it |
+| Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from |
+| Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. Groundwork only: nothing is commented on yet |
+| Diff: shift-click | Extends the range from the cursor (or the range's anchor) to the line clicked |
+| Composer text | Click to place the caret. The wheel moves the caret a line. Clicks outside the composer are ignored and never discard the draft |
+| Preview and discard confirms | Click **Cancel** or the confirm button. Clicks outside are ignored |
+| Toast | Click to dismiss |
+| Help overlay | The wheel scrolls it; a click closes it |
+
+**Shift always belongs to the terminal.** With mouse capture on, terminals keep Shift-drag for their own text selection and don't send it to the app. If a terminal forwards Shift events anyway, Review Buddy ignores all of them except a Shift-click in the diff, which extends the selected range. Shift-drag and Shift-wheel are never consumed.
 
 ## Remapping
 

@@ -8,23 +8,36 @@ use ratatui::{
     Frame,
 };
 use rb_theme::Role;
-use unicode_width::UnicodeWidthChar;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use super::text::wrap;
-use super::{chrome::truncate, layout, style};
+use super::{chrome::truncate, layout, style, HitMap};
 use crate::app::composer::{Composer, Confirm, ConfirmKind};
-use crate::app::{App, DiffState};
+use crate::app::{Action, App, DiffState};
 
-pub fn draw(frame: &mut Frame, app: &App, state: &DiffState, l: &layout::DiffLayout, body: Rect) {
+pub fn draw(
+    frame: &mut Frame,
+    app: &App,
+    state: &DiffState,
+    l: &layout::DiffLayout,
+    body: Rect,
+    hits: &mut HitMap,
+) {
     if let Some(composer) = &state.composer {
-        draw_composer(frame, app, composer, l);
+        draw_composer(frame, app, composer, l, hits);
     }
     if let Some(confirm) = &state.confirm {
-        draw_confirm(frame, app, confirm, body);
+        draw_confirm(frame, app, confirm, body, hits);
     }
 }
 
-fn draw_composer(frame: &mut Frame, app: &App, composer: &Composer, l: &layout::DiffLayout) {
+fn draw_composer(
+    frame: &mut Frame,
+    app: &App,
+    composer: &Composer,
+    l: &layout::DiffLayout,
+    hits: &mut HitMap,
+) {
     let palette = &app.palette;
     let rect = layout::composer_dock(l.code, composer.editor.line_count());
     let hint = if composer.sending {
@@ -89,6 +102,15 @@ fn draw_composer(frame: &mut Frame, app: &App, composer: &Composer, l: &layout::
         inner.height,
     );
     frame.render_widget(Paragraph::new(lines), text_area);
+    hits.push(
+        text_area,
+        Action::ComposerCursor {
+            x: text_area.x,
+            y: text_area.y,
+            first,
+            across,
+        },
+    );
 }
 
 /// Cuts `text` so it fits `width` cells, with tabs shown as spaces.
@@ -107,7 +129,7 @@ fn clip(text: &str, width: usize) -> String {
     out
 }
 
-fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect) {
+fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect, hits: &mut HitMap) {
     let palette = &app.palette;
     let width = 64.min(body.width.saturating_sub(4));
     let text_width = usize::from(width.saturating_sub(4));
@@ -157,6 +179,7 @@ fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect) {
         }
     }
     lines.push(Line::raw(""));
+    let button_row = lines.len();
     lines.push(buttons(app, confirm));
 
     let height = (lines.len() as u16 + 2).min(body.height);
@@ -178,6 +201,19 @@ fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect) {
         .style(style::bg(palette, Role::Raised));
     frame.render_widget(Clear, rect);
     frame.render_widget(Paragraph::new(lines).block(block), rect);
+
+    let (safe, go) = confirm.buttons();
+    let row = rect.y + 1 + (button_row as u16);
+    let safe_w = (UnicodeWidthStr::width(safe) + 4) as u16;
+    let go_w = (UnicodeWidthStr::width(go) + 4) as u16;
+    let x = rect.x + 2;
+    if row < rect.bottom().saturating_sub(1) {
+        hits.push(Rect::new(x, row, safe_w, 1), Action::Answer(false));
+        hits.push(
+            Rect::new(x + safe_w + 2, row, go_w, 1),
+            Action::Answer(true),
+        );
+    }
 }
 
 /// `[ Cancel ]  [ Approve ]`, with `›` and bold marking the focused one so colour isn't the

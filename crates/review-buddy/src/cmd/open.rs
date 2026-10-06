@@ -49,6 +49,7 @@ fn run_options(ctx: &Context, id: ChangeId) -> Result<RunOptions, CmdError> {
     } else {
         #[cfg(feature = "live")]
         {
+            options.no_mouse = !ctx.config.ui.mouse;
             options.live = Some(std::sync::Arc::new(
                 crate::providers::Live::from_context(ctx)
                     .map_err(|e| CmdError::failed(format!("{e:#}")))?,

@@ -67,6 +67,13 @@ impl Editor {
         (self.row, self.col)
     }
 
+    /// Moves the cursor to `row` and `col`, both clamped to the text.
+    pub fn set_cursor(&mut self, row: usize, col: usize) {
+        self.row = row.min(self.lines.len() - 1);
+        self.col = col.min(self.line_len());
+        self.want = None;
+    }
+
     fn line_len(&self) -> usize {
         chars(&self.lines[self.row])
     }
@@ -242,6 +249,17 @@ impl Editor {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn set_cursor_clamps_to_the_text() {
+        let mut e = Editor::with_text("ab\ncdef");
+        e.set_cursor(0, 9);
+        assert_eq!(e.cursor(), (0, 2));
+        e.set_cursor(9, 3);
+        assert_eq!(e.cursor(), (1, 3));
+        e.set_cursor(1, 0);
+        assert_eq!(e.cursor(), (1, 0));
+    }
+
     use super::*;
 
     fn typed(text: &str) -> Editor {

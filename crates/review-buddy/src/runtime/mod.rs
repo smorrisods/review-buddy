@@ -95,6 +95,8 @@ pub struct RunOptions {
     pub settings: Option<Settings>,
     #[cfg(feature = "demo")]
     pub demo: Option<crate::demo::Demo>,
+    /// Leave mouse capture off (`ui.mouse = false`). Demo mode never reads the config, so it captures.
+    pub no_mouse: bool,
     /// Start on this change's diff instead of the dashboard.
     pub open: Option<rb_core::ChangeId>,
     #[cfg(feature = "live")]
@@ -289,7 +291,7 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     let backend = options.backend();
     let platform = Platform::system();
     let open = options.open.clone();
-    let mut guard = TerminalGuard::enter()?;
+    let mut guard = TerminalGuard::enter(!options.no_mouse)?;
     let size = guard.terminal.size()?;
     let base = AppConfig::from_env((size.width, size.height));
     let mut app = App::new(match &options.settings {

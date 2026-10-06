@@ -345,7 +345,7 @@ fn on_confirm_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     Vec::new()
 }
 
-fn answer(app: &mut App, yes: bool) -> Vec<Cmd> {
+pub(super) fn answer(app: &mut App, yes: bool) -> Vec<Cmd> {
     let Some(confirm) = state(app).and_then(|s| s.confirm.take()) else {
         return Vec::new();
     };
@@ -363,6 +363,57 @@ fn answer(app: &mut App, yes: bool) -> Vec<Cmd> {
         ConfirmKind::PostNow { .. } => send_composer(app),
         ConfirmKind::Approve { verdict, .. } => send_review(app, verdict),
     }
+}
+
+/// A click on the composer's text: puts the caret under the pointer.
+pub fn place_cursor(app: &mut App, column: u16, row: u16, at: (u16, u16, usize, usize)) {
+    let (x, y, first, across) = at;
+    let Some(c) = state(app).and_then(|s| s.composer.as_mut()) else {
+        return;
+    };
+    if c.sending {
+        return;
+    }
+    let target = first + usize::from(row.saturating_sub(y));
+    let target = target.min(c.editor.line_count() - 1);
+    let cells = usize::from(column.saturating_sub(x));
+    let col = char_at(&c.editor.lines()[target], across, cells);
+    c.editor.set_cursor(target, col);
+    app.mark_dirty();
+}
+
+/// The character index of the cell `cells` from the left edge of `line` once `across`
+/// characters have scrolled off. Clicks past the end land after the last character.
+fn char_at(line: &str, across: usize, cells: usize) -> usize {
+    use unicode_width::UnicodeWidthChar;
+    let mut used = 0;
+    let mut index = across;
+    for ch in line.chars().skip(across) {
+        let w = if ch == '\t' {
+            1
+        } else {
+            ch.width().unwrap_or(0)
+        };
+        if used + w > cells {
+            break;
+        }
+        used += w;
+        index += 1;
+    }
+    index
+}
+
+/// The wheel over the composer moves its caret a line, and the view follows the caret.
+pub fn scroll_text(app: &mut App, down: bool) {
+    let Some(c) = state(app).and_then(|s| s.composer.as_mut()) else {
+        return;
+    };
+    if down {
+        c.editor.down();
+    } else {
+        c.editor.up();
+    }
+    app.mark_dirty();
 }
 
 fn on_composer_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
@@ -764,6 +815,16 @@ fn add_reply(app: &mut App, thread: &ThreadId, comment: Comment) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn char_at_maps_cells_to_characters_through_scroll_and_wide_glyphs() {
+        assert_eq!(char_at("hello", 0, 0), 0);
+        assert_eq!(char_at("hello", 0, 3), 3);
+        assert_eq!(char_at("hello", 0, 40), 5, "past the end");
+        assert_eq!(char_at("hello", 2, 1), 3, "two characters scrolled off");
+        assert_eq!(char_at("日本語", 0, 2), 1, "each glyph is two cells wide");
+        assert_eq!(char_at("a\tb", 0, 2), 2, "a tab shows as one space");
+    }
+
     use crossterm::event::KeyEvent;
     use rb_core::{CommentId, FilePatch, FileStatus, Timestamp};
     use rb_theme::ColourDepth;

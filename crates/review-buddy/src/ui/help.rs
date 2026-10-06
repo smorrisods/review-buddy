@@ -12,7 +12,7 @@ use unicode_width::UnicodeWidthStr;
 
 use super::{
     chrome::{registry, Binding},
-    style,
+    layout, style,
 };
 use crate::app::{App, Screen};
 
@@ -30,7 +30,15 @@ pub fn rows(screen: Screen) -> Vec<Binding> {
     registry(screen)
 }
 
-pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
+/// How far the overlay can scroll when the body is too short to show every row.
+pub fn max_scroll(app: &App) -> u16 {
+    let area = layout::body(app.size);
+    let total = content(app).len() as u16;
+    let shown = (total + 2).min(area.height).saturating_sub(2);
+    total.saturating_sub(shown)
+}
+
+fn content(app: &App) -> Vec<Line<'static>> {
     let palette = &app.palette;
     let bindings = rows(app.screen);
     let key_w = bindings
@@ -77,6 +85,12 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
         Span::styled(" to close", style::fg(palette, Role::Muted)),
     ]));
 
+    lines
+}
+
+pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
+    let palette = &app.palette;
+    let lines = content(app);
     let width = MAX_WIDTH.min(area.width.saturating_sub(2));
     let height = (lines.len() as u16 + 2).min(area.height);
     let rect = Rect::new(
@@ -97,6 +111,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(Clear, rect);
     frame.render_widget(
         Paragraph::new(lines)
+            .scroll((app.help_scroll.min(max_scroll(app)), 0))
             .style(style::fg(palette, Role::Text))
             .block(block),
         rect,

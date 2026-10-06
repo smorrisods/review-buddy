@@ -60,7 +60,7 @@ The app edits the config with `toml_edit`, so your comments and ordering are kep
 | `reduced_motion` | `false` | Freezes Jax and disables blinking cursors. Also read from the env var `REVIEW_BUDDY_REDUCED_MOTION` |
 | `unicode` | `true` | `false` = ASCII glyphs and plain borders |
 | `colour_depth` | `"auto"` | `auto` · `truecolor` · `256` · `16` |
-| `mouse` | `true` | Click, drag-select, scroll |
+| `mouse` | `true` | Click, drag-select, scroll. `false` leaves mouse capture off so the terminal handles the mouse. Demo mode never reads the config and always captures it |
 | `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale |
 
 ## `[review]`

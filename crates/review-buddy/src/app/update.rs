@@ -1,9 +1,7 @@
-use crossterm::event::{
-    KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
-};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use super::{
-    composer, dashboard, diff, links, live, Action, App, AppState, Cmd, Entry, Msg, Notice,
+    composer, dashboard, diff, links, live, mouse, Action, App, AppState, Cmd, Entry, Msg, Notice,
     NoticeKind, Screen, Snapshot, MAX_TOASTS, NOTICE_TTL,
 };
 
@@ -17,28 +15,7 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
 fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
     match msg {
         Msg::Key(key) => on_key(app, key),
-        Msg::Mouse(_) if app.diff.as_ref().is_some_and(|s| s.has_overlay()) => Vec::new(),
-        Msg::Mouse(mouse) if app.help => {
-            if matches!(mouse.kind, MouseEventKind::Down(_)) {
-                close_help(app);
-            }
-            Vec::new()
-        }
-        Msg::Mouse(mouse) => match mouse.kind {
-            MouseEventKind::Down(MouseButton::Left) => match app.hits.at(mouse.column, mouse.row) {
-                Some(action) => {
-                    let action = action.clone();
-                    run(app, action)
-                }
-                None => match app.hits.pane_at(mouse.column, mouse.row) {
-                    Some(pane) => run(app, Action::FocusPane(pane)),
-                    None => Vec::new(),
-                },
-            },
-            MouseEventKind::ScrollDown => scroll(app, mouse.column, mouse.row, true),
-            MouseEventKind::ScrollUp => scroll(app, mouse.column, mouse.row, false),
-            _ => Vec::new(),
-        },
+        Msg::Mouse(mouse) => mouse::on_mouse(app, mouse),
         Msg::Resize(w, h) => {
             app.size = (w, h);
             dashboard::on_resize(app);
@@ -109,8 +86,9 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
     }
 }
 
-fn close_help(app: &mut App) {
+pub(super) fn close_help(app: &mut App) {
     app.help = false;
+    app.help_scroll = 0;
     app.mark_dirty();
 }
 
@@ -129,7 +107,7 @@ fn take_snapshot(app: &mut App, snapshot: Snapshot) {
     app.mark_dirty();
 }
 
-fn scroll(app: &mut App, column: u16, row: u16, down: bool) -> Vec<Cmd> {
+pub(super) fn scroll(app: &mut App, column: u16, row: u16, down: bool) -> Vec<Cmd> {
     match app.screen {
         Screen::Dashboard => dashboard::on_scroll(app, column, row, down),
         Screen::Diff => diff::on_scroll(app, column, row, down),
@@ -186,7 +164,7 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     }
 }
 
-fn run(app: &mut App, action: Action) -> Vec<Cmd> {
+pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
     match action {
         Action::Quit => {
             if app.has_unsent_drafts() && !app.quit_armed {
@@ -199,6 +177,7 @@ fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         }
         Action::ToggleHelp => {
             app.help = !app.help;
+            app.help_scroll = 0;
             app.mark_dirty();
             Vec::new()
         }
@@ -220,9 +199,10 @@ fn run(app: &mut App, action: Action) -> Vec<Cmd> {
             dismiss_toast(app, id);
             Vec::new()
         }
-        Action::CloseDiff | Action::DiffFile(_) | Action::DiffRow(_) => {
+        Action::CloseDiff | Action::DiffFile(_) | Action::DiffRow(_) | Action::DiffFocus(_) => {
             diff::on_action(app, action)
         }
+        Action::ComposerCursor { .. } | Action::Answer(_) => Vec::new(),
         other => dashboard::on_action(app, other),
     }
 }
@@ -266,7 +246,7 @@ fn expiry(msg: Msg) -> Cmd {
 
 #[cfg(test)]
 mod tests {
-    use crossterm::event::{KeyEventState, MouseEvent};
+    use crossterm::event::{KeyEventState, MouseButton, MouseEvent, MouseEventKind};
     use ratatui::layout::Rect;
 
     use super::*;
