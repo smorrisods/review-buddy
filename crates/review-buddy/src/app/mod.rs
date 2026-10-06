@@ -235,6 +235,12 @@ pub struct AppState {
     pub queue_settings: queue::QueueSettings,
 }
 
+impl AppState {
+    pub fn source(&self, id: &SourceId) -> Option<&Source> {
+        self.sources.iter().find(|s| &s.id == id)
+    }
+}
+
 /// What the app needs to know about the terminal it starts in.
 #[derive(Debug, Clone)]
 pub struct AppConfig {

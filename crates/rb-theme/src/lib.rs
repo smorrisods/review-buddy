@@ -7,7 +7,10 @@ mod colour;
 mod palette;
 mod theme;
 
-pub use colour::{contrast_ratio, relative_luminance, AnsiColour, Colour, ColourParseError, Rgb};
+pub use colour::{
+    contrast_ratio, relative_luminance, AnsiColour, Colour, ColourParseError, Rgb, TagColour,
+    TagColourError,
+};
 pub use palette::{
     indexed_rgb, nearest_ansi, no_color_requested, quantise_256, ColourDepth, Modifiers, Palette,
     Style,

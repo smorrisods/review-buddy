@@ -18,6 +18,7 @@ kind = "github"
 host = "github.com"
 label = "smorris"
 user = true
+tag_colour = "interactive"
 
 [[source]]
 id = "platform"

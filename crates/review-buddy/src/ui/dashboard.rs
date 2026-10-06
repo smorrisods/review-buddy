@@ -158,7 +158,7 @@ fn draw_sources(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
         let first = justify(
             vec![
                 lead,
-                Span::styled("● ", style::fg(palette, dot)),
+                Span::styled("● ", dot),
                 Span::styled(truncate(&name, room), name_style),
             ],
             vec![Span::styled(
@@ -181,13 +181,14 @@ fn draw_sources(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     }
 }
 
-fn source_row(app: &App, source: Option<&Source>) -> (String, String, String, Role) {
+fn source_row(app: &App, source: Option<&Source>) -> (String, String, String, Style) {
+    let palette = &app.palette;
     match source {
         None => (
             "All".to_string(),
             "every source".to_string(),
             queue::count_in(&app.state, None).to_string(),
-            Role::Accent,
+            style::fg(palette, Role::Accent),
         ),
         Some(s) => {
             let failure = app.state.failures.get(&s.id);
@@ -195,17 +196,58 @@ fn source_row(app: &App, source: Option<&Source>) -> (String, String, String, Ro
                 s.label.clone(),
                 match failure {
                     Some(f) => f.short().to_string(),
-                    None => s.host.clone(),
+                    None if s.in_all => s.host.clone(),
+                    None => format!("not in All · {}", s.host),
                 },
                 queue::count_in(&app.state, Some(&s.id)).to_string(),
-                match (failure, s.kind) {
-                    (Some(_), _) => Role::Warning,
-                    (None, rb_core::ForgeKind::GitHub) => Role::Github,
-                    (None, rb_core::ForgeKind::GitLab) => Role::Gitlab,
+                match failure {
+                    Some(_) => style::fg(palette, Role::Warning),
+                    None => style::tag_fg(palette, Some(s), s.kind),
                 },
             )
         }
     }
+}
+
+const TAB_NAME_MAX: usize = 18;
+const MORE_LEFT: &str = "‹ ";
+const MORE_RIGHT: &str = " ›";
+
+/// Which tabs fit in `width` cells: always the active one, scrolled into view, with room kept
+/// for a `‹`/`›` marker on each side that has tabs hidden.
+pub(super) fn strip_window(
+    widths: &[usize],
+    gap: usize,
+    width: usize,
+    active: usize,
+) -> std::ops::Range<usize> {
+    let n = widths.len();
+    if n == 0 {
+        return 0..0;
+    }
+    let active = active.min(n - 1);
+    let (left, right) = (cells(MORE_LEFT), cells(MORE_RIGHT));
+    let span = |from: usize, to: usize| {
+        widths[from..to].iter().sum::<usize>() + gap * (to - from).saturating_sub(1)
+    };
+    let mut start = active;
+    while start > 0 {
+        let reserve = if start - 1 > 0 { left } else { 0 };
+        if span(start - 1, active + 1) + reserve > width {
+            break;
+        }
+        start -= 1;
+    }
+    let reserve_left = if start > 0 { left } else { 0 };
+    let mut end = active + 1;
+    while end < n {
+        let reserve = if end + 1 < n { right } else { 0 };
+        if span(start, end + 1) + reserve_left + reserve > width {
+            break;
+        }
+        end += 1;
+    }
+    start..end
 }
 
 fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
@@ -213,7 +255,8 @@ fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap
     if !app.state.loaded {
         return;
     }
-    let items = (0..=app.state.sources.len())
+    let total = app.state.sources.len() + 1;
+    let tabs: Vec<Vec<Span<'static>>> = (0..total)
         .map(|n| {
             let source = n.checked_sub(1).and_then(|i| app.state.sources.get(i));
             let (name, _, count, dot) = source_row(app, source);
@@ -225,13 +268,13 @@ fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap
             } else {
                 style::fg(palette, Role::TextSecondary)
             };
-            let spans = vec![
+            vec![
                 Span::styled(
                     format!(" {} ", n + 1),
                     style::fg(palette, Role::Accent).patch(base),
                 ),
-                Span::styled("● ", style::fg(palette, dot).patch(base)),
-                Span::styled(name, base),
+                Span::styled("● ", dot.patch(base)),
+                Span::styled(truncate(&name, TAB_NAME_MAX), base),
                 Span::styled(
                     format!(" {count} "),
                     if active {
@@ -240,18 +283,50 @@ fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap
                         style::fg(palette, Role::Muted)
                     },
                 ),
-            ];
-            (spans, Some(Action::SelectSource(n)))
+            ]
         })
         .collect();
-    super::detail::draw_strip(
-        frame,
-        area.x + 1,
-        area.y,
-        area.width.saturating_sub(1),
-        items,
-        " ",
-        hits,
+    let widths: Vec<usize> = tabs
+        .iter()
+        .map(|t| t.iter().map(|s| cells(&s.content)).sum())
+        .collect();
+    let x0 = area.x + 1;
+    let width = usize::from(area.width.saturating_sub(1));
+    let active = app.dashboard.source;
+    let window = strip_window(&widths, 1, width, active);
+    let muted = style::fg(palette, Role::Muted);
+    let mut spans = Vec::new();
+    let mut at = 0usize;
+    if window.start > 0 {
+        spans.push(Span::styled(MORE_LEFT, muted));
+        hits.push(
+            Rect::new(x0, area.y, cells(MORE_LEFT) as u16, 1),
+            Action::SelectSource(active.saturating_sub(1)),
+        );
+        at += cells(MORE_LEFT);
+    }
+    for n in window.clone() {
+        if n > window.start {
+            spans.push(Span::raw(" "));
+            at += 1;
+        }
+        hits.push(
+            Rect::new(x0 + at as u16, area.y, widths[n] as u16, 1),
+            Action::SelectSource(n),
+        );
+        spans.extend(tabs[n].clone());
+        at += widths[n];
+    }
+    if window.end < total {
+        spans.push(Span::styled(MORE_RIGHT, muted));
+        hits.push(
+            Rect::new(x0 + at as u16, area.y, cells(MORE_RIGHT) as u16, 1),
+            Action::SelectSource((active + 1).min(total - 1)),
+        );
+    }
+    frame.render_widget(
+        Paragraph::new(Line::from(spans)),
+        Rect::new(x0, area.y, width as u16, 1),
     );
 }
 
@@ -460,16 +535,17 @@ fn row_lines(
                 )],
                 width,
             );
-            let forge_role = match change.id.kind {
-                rb_core::ForgeKind::GitHub => Role::Github,
-                rb_core::ForgeKind::GitLab => Role::Gitlab,
-            };
+            let forge_style = style::tag_fg(
+                palette,
+                app.state.source(&change.id.source_id),
+                change.id.kind,
+            );
             let used =
                 2 + cells(parts.forge) + 1 + cells(&parts.reference) + 3 + cells(&parts.author) + 3;
             let status = truncate(parts.status, width.saturating_sub(used));
             let second = Line::from(vec![
                 lead(selected),
-                Span::styled(parts.forge, style::fg(palette, forge_role)),
+                Span::styled(parts.forge, forge_style),
                 Span::raw(" "),
                 Span::styled(parts.reference, style::fg(palette, Role::Cyan)),
                 Span::styled(" · ", style::fg(palette, Role::Muted)),
@@ -479,5 +555,39 @@ fn row_lines(
             ]);
             vec![first, second]
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_window;
+
+    #[test]
+    fn everything_fits_when_there_is_room() {
+        assert_eq!(strip_window(&[10, 10, 10], 1, 40, 0), 0..3);
+        assert_eq!(strip_window(&[], 1, 40, 0), 0..0);
+    }
+
+    #[test]
+    fn the_active_tab_is_always_inside_the_window() {
+        let widths = [12; 8];
+        for active in 0..8 {
+            for width in [14, 30, 45, 70, 120] {
+                let w = strip_window(&widths, 1, width, active);
+                assert!(w.contains(&active), "active {active} width {width}: {w:?}");
+                let used: usize = widths[w.clone()].iter().sum::<usize>() + w.len() - 1;
+                let marks = usize::from(w.start > 0) * 2 + usize::from(w.end < 8) * 2;
+                assert!(used + marks <= width.max(16), "{w:?} {width}");
+            }
+        }
+    }
+
+    #[test]
+    fn scrolling_keeps_neighbours_in_view_and_marks_hidden_tabs() {
+        let widths = [12; 6];
+        assert_eq!(strip_window(&widths, 1, 40, 0), 0..3);
+        assert_eq!(strip_window(&widths, 1, 40, 5), 3..6);
+        let mid = strip_window(&widths, 1, 40, 3);
+        assert!(mid.start > 0 && mid.end < 6);
     }
 }

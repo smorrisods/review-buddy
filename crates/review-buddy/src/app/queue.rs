@@ -98,6 +98,11 @@ impl Queue {
                 own_failure(b)
                     .cmp(&own_failure(a))
                     .then(b.updated_at.cmp(&a.updated_at))
+                    .then_with(|| {
+                        source_order(state, &a.id.source_id)
+                            .cmp(&source_order(state, &b.id.source_id))
+                    })
+                    .then_with(|| (&a.id.repo, a.id.number).cmp(&(&b.id.repo, b.id.number)))
             });
         }
         let [wait, look, later, noise] = buckets;
@@ -224,6 +229,15 @@ fn in_scope(state: &AppState, change: &ChangeSummary, source: Option<&SourceId>)
             .find(|s| s.id == change.id.source_id)
             .is_none_or(|s| s.in_all),
     }
+}
+
+/// Where a source sits in config order; unknown sources go last.
+fn source_order(state: &AppState, id: &SourceId) -> usize {
+    state
+        .sources
+        .iter()
+        .position(|s| &s.id == id)
+        .unwrap_or(usize::MAX)
 }
 
 fn own_failure(change: &ChangeSummary) -> bool {
@@ -490,6 +504,98 @@ pub(crate) mod tests {
         assert_eq!(Queue::build(&s, None, false).items().len(), 1);
         let only = Queue::build(&s, Some(&SourceId::new("s2")), false);
         assert_eq!(only.items(), vec![Item::Change(1)]);
+        assert_eq!(count_in(&s, None), 1);
+        assert_eq!(count_in(&s, Some(&SourceId::new("s2"))), 1);
+    }
+
+    fn on(source: &str, repo: &str, n: u64, updated: i64) -> ChangeSummary {
+        let mut c = change(n, MyRole::Reviewing, updated);
+        c.id.source_id = SourceId::new(source);
+        c.id.repo = repo.into();
+        c
+    }
+
+    fn order(s: &AppState, source: Option<&str>) -> Vec<(String, u64)> {
+        let id = source.map(SourceId::new);
+        let q = Queue::build(s, id.as_ref(), false);
+        q.items()
+            .into_iter()
+            .filter_map(|i| match i {
+                Item::Change(n) => Some((
+                    s.changes[n].id.source_id.as_str().to_string(),
+                    s.changes[n].id.number,
+                )),
+                Item::Noise => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn mixed_queue_orders_by_bucket_then_recency_then_source_then_id() {
+        let mut gl = on("s2", "g/p", 7, 500);
+        gl.id.kind = rb_core::ForgeKind::GitLab;
+        let mut later = on("s1", "a/b", 99, 900);
+        later.my_role = MyRole::Authored;
+        let mut s = state(vec![
+            on("s2", "z/z", 3, 100),
+            on("s1", "b/b", 2, 100),
+            gl,
+            on("s1", "a/b", 5, 100),
+            on("s1", "a/b", 1, 100),
+            later,
+        ]);
+        s.sources = vec![source("s1", true), source("s2", true)];
+        let want = |v: &[(&str, u64)]| -> Vec<(String, u64)> {
+            v.iter().map(|(a, b)| (a.to_string(), *b)).collect()
+        };
+        assert_eq!(
+            order(&s, None),
+            want(&[
+                ("s2", 7),
+                ("s1", 1),
+                ("s1", 5),
+                ("s1", 2),
+                ("s2", 3),
+                ("s1", 99)
+            ])
+        );
+        // Config order decides ties between sources, not the order changes arrived in.
+        s.sources.reverse();
+        assert_eq!(
+            order(&s, None),
+            want(&[
+                ("s2", 7),
+                ("s2", 3),
+                ("s1", 1),
+                ("s1", 5),
+                ("s1", 2),
+                ("s1", 99)
+            ])
+        );
+    }
+
+    #[test]
+    fn ordering_does_not_depend_on_arrival_order() {
+        let mut s = state(vec![]);
+        s.sources = vec![source("s1", true), source("s2", true)];
+        let items = vec![
+            on("s2", "x/y", 4, 50),
+            on("s1", "x/y", 4, 50),
+            on("s1", "x/y", 2, 50),
+            on("s2", "x/y", 1, 80),
+        ];
+        s.changes = items.clone();
+        let forward = order(&s, None);
+        s.changes = items.into_iter().rev().collect();
+        assert_eq!(order(&s, None), forward);
+    }
+
+    #[test]
+    fn a_source_with_in_all_false_is_selectable_but_not_in_all() {
+        let mut s = state(vec![on("s1", "a/b", 1, 1), on("s2", "a/b", 2, 1)]);
+        s.sources = vec![source("s1", true), source("s2", false)];
+        assert_eq!(order(&s, None), [("s1".to_string(), 1)]);
+        assert_eq!(order(&s, Some("s2")), [("s2".to_string(), 2)]);
         assert_eq!(count_in(&s, None), 1);
         assert_eq!(count_in(&s, Some(&SourceId::new("s2"))), 1);
     }

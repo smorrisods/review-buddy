@@ -16,7 +16,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `h` `l` | Previous / next pane |
 | `← →` | Previous / next detail tab when the detail pane is focused, otherwise previous / next pane |
 | `[` `]` | Previous / next detail tab (Overview, Files, Checks, Conversation) |
-| `1`–`9` | Switch source (`1` is All) |
+| `1`–`9` | Switch source (`1` is All, then sources in config order) |
 | `⏎` / `d` | Open the diff for the selected change |
 | `⏎` on the Noise row | Expand or collapse the bot updates |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
@@ -89,7 +89,7 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 |---|---|
 | Top bar theme name | Cycles the theme (`T`) |
 | Footer hints | Run the hint's action |
-| Sources rows, or the source tabs when Sources is collapsed | Show that source |
+| Sources rows, or the source tabs when Sources is collapsed | Show that source. When the tabs overflow they scroll to keep the active one in view, and `‹` / `›` step to the previous or next source |
 | Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff |
 | Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
 | Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; Approve and Comment open the diff and start there; Request changes and Merge explain they are planned for v0.3 |

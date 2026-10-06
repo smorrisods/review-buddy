@@ -96,6 +96,13 @@ fn first_problem(sources: &[SourceConfig]) -> Option<Problem> {
                 ),
             );
         }
+        if let Some(Err(e)) = s
+            .tag_colour
+            .as_deref()
+            .map(str::parse::<rb_theme::TagColour>)
+        {
+            return fail(Some("tag_colour"), &format!("{e}."));
+        }
         if let Some(url) = &s.api_url {
             if !(url.starts_with("https://") || url.starts_with("http://")) {
                 return fail(Some("api_url"), "`api_url` should start with https://.");
@@ -249,6 +256,21 @@ mod tests {
         let e = load(&format!("{GH}scope = {{ groups = [\"g\"] }}\n")).unwrap_err();
         assert_eq!(e.line(), Some(5));
         assert!(e.to_string().contains("orgs, repos or user"));
+    }
+
+    #[test]
+    fn tag_colour_accepts_roles_and_hex_and_rejects_the_rest() {
+        for ok in ["gitlab", "accent", "cyan", "interactive", "#3fb950"] {
+            assert!(
+                load(&format!("{GH}tag_colour = \"{ok}\"\n")).is_ok(),
+                "{ok}"
+            );
+        }
+        let e = load(&format!("{GH}tag_colour = \"teal\"\n")).unwrap_err();
+        assert_eq!(e.line(), Some(5));
+        let text = e.to_string();
+        assert!(text.contains("[[source]] #1") && text.contains("isn't a tag colour"));
+        assert!(load(&format!("{GH}tag_colour = \"#12\"\n")).is_err());
     }
 
     #[test]

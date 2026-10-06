@@ -189,9 +189,9 @@ Repeat one table per source. Order sets the `2`–`9` keys (`1` is always All). 
 | `auth` | no | `cli` (gh / glab), `token` (keyring), `env:VAR_NAME`, or `command` (runs `token_command`). Default `cli` if the CLI is signed in, else `token` |
 | `token_command` | no | Used when `auth = "command"`, e.g. `"pass show gitlab/work"` or `"secret-tool lookup service gitlab host work"`. Stdout (trimmed) is the token. Run at start and on 401. For SSH or headless Linux without Secret Service |
 | `scope` | no | GitHub: `orgs = [..]`, `repos = [..]`, `user = true`. GitLab: `groups = [..]`, `projects = [..]`. Omit for everything you can see |
-| `in_all` | no | Default `true` |
+| `in_all` | no | Default `true`. Set `false` to leave the source out of the All view; it stays selectable on its own (`1`–`9`, or its row or tab) and is marked "not in All" |
 | `include_drafts` | no | Default `false` |
-| `tag_colour` | no | Theme role (`github`, `gitlab`, `accent`, `interactive`, `cyan`, …) or a hex |
+| `tag_colour` | no | Colours the source's dot and its `GH`/`GL` tag. A theme role (`github`, `gitlab`, `accent`, `interactive`, `cyan`, `success`, …) or a `#rrggbb` hex. Background roles aren't allowed, and a bad value is a config error naming the source. Follows the terminal's colour depth, and `NO_COLOR` drops it (the tag text stays) |
 | `enabled` | no | Default `true` |
 
 ## `[keys]`

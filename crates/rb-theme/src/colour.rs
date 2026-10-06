@@ -236,6 +236,94 @@ impl FromStr for ColourSpec {
     }
 }
 
+/// A source's `tag_colour`: a theme role by name, or a fixed `#rrggbb` colour.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TagColour {
+    Role(crate::Role),
+    Fixed(Rgb),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TagColourError(pub String);
+
+impl fmt::Display for TagColourError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "`{}` isn't a tag colour; use a theme role such as github, gitlab, accent, cyan or interactive, or a hex colour like #3fb950",
+            self.0
+        )
+    }
+}
+
+impl std::error::Error for TagColourError {}
+
+impl FromStr for TagColour {
+    type Err = TagColourError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let t = s.trim();
+        let err = || TagColourError(s.to_string());
+        if let Some(hex) = t.strip_prefix('#') {
+            if !hex.is_ascii() || hex.len() != 6 {
+                return Err(err());
+            }
+            let byte = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| err());
+            return Ok(TagColour::Fixed(Rgb::new(byte(0)?, byte(2)?, byte(4)?)));
+        }
+        let key = t.to_ascii_lowercase().replace('-', "_");
+        use crate::Role;
+        match Role::from_key(&key) {
+            Some(
+                Role::Background
+                | Role::Raised
+                | Role::Selection
+                | Role::Line
+                | Role::AddedBg
+                | Role::RemovedBg,
+            )
+            | None => Err(err()),
+            Some(role) => Ok(TagColour::Role(role)),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tag_colour_tests {
+    use super::*;
+    use crate::Role;
+
+    #[test]
+    fn parses_roles_and_hex() {
+        assert_eq!("github".parse(), Ok(TagColour::Role(Role::Github)));
+        assert_eq!(
+            " Text-Bright ".parse(),
+            Ok(TagColour::Role(Role::TextBright))
+        );
+        assert_eq!(
+            "#3fb950".parse(),
+            Ok(TagColour::Fixed(Rgb::new(0x3f, 0xb9, 0x50)))
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_background_and_malformed_values() {
+        for bad in [
+            "",
+            "teal",
+            "selection",
+            "#12345",
+            "#gggggg",
+            "#3fb950ff",
+            "é",
+        ] {
+            assert!(bad.parse::<TagColour>().is_err(), "{bad}");
+        }
+        let msg = "teal".parse::<TagColour>().unwrap_err().to_string();
+        assert!(msg.contains("github") && msg.contains("hex"));
+    }
+}
+
 /// WCAG relative luminance of an sRGB colour.
 pub fn relative_luminance(c: Rgb) -> f64 {
     let lin = |v: u8| {

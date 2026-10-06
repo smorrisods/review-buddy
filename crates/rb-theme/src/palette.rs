@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::colour::{AnsiColour, Colour, Rgb};
+use crate::colour::{AnsiColour, Colour, Rgb, TagColour};
 use crate::theme::{Role, SyntaxRole, Theme};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -182,6 +182,23 @@ impl Palette {
         Style {
             fg: self.colour(role),
             ..Style::default()
+        }
+    }
+
+    /// A style for a source's tag colour: a role resolves as [`Palette::fg`] does, and a
+    /// fixed colour is quantised to this depth. `NO_COLOR` leaves it unpainted.
+    pub fn tag_fg(&self, tag: &TagColour) -> Style {
+        match tag {
+            TagColour::Role(role) => self.fg(*role),
+            TagColour::Fixed(_) if self.no_color => Style::default(),
+            TagColour::Fixed(rgb) => Style {
+                fg: Some(match self.depth {
+                    ColourDepth::TrueColour => Colour::Rgb(*rgb),
+                    ColourDepth::Ansi256 => Colour::Indexed(quantise_256(*rgb)),
+                    ColourDepth::Ansi16 => Colour::Ansi(nearest_ansi(Colour::Rgb(*rgb))),
+                }),
+                ..Style::default()
+            },
         }
     }
 
@@ -372,6 +389,26 @@ mod tests {
             ));
         }
         assert!(p.wordmark().iter().all(|c| matches!(c, Colour::Ansi(_))));
+    }
+
+    #[test]
+    fn tag_colours_follow_depth_and_no_color() {
+        let fixed = TagColour::Fixed(Rgb::new(250, 10, 10));
+        let role = TagColour::Role(Role::Github);
+        let p = palette("dusk", ColourDepth::TrueColour, false);
+        assert_eq!(p.tag_fg(&fixed).fg, Some(Colour::rgb(250, 10, 10)));
+        assert_eq!(p.tag_fg(&role), p.fg(Role::Github));
+        let p = palette("dusk", ColourDepth::Ansi256, false);
+        assert_eq!(p.tag_fg(&fixed).fg, Some(Colour::Indexed(196)));
+        let p = palette("dusk", ColourDepth::Ansi16, false);
+        assert_eq!(
+            p.tag_fg(&fixed).fg,
+            Some(Colour::Ansi(AnsiColour::BrightRed))
+        );
+        assert_eq!(p.tag_fg(&role).fg, Some(Colour::Ansi(AnsiColour::Blue)));
+        let p = palette("dusk", ColourDepth::TrueColour, true);
+        assert_eq!(p.tag_fg(&fixed), Style::default());
+        assert_eq!(p.tag_fg(&role).fg, None);
     }
 
     #[test]
