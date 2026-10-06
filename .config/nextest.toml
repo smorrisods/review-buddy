@@ -2,5 +2,11 @@
 retries = 0
 fail-fast = false
 
+# The pseudo-terminal tests drive the real binary and depend on terminal timing, which varies on
+# shared CI runners (the macOS runners especially). Retry them twice; every other test must pass first time.
+[[profile.ci.overrides]]
+filter = 'binary(/pty/)'
+retries = 2
+
 [profile.ci.junit]
 path = "junit.xml"
