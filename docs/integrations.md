@@ -4,7 +4,7 @@ Both forges sit behind one `Provider` trait (see `architecture.md`). This page l
 
 ## Status (v0.1.0)
 
-`rb-github` implements listing, change detail, files, threads, checks and review writes (comment-only, approve, and replies), behind the `Provider` trait. Merge and re-run failed jobs report `Unsupported` until v0.3, and checkout isn't built yet. `rb-gitlab` so far implements sign-in only (token resolution, `whoami`, token test, rate-limit tracking); listing, diffs, threads and review writes are the **v0.2 plan**, so a GitLab source signs in and shows its token details in `auth status` and `doctor`, but loads no merge requests yet. Request changes, suggestions (`⌃S`), range comments, viewed-file marks and the `GitLab` columns throughout describe later milestones. Token expiry warnings in the footer and Settings → Sources, and Enterprise API-version checks beyond `doctor`, are planned too.
+`rb-github` implements listing, change detail, files, threads, checks and review writes (comment-only, approve, and replies), behind the `Provider` trait. Merge and re-run failed jobs report `Unsupported` until v0.3, and checkout isn't built yet. `rb-gitlab` implements sign-in, listing, change detail, files, threads, pipeline jobs and review writes (comment, approve, reply, resolve) behind the same trait. GitLab merge and re-run report `Unsupported` until v0.3, and request changes stays off until the instance probe lands. Request changes, suggestions (`⌃S`), range comments, viewed-file marks and the `GitLab` columns throughout describe later milestones. Token expiry warnings in the footer and Settings → Sources, and Enterprise API-version checks beyond `doctor`, are planned too.
 
 ## Authentication
 
@@ -59,11 +59,13 @@ GitLab does send ETags, but because a refresh merges several queries the page's 
 | | GitHub | GitLab |
 |---|---|---|
 | File list + patches | `GET /repos/:o/:r/pulls/:n/files?per_page=100` (paginated; `patch` per file) | `GET /projects/:id/merge_requests/:iid/diffs?per_page=50` (paginated). Fall back to `/changes` on older instances |
-| Very large / truncated | `GET …/pulls/:n` with `Accept: application/vnd.github.diff`, or show "open in browser" | `diff.too_large` / `collapsed` → load the raw blob pair from `/repository/files/:path/raw?ref=` |
+| Very large / truncated | `GET …/pulls/:n` with `Accept: application/vnd.github.diff`, or show "open in browser" | `too_large` / `collapsed` / `generated_file` → no patch, show "open in browser" |
 | SHAs needed for comments | `head.sha` | `diff_refs { base_sha, start_sha, head_sha }` |
 | Viewed state | GraphQL `markFileAsViewed` / `unmarkFileAsViewed` | local only |
 
 Patches are parsed into hunks locally (unified format); side by side is built from the same hunks.
+
+On GitLab, `diff` carries hunks only (no `---`/`+++` header), the same shape GitHub's `patch` has. Files are read 50 per page, up to GitLab's 1,000-file cap; `/changes` is used instead when `/diffs` answers 404. A file that is binary, `too_large`, `collapsed` or a `generated_file` comes back with no patch and shows the "open in browser" stub, like GitHub's, rather than loading the raw blob pair.
 
 On GitHub, a file whose `patch` is absent (binary or too large) comes back with no patch, and the diff view shows a stub with "open in browser" rather than fetching the whole `.diff`. Pagination stops with an error past 3,000 files, and a next-page link to another host is never followed.
 
@@ -77,6 +79,12 @@ On GitHub, a file whose `patch` is absent (binary or too large) comes back with 
 | Range comment | add `start_line`, `start_side` | `position.line_range { start { line_code, type }, end { … } }` |
 | Reply | GraphQL `addPullRequestReviewThreadReply` on the thread's node id | `POST …/discussions/:id/notes` |
 | Resolve | GraphQL `resolveReviewThread` / `unresolveReviewThread` | `PUT …/discussions/:id?resolved=true` |
+
+### Threads and drafts on GitLab
+
+- **Threads:** each discussion is a thread with its id encoded as `<project path>!<iid>!<discussion id>`, so reply and resolve need nothing else. System notes are dropped, notes without a position are unanchored conversation threads, `position.line_range` gives a range (the end is `line`, the start is `start_line`/`start_side`), and a thread is resolved when all its resolvable notes are. GitLab has no outdated flag, so `outdated` stays false.
+- **Pending review:** `GET …/draft_notes` returns only your drafts. A draft with a `discussion_id` joins that thread as a pending reply; any other is a pending thread, with the draft id as `draft:<id>`. Replying to or resolving a draft's thread says to submit the review first. Instances before GitLab 15.9 have no draft notes endpoint, and threads load without them.
+- **Positions:** `base_sha`, `start_sha` and `head_sha` come from the merge request's `diff_refs`. The file's old path comes from the diff list, so renamed files anchor correctly. A comment on an unchanged line sends both `old_line` and `new_line`, an added line only `new_line`, and a removed line only `old_line`. A range adds `line_range` with a `line_code` (`<sha1 of the path>_<old>_<new>`), `type` and line numbers for each end.
 
 ## Suggestions
 
@@ -94,6 +102,15 @@ Planned for v0.3: `⌃S` builds the block from the selected lines, leaving delet
 | Approve | GraphQL `submitPullRequestReview` `event: APPROVE` (submits the pending review with its comments) | `POST …/draft_notes/bulk_publish`, then `POST …/merge_requests/:iid/approve` (with `sha` = the head SHA, so stale approvals fail cleanly) |
 | Request changes | `event: REQUEST_CHANGES`, `body` required | `bulk_publish`, then the reviewer state set to `requested_changes`. **Capability probed on connect** (instance version from `GET /version`, plus a dry check of the reviewers endpoint). Where it's unsupported, `Capabilities.request_changes = false`: `x` is hidden from chips and the palette, and pressing it explains why and suggests `c` |
 | Comment only | `event: COMMENT` | `bulk_publish` |
+
+### Review writes on GitLab
+
+- **Flow:** read your threads (which include drafts), create a draft note for each comment that isn't there already, publish with `POST …/draft_notes/bulk_publish`, then for an approval `POST …/approve` with `sha` set to the head SHA. A review summary has no GitLab equivalent, so it becomes one more draft note without a position. Comments already published by you with the same text on the same line are skipped too, so retrying after a failed approval never posts them twice. If you've already approved, the approval step is skipped.
+- **Preview:** `rb_gitlab::plan_review(&ReviewDraft, Verdict)` is pure and mirrors GitHub's, with the same validation and summary text ("Approve with 2 comments").
+- **Request changes:** returns `Unsupported` with `Capabilities.request_changes = false`; the instance probe (#93) can turn it on. Viewed-file marks are off; range comments, resolving threads and replies are on.
+- **Failures:** if creating or publishing drafts fails, they stay pending on GitLab, nothing is deleted, and the error says how many comments were added. If the approval fails after publishing, the error says the comments are already posted. A 401 on `approve` means this account can't approve here, not a bad token.
+- **Errors:** 401 asks you to sign in again. 403 explains the token can read but not review and asks for the `api` scope. 404 says the merge request or project is gone or not visible. 400 or 422 about a line or position asks you to refresh the diff, other 422s show GitLab's reason. 409 (the head SHA moved) says there are new commits. 429 keeps its `Retry-After`.
+- **Live smoke test:** `crates/rb-gitlab/tests/writes.rs` has an `#[ignore]`d `live_smoke` test that posts a comment-only review. It only runs when `REVIEW_BUDDY_LIVE_WRITE_GITLAB_PROJECT` names a throwaway project you created for this: `REVIEW_BUDDY_LIVE_WRITE_GITLAB_PROJECT=you/throwaway REVIEW_BUDDY_LIVE_WRITE_GITLAB_MR=1 GITLAB_TOKEN=… cargo test -p rb-gitlab --test writes -- --ignored live_smoke` (set `REVIEW_BUDDY_LIVE_WRITE_GITLAB_HOST` for self-hosted). Never point it at a real project.
 
 ### Review writes on GitHub
 
@@ -117,7 +134,7 @@ The confirm modal shows the blocking reason when `mergeStateStatus` / `detailed_
 
 | | GitHub | GitLab |
 |---|---|---|
-| Read | `GET /repos/:o/:r/commits/:sha/check-runs` + `/status` (legacy statuses), merged by name with the check run winning. Neutral, skipped and cancelled keep their own `CiState` and show calmly with distinct glyphs; `started_at`/`completed_at` give each run's duration; the branch-protection "required" flag isn't read, so `required` stays unknown | `GET /projects/:id/pipelines/:pid/jobs` |
+| Read | `GET /repos/:o/:r/commits/:sha/check-runs` + `/status` (legacy statuses), merged by name with the check run winning. Neutral, skipped and cancelled keep their own `CiState` and show calmly with distinct glyphs; `started_at`/`completed_at` give each run's duration; the branch-protection "required" flag isn't read, so `required` stays unknown | `GET /projects/:id/pipelines/:pid/jobs` (and `/bridges`) for the merge request's head pipeline. Each job is named `stage / name`; `success` is pass, `running`, `pending` and `created` are running, `failed` is fail (neutral when `allow_failure`), `canceled` is cancelled, `skipped` and `manual` are skipped. `allow_failure` gives `required: false`, and `started_at`/`finished_at` give the duration. A downstream pipeline's own jobs aren't expanded |
 | Re-run failed | `POST /repos/:o/:r/actions/runs/:run_id/rerun-failed-jobs` per failed workflow run | `POST /projects/:id/pipelines/:pid/retry` |
 | Logs | `details_url` in the browser (`o`) | `web_url` of the job |
 
