@@ -104,6 +104,27 @@ pub struct RunOptions {
     pub open: Option<rb_core::ChangeId>,
     #[cfg(feature = "live")]
     pub live: Option<std::sync::Arc<crate::providers::Live>>,
+    /// Open first run on this flow, with what its effects need.
+    pub setup: Option<(crate::setup::Flow, std::sync::Arc<crate::setup::Services>)>,
+    /// Rebuilds the settings and live backend from the config first run just wrote.
+    #[cfg(feature = "live")]
+    pub reload: Option<Reload>,
+}
+
+/// Rebuilds the settings and live backend from the config on disk.
+#[cfg(feature = "live")]
+#[derive(Clone)]
+pub struct Reload(
+    pub  std::sync::Arc<
+        dyn Fn() -> Result<(Settings, std::sync::Arc<crate::providers::Live>)> + Send + Sync,
+    >,
+);
+
+#[cfg(feature = "live")]
+impl std::fmt::Debug for Reload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Reload")
+    }
 }
 
 impl Backend {
@@ -272,6 +293,17 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
             #[cfg(feature = "live")]
             Backend::Live(live) => live.reply(id, thread, body, tx),
         },
+        Cmd::Setup(effect) => {
+            let Some(services) = platform.setup().cloned() else {
+                return;
+            };
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                let input = crate::setup::run_effect(&services, effect).await;
+                let _ = tx.send(Msg::Setup(input));
+            });
+        }
+        Cmd::FinishSetup => {}
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
             tokio::spawn(async move {
@@ -291,8 +323,12 @@ pub fn run(options: RunOptions) -> Result<()> {
 }
 
 async fn event_loop(options: RunOptions) -> Result<()> {
-    let backend = options.backend();
-    let platform = Platform::system();
+    #[cfg_attr(not(feature = "live"), allow(unused_mut))]
+    let mut backend = options.backend();
+    let mut platform = Platform::system();
+    if let Some((_, services)) = &options.setup {
+        platform = platform.with_setup(std::sync::Arc::clone(services));
+    }
     let open = options.open.clone();
     let mut guard = TerminalGuard::enter(!options.no_mouse)?;
     let size = guard.terminal.size()?;
@@ -310,6 +346,12 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     let mut ticker = interval(TICK);
     ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
     let mut last_draw = Instant::now() - MIN_FRAME;
+
+    if let Some((flow, _)) = options.setup.clone() {
+        for cmd in crate::app::setup::start(&mut app, flow) {
+            execute(cmd, &tx, &backend, &platform);
+        }
+    }
 
     #[cfg(feature = "live")]
     if let Backend::Live(live) = &backend {
@@ -371,11 +413,53 @@ async fn event_loop(options: RunOptions) -> Result<()> {
         };
         if let Some(msg) = msg {
             for cmd in update(&mut app, msg) {
-                execute(cmd, &tx, &backend, &platform);
+                if matches!(cmd, Cmd::FinishSetup) {
+                    #[cfg(feature = "live")]
+                    finish_setup(&options, &mut app, &mut backend, &tx, &platform);
+                    #[cfg(not(feature = "live"))]
+                    drop(cmd);
+                } else {
+                    execute(cmd, &tx, &backend, &platform);
+                }
             }
         }
     }
     Ok(())
+}
+
+/// First run wrote a config: build the sources from it and load the queue behind the dashboard.
+#[cfg(feature = "live")]
+fn finish_setup(
+    options: &RunOptions,
+    app: &mut App,
+    backend: &mut Backend,
+    tx: &UnboundedSender<Msg>,
+    platform: &Platform,
+) {
+    let built = match &options.reload {
+        Some(reload) => (reload.0)(),
+        None => Err(anyhow::anyhow!("nothing to reload")),
+    };
+    let notice = match built {
+        Ok((settings, live)) => {
+            settings.apply(app);
+            app.refresh_on_focus = live.refresh_on_focus;
+            app.state.loading = true;
+            let snapshot = live.cached_snapshot();
+            *backend = Backend::Live(live);
+            for cmd in update(app, Msg::Cached(Box::new(snapshot))) {
+                execute(cmd, tx, backend, platform);
+            }
+            return;
+        }
+        Err(err) => Notice::new(
+            NoticeKind::Warning,
+            format!("Saved your config, but couldn't load the queue: {err}. Restart review-buddy to try again."),
+        ),
+    };
+    for cmd in update(app, Msg::Notify(notice)) {
+        execute(cmd, tx, backend, platform);
+    }
 }
 
 #[cfg(test)]

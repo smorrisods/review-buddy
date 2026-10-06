@@ -28,9 +28,13 @@ pub struct Cli {
     #[arg(long, value_name = "COLSxROWS", requires = "demo")]
     pub size: Option<String>,
 
-    /// Re-run first run
+    /// Connect your accounts and write a config (run again any time)
     #[arg(long)]
     pub setup: bool,
+
+    /// Run --setup as plain prompts instead of the full-screen interface
+    #[arg(long, alias = "no-tui", requires = "setup")]
+    pub plain: bool,
 
     #[command(subcommand)]
     pub command: Option<Command>,

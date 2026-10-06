@@ -12,7 +12,7 @@ This page is the design for the whole command line. What runs in 0.1 is the **re
 |---|---|
 | `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `config get|list`, `auth login|logout|token`, `source test|add` (v0.2); `pr review|comment|merge|checkout|rerun` (v0.3); `triage explain` and `theme check|export` (declared for v0.1 in the code, but not built yet); `api` (later) |
 
-Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. Only GitHub sources load against a live forge (the demo fixtures include GitLab, so `--demo` shows what GitLab output will look like), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood`, `--size` and `--setup` are accepted, and have no effect yet.
+Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. Only GitHub sources load against a live forge (the demo fixtures include GitLab, so `--demo` shows what GitLab output will look like), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
 
 ## Principles
 

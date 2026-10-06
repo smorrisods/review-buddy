@@ -55,6 +55,11 @@ struct UserBody {
 }
 
 #[derive(Deserialize)]
+struct OrgBody {
+    login: String,
+}
+
+#[derive(Deserialize)]
 struct RateBody {
     resources: Resources,
 }
@@ -192,6 +197,18 @@ impl GithubClient {
             sso_hint,
             expires,
         })
+    }
+
+    /// The organisations the signed-in account belongs to (`/user/orgs`), by login. At most
+    /// five pages of 100; more than that is far beyond what a source picker can show.
+    pub async fn list_orgs(&self) -> Result<Vec<String>> {
+        let (pages, _) = self.get_pages("/user/orgs?per_page=100", 5).await?;
+        let mut logins = Vec::new();
+        for raw in pages {
+            let orgs: Vec<OrgBody> = self.parse(&raw.body)?;
+            logins.extend(orgs.into_iter().map(|o| o.login));
+        }
+        Ok(logins)
     }
 
     pub(crate) async fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<(T, Raw)> {

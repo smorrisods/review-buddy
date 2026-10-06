@@ -38,6 +38,17 @@ impl ConfigEditor {
         })
     }
 
+    /// Starts from `text` as if it had been read from `path`. Nothing is written until `save`.
+    pub fn from_text(path: &Path, text: &str) -> Result<Self, ConfigError> {
+        let doc = text
+            .parse::<DocumentMut>()
+            .map_err(|e| ConfigError::invalid(path, text, e.span(), e.message()))?;
+        Ok(Self {
+            path: path.to_path_buf(),
+            doc,
+        })
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }

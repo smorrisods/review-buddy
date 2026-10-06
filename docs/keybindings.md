@@ -125,7 +125,7 @@ These are in the spec and not built in 0.1. Pressing them does nothing, or says 
 | `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed |
 | `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
 | `x` in the diff | v0.3 | Request changes, with a required summary |
-| First run (`--setup`) | v0.2 | Source detection and the theme picker |
+| First run (`--setup`) | Shipped in v0.2 | `⏎` continue, `space` pick, `←→` theme, `J` Jax, `esc` skip, `⌫` back |
 
 The merge confirm modal (`← →` / `tab` switch between **No, not yet** and **Merge**, `⏎` confirms, `esc` cancels) arrives with merge.
 

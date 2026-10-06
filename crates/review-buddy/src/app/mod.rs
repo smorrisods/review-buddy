@@ -23,6 +23,7 @@ mod live;
 mod mouse;
 pub mod queue;
 pub mod range;
+pub mod setup;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
@@ -44,6 +45,8 @@ pub enum Screen {
     #[default]
     Dashboard,
     Diff,
+    /// First run: connecting accounts. See `crate::setup`.
+    FirstRun,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,6 +114,8 @@ pub enum Action {
     },
     /// Press the preview's Cancel (`false`) or confirm (`true`) button.
     Answer(bool),
+    /// A press on part of the first-run screen.
+    Setup(crate::setup::Click),
 }
 
 /// Input, timers, and results of effects.
@@ -156,6 +161,8 @@ pub enum Msg {
         result: Result<(), String>,
         demo: bool,
     },
+    /// The result of a first-run [`Cmd::Setup`] effect.
+    Setup(crate::setup::Input),
     /// The answer to a [`Cmd::Reply`].
     ReplyPosted {
         id: ChangeId,
@@ -188,6 +195,10 @@ pub enum Cmd {
         thread: ThreadId,
         body: String,
     },
+    /// Run one first-run effect (detection, a token check, the config write).
+    Setup(crate::setup::Effect),
+    /// The config was written: rebuild the sources from it and load the queue.
+    FinishSetup,
     /// Open a web address in the browser.
     OpenUrl(String),
     /// Put text on the clipboard.
@@ -279,6 +290,8 @@ pub struct App {
     pub state: AppState,
     pub dashboard: Dashboard,
     pub diff: Option<DiffState>,
+    /// The first-run flow, while it is on screen.
+    pub setup: Option<crate::setup::Flow>,
     /// The help overlay is showing.
     pub help: bool,
     /// Rows the help overlay is scrolled by.
@@ -318,6 +331,7 @@ impl App {
             state: AppState::default(),
             dashboard: Dashboard::default(),
             diff: None,
+            setup: None,
             help: false,
             help_scroll: 0,
             last_click: None,
@@ -365,6 +379,15 @@ impl App {
                     .as_ref()
                     .is_some_and(composer::Composer::is_dirty)
         })
+    }
+
+    /// Switches to a built-in theme by id; unknown ids are ignored.
+    pub fn set_theme(&mut self, id: &str) {
+        if let Some(i) = BUILTIN_IDS.iter().position(|b| *b == id) {
+            self.theme_index = i;
+            self.palette = Palette::new(builtin(i), self.palette.depth(), self.palette.no_color());
+            self.mark_dirty();
+        }
     }
 
     fn cycle_theme(&mut self) {

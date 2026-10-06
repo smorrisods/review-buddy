@@ -17,6 +17,7 @@ pub struct Platform {
     runner: Arc<dyn CommandRunner + Send + Sync>,
     tty: Arc<Mutex<dyn Write + Send>>,
     ctx: ClipboardContext,
+    setup: Option<Arc<crate::setup::Services>>,
 }
 
 impl Platform {
@@ -25,7 +26,22 @@ impl Platform {
         tty: Arc<Mutex<dyn Write + Send>>,
         ctx: ClipboardContext,
     ) -> Self {
-        Self { runner, tty, ctx }
+        Self {
+            runner,
+            tty,
+            ctx,
+            setup: None,
+        }
+    }
+
+    /// Gives first run what it needs to detect hosts, test tokens and write the config.
+    pub fn with_setup(mut self, services: Arc<crate::setup::Services>) -> Self {
+        self.setup = Some(services);
+        self
+    }
+
+    pub fn setup(&self) -> Option<&Arc<crate::setup::Services>> {
+        self.setup.as_ref()
     }
 
     /// The real runner, the controlling terminal's stdout, and the environment's clipboard setup.

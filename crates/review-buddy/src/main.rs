@@ -12,6 +12,23 @@ fn main() -> ExitCode {
     if cli.command.is_some() {
         return cmd::run(cli);
     }
+    if cli.setup && !cli.global.demo {
+        let terminal = cmd::context::Terminal::detect();
+        if cli.plain || !terminal.stdout_tty || !terminal.stdin_tty {
+            return match cmd::run_setup(&cli, terminal) {
+                Ok(()) if terminal.stdout_tty && terminal.stdin_tty => {
+                    let mut cli = cli;
+                    cli.setup = false;
+                    launch(&cli)
+                }
+                Ok(()) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("{err}");
+                    err.exit().into()
+                }
+            };
+        }
+    }
     launch(&cli)
 }
 
@@ -57,8 +74,31 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
         {
             let ctx =
                 cmd::context::Context::build(cli.global.clone(), cmd::context::Terminal::detect())?;
-            if let Some(problem) = ctx.config_problem() {
+            if let Some(problem) = ctx.config_problem().filter(|_| !cli.setup) {
                 anyhow::bail!("{problem}\nFix the config file, or see review-buddy config paths.");
+            }
+            if cli.setup || review_buddy::setup::needs_first_run(&ctx.paths, &ctx.config) {
+                let services = std::sync::Arc::new(review_buddy::setup::Services::system(
+                    ctx.env.as_ref(),
+                    &ctx.config,
+                ));
+                options.setup = Some((
+                    review_buddy::setup::new_flow(&ctx.paths, &ctx.config),
+                    services,
+                ));
+                let args = cli.global.clone();
+                options.reload = Some(runtime::Reload(std::sync::Arc::new(move || {
+                    let ctx = cmd::context::Context::build(
+                        args.clone(),
+                        cmd::context::Terminal::detect(),
+                    )?;
+                    if let Some(problem) = ctx.config_problem() {
+                        anyhow::bail!("{problem}");
+                    }
+                    let live =
+                        std::sync::Arc::new(review_buddy::providers::Live::from_context(&ctx)?);
+                    Ok((runtime::Settings::from_config(&ctx.config), live))
+                })));
             }
             options.settings = Some(runtime::Settings::from_config(&ctx.config));
             options.no_mouse = !ctx.config.ui.mouse;
