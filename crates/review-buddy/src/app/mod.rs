@@ -26,7 +26,9 @@ pub mod range;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
-pub use diff::{open_change, DiffData, DiffFile, DiffFocus, DiffState, FileView, Phase, Syntax};
+pub use diff::{
+    open_change, DiffData, DiffFile, DiffFocus, DiffState, FileView, Intent, Phase, Syntax,
+};
 pub use failure::{FailureKind, SourceFailure};
 pub use range::RowRange;
 pub use update::update;
@@ -229,6 +231,8 @@ pub struct AppState {
     pub changes: Vec<ChangeSummary>,
     /// The clock the queue's relative ages are measured against.
     pub now: Option<Timestamp>,
+    /// `[triage]` as the queue applies it.
+    pub queue_settings: queue::QueueSettings,
 }
 
 /// What the app needs to know about the terminal it starts in.

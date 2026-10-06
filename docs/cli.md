@@ -38,7 +38,7 @@ review-buddy pr review [<selector>]       approve, request changes or comment
 review-buddy pr comment [<selector>]      a standalone comment (alias of pr review --comment without a verdict)
 review-buddy pr merge [<selector>]        merge, after a preview and confirmation
 review-buddy pr checkout <selector>       fetch and switch to the change's branch
-review-buddy pr open [<selector>]         open in the browser (same as pr view --web)
+review-buddy pr open [<selector>]         open in the browser (same as pr view --web; --json is a usage error)
 review-buddy pr rerun [<selector>]        re-run failed jobs
 
 review-buddy auth status                  who you are on every host, how you're signed in, token scopes
@@ -101,7 +101,7 @@ Every command that acts on one change takes a selector. In order of precedence:
 | Branch | `feat/titleset-menus` | The open change whose head is that branch, in the inferred repo |
 | Nothing | | The open change for the current branch, in the current git repo |
 
-`#` and `!` are interchangeable on input (`spindle!214` works) and native on output (`#214` on GitHub, `!1182` on GitLab). Repo inference reads `git remote` (preferring `upstream`, then `origin`), maps the remote host through `url.*.insteadOf`, and matches it to a source by host. Inference never makes a network call to decide which repo you meant.
+`#` and `!` are interchangeable on input (`spindle!214` works) and native on output (`#214` on GitHub, `!1182` on GitLab). Repo inference reads `git remote` (preferring `upstream`, then `origin`), maps the remote host through `url.*.insteadOf`, and matches it to a source by host. Inference never makes a network call to decide which repo you meant. When several sources cover a repo but are all the same forge on the same host, the first enabled one wins, so `pr view 214 -R liminal-hq/review-buddy` works without `-s`; sources on different forges or hosts stay ambiguous and the error lists them.
 
 When a selector is ambiguous or matches nothing, the error says what was tried: `Couldn't find a change for branch feat/titleset-menus in liminal-hq/spindle. Pass a number or a URL, e.g. review-buddy pr view 214.`
 
@@ -172,7 +172,7 @@ Header (`title`, `author wants head → base`, `+adds −dels · N files · open
 
 ### `pr checks`
 
-Check runs (GitHub) or pipeline jobs (GitLab) with state and duration. `--watch` refreshes on stderr until everything settles (`--interval`, default 10 s); `--fail-fast` exits on the first failure; `--required` limits to required checks where the forge reports them. Exit codes: `0` all passed, `1` some failed, `8` still running.
+Check runs (GitHub) or pipeline jobs (GitLab) with state and duration, plus a URL column when any check has one. `--watch` refreshes on stderr until everything settles (`--interval`, default 10 s); `--fail-fast` exits on the first failure; `--required` limits to required checks where the forge reports them. Exit codes: `0` all passed, `1` some failed, `8` still running.
 
 ### `pr review` and `pr comment`
 

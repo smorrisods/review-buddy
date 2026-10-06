@@ -6,7 +6,7 @@ use rb_core::{ChangeId, ChangeSummary, Source, SourceId};
 
 use super::queue::{item_span, total_height, Item, Queue};
 use super::update::set_status;
-use super::{App, Cmd, Notice, NoticeKind};
+use super::{App, Cmd, Intent, Notice, NoticeKind};
 use crate::ui::{detail, layout};
 
 const WHEEL_LINES: u16 = 3;
@@ -181,6 +181,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
         return None;
     }
     let focus = app.dashboard.focus;
+    let has_change = app.selected_change().is_some();
     let cmds = match key.code {
         KeyCode::Tab => cycle_focus(app, 1),
         KeyCode::BackTab => cycle_focus(app, -1),
@@ -198,6 +199,10 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
         KeyCode::Char('G') | KeyCode::End => jump(app, true),
         KeyCode::Enter => activate(app),
         KeyCode::Char('d') => open_diff(app),
+        KeyCode::Char('a') if has_change => chip_pressed(app, Chip::Approve),
+        KeyCode::Char('c') if has_change => chip_pressed(app, Chip::Comment),
+        KeyCode::Char('x') if has_change => chip_pressed(app, Chip::RequestChanges),
+        KeyCode::Char('m') if has_change => chip_pressed(app, Chip::Merge),
         KeyCode::Char(c @ '1'..='9') => {
             let n = usize::from(c as u8 - b'0') - 1;
             if n <= app.state.sources.len() {
@@ -414,10 +419,16 @@ fn chip_pressed(app: &mut App, chip: Chip) -> Vec<Cmd> {
     if app.selected_change().is_none() {
         return Vec::new();
     }
-    if chip == Chip::Diff {
-        return super::diff::open(app);
-    }
-    let text = format!("{} isn't available yet in this build.", chip.label());
+    let text = match chip {
+        Chip::Diff => return super::diff::open(app),
+        Chip::Approve => return super::diff::open_with_intent(app, Some(Intent::Approve)),
+        Chip::Comment => return super::diff::open_with_intent(app, Some(Intent::Comment)),
+        Chip::RequestChanges => {
+            "Requesting changes isn't available yet. Open the diff with ⏎, then approve with a or comment with c."
+                .to_string()
+        }
+        Chip::Merge => "Merging isn't available yet. It's planned for v0.3.".to_string(),
+    };
     set_status(app, Notice::new(NoticeKind::Info, text))
 }
 
@@ -710,8 +721,55 @@ mod tests {
     fn other_chips_still_explain_themselves() {
         let mut app = loaded(160, sample());
         on_action(&mut app, crate::app::Action::Chip(Chip::Merge));
-        assert!(app.status.as_ref().unwrap().notice.text.contains("Merge"));
+        assert!(app.status.as_ref().unwrap().notice.text.contains("Merging"));
         assert_eq!(app.screen, crate::app::Screen::Dashboard);
+        update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Char('x'))));
+        assert!(app
+            .status
+            .as_ref()
+            .unwrap()
+            .notice
+            .text
+            .contains("Requesting changes"));
+        assert_eq!(app.screen, crate::app::Screen::Dashboard);
+    }
+
+    #[test]
+    fn a_and_c_open_the_diff_with_an_intent() {
+        for (key, chip, intent) in [
+            ('a', Chip::Approve, Intent::Approve),
+            ('c', Chip::Comment, Intent::Comment),
+        ] {
+            let mut app = loaded(160, sample());
+            let cmds = update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Char(key))));
+            assert!(matches!(cmds[0], Cmd::LoadDiff(_)));
+            assert_eq!(app.screen, crate::app::Screen::Diff);
+            assert_eq!(app.diff.as_ref().unwrap().intent, Some(intent));
+            let mut app = loaded(160, sample());
+            on_action(&mut app, crate::app::Action::Chip(chip));
+            assert_eq!(app.diff.as_ref().unwrap().intent, Some(intent));
+        }
+    }
+
+    #[test]
+    fn a_and_c_do_nothing_without_a_change() {
+        let mut app = loaded(160, Vec::new());
+        update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Char('a'))));
+        assert_eq!(app.screen, crate::app::Screen::Dashboard);
+    }
+
+    #[test]
+    fn the_bucket_limit_cuts_sections_and_says_how_many_are_left() {
+        let changes: Vec<_> = (1..=5)
+            .map(|n| change(n, MyRole::Reviewing, 100 + n as i64))
+            .collect();
+        let mut app = loaded(160, changes);
+        app.state.queue_settings.bucket_limit = 2;
+        let queue = app.queue();
+        assert_eq!(queue.sections[0].changes.len(), 2);
+        assert_eq!(queue.sections[0].more, 3);
+        assert_eq!(queue.items().len(), 2);
+        assert!(queue.rows().contains(&crate::app::queue::Row::More(3)));
     }
 
     #[test]
@@ -736,6 +794,7 @@ mod tests {
             .map(|n| change(n, MyRole::Reviewing, 100 + n as i64))
             .collect();
         let mut app = loaded(160, changes);
+        app.state.queue_settings.bucket_limit = 100;
         assert_eq!(app.dashboard.queue_scroll, 0);
         for _ in 0..29 {
             press(&mut app, KeyCode::Char('j'));

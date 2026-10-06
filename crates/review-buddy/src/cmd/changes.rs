@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::app::queue::queue_settings;
 use rb_core::triage::{triage, TriageConfig, TriageOutcome};
 use rb_core::{ChangeSummary, CiState, Provider, Source, SourceId, Timestamp};
 use serde::Serialize;
@@ -49,6 +50,7 @@ pub struct Loaded {
     pub changes: Vec<ChangeSummary>,
     pub sources: Vec<Source>,
     pub now: Timestamp,
+    pub triage_config: TriageConfig,
     providers: HashMap<SourceId, Arc<dyn Provider>>,
     me: HashMap<SourceId, String>,
 }
@@ -59,7 +61,7 @@ pub fn load(ctx: &Context, with_me: bool) -> Result<Loaded, CmdError> {
     let sources = ctx.sources()?;
     if sources.is_empty() {
         return Err(CmdError::usage(
-            "No sources are configured yet.\nRun review-buddy to set one up, or try --demo.",
+            "No sources are configured yet.\nAdd a [[source]] to config.toml (see docs/configuration.md), or try --demo.",
         ));
     }
     let mut providers = HashMap::new();
@@ -97,6 +99,7 @@ pub fn load(ctx: &Context, with_me: bool) -> Result<Loaded, CmdError> {
         changes,
         sources,
         now: ctx.now(),
+        triage_config: queue_settings(&ctx.config).triage,
         providers,
         me,
     })
@@ -118,7 +121,7 @@ impl Loaded {
     }
 
     pub fn triage(&self, change: &ChangeSummary) -> TriageOutcome {
-        triage(change, &TriageConfig::default(), self.now)
+        triage(change, &self.triage_config, self.now)
     }
 
     /// The change as `--json` sees it, built from `rb-core` types and not a forge's own shape.

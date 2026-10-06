@@ -9,11 +9,11 @@ ada wants ada/menus → main
 
 Bucket    Waiting on you · your review is requested
 Reviewers smorris (requested), jo (commented)
-Checks    1 running · 2 passing
-          running test (linux)
-          none    test (windows)
-          none    coverage
-          none    bench
+Checks    1 running · 2 passing · 1 neutral · 1 skipped · 1 cancelled
+          running   test (linux)
+          skipped   test (windows)
+          neutral   coverage
+          cancelled bench
 Labels    enhancement, ui
 Link      https://github.com/liminal-hq/review-buddy/pull/214
 

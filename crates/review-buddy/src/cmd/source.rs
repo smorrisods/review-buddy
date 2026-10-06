@@ -159,7 +159,7 @@ pub fn list(ctx: &Context) -> Result<(), CmdError> {
     }
     if rows.is_empty() {
         return output::print(
-            "No sources are configured yet.\nAdd one with review-buddy source add, or try --demo.\n",
+            "No sources are configured yet.\nAdd a [[source]] to config.toml (see docs/configuration.md), or try --demo.\n",
         );
     }
     let mut text = ctx.out.table(&table(&rows));

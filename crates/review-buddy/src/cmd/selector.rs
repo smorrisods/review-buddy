@@ -324,6 +324,18 @@ fn pick(
             repo: repo.to_string(),
         }),
         [(s, full)] => Ok((s.id.clone(), s.kind, s.host.clone(), full.clone())),
+        [(first, full), rest @ ..]
+            if rest
+                .iter()
+                .all(|(s, f)| s.kind == first.kind && s.host == first.host && f == full) =>
+        {
+            Ok((
+                first.id.clone(),
+                first.kind,
+                first.host.clone(),
+                full.clone(),
+            ))
+        }
         many => Err(SelectorError::Ambiguous {
             what: repo.to_string(),
             candidates: many
@@ -665,10 +677,28 @@ mod tests {
             sources: &sources,
             ..Inference::default()
         };
+        assert_eq!(
+            resolve(&qualified(None, "liminal-hq/spindle", 214), &inf)
+                .unwrap()
+                .source,
+            SourceId::new("liminal-hq"),
+            "same forge and host: the first source wins"
+        );
+
+        sources.push(source(
+            "mirror",
+            ForgeKind::GitHub,
+            "ghe.example",
+            &["liminal-hq"],
+        ));
+        let inf = Inference {
+            sources: &sources,
+            ..Inference::default()
+        };
         let err = resolve(&qualified(None, "liminal-hq/spindle", 214), &inf).unwrap_err();
         let msg = err.to_string();
         assert!(
-            msg.contains("liminal-hq (github.com), personal (github.com)"),
+            msg.contains("liminal-hq (github.com), personal (github.com), mirror (ghe.example)"),
             "{msg}"
         );
         assert!(msg.contains("--source"));

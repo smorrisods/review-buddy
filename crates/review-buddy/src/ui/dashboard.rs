@@ -267,7 +267,11 @@ fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
                     style::fg(palette, Role::TextBright),
                 ),
                 Line::styled(
-                    "Press , to add GitHub or GitLab.",
+                    "Run `review-buddy --setup`,",
+                    style::fg(palette, Role::Muted),
+                ),
+                Line::styled(
+                    "or see docs/configuration.md.",
                     style::fg(palette, Role::Muted),
                 ),
             ]
@@ -327,7 +331,7 @@ fn empty_copy(app: &App) -> (String, String) {
     if state.sources.is_empty() {
         return (
             "Nothing connected yet.".to_string(),
-            "Add a source to config.toml, or try review-buddy --demo.".to_string(),
+            "Run `review-buddy --setup`, or see docs/configuration.md.".to_string(),
         );
     }
     let visible = state
@@ -372,6 +376,13 @@ fn row_lines(
     let width = usize::from(width);
     match row {
         Row::Gap => vec![Line::raw("")],
+        Row::More(n) => vec![Line::from(vec![
+            Span::raw(BLANK_RULE),
+            Span::styled(
+                format!("+{n} more · raise triage.bucket_limit to see them"),
+                style::fg(palette, Role::Muted),
+            ),
+        ])],
         Row::Heading(bucket, count) => vec![Line::from(vec![
             Span::raw(BLANK_RULE),
             Span::styled(

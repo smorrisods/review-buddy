@@ -2,14 +2,14 @@
 //! dashboard.
 
 use rb_core::triage::Bucket;
-use rb_core::{ChangeState, ChangeSummary, MyRole};
+use rb_core::{ChangeState, ChangeSummary};
 use rb_theme::Role;
 
 use super::changes::{self, ci_cell, Loaded, FIELDS};
 use super::context::Context;
 use super::error::CmdError;
 use super::output::{self, json, Cell, Column, Painter, Table};
-use crate::app::queue::{age, Queue};
+use crate::app::queue::{age, Queue, QueueSettings};
 use crate::app::AppState;
 use crate::cli::{BucketArg, QueueArgs};
 use crate::config::ShowFilter;
@@ -91,19 +91,6 @@ fn bucket_of(arg: BucketArg) -> Bucket {
     }
 }
 
-/// Whether the Show filters let a change into the queue. Noise is decided by bucket, later.
-fn visible(change: &ChangeSummary, show: &[ShowFilter]) -> bool {
-    if change.draft && !show.contains(&ShowFilter::Drafts) {
-        return false;
-    }
-    match change.my_role {
-        MyRole::Reviewing => show.contains(&ShowFilter::Reviewing),
-        MyRole::Assigned => show.contains(&ShowFilter::Assigned),
-        MyRole::Authored => show.contains(&ShowFilter::Authored),
-        MyRole::Mentioned => true,
-    }
-}
-
 fn plan(loaded: &Loaded, show: &[ShowFilter], only: &[BucketArg], limit: Option<usize>) -> Plan {
     let open = loaded
         .changes
@@ -113,40 +100,40 @@ fn plan(loaded: &Loaded, show: &[ShowFilter], only: &[BucketArg], limit: Option<
     let state = AppState {
         loaded: true,
         sources: loaded.sources.clone(),
-        changes: loaded
-            .changes
-            .iter()
-            .filter(|c| visible(c, show))
-            .cloned()
-            .collect(),
+        changes: loaded.changes.clone(),
         now: Some(loaded.now),
+        queue_settings: QueueSettings {
+            triage: loaded.triage_config.clone(),
+            show: show.to_vec(),
+            bucket_limit: limit.unwrap_or(usize::MAX),
+        },
         ..AppState::default()
     };
     let queue = Queue::build(&state, None, false);
 
     let wanted: Vec<Bucket> = only.iter().copied().map(bucket_of).collect();
-    let mut buckets: Vec<(Bucket, Vec<usize>)> = queue
+    let mut buckets: Vec<(Bucket, Vec<usize>, usize)> = queue
         .sections
         .into_iter()
-        .map(|s| (s.bucket, s.changes))
+        .map(|s| (s.bucket, s.changes, s.more))
         .collect();
     if (show.contains(&ShowFilter::Noise) || wanted.contains(&Bucket::Noise))
         && !queue.noise.is_empty()
     {
-        buckets.push((Bucket::Noise, queue.noise));
+        buckets.push((Bucket::Noise, queue.noise, 0));
     }
-    let shown: usize = buckets.iter().map(|(_, c)| c.len()).sum();
+    let shown: usize = buckets.iter().map(|(_, c, more)| c.len() + more).sum();
 
     let groups = buckets
         .into_iter()
-        .filter(|(bucket, _)| wanted.is_empty() || wanted.contains(bucket))
-        .map(|(bucket, mut changes)| {
-            let more = limit.map_or(0, |l| changes.len().saturating_sub(l));
-            changes.truncate(changes.len() - more);
+        .filter(|(bucket, ..)| wanted.is_empty() || wanted.contains(bucket))
+        .map(|(bucket, mut changes, more)| {
+            let extra = limit.map_or(0, |l| changes.len().saturating_sub(l));
+            changes.truncate(changes.len() - extra);
             Group {
                 bucket,
                 changes,
-                more,
+                more: more + extra,
             }
         })
         .collect();

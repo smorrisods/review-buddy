@@ -412,7 +412,7 @@ pub fn status(ctx: &Context) -> Result<(), CmdError> {
     if let Some(text) = json::render(&ctx.args, FIELDS, &auths_json(&auths), ctx.out.tty) {
         output::print(&text?)?;
     } else if auths.is_empty() {
-        output::print("No sources are configured yet.\nAdd one with review-buddy source add, or try --demo.\n")?;
+        output::print("No sources are configured yet.\nAdd a [[source]] to config.toml (see docs/configuration.md), or try --demo.\n")?;
     } else {
         output::print(&render_lines(&auths, &ctx.out.painter))?;
     }

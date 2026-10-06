@@ -2,6 +2,6 @@
 source: crates/review-buddy/tests/cli_e2e.rs
 expression: text
 ---
-pass	fmt		
-pass	clippy		
+pass	fmt	
+pass	clippy	
 pass	test (linux)

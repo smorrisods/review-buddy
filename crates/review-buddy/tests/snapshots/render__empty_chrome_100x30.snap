@@ -17,8 +17,8 @@ expression: text(&buffer)
 │                                              ││                                                  │
 │                                              ││                                                  │
 │            Nothing connected yet.            ││                                                  │
-│       Press , to add GitHub or GitLab.       ││                                                  │
-│                                              ││                                                  │
+│          Run `review-buddy --setup`,         ││                                                  │
+│         or see docs/configuration.md.        ││                                                  │
 │                                              ││                                                  │
 │                                              ││                                                  │
 │                                              ││                                                  │

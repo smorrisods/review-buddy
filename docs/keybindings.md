@@ -26,7 +26,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `q` / `⌃C` | Quit. If there are unsent comments, it asks you to quit again |
 | `esc` | Dismiss status messages |
 
-The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable but not built on the dashboard yet: pressing one says `… isn't available yet in this build.` Approve and comment from the diff instead.
+The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable. `a` and `c` (or their chips) open the diff for the selected change and start the approve preview or the comment composer there, with the cursor on the first changed line. `x` and `m` explain that they are planned for v0.3.
 
 ## Diff
 
@@ -41,7 +41,7 @@ Open with `⏎` or `d` from the dashboard.
 | `⏎` | Files pane: focus the diff |
 | `n` `}` / `p` `{` | Next / previous hunk |
 | `]` / `[` | Next / previous file |
-| `c` | Comment on the cursor line (ranges are selectable but not commentable yet) |
+| `c` | Comment on the cursor line, or on the selected range (`start_line` to `line`, on the side of the last line) after a drag or shift-click; the selection clears once the comment is added |
 | `r` | Reply to the thread at the cursor |
 | `a` | Approve: opens a preview (`Approve with N comments`, the pending comments listed, the verdict) with **Cancel** and **Approve**. On success your pending comments are cleared and a toast says `Approved` (with `(demo)` under `--demo`); on failure they stay pending and the toast says what to do next |
 | `x` | Request changes. Not built yet: the footer says so and points to `a` and `c`. Where the forge can't do it at all, it says that instead |
@@ -92,11 +92,11 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | Sources rows, or the source tabs when Sources is collapsed | Show that source |
 | Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff |
 | Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
-| Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; the others say they are not available on the dashboard yet |
+| Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; Approve and Comment open the diff and start there; Request changes and Merge explain they are planned for v0.3 |
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
 | Diff: files | Click a file to open it |
 | Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from |
-| Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. Groundwork only: `c` still comments on the cursor line, not the range |
+| Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. `c` comments on the range |
 | Diff: shift-click | Extends the range from the cursor (or the range's anchor) to the line clicked |
 | Composer text | Click to place the caret. The wheel moves the caret a line. Clicks outside the composer are ignored and never discard the draft |
 | Preview and discard confirms | Click **Cancel** or the confirm button. Clicks outside are ignored |
@@ -115,13 +115,13 @@ These are in the spec and not built in 0.1. Pressing them does nothing, or says 
 | `,` | v0.4 | Settings |
 | `L` · `J` | v0.4 | Cycle layout · toggle Jax |
 | `space` | v0.4 | Toggle the Show filter under the cursor (the filters follow `triage.show`) |
-| `a` `x` `c` on the dashboard | v0.3 | Approve, request changes and comment without opening the diff |
+| `x` `m` on the dashboard | v0.3 | Request changes and merge |
 | `m` | v0.3 | Merge, with a confirm that defaults to **No, not yet** |
 | `R` · `b` | v0.3 | Re-run failed CI · check out the branch |
 | `n` `p` (one at a time) | v0.4 | Skip / previous in the `queue` layout |
 | `v` · `w` | v0.3 | Unified ↔ side by side · toggle whitespace-only changes |
 | `s` · `⌃S` | v0.3 | Comment with a suggestion · insert a suggestion block in the composer |
-| `⇧↑↓` · `V` | v0.3 | Extend the range from the keyboard, and comment on a range (drag and shift-click select one today) |
+| `⇧↑↓` · `V` | v0.3 | Extend the range from the keyboard, (drag and shift-click select a range today) |
 | `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed |
 | `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
 | `x` in the diff | v0.3 | Request changes, with a required summary |

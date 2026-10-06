@@ -18,7 +18,7 @@ const PASSING: &str = "liminal-hq/review-buddy#209";
 fn passing_checks_exit_0_with_words_when_piped() {
     checks(PASSING, &[])
         .code(0)
-        .stdout("pass\tfmt\t\t\npass\tclippy\t\t\npass\ttest (linux)\t\t\n");
+        .stdout("pass\tfmt\t\npass\tclippy\t\npass\ttest (linux)\t\n");
 }
 
 #[test]

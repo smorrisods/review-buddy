@@ -4,7 +4,7 @@
 
 | Applied in 0.1 | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.mouse`, `diff.tab_width`, `review.confirm_post_now`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show` and `triage.bucket_limit` (the `queue` command), every `[[source]]` key for GitHub, the config layering below | `ui.layout`, `ui.jax`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`), `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `refresh.interval`, `triage.noise_authors`, `noise_collapsed` and `stale_after`, `[[triage.rule]]`, `[checkout]`, `[keys]` |
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.mouse`, `diff.tab_width`, `review.confirm_post_now`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key for GitHub, the config layering below | `ui.layout`, `ui.jax`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`), `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `refresh.interval`, `noise_collapsed`, `[[triage.rule]]`, `[checkout]`, `[keys]` |
 
 
 ## File locations (XDG Base Directory)
@@ -111,7 +111,7 @@ Applied in 0.1: `on_focus` and `max_concurrency_per_host`. A refresh runs on lau
 
 ## `[triage]`
 
-In 0.1 the `queue` command reads `show` and `bucket_limit`. The interface and the commands bucket changes with the built-in rules and their default settings (the default Noise authors and the 14-day stale threshold), whatever these keys say.
+The dashboard and the commands share one implementation: `noise_authors` and `stale_after` feed the built-in rules, `show` filters the queue by role and drafts, and `bucket_limit` cuts each bucket with a `+N more` row. Under `--demo` the defaults apply. The dashboard has no Show toggles yet, so it follows the configured `show`.
 
 | Key | Default | Notes |
 |---|---|---|

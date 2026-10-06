@@ -101,6 +101,7 @@ fn take_snapshot(app: &mut App, snapshot: Snapshot) {
         changes: snapshot.changes,
         details: snapshot.details,
         now: Some(snapshot.now),
+        queue_settings: std::mem::take(&mut app.state.queue_settings),
         ..AppState::default()
     };
     dashboard::reconcile(app);

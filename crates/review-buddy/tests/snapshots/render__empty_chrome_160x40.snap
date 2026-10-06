@@ -20,9 +20,9 @@ expression: text(&buffer)
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│     No sources yet.    ││            Nothing connected yet.            ││                                                                                    │
-│                        ││       Press , to add GitHub or GitLab.       ││                                                                                    │
+│                        ││            Nothing connected yet.            ││                                                                                    │
+│     No sources yet.    ││          Run `review-buddy --setup`,         ││                                                                                    │
+│                        ││         or see docs/configuration.md.        ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │

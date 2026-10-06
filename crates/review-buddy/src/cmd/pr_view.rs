@@ -87,6 +87,11 @@ pub fn execute(
     runner: &dyn CommandRunner,
 ) -> Result<Outcome, CmdError> {
     let web = options.web || ctx.args.web;
+    if options.web && (ctx.args.json.is_some() || ctx.args.jq.is_some()) {
+        return Err(CmdError::usage(
+            "pr open opens the browser and has no JSON output.\nUse review-buddy pr view --json url to get the address.",
+        ));
+    }
     let plan = json_out::plan(ctx.args.json.as_deref(), ctx.args.jq.as_deref());
     if !web && plan == json_out::JsonPlan::ListFields {
         let text =
@@ -111,7 +116,14 @@ pub fn execute(
     }
 
     let want = Want::from_plan(&plan, options.comments);
-    let view = runtime.block_on(fetch(provider.as_ref(), &source, &target, &want, ctx.now()))?;
+    let view = runtime.block_on(fetch(
+        provider.as_ref(),
+        &source,
+        &target,
+        &want,
+        ctx.now(),
+        &crate::app::queue::queue_settings(&ctx.config).triage,
+    ))?;
 
     let pretty = ctx.out.tty;
     if let Some(text) = json_out::render(&ctx.args, FIELDS, &view.to_json(), pretty) {
@@ -235,6 +247,7 @@ async fn fetch(
     target: &Target,
     want: &Want,
     now: Timestamp,
+    triage_config: &TriageConfig,
 ) -> Result<View, CmdError> {
     let id = find_id(provider, source, target).await?;
     let detail = provider.change_detail(&id).await?;
@@ -253,7 +266,7 @@ async fn fetch(
     } else {
         Vec::new()
     };
-    let outcome = triage(&detail.summary, &TriageConfig::default(), now);
+    let outcome = triage(&detail.summary, triage_config, now);
     Ok(View {
         host: source.host.clone(),
         detail,
@@ -437,6 +450,9 @@ impl View {
             (CiState::Fail, "failing"),
             (CiState::Running, "running"),
             (CiState::Pass, "passing"),
+            (CiState::Neutral, "neutral"),
+            (CiState::Skipped, "skipped"),
+            (CiState::Cancelled, "cancelled"),
         ] {
             let n = count(state);
             if n > 0 {
@@ -449,14 +465,15 @@ impl View {
             parts.join(" · ")
         }];
         for check in self.checks.iter().filter(|c| c.state != CiState::Pass) {
-            let (word, role) = match check.state {
-                CiState::Fail => ("fail", Role::Danger),
-                CiState::Running => ("running", Role::Warning),
-                _ => ("none", Role::Muted),
+            let word = super::changes::ci_word(check.state);
+            let role = match check.state {
+                CiState::Fail => Role::Danger,
+                CiState::Running => Role::Warning,
+                _ => Role::Muted,
             };
             lines.push(format!(
                 "{} {}",
-                p.paint(role, &format!("{word:<7}")),
+                p.paint(role, &format!("{word:<9}")),
                 check.name
             ));
         }
@@ -659,6 +676,65 @@ mod tests {
     }
 
     #[test]
+    fn checks_summary_counts_every_state_like_the_interface() {
+        let ctx = demo_ctx(None, None);
+        let target = ctx.resolve_selector(Some("214")).unwrap();
+        let source = find_source(&ctx, &target).unwrap();
+        let provider = ctx.provider_for(&source).unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        let mut view = rt
+            .block_on(fetch(
+                provider.as_ref(),
+                &source,
+                &target,
+                &Want::default(),
+                ctx.now(),
+                &TriageConfig::default(),
+            ))
+            .unwrap();
+        let check = |name: &str, state| rb_core::Check {
+            name: name.into(),
+            state,
+            url: None,
+            started_at: None,
+            completed_at: None,
+            required: None,
+        };
+        view.checks = vec![
+            check("a", CiState::Pass),
+            check("b", CiState::Neutral),
+            check("c", CiState::Skipped),
+            check("d", CiState::Cancelled),
+            check("e", CiState::Fail),
+        ];
+        let lines = view.checks_lines(&Painter::plain());
+        assert_eq!(
+            lines[0],
+            "1 failing · 1 passing · 1 neutral · 1 skipped · 1 cancelled"
+        );
+        assert!(lines
+            .iter()
+            .any(|l| l.starts_with("neutral") && l.ends_with(" b")));
+        assert!(lines
+            .iter()
+            .any(|l| l.starts_with("cancelled") && l.ends_with(" d")));
+    }
+
+    #[test]
+    fn pr_open_rejects_json_with_a_calm_usage_error() {
+        let ctx = demo_ctx(Some(vec!["url".into()]), None);
+        let opts = ViewOptions {
+            web: true,
+            ..options("214")
+        };
+        let err = execute(&ctx, &opts, &Recorder::default()).unwrap_err();
+        assert_eq!(err.exit(), crate::cmd::error::Exit::Usage);
+        assert!(err.to_string().contains("pr view --json url"));
+    }
+
+    #[test]
     fn iso_formats_utc_times() {
         assert_eq!(iso(Timestamp(0)), "1970-01-01T00:00:00Z");
         assert_eq!(iso(Timestamp(1_791_194_400)), "2026-10-05T10:00:00Z");
@@ -710,6 +786,7 @@ mod tests {
                 &target,
                 &Want::default(),
                 ctx.now(),
+                &TriageConfig::default(),
             ))
             .unwrap();
         assert!(view.checks.is_empty() && view.threads.is_empty() && view.files.is_empty());
@@ -754,7 +831,7 @@ mod tests {
             "Waiting on you · your review is requested",
             "smorris (requested), jo (commented)",
             "1 running · 2 passing",
-            "running test (linux)",
+            "test (linux)",
             "- `Menu::select_next`",
             "Comments (3)",
             "src/ui/menus.rs:44",
