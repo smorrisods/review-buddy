@@ -167,6 +167,7 @@ fn without_a_matching_source_it_says_so_and_exits_2() {
         .unwrap()
         .env_clear()
         .env("HOME", home.path())
+        .env("USERPROFILE", home.path())
         .env("XDG_CONFIG_HOME", home.path().join("config"))
         .args(["pr", "view", "https://github.com/a/b/pull/1"])
         .assert()
