@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build Linux release packages (.deb and .rpm) for the review-buddy binary,
-# its clap_mangen-generated man page and the bundled themes.
+# its clap_mangen-generated man page, shell completions and the bundled themes.
 
 set -euo pipefail
 
@@ -12,6 +12,7 @@ VERSION=""
 ARCH_INPUT=""
 BINARY_PATH=""
 MAN_DIR=""
+COMPLETIONS_DIR=""
 OUTPUT_PREFIX=""
 FORMAT="all"
 LIBC="gnu"
@@ -25,6 +26,9 @@ Options:
   --arch <amd64|arm64>        Target architecture
   --binary <path>             Built binary path
   --man-dir <path>            Directory containing the generated man page
+  --completions-dir <path>    Directory containing the generated completions
+                              (default: next to the man directory, else
+                              discovered next to the binary)
   --output-prefix <prefix>    Output file prefix (without extension)
   --format <all|deb|rpm>      Package format to build (default: all)
   --libc <gnu|musl>           How the binary is linked (default: gnu). A gnu
@@ -39,6 +43,7 @@ while [[ $# -gt 0 ]]; do
 		--arch) ARCH_INPUT="${2:-}"; shift 2 ;;
 		--binary) BINARY_PATH="${2:-}"; shift 2 ;;
 		--man-dir) MAN_DIR="${2:-}"; shift 2 ;;
+		--completions-dir) COMPLETIONS_DIR="${2:-}"; shift 2 ;;
 		--output-prefix) OUTPUT_PREFIX="${2:-}"; shift 2 ;;
 		--format) FORMAT="${2:-}"; shift 2 ;;
 		--libc) LIBC="${2:-}"; shift 2 ;;
@@ -88,6 +93,7 @@ if [[ ! -f "${BINARY_PATH}" ]]; then
 fi
 
 MAN_DIR="$(resolve_man_dir "${BINARY_PATH}" "${MAN_DIR}")"
+COMPLETIONS_DIR="$(resolve_completions_dir "${BINARY_PATH}" "${COMPLETIONS_DIR}" "${MAN_DIR}")"
 
 VERSION_NO_V="${VERSION#v}"
 mkdir -p "$(dirname "${OUTPUT_PREFIX}")"
@@ -116,6 +122,7 @@ build_deb() {
 
 	install -m 0755 "${BINARY_PATH}" "${deb_root}/usr/bin/review-buddy"
 	install -m 0644 "${MAN_SOURCE_DIR}/review-buddy.1.gz" "${deb_root}/usr/share/man/man1/"
+	stage_completions "${COMPLETIONS_DIR}" "${deb_root}/usr"
 	stage_shared_files "${REPO_ROOT}" "${deb_root}/usr"
 
 	{
@@ -160,6 +167,7 @@ build_rpm() {
 
 	install -m 0755 "${BINARY_PATH}" "${rpm_root}/SOURCES/review-buddy"
 	install -m 0644 "${MAN_SOURCE_DIR}/review-buddy.1.gz" "${rpm_root}/SOURCES/"
+	stage_completions "${COMPLETIONS_DIR}" "${rpm_root}/SOURCES/stage"
 	stage_shared_files "${REPO_ROOT}" "${rpm_root}/SOURCES/stage"
 
 	cat > "${rpm_root}/SPECS/review-buddy.spec" <<SPEC
@@ -195,12 +203,15 @@ fi
 %files
 /usr/bin/review-buddy
 /usr/share/man/man1/review-buddy.1.gz
+/usr/share/bash-completion/completions/review-buddy
+/usr/share/zsh/site-functions/_review-buddy
+/usr/share/fish/vendor_completions.d/review-buddy.fish
 /usr/share/review-buddy
 /usr/share/doc/review-buddy
 
 %changelog
 * $(LC_ALL=C date '+%a %b %d %Y') ${PACKAGE_CONTACT} - ${VERSION_NO_V}-1
-- Package the review-buddy binary, man page and bundled themes.
+- Package the review-buddy binary, man page, shell completions and bundled themes.
 SPEC
 
 	rpmbuild \

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build a release tarball for the review-buddy binary, its clap_mangen-
-# generated man page, the bundled themes and the licence.
+# generated man page, shell completions, the bundled themes and the licence.
 
 set -euo pipefail
 
@@ -12,6 +12,7 @@ VERSION=""
 TARGET=""
 BINARY_PATH=""
 MAN_DIR=""
+COMPLETIONS_DIR=""
 OUTPUT_DIR="dist"
 OUTPUT_PREFIX=""
 
@@ -26,6 +27,9 @@ Options:
   --binary <path>             Built binary path
   --man-dir <path>            Directory containing the generated man page
                               (default: newest out/man next to the binary)
+  --completions-dir <path>    Directory containing the generated completions
+                              (default: next to the man directory, else the
+                              newest out/completions next to the binary)
   --output-dir <dir>          Directory for the archive (default: dist)
   --output-prefix <prefix>    Full output path without extension; overrides
                               --output-dir and the default file name
@@ -41,6 +45,7 @@ while [[ $# -gt 0 ]]; do
 		--target) TARGET="${2:-}"; shift 2 ;;
 		--binary) BINARY_PATH="${2:-}"; shift 2 ;;
 		--man-dir) MAN_DIR="${2:-}"; shift 2 ;;
+		--completions-dir) COMPLETIONS_DIR="${2:-}"; shift 2 ;;
 		--output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
 		--output-prefix) OUTPUT_PREFIX="${2:-}"; shift 2 ;;
 		-h | --help)
@@ -67,6 +72,7 @@ if [[ ! -f "${BINARY_PATH}" ]]; then
 fi
 
 MAN_DIR="$(resolve_man_dir "${BINARY_PATH}" "${MAN_DIR}")"
+COMPLETIONS_DIR="$(resolve_completions_dir "${BINARY_PATH}" "${COMPLETIONS_DIR}" "${MAN_DIR}")"
 
 if [[ -z "${OUTPUT_PREFIX}" ]]; then
 	OUTPUT_PREFIX="${OUTPUT_DIR}/review-buddy-${VERSION#v}-${TARGET}"
@@ -81,6 +87,7 @@ mkdir -p "${ARCHIVE_ROOT}/bin" "${ARCHIVE_ROOT}/share/man/man1"
 
 install -m 0755 "${BINARY_PATH}" "${ARCHIVE_ROOT}/bin/review-buddy"
 gzip -n -c "${MAN_DIR}/review-buddy.1" > "${ARCHIVE_ROOT}/share/man/man1/review-buddy.1.gz"
+stage_completions "${COMPLETIONS_DIR}" "${ARCHIVE_ROOT}"
 stage_shared_files "${REPO_ROOT}" "${ARCHIVE_ROOT}"
 install -m 0644 "${REPO_ROOT}/README.md" "${ARCHIVE_ROOT}/share/doc/review-buddy/README.md"
 
