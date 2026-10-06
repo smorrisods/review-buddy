@@ -98,12 +98,16 @@ fn state_word(state: CiState) -> &'static str {
 }
 
 fn table(checks: &[Check]) -> Table {
-    let mut table = Table::new(vec![
+    let with_url = checks.iter().any(|c| c.url.is_some());
+    let mut columns = vec![
         Column::fixed("STATE"),
         Column::flex("CHECK"),
         Column::fixed("TIME"),
-        Column::fixed("URL"),
-    ]);
+    ];
+    if with_url {
+        columns.push(Column::fixed("URL"));
+    }
+    let mut table = Table::new(columns);
     for check in checks {
         let (glyph, role) = ci_look(check.state);
         let state = Cell::styled(format!("{glyph} {}", state_word(check.state)), role)
@@ -116,12 +120,11 @@ fn table(checks: &[Check]) -> Table {
             .url
             .as_ref()
             .map_or_else(String::new, ToString::to_string);
-        table.push(vec![
-            state,
-            Cell::plain(check.name.clone()),
-            time,
-            Cell::plain(url),
-        ]);
+        let mut row = vec![state, Cell::plain(check.name.clone()), time];
+        if with_url {
+            row.push(Cell::plain(url));
+        }
+        table.push(row);
     }
     table
 }
@@ -323,7 +326,14 @@ mod tests {
     fn piped_rows_use_words_and_tty_rows_use_glyphs() {
         let t = table(&[check("fmt", CiState::Pass, None)]);
         let piped = output::render_tsv(&t);
-        assert_eq!(piped, "pass\tfmt\t75\t\n");
+        assert_eq!(
+            piped, "pass\tfmt\t75\n",
+            "no URL column when no check has one"
+        );
+        let mut linked = check("fmt", CiState::Pass, None);
+        linked.url = Some("https://ci.example/1".parse().unwrap());
+        let piped = output::render_tsv(&table(&[linked]));
+        assert_eq!(piped, "pass\tfmt\t75\thttps://ci.example/1\n");
         let tty = output::render_table(&t, 80, &output::Painter::plain());
         assert!(tty.contains("● pass"), "{tty}");
     }

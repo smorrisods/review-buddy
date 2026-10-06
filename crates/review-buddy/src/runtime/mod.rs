@@ -53,6 +53,7 @@ pub enum Backend {
 /// The parts of `config.toml` the interface applies at launch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
+    pub queue: crate::app::queue::QueueSettings,
     pub theme: String,
     pub depth: Option<rb_theme::ColourDepth>,
     pub tab_width: u8,
@@ -63,6 +64,7 @@ impl Settings {
     pub fn from_config(config: &crate::config::Config) -> Self {
         use std::str::FromStr;
         Self {
+            queue: crate::app::queue::queue_settings(config),
             theme: config.ui.theme.clone(),
             depth: match config.ui.colour_depth {
                 crate::config::ColourDepth::Auto => None,
@@ -85,6 +87,7 @@ impl Settings {
     pub fn apply(&self, app: &mut App) {
         app.confirm_post_now = self.confirm_post_now;
         app.tab_width = self.tab_width;
+        app.state.queue_settings = self.queue.clone();
     }
 }
 

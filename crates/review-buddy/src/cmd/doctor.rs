@@ -115,7 +115,7 @@ pub fn run(ctx: &Context) -> Result<(), CmdError> {
         text.push_str(&format!("Running on demo fixtures {DEMO_LABEL}\n"));
     }
     let lines = if auths.is_empty() {
-        "  No sources are configured yet. Add one with review-buddy source add.\n".to_string()
+        "  No sources are configured yet. Add a [[source]] to config.toml (see docs/configuration.md).\n".to_string()
     } else {
         auth::render_lines(&auths, &ctx.out.painter)
             .lines()

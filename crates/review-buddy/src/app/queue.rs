@@ -7,6 +7,48 @@ use rb_core::{
 };
 
 use super::AppState;
+use crate::config::{Config, ShowFilter};
+
+/// Everything the queue reads from `[triage]`, shared by the dashboard and the CLI.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QueueSettings {
+    pub triage: TriageConfig,
+    pub show: Vec<ShowFilter>,
+    /// Rows each bucket shows before `+N more`.
+    pub bucket_limit: usize,
+}
+
+impl Default for QueueSettings {
+    fn default() -> Self {
+        queue_settings(&Config::default())
+    }
+}
+
+/// Builds the queue settings from the loaded config.
+pub fn queue_settings(config: &Config) -> QueueSettings {
+    let t = &config.triage;
+    QueueSettings {
+        triage: TriageConfig {
+            noise_authors: t.noise_authors.clone(),
+            stale_after: t.stale_after,
+        },
+        show: t.show.clone(),
+        bucket_limit: t.bucket_limit as usize,
+    }
+}
+
+/// Whether the Show filters let a change into the queue. Noise is decided by bucket, later.
+pub fn visible(change: &ChangeSummary, show: &[ShowFilter]) -> bool {
+    if change.draft && !show.contains(&ShowFilter::Drafts) {
+        return false;
+    }
+    match change.my_role {
+        MyRole::Reviewing => show.contains(&ShowFilter::Reviewing),
+        MyRole::Assigned => show.contains(&ShowFilter::Assigned),
+        MyRole::Authored => show.contains(&ShowFilter::Authored),
+        MyRole::Mentioned => true,
+    }
+}
 
 /// One selectable stop in the queue, in reading order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,6 +63,8 @@ pub enum Item {
 pub struct Section {
     pub bucket: Bucket,
     pub changes: Vec<usize>,
+    /// Changes left out by the bucket limit.
+    pub more: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,13 +79,16 @@ impl Queue {
     /// Buckets the changes of one source (or of every `in_all` source when `source` is `None`).
     pub fn build(state: &AppState, source: Option<&SourceId>, noise_open: bool) -> Self {
         let now = state.now.unwrap_or(Timestamp(0));
-        let config = TriageConfig::default();
+        let settings = &state.queue_settings;
         let mut buckets: [Vec<usize>; 4] = Default::default();
         for (index, change) in state.changes.iter().enumerate() {
-            if change.state != ChangeState::Open || !in_scope(state, change, source) {
+            if change.state != ChangeState::Open
+                || !in_scope(state, change, source)
+                || !visible(change, &settings.show)
+            {
                 continue;
             }
-            let bucket = triage(change, &config, now).bucket;
+            let bucket = triage(change, &settings.triage, now).bucket;
             let slot = Bucket::ORDER.iter().position(|b| *b == bucket).unwrap_or(2);
             buckets[slot].push(index);
         }
@@ -61,7 +108,15 @@ impl Queue {
         ]
         .into_iter()
         .filter(|(_, changes)| !changes.is_empty())
-        .map(|(bucket, changes)| Section { bucket, changes })
+        .map(|(bucket, mut changes)| {
+            let more = changes.len().saturating_sub(settings.bucket_limit);
+            changes.truncate(changes.len() - more);
+            Section {
+                bucket,
+                changes,
+                more,
+            }
+        })
         .collect();
         Self {
             sections,
@@ -97,8 +152,14 @@ impl Queue {
             if !rows.is_empty() {
                 rows.push(Row::Gap);
             }
-            rows.push(Row::Heading(section.bucket, section.changes.len()));
+            rows.push(Row::Heading(
+                section.bucket,
+                section.changes.len() + section.more,
+            ));
             rows.extend(section.changes.iter().map(|i| Row::Item(Item::Change(*i))));
+            if section.more > 0 {
+                rows.push(Row::More(section.more));
+            }
         }
         if !self.noise.is_empty() {
             if !rows.is_empty() {
@@ -123,6 +184,8 @@ pub enum Row {
     Heading(Bucket, usize),
     Item(Item),
     Gap,
+    /// `+N more`, when the bucket limit cut a section short.
+    More(usize),
     /// `── That's everything.` and its note.
     End,
 }
@@ -130,7 +193,7 @@ pub enum Row {
 impl Row {
     pub fn height(self) -> u16 {
         match self {
-            Row::Heading(..) | Row::Gap | Row::Item(Item::Noise) => 1,
+            Row::Heading(..) | Row::Gap | Row::More(_) | Row::Item(Item::Noise) => 1,
             Row::Item(Item::Change(_)) | Row::End => 2,
         }
     }
@@ -429,6 +492,61 @@ pub(crate) mod tests {
         assert_eq!(only.items(), vec![Item::Change(1)]);
         assert_eq!(count_in(&s, None), 1);
         assert_eq!(count_in(&s, Some(&SourceId::new("s2"))), 1);
+    }
+
+    #[test]
+    fn config_reaches_the_queue_settings() {
+        let config: Config = toml::from_str(
+            "[triage]\nnoise_authors = [\"ada\"]\nstale_after = \"2d\"\nbucket_limit = 3\nshow = [\"drafts\"]\n",
+        )
+        .unwrap();
+        let settings = queue_settings(&config);
+        assert_eq!(settings.triage.noise_authors, vec!["ada".to_string()]);
+        assert_eq!(
+            settings.triage.stale_after,
+            std::time::Duration::from_secs(2 * 86_400)
+        );
+        assert_eq!(settings.bucket_limit, 3);
+        assert_eq!(settings.show, vec![ShowFilter::Drafts]);
+    }
+
+    #[test]
+    fn noise_authors_from_config_move_changes_into_noise() {
+        let mut s = state(vec![change(1, MyRole::Reviewing, 10)]);
+        s.queue_settings.triage.noise_authors = vec!["ada".into()];
+        let q = Queue::build(&s, None, false);
+        assert!(q.sections.is_empty());
+        assert_eq!(q.noise, vec![0]);
+    }
+
+    #[test]
+    fn show_filters_hide_roles_and_drafts() {
+        let mut draft = change(2, MyRole::Reviewing, 10);
+        draft.draft = true;
+        let s = state(vec![
+            change(1, MyRole::Authored, 10),
+            draft,
+            change(3, MyRole::Mentioned, 10),
+        ]);
+        let items = |show: Vec<ShowFilter>| {
+            let mut s = s.clone();
+            s.queue_settings.show = show;
+            Queue::build(&s, None, false).items().len()
+        };
+        assert_eq!(
+            items(vec![ShowFilter::Reviewing]),
+            1,
+            "mentions always show"
+        );
+        assert_eq!(items(vec![ShowFilter::Reviewing, ShowFilter::Authored]), 2);
+        assert_eq!(
+            items(vec![
+                ShowFilter::Reviewing,
+                ShowFilter::Authored,
+                ShowFilter::Drafts
+            ]),
+            3
+        );
     }
 
     #[test]

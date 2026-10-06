@@ -172,6 +172,26 @@ fn cursor_anchor(app: &App) -> Option<Anchor> {
     })
 }
 
+/// The anchor of a drag or shift-click selection: it ends on the lowest line and starts on the
+/// first line above it on the same side, since a forge range lives on one side of the diff.
+fn range_anchor(app: &App) -> Option<Anchor> {
+    let s = app.diff.as_ref()?;
+    let range = s.range?;
+    let file = s.current()?;
+    let patch = file.diff.parsed()?;
+    let (top, bottom) = range.bounds();
+    let end = patch.anchor(s.view.rows.line_id(bottom)?)?;
+    let start = (top..=bottom)
+        .filter_map(|row| patch.anchor(s.view.rows.line_id(row)?))
+        .find(|a| a.side == end.side)?;
+    Some(Anchor {
+        path: file.diff.path.clone(),
+        side: end.side,
+        start_line: (start.line != end.line).then_some(start.line),
+        line: end.line,
+    })
+}
+
 /// The open thread that hangs from the cursor line, if any.
 fn cursor_thread(app: &App) -> Option<(&Thread, Anchor)> {
     let anchor = cursor_anchor(app)?;
@@ -197,7 +217,7 @@ pub fn open_with(app: &mut App, prefill: &str) -> Vec<Cmd> {
     if !ready(app) {
         return Vec::new();
     }
-    let Some(anchor) = cursor_anchor(app) else {
+    let Some(anchor) = range_anchor(app).or_else(|| cursor_anchor(app)) else {
         return info(app, "This file has no lines to comment on.");
     };
     open(app, Composer::new(Target::Line(anchor), prefill))
@@ -1000,6 +1020,63 @@ mod tests {
         assert!(
             titles.iter().any(|t| t == "pending comment · line 3"),
             "{titles:?}"
+        );
+    }
+
+    fn select(app: &mut App, from: u32, to: u32) {
+        goto(app, from);
+        let anchor = diff(app).view.cursor;
+        goto(app, to);
+        let head = diff(app).view.cursor;
+        app.diff.as_mut().unwrap().range = crate::app::RowRange::between(anchor, head);
+    }
+
+    #[test]
+    fn a_selected_range_anchors_the_comment_from_start_to_end() {
+        let mut a = app();
+        select(&mut a, 1, 3);
+        key(&mut a, KeyCode::Char('c'));
+        let Some(Target::Line(anchor)) = diff(&a).composer.as_ref().map(|c| c.target.clone())
+        else {
+            panic!("expected a line composer");
+        };
+        assert_eq!((anchor.start_line, anchor.line), (Some(1), 3));
+        assert_eq!(anchor.place(), "a.rs lines 1–3");
+        type_text(&mut a, "Rename these");
+        key(&mut a, KeyCode::Enter);
+        let s = diff(&a);
+        let drafts = &s.data.as_ref().unwrap().draft.comments;
+        assert_eq!(
+            (drafts[0].start_line, drafts[0].line, drafts[0].side),
+            (Some(1), 3, Side::New)
+        );
+        assert!(s.range.is_none(), "the selection is cleared once added");
+    }
+
+    #[test]
+    fn a_range_that_crosses_removed_lines_stays_on_the_end_side() {
+        let mut a = app();
+        select(&mut a, 1, 3);
+        key(&mut a, KeyCode::Char('c'));
+        let anchor = match &diff(&a).composer.as_ref().unwrap().target {
+            Target::Line(anchor) => anchor.clone(),
+            other => panic!("{other:?}"),
+        };
+        assert_eq!(anchor.side, Side::New);
+    }
+
+    #[test]
+    fn a_range_posted_now_carries_start_line() {
+        let mut a = app();
+        select(&mut a, 2, 3);
+        key(&mut a, KeyCode::Char('c'));
+        type_text(&mut a, "Both");
+        with(&mut a, KeyCode::Enter, KeyModifiers::CONTROL);
+        let cmds = key(&mut a, KeyCode::Enter);
+        let (draft, _) = submit_cmd(&cmds);
+        assert_eq!(
+            (draft.comments[0].start_line, draft.comments[0].line),
+            (Some(2), 3)
         );
     }
 

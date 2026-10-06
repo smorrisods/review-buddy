@@ -151,6 +151,15 @@ pub struct DiffState {
     pub confirm: Option<Confirm>,
     /// A write is on its way to the forge and hasn't answered yet.
     pub submitting: bool,
+    /// What to start once the patches arrive, when a dashboard key opened the diff.
+    pub intent: Option<Intent>,
+}
+
+/// An action the dashboard asked the diff to start as soon as it is ready.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Intent {
+    Approve,
+    Comment,
 }
 
 impl DiffState {
@@ -168,6 +177,7 @@ impl DiffState {
             composer: None,
             confirm: None,
             submitting: false,
+            intent: None,
         }
     }
 
@@ -187,11 +197,18 @@ impl DiffState {
 
 /// Switches to the diff screen for the selected change and asks for its patches.
 pub fn open(app: &mut App) -> Vec<Cmd> {
+    open_with_intent(app, None)
+}
+
+/// Like [`open`], and starts `intent` (an approve preview or a comment) once the diff loads.
+pub fn open_with_intent(app: &mut App, intent: Option<Intent>) -> Vec<Cmd> {
     let Some(change) = app.selected_change() else {
         return Vec::new();
     };
     let id = change.id.clone();
-    app.diff = Some(DiffState::loading(id.clone()));
+    let mut state = DiffState::loading(id.clone());
+    state.intent = intent;
+    app.diff = Some(state);
     app.screen = Screen::Diff;
     app.mark_dirty();
     vec![Cmd::LoadDiff(id)]
@@ -227,7 +244,38 @@ pub fn on_loaded(app: &mut App, id: &ChangeId, result: Result<Box<DiffData>, Str
         Err(message) => state.phase = Phase::Failed(message),
     }
     rebuild(app, None);
+    start_intent(app);
     app.mark_dirty();
+}
+
+/// Starts what the dashboard asked for, with the cursor on the first changed line.
+fn start_intent(app: &mut App) {
+    let height = usize::from(viewport(app).code.height);
+    let Some(state) = app.diff.as_mut() else {
+        return;
+    };
+    let Some(intent) = state.intent.take() else {
+        return;
+    };
+    if state.data.is_none() {
+        return;
+    }
+    if let Some(row) = first_changed_row(state) {
+        state.view.cursor = row;
+        reveal_cursor(state, height);
+    }
+    match intent {
+        Intent::Approve => composer::open_approve(app),
+        Intent::Comment => composer::open_comment(app),
+    };
+}
+
+fn first_changed_row(state: &DiffState) -> Option<usize> {
+    let patch = state.current()?.diff.parsed()?;
+    let (id, _) = patch
+        .iter()
+        .find(|(_, line)| line.kind != rb_diff::LineKind::Context)?;
+    state.view.rows.row_of(id)
 }
 
 /// Swaps in freshly loaded threads for the open diff, keeping the cursor where it was.
@@ -786,6 +834,54 @@ mod tests {
         assert!(s.view.rows.block(0).is_some(), "the thread is placed");
         assert!(matches!(s.view.highlight, Highlight::Whole(_)));
         assert_eq!(s.files().len(), 3);
+    }
+
+    fn loaded_with_intent(intent: Intent) -> App {
+        let mut app = App::new(AppConfig {
+            theme_id: "liminal-hq".into(),
+            depth: ColourDepth::TrueColour,
+            no_color: false,
+            size: (160, 40),
+        });
+        let mut state = DiffState::loading(id());
+        state.intent = Some(intent);
+        app.diff = Some(state);
+        app.screen = Screen::Diff;
+        let data = DiffData::new(
+            vec![patch("src/a.rs", Some(PATCH))],
+            Vec::new(),
+            ReviewDraft::default(),
+        );
+        update(
+            &mut app,
+            Msg::DiffLoaded {
+                id: id(),
+                result: Ok(Box::new(data)),
+            },
+        );
+        app
+    }
+
+    #[test]
+    fn a_dashboard_approve_previews_once_the_diff_loads() {
+        let app = loaded_with_intent(Intent::Approve);
+        let s = app.diff.as_ref().unwrap();
+        assert!(matches!(
+            s.confirm.as_ref().map(|c| &c.kind),
+            Some(composer::ConfirmKind::Approve { .. })
+        ));
+        assert!(s.intent.is_none());
+    }
+
+    #[test]
+    fn a_dashboard_comment_opens_the_composer_on_the_first_changed_line() {
+        let app = loaded_with_intent(Intent::Comment);
+        let s = app.diff.as_ref().unwrap();
+        let composer = s.composer.as_ref().expect("the composer is open");
+        let composer::Target::Line(anchor) = &composer.target else {
+            panic!("expected a line target");
+        };
+        assert_eq!((anchor.side, anchor.line), (rb_core::Side::Old, 2));
     }
 
     #[test]
