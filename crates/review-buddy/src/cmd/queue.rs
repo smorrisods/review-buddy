@@ -9,6 +9,7 @@ use super::changes::{self, ci_cell, Loaded, FIELDS};
 use super::context::Context;
 use super::error::CmdError;
 use super::output::{self, json, Cell, Column, Painter, Table};
+use crate::app::projects::ProjectFilter;
 use crate::app::queue::{age, Queue, QueueSettings};
 use crate::app::AppState;
 use crate::cli::{BucketArg, QueueArgs};
@@ -110,6 +111,7 @@ fn plan(loaded: &Loaded, show: &[ShowFilter], only: &[BucketArg], limit: Option<
                 .copied()
                 .filter(|f| *f != ShowFilter::Noise)
                 .collect(),
+            projects: ProjectFilter::default(),
             bucket_limit: limit.unwrap_or(usize::MAX),
         },
         ..AppState::default()
@@ -246,6 +248,14 @@ fn tty_report(ctx: &Context, loaded: &Loaded, plan: &Plan) -> String {
     out.push('\n');
     if plan.hidden > 0 {
         let note = format!("{} hidden by your Show filters.", plan.hidden);
+        out.push_str(&painter.paint(Role::Muted, &note));
+        out.push('\n');
+    }
+    if loaded.hidden_by_project > 0 {
+        let note = format!(
+            "{} hidden by hide_repos in your config. Pass --repo to look at one project.",
+            loaded.hidden_by_project
+        );
         out.push_str(&painter.paint(Role::Muted, &note));
         out.push('\n');
     }

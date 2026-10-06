@@ -97,7 +97,11 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
                     }
                     let live =
                         std::sync::Arc::new(review_buddy::providers::Live::from_context(&ctx)?);
-                    Ok((runtime::Settings::from_config(&ctx.config), live))
+                    Ok((
+                        runtime::Settings::from_config(&ctx.config)
+                            .with_write_target(ctx.paths.write_target.clone()),
+                        live,
+                    ))
                 })));
             }
             let setup_services = std::sync::Arc::new(review_buddy::setup::Services::system(
@@ -119,10 +123,17 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
                     }
                     let live =
                         std::sync::Arc::new(review_buddy::providers::Live::from_context(&ctx)?);
-                    Ok((runtime::Settings::from_config(&ctx.config), live))
+                    Ok((
+                        runtime::Settings::from_config(&ctx.config)
+                            .with_write_target(ctx.paths.write_target.clone()),
+                        live,
+                    ))
                 })));
             }
-            options.settings = Some(runtime::Settings::from_config(&ctx.config));
+            options.settings = Some(
+                runtime::Settings::from_config(&ctx.config)
+                    .with_write_target(ctx.paths.write_target.clone()),
+            );
             options.no_mouse = !ctx.config.ui.mouse;
             options.live = Some(std::sync::Arc::new(
                 review_buddy::providers::Live::from_context(&ctx)?,

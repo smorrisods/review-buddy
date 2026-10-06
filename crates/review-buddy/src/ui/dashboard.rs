@@ -464,9 +464,12 @@ fn hidden_count(app: &App) -> usize {
 
 /// The line under `── That's everything.`: what the Show filters hide, or what's in view.
 fn end_note(app: &App) -> String {
-    let hidden = hidden_count(app);
-    if hidden > 0 {
-        return format!("{hidden} hidden by your Show filters · s to change");
+    let hidden = queue::hidden_split(&app.state, app.active_source().map(|s| &s.id));
+    match (hidden.by_kind, hidden.by_project) {
+        (0, 0) => {}
+        (k, 0) => return format!("{k} hidden by your Show filters · s to change"),
+        (0, p) => return format!("{p} hidden by project · s to change"),
+        (k, p) => return format!("{} hidden · {k} by kind, {p} by project", k + p),
     }
     let n = queue::count_in(&app.state, app.active_source().map(|s| &s.id));
     format!("{n} in this view.")

@@ -12,7 +12,7 @@ use rb_paths::{ConfigFile, ConfigLayers, Env};
 pub use edit::{write_atomic, ConfigEditor};
 pub use error::{ConfigError, Location};
 pub use schema::*;
-pub use sources::source_from_config;
+pub use sources::{hide_pattern_problem, pattern_matches, source_from_config};
 
 /// The merged configuration plus the files it came from.
 #[derive(Debug, Clone, PartialEq)]
