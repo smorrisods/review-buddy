@@ -113,6 +113,32 @@ fn wordmark_is_drawn_along_the_gradient() {
 }
 
 #[test]
+fn the_wordmark_is_still_a_gradient_at_256_colours() {
+    // Blending happens at full precision and each letter is quantised, so the stops don't just
+    // collapse into three flat bands.
+    let a = App::new(AppConfig {
+        theme_id: "liminal-hq".into(),
+        depth: ColourDepth::Ansi256,
+        no_color: false,
+        size: (160, 40),
+    });
+    let (buffer, _) = render(&a, 160, 40);
+    let (x, y) = find_row(&buffer, WORDMARK).expect("wordmark on the top bar");
+    let colours: std::collections::HashSet<String> = (0..WORDMARK.chars().count() as u16)
+        .map(|i| format!("{:?}", buffer[(x + i, y)].fg))
+        .collect();
+    assert!(
+        colours.iter().all(|c| c.starts_with("Indexed(")),
+        "{colours:?}"
+    );
+    assert!(
+        colours.len() >= 6,
+        "{} distinct colours: {colours:?}",
+        colours.len()
+    );
+}
+
+#[test]
 fn transparent_background_is_never_painted() {
     let (buffer, _) = render(&app(100, 30, false), 100, 30);
     assert!(buffer.content().iter().all(|c| c.bg == Color::Reset));

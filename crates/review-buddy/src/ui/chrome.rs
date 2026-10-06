@@ -215,13 +215,15 @@ pub fn draw_top_bar(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap)
 
 fn wordmark_spans(app: &App) -> Vec<Span<'static>> {
     let palette = &app.palette;
-    let stops = palette.wordmark();
+    // Blend at full precision and quantise each letter, so 256 colours still show a gradient.
+    let stops = palette.wordmark_blend_stops();
     let last = WORDMARK.chars().count().saturating_sub(1).max(1) as f32;
     WORDMARK
         .chars()
         .enumerate()
         .map(|(i, ch)| {
-            let st = match style::gradient_at(&stops, i as f32 / last) {
+            let st = match style::gradient_at(&stops, i as f32 / last).map(|c| palette.at_depth(c))
+            {
                 Some(c) => ratatui::style::Style::default().fg(style::colour(c)),
                 None => style::fg(palette, Role::TextBright),
             };

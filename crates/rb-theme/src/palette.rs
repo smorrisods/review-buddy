@@ -217,6 +217,33 @@ impl Palette {
             .collect()
     }
 
+    /// The theme's wordmark stops at full precision, for blending. Quantising the stops first
+    /// would leave nothing to blend between at 256 colours, so a gradient drawn from
+    /// [`Palette::wordmark`] steps between three colours; blend these, then call
+    /// [`Palette::at_depth`] on each result. Empty under `NO_COLOR`.
+    pub fn wordmark_blend_stops(&self) -> Vec<Colour> {
+        if self.no_color {
+            return Vec::new();
+        }
+        self.theme
+            .wordmark()
+            .iter()
+            .copied()
+            .filter(|c| !matches!(c, Colour::Reset))
+            .collect()
+    }
+
+    /// Maps a colour computed at full precision (a blend, say) onto this palette's depth.
+    pub fn at_depth(&self, colour: Colour) -> Colour {
+        match (colour, self.depth) {
+            (Colour::Rgb(rgb), ColourDepth::Ansi256) => Colour::Indexed(quantise_256(rgb)),
+            (Colour::Rgb(_) | Colour::Indexed(_), ColourDepth::Ansi16) => {
+                Colour::Ansi(nearest_ansi(colour))
+            }
+            (c, _) => c,
+        }
+    }
+
     /// A style using the role as foreground colour.
     pub fn fg(&self, role: Role) -> Style {
         if self.no_color {
@@ -485,6 +512,36 @@ mod tests {
             assert!(!matches!(p.colour(*role), Some(Colour::Rgb(_))), "{role:?}");
         }
         assert!(p.wordmark().iter().all(|c| matches!(c, Colour::Indexed(_))));
+    }
+
+    #[test]
+    fn a_blended_wordmark_keeps_its_gradient_at_256_colours() {
+        use std::collections::HashSet;
+        let p = palette("liminal-hq", ColourDepth::Ansi256, false);
+        let stops = p.wordmark_blend_stops();
+        assert!(stops.iter().all(|c| matches!(c, Colour::Rgb(_))));
+        let blend = |t: f32| {
+            let t = t * (stops.len() - 1) as f32;
+            let i = (t.floor() as usize).min(stops.len() - 2);
+            let (Colour::Rgb(a), Colour::Rgb(b)) = (stops[i], stops[i + 1]) else {
+                unreachable!()
+            };
+            let l = t - i as f32;
+            let mix =
+                |x: u8, y: u8| (f32::from(x) + (f32::from(y) - f32::from(x)) * l).round() as u8;
+            Colour::rgb(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b))
+        };
+        let steps: HashSet<Colour> = (0..12)
+            .map(|i| p.at_depth(blend(i as f32 / 11.0)))
+            .collect();
+        assert!(
+            steps.len() > stops.len() + 2,
+            "{} distinct colours",
+            steps.len()
+        );
+        assert!(steps.iter().all(|c| matches!(c, Colour::Indexed(_))));
+        let none = palette("liminal-hq", ColourDepth::Ansi256, true);
+        assert!(none.wordmark_blend_stops().is_empty());
     }
 
     #[test]
