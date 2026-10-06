@@ -1,0 +1,181 @@
+---
+source: crates/review-buddy/tests/frames.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││              ╭─ thread · line 44 ─────────────────────────────╮│
+│  · src/ui/menubar.rs      +8 −0││              │ jo · 1d                                        ││
+│  · src/ui/mod.rs          +2 −0││              │ Should this wrap round to the first item? Most ││
+│                                ││              │ menus I use stop at the end.                   ││
+│                                ││              │ ada · 20h                                      ││
+│                                ││              │ I went with wrapping so a held key never gets  ││
+│                                ││              │ stuck. Happy to make it configurable if you'd  ││
+│                                ││              │ rather.                                        ││
+│                                ││              ╰────────────────────────────────────────────────╯│
+│                                ││         45 +     }                                             │
+│                                ││         46 +                                                   │
+│                                ││         47 +     pub fn select_prev(&mut self) {               │
+│                                ││         48 +         if self.items.is_empty() {                │
+│                                ││         49 +             return;                               │
+│                                ││         50 +         }                                         │
+│                                ││›        51 +         self.selected = self.selected.checked_sub…│
+│                                ││              ╭─ pending suggestion · line 51 ─────────────────╮│
+│                                ││              │ Fewer branches this way:                       ││
+│                                ││              │ -         self.selected = self.selected.check… ││
+│                                ││              │ +         self.selected = (self.selected + se… ││
+│ Your review · pending ─────────││              ╰────────────────────────────────────────────────╯│
+│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 51 ──────────────────────────────────╮│
+│0 of 3 files viewed             │││ Worth a guard here?                                          ││
+│Your verdict: not started       │││                                                              ││
+│                                │││                                                              ││
+│                                ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
+╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
+ ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  demo · 4 sources · 7 changes"
+0:88 D " Liminal HQ"
+1:0 D "╭ files 3 ───────────────────────╮"
+1:34 B "╭ src/ui/menus.rs ───────────────────────────────────────────────╮"
+2:0 D "│"
+2:1 B "›"
+2:3 D "·"
+2:5 B "src/ui/menus.rs"
+2:30 B " −1"
+2:33 D "│"
+2:34 B "│"
+2:49 B "╭─ thread · line 44"
+2:99 B "│"
+3:0 D "│"
+3:1 B ""
+3:3 D "·"
+3:30 B " −0"
+3:33 D "│"
+3:34 B "│"
+3:51 B "jo · 1d"
+3:99 B "│"
+4:0 D "│"
+4:1 B ""
+4:3 D "·"
+4:30 B " −0"
+4:33 D "│"
+4:34 B "│"
+4:99 B "│"
+5:0 D "│"
+5:33 D "│"
+5:34 B "│"
+5:99 B "│"
+6:0 D "│"
+6:33 D "│"
+6:34 B "│"
+6:51 B "ada · 20h"
+6:99 B "│"
+7:0 D "│"
+7:33 D "│"
+7:34 B "│"
+7:99 B "│"
+8:0 D "│"
+8:33 D "│"
+8:34 B "│"
+8:99 B "│"
+9:0 D "│"
+9:33 D "│"
+9:34 B "│"
+9:99 B "│"
+10:0 D "│"
+10:33 D "│"
+10:34 B "│"
+10:99 B "│"
+11:0 D "│"
+11:33 D "│"
+11:34 B "│"
+11:37 D "       45"
+11:99 B "│"
+12:0 D "│"
+12:33 D "│"
+12:34 B "│"
+12:37 D "       46"
+12:99 B "│"
+13:0 D "│"
+13:33 D "│"
+13:34 B "│"
+13:37 D "       47"
+13:99 B "│"
+14:0 D "│"
+14:33 D "│"
+14:34 B "│"
+14:37 D "       48"
+14:99 B "│"
+15:0 D "│"
+15:33 D "│"
+15:34 B "│"
+15:37 D "       49"
+15:99 B "│"
+16:0 D "│"
+16:33 D "│"
+16:34 B "│"
+16:37 D "       50"
+16:99 B "│"
+17:0 D "│"
+17:33 D "│"
+17:34 B "│"
+17:35 BR "›"
+17:37 DR "       51"
+17:47 R "+         self.selected = self.selected.checked_sub…"
+17:99 B "│"
+18:0 D "│"
+18:33 D "│"
+18:34 B "│"
+18:49 B "╭─ pending suggestion · line 51 ─────────────────╮│"
+19:0 D "│"
+19:33 D "│"
+19:34 B "│"
+19:49 B "│"
+19:97 B " ││"
+20:0 D "│"
+20:33 D "│"
+20:34 B "│"
+20:49 B "│ -         self.selected = self.selected.check… ││"
+21:0 D "│"
+21:33 D "│"
+21:34 B "│"
+21:49 B "│"
+21:97 B " ││"
+22:0 D "│ Your review · pending ─────────│"
+22:34 B "│"
+22:49 B "╰────────────────────────────────────────────────╯│"
+23:0 D "│"
+23:33 D "│"
+23:34 B "│╭ Comment · menus.rs line 51 ──────────────────────────────────╮│"
+24:0 D "│"
+24:33 D "│"
+24:34 B "││"
+24:56 R ""
+24:98 B "││"
+25:0 D "│"
+25:33 D "│"
+25:34 B "││"
+25:98 B "││"
+26:0 D "│"
+26:33 D "│"
+26:34 B "││"
+26:98 B "││"
+27:0 D "│"
+27:33 D "│"
+27:34 B "│╰"
+27:36 BD " ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard"
+27:94 B "────╯│"
+28:0 D "╰────────────────────────────────╯"
+28:34 B "╰"
+28:35 BD " hunk 2 of 3 · file 1 of 3"
+28:62 B "─────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " add to review"
+29:18 B "⌃⏎"
+29:20 D " post now"
+29:31 B "⇧⏎"
+29:33 D " newline"
+29:43 B "esc"
+29:46 D " discard"

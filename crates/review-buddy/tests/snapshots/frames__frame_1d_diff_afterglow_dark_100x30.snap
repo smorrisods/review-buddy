@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                       Afterglow Dark
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││    12   12       items: Vec<MenuItem>,                         │
+│  · src/ui/menubar.rs      +8 −0││         13 +     selected: usize,                              │
+│  · src/ui/mod.rs          +2 −0││         14 +     open: bool,                                   │
+│                                ││    13   15   }                                                 │
+│                                ││    14   16                                                     │
+│                                ││    15   17   impl Menu {                                       │
+│                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {    │
+│                                ││              @@ -34,6 +36,24 @@ impl Menu {                    │
+│                                ││    34   36       pub fn len(&self) -> usize {                  │
+│                                ││    35   37           self.items.len()                          │
+│                                ││    36   38       }                                             │
+│                                ││         39 +                                                   │
+│                                ││         40 +     pub fn select_next(&mut self) {               │
+│                                ││         41 +         if self.items.is_empty() {                │
+│                                ││         42 +             return;                               │
+│                                ││         43 +         }                                         │
+│                                ││›        44 +         self.selected = (self.selected + 1) % sel…│
+│                                ││              ╭─ thread · line 44 ─────────────────────────────╮│
+│                                ││              │ jo · 1d                                        ││
+│                                ││              │ Should this wrap round to the first item? Most ││
+│ Your review · pending ─────────││              │ menus I use stop at the end.                   ││
+│1 suggestion · 0 comments       ││              │ ada · 20h                                      ││
+│0 of 3 files viewed             ││              │ I went with wrapping so a held key never gets  ││
+│Your verdict: not started       ││              │ stuck. Happy to make it configurable if you'd  ││
+│                                ││              │ rather.                                        ││
+│                                ││              ╰────────────────────────────────────────────────╯│
+╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
+ j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

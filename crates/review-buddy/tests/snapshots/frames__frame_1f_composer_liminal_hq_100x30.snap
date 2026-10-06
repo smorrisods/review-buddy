@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││              ╭─ thread · line 44 ─────────────────────────────╮│
+│  · src/ui/menubar.rs      +8 −0││              │ jo · 1d                                        ││
+│  · src/ui/mod.rs          +2 −0││              │ Should this wrap round to the first item? Most ││
+│                                ││              │ menus I use stop at the end.                   ││
+│                                ││              │ ada · 20h                                      ││
+│                                ││              │ I went with wrapping so a held key never gets  ││
+│                                ││              │ stuck. Happy to make it configurable if you'd  ││
+│                                ││              │ rather.                                        ││
+│                                ││              ╰────────────────────────────────────────────────╯│
+│                                ││         45 +     }                                             │
+│                                ││         46 +                                                   │
+│                                ││         47 +     pub fn select_prev(&mut self) {               │
+│                                ││         48 +         if self.items.is_empty() {                │
+│                                ││         49 +             return;                               │
+│                                ││         50 +         }                                         │
+│                                ││›        51 +         self.selected = self.selected.checked_sub…│
+│                                ││              ╭─ pending suggestion · line 51 ─────────────────╮│
+│                                ││              │ Fewer branches this way:                       ││
+│                                ││              │ -         self.selected = self.selected.check… ││
+│                                ││              │ +         self.selected = (self.selected + se… ││
+│ Your review · pending ─────────││              ╰────────────────────────────────────────────────╯│
+│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 51 ──────────────────────────────────╮│
+│0 of 3 files viewed             │││ Worth a guard here?                                          ││
+│Your verdict: not started       │││                                                              ││
+│                                │││                                                              ││
+│                                ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
+╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
+ ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard
