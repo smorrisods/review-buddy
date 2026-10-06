@@ -31,6 +31,7 @@ pub const FIELDS: &[&str] = &[
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Method {
     Gh,
+    Glab,
     Keyring,
     Env(String),
     Command,
@@ -41,6 +42,7 @@ impl Method {
     pub fn name(&self) -> &'static str {
         match self {
             Self::Gh => "gh",
+            Self::Glab => "glab",
             Self::Keyring => "keyring",
             Self::Env(_) => "env",
             Self::Command => "command",
@@ -56,8 +58,9 @@ impl Method {
     }
 
     #[cfg(feature = "live")]
-    fn from_mode(mode: &AuthMode) -> Self {
+    fn from_mode(mode: &AuthMode, kind: Kind) -> Self {
         match mode {
+            AuthMode::Cli if kind == Kind::Gitlab => Self::Glab,
             AuthMode::Cli => Self::Gh,
             AuthMode::Token => Self::Keyring,
             AuthMode::Env(var) => Self::Env(var.clone()),
@@ -75,12 +78,26 @@ impl Method {
         }
     }
 
+    #[cfg(feature = "live")]
+    fn from_gitlab_origin(origin: &rb_gitlab::TokenOrigin) -> Self {
+        use rb_gitlab::TokenOrigin as O;
+        match origin {
+            O::GlabCli => Self::Glab,
+            O::Keyring => Self::Keyring,
+            O::Env(var) => Self::Env(var.clone()),
+            O::Command => Self::Command,
+        }
+    }
+
     /// What to do when this method can't produce a working token for `host`.
     #[cfg(feature = "live")]
     fn fix(&self, host: &str) -> String {
         match self {
             Self::Gh => format!(
                 "run gh auth login --hostname {host}, or review-buddy auth login --host {host}"
+            ),
+            Self::Glab => format!(
+                "run glab auth login --hostname {host}, or review-buddy auth login --host {host}"
             ),
             Self::Keyring => format!("run review-buddy auth login --host {host}"),
             Self::Env(var) => format!("set {var} to a token, or change auth for this source"),
@@ -100,9 +117,6 @@ pub enum State {
     Failed {
         reason: String,
         fix: String,
-    },
-    Unchecked {
-        note: String,
     },
 }
 
@@ -152,14 +166,6 @@ impl SourceAuth {
                 Value::Null,
                 json!(reason),
                 json!(fix),
-            ),
-            State::Unchecked { note } => (
-                "unchecked",
-                Value::Null,
-                json!([]),
-                Value::Null,
-                json!(note),
-                Value::Null,
             ),
         };
         json!({
@@ -212,16 +218,10 @@ pub async fn check_source(cfg: &SourceConfig, factory: &Factory) -> SourceAuth {
     let configured = factory
         .auth_mode(&id)
         .as_ref()
-        .map_or(Method::Gh, Method::from_mode);
+        .map_or(Method::Gh, |mode| Method::from_mode(mode, cfg.kind));
     let host = &cfg.host;
     if cfg.kind == Kind::Gitlab {
-        return base(
-            cfg,
-            Some(configured),
-            State::Unchecked {
-                note: "checked in v0.2".into(),
-            },
-        );
+        return check_gitlab(cfg, factory, &id, configured).await;
     }
     let (client, origin) = match factory.github_client(&id) {
         Ok(found) => found,
@@ -263,18 +263,89 @@ pub async fn check_source(cfg: &SourceConfig, factory: &Factory) -> SourceAuth {
             out
         }
         Err(err) => {
-            let (reason, fix) = match &err {
-                Error::Unauthorized { .. } => ("token rejected".to_string(), method.fix(host)),
-                Error::Network { .. } => (
-                    err.to_string(),
-                    "check your connection and try again".to_string(),
-                ),
-                Error::Forbidden { .. } => (
-                    err.to_string(),
-                    "check the token's scopes and organisation SSO access".to_string(),
-                ),
-                _ => (err.to_string(), "try again in a moment".to_string()),
+            let (reason, fix) = explain(&err, &method, host);
+            failed(cfg, method, reason, fix)
+        }
+    }
+}
+
+#[cfg(feature = "live")]
+fn explain(err: &Error, method: &Method, host: &str) -> (String, String) {
+    match err {
+        Error::Unauthorized { .. } => ("token rejected".to_string(), method.fix(host)),
+        Error::Network { .. } => (
+            err.to_string(),
+            "check your connection and try again".to_string(),
+        ),
+        Error::Forbidden { .. } => (
+            err.to_string(),
+            "check the token's scopes and organisation SSO access".to_string(),
+        ),
+        _ => (err.to_string(), "try again in a moment".to_string()),
+    }
+}
+
+#[cfg(feature = "live")]
+async fn check_gitlab(
+    cfg: &SourceConfig,
+    factory: &Factory,
+    id: &SourceId,
+    configured: Method,
+) -> SourceAuth {
+    let host = &cfg.host;
+    let (client, origin) = match factory.gitlab_client(id) {
+        Ok(found) => found,
+        Err(ProviderError::GitlabAuth(rb_gitlab::AuthError::NoToken { .. })) => {
+            return failed(
+                cfg,
+                configured.clone(),
+                "not signed in".into(),
+                configured.fix(host),
+            )
+        }
+        Err(ProviderError::GitlabAuth(rb_gitlab::AuthError::Unavailable { reason, .. })) => {
+            return failed(
+                cfg,
+                configured.clone(),
+                format!("couldn't read a token: {reason}"),
+                configured.fix(host),
+            )
+        }
+        Err(other) => {
+            return failed(
+                cfg,
+                configured,
+                other.to_string(),
+                "fix `api_url` in the source".into(),
+            )
+        }
+    };
+    let method = Method::from_gitlab_origin(&origin);
+    match client.test_token().await {
+        Ok(report) => {
+            let state = State::SignedIn {
+                user: report.login.clone(),
+                scopes: report.scopes.clone(),
+                expires: report.expires.clone(),
             };
+            let mut out = base(cfg, Some(method), state);
+            out.report = report.rate.map(|rate| TokenReport {
+                login: report.login,
+                name: report.name,
+                scopes: report.scopes,
+                core: rb_github::RateLimit {
+                    limit: rate.limit,
+                    remaining: rate.remaining,
+                    reset: rate.reset,
+                },
+                graphql: None,
+                sso_hint: None,
+                expires: report.expires,
+            });
+            out
+        }
+        Err(err) => {
+            let (reason, fix) = explain(&err, &method, host);
             failed(cfg, method, reason, fix)
         }
     }
@@ -368,7 +439,6 @@ pub fn render_lines(auths: &[SourceAuth], painter: &Painter) -> String {
                 ("✓", Some(Role::Success), text)
             }
             State::Failed { reason, fix } => ("✕", Some(Role::Danger), format!("{reason} · {fix}")),
-            State::Unchecked { note } => ("–", None, format!("not checked yet · {note}")),
         };
         let mark = match role {
             Some(role) => painter.paint(role, mark),
@@ -596,14 +666,84 @@ mod tests {
         assert!(text(&[a]).contains("token rejected · run review-buddy auth login"));
     }
 
-    #[tokio::test]
-    async fn gitlab_sources_are_deferred_without_failing() {
-        let server = MockServer::start().await;
-        let mut c = cfg(&server, "cli");
+    fn gitlab_cfg(server: &MockServer, auth: &str) -> SourceConfig {
+        let mut c = cfg(server, auth);
         c.kind = Kind::Gitlab;
-        let a = run(&c, None, &Arc::new(MemorySecretStore::new()), None).await;
-        assert!(text(std::slice::from_ref(&a)).contains("not checked yet · checked in v0.2"));
-        assert!(require_signed_in(&[a]).is_ok());
+        c.host = "gitlab.test".into();
+        c
+    }
+
+    async fn mount_gitlab(server: &MockServer, bearer: bool) {
+        let (name, value) = if bearer {
+            ("authorization", "Bearer glpat-topsecretvalue123")
+        } else {
+            ("private-token", "glpat-topsecretvalue123")
+        };
+        Mock::given(path("/user"))
+            .and(header(name, value))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("ratelimit-limit", "2000")
+                    .insert_header("ratelimit-remaining", "1990")
+                    .insert_header("ratelimit-reset", "1700000100")
+                    .set_body_json(json!({"username": "smorris", "name": null})),
+            )
+            .mount(server)
+            .await;
+        Mock::given(path("/personal_access_tokens/self"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(
+                    json!({"scopes": ["api", "read_user"], "expires_at": "2027-01-12"}),
+                ),
+            )
+            .mount(server)
+            .await;
+    }
+
+    #[tokio::test]
+    async fn gitlab_via_glab_reports_user_scopes_and_expiry() {
+        let server = MockServer::start().await;
+        mount_gitlab(&server, true).await;
+        let a = run(
+            &gitlab_cfg(&server, "cli"),
+            Some("glpat-topsecretvalue123\n"),
+            &Arc::new(MemorySecretStore::new()),
+            None,
+        )
+        .await;
+        assert_eq!(
+            text(std::slice::from_ref(&a)),
+            "✓ gitlab.test (work)  signed in as smorris via glab · scopes api, read_user · expires 2027-01-12\n"
+        );
+        assert_eq!(a.report.unwrap().core.remaining, 1990);
+    }
+
+    #[tokio::test]
+    async fn gitlab_keyring_token_uses_private_token_header() {
+        let server = MockServer::start().await;
+        mount_gitlab(&server, false).await;
+        let store = Arc::new(MemorySecretStore::new());
+        store
+            .set("gitlab.test", &Secret::new("glpat-topsecretvalue123"))
+            .unwrap();
+        let a = run(&gitlab_cfg(&server, "token"), None, &store, None).await;
+        assert_eq!(a.method, Some(Method::Keyring));
+        assert!(matches!(a.state, State::SignedIn { .. }));
+    }
+
+    #[tokio::test]
+    async fn gitlab_without_a_token_points_at_glab() {
+        let server = MockServer::start().await;
+        let a = run(
+            &gitlab_cfg(&server, "cli"),
+            None,
+            &Arc::new(MemorySecretStore::new()),
+            None,
+        )
+        .await;
+        assert!(text(std::slice::from_ref(&a))
+            .contains("not signed in · run glab auth login --hostname gitlab.test"));
+        assert_eq!(require_signed_in(&[a]).unwrap_err().exit().code(), 4);
     }
 
     #[tokio::test]

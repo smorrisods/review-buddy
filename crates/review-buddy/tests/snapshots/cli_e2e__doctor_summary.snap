@@ -20,5 +20,5 @@ Rate limits
 API versions
   github.com (liminal-hq)  GitHub REST 2022-11-28 (demo)
   github.com (smorris)  GitHub REST 2022-11-28 (demo)
-  gitlab.platform.example (platform)  not checked yet · checked in v0.2
-  gitlab.com  not checked yet · checked in v0.2
+  gitlab.platform.example (platform)  GitLab REST v4 (demo)
+  gitlab.com  GitLab REST v4 (demo)

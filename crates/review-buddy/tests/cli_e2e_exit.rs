@@ -127,7 +127,7 @@ fn exit_4_when_the_token_is_missing() {
 
 #[cfg(feature = "live")]
 #[test]
-fn exit_5_for_a_gitlab_source_before_v0_2() {
+fn exit_5_for_gitlab_listing_until_it_lands() {
     let sandbox = Sandbox::new();
     let config = sandbox.write_config(SOURCES);
     sandbox
@@ -139,7 +139,9 @@ fn exit_5_for_a_gitlab_source_before_v0_2() {
         .assert()
         .code(5)
         .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::contains("GitHub sources work today"));
+        .stderr(predicate::str::contains(
+            "listing merge requests on GitLab yet",
+        ));
 }
 
 #[cfg(not(feature = "live"))]

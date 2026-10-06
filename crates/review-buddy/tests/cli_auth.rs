@@ -34,10 +34,10 @@ impl Home {
     }
 }
 
-fn config(api_url: &str) -> String {
+fn config(api_url: &str, gl_url: &str) -> String {
     format!(
         "[[source]]\nname = \"work\"\nkind = \"github\"\nhost = \"ghe.test\"\napi_url = \"{api_url}\"\nauth = \"env:RB_TEST_TOKEN\"\n\n\
-         [[source]]\nname = \"gl\"\nkind = \"gitlab\"\nhost = \"gitlab.test\"\nauth = \"env:RB_TEST_TOKEN\"\n\n\
+         [[source]]\nname = \"gl\"\nkind = \"gitlab\"\nhost = \"gitlab.test\"\napi_url = \"{gl_url}\"\nauth = \"env:RB_TEST_TOKEN\"\n\n\
          [[source]]\nname = \"off\"\nkind = \"github\"\nhost = \"off.test\"\nenabled = false\nin_all = false\n"
     )
 }
@@ -61,6 +61,24 @@ async fn mock_github() -> MockServer {
     server
 }
 
+async fn mock_gitlab() -> MockServer {
+    let server = MockServer::start().await;
+    Mock::given(path("/user"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"username": "gluser", "name": null})),
+        )
+        .mount(&server)
+        .await;
+    Mock::given(path("/personal_access_tokens/self"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(json!({"scopes": ["api", "read_user"], "expires_at": "2027-01-12"})),
+        )
+        .mount(&server)
+        .await;
+    server
+}
+
 fn run(mut cmd: Command) -> assert_cmd::assert::Assert {
     cmd.assert()
 }
@@ -69,7 +87,8 @@ fn run(mut cmd: Command) -> assert_cmd::assert::Assert {
 #[tokio::test(flavor = "multi_thread")]
 async fn auth_status_signs_in_and_never_prints_the_token() {
     let server = mock_github().await;
-    let home = Home::new(&config(&server.uri()));
+    let gl = mock_gitlab().await;
+    let home = Home::new(&config(&server.uri(), &gl.uri()));
     let mut cmd = home.rb(&["auth", "status"]);
     cmd.env("RB_TEST_TOKEN", SECRET);
     let out = tokio::task::spawn_blocking(move || cmd.output().unwrap())
@@ -80,7 +99,9 @@ async fn auth_status_signs_in_and_never_prints_the_token() {
     assert!(stdout.contains(
         "✓ ghe.test (work)  signed in as smorris via env:RB_TEST_TOKEN · scopes repo, read:org"
     ));
-    assert!(stdout.contains("gitlab.test (gl)  not checked yet"));
+    assert!(stdout.contains(
+        "✓ gitlab.test (gl)  signed in as gluser via env:RB_TEST_TOKEN · scopes api, read_user · expires 2027-01-12"
+    ));
     assert!(!stdout.contains("off.test"));
     let all = format!("{stdout}{}", String::from_utf8_lossy(&out.stderr));
     assert!(!all.contains(SECRET));
@@ -90,7 +111,8 @@ async fn auth_status_signs_in_and_never_prints_the_token() {
 #[tokio::test(flavor = "multi_thread")]
 async fn doctor_and_json_output_never_contain_the_token() {
     let server = mock_github().await;
-    let home = Home::new(&config(&server.uri()));
+    let gl = mock_gitlab().await;
+    let home = Home::new(&config(&server.uri(), &gl.uri()));
     for args in [
         &["doctor"][..],
         &["doctor", "--json"],
@@ -126,14 +148,14 @@ async fn doctor_and_json_output_never_contain_the_token() {
 #[cfg(feature = "live")]
 #[test]
 fn a_source_that_cannot_sign_in_exits_4_with_the_fix() {
-    let home = Home::new(&config("http://127.0.0.1:9"));
+    let home = Home::new(&config("http://127.0.0.1:9", "http://127.0.0.1:9"));
     run(home.rb(&["auth", "status"]))
         .code(4)
         .stdout(predicate::str::contains(
             "✕ ghe.test (work)  couldn't read a token",
         ))
         .stdout(predicate::str::contains("· set RB_TEST_TOKEN to a token"))
-        .stderr(predicate::str::contains("1 source can't sign in"))
+        .stderr(predicate::str::contains("2 sources can't sign in"))
         .stderr(predicate::str::contains("set RB_TEST_TOKEN"));
     run(home.rb(&["doctor"])).code(4);
 }
@@ -141,7 +163,7 @@ fn a_source_that_cannot_sign_in_exits_4_with_the_fix() {
 #[cfg(feature = "live")]
 #[test]
 fn auth_status_json_lists_fields_and_rows() {
-    let home = Home::new(&config("http://127.0.0.1:9"));
+    let home = Home::new(&config("http://127.0.0.1:9", "http://127.0.0.1:9"));
     run(home.rb(&["auth", "status", "--json", "state,host"]))
         .code(4)
         .stdout(predicate::str::contains("\"state\":\"failed\""));
@@ -150,7 +172,7 @@ fn auth_status_json_lists_fields_and_rows() {
 
 #[test]
 fn source_list_reads_config_only_and_lists_every_source() {
-    let home = Home::new(&config("http://127.0.0.1:9"));
+    let home = Home::new(&config("http://127.0.0.1:9", "http://127.0.0.1:9"));
     let out = home.rb(&["source", "list"]).output().unwrap();
     assert!(out.status.success());
     let text = String::from_utf8(out.stdout).unwrap();

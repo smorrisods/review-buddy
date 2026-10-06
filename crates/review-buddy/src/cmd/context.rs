@@ -305,13 +305,12 @@ impl Context {
         {
             use crate::providers::ProviderError;
             self.factory.provider(&source.id).map_err(|e| match e {
-                ProviderError::Auth(_) => CmdError::AuthNeeded(format!(
-                    "{}\n{}",
-                    e.failure(&source.host).summary,
-                    crate::app::failure::SIGN_IN_STEP
-                )),
-                ProviderError::GitlabLater => {
-                    CmdError::Unsupported(format!("{e}\nGitHub sources work today."))
+                ProviderError::Auth(_) | ProviderError::GitlabAuth(_) => {
+                    CmdError::AuthNeeded(format!(
+                        "{}\n{}",
+                        e.failure(&source.host).summary,
+                        crate::app::failure::SIGN_IN_STEP
+                    ))
                 }
                 ProviderError::UnknownSource(_) => CmdError::usage(e.to_string()),
                 ProviderError::Client(_) => CmdError::failed(e.to_string()),

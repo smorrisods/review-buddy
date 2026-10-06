@@ -409,7 +409,7 @@ async fn rate_limits_surface_when_the_limit_resets() {
 }
 
 #[tokio::test]
-async fn gitlab_sources_get_a_calm_state_and_the_github_source_still_loads() {
+async fn unsigned_gitlab_sources_get_a_sign_in_state_and_the_github_source_still_loads() {
     let server = MockServer::start().await;
     serve_searches(&server).await;
     let config: Config = toml::from_str(&format!(
@@ -444,8 +444,8 @@ host = "gitlab.com"
     assert_eq!(app.state.pending_sources, 0);
     assert_eq!(app.state.changes.len(), 1);
     let lab = &app.state.failures[&SourceId::new("lab")];
-    assert_eq!(lab.kind, FailureKind::Unavailable);
-    assert!(lab.summary.contains("v0.2"));
+    // GitLab sources are built now; with no token to reuse this one asks for a sign-in.
+    assert_eq!(lab.kind, FailureKind::SignIn);
 }
 
 #[tokio::test]
