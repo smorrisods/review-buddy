@@ -18,6 +18,7 @@ pub struct Platform {
     tty: Arc<Mutex<dyn Write + Send>>,
     ctx: ClipboardContext,
     setup: Option<Arc<crate::setup::Services>>,
+    settings: Option<Arc<crate::settings::Services>>,
 }
 
 impl Platform {
@@ -31,6 +32,7 @@ impl Platform {
             tty,
             ctx,
             setup: None,
+            settings: None,
         }
     }
 
@@ -38,6 +40,16 @@ impl Platform {
     pub fn with_setup(mut self, services: Arc<crate::setup::Services>) -> Self {
         self.setup = Some(services);
         self
+    }
+
+    /// Gives Settings what it needs to read the config, test tokens and write changes.
+    pub fn with_settings(mut self, services: Arc<crate::settings::Services>) -> Self {
+        self.settings = Some(services);
+        self
+    }
+
+    pub fn settings(&self) -> Option<&Arc<crate::settings::Services>> {
+        self.settings.as_ref()
     }
 
     pub fn setup(&self) -> Option<&Arc<crate::setup::Services>> {

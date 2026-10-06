@@ -100,6 +100,28 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
                     Ok((runtime::Settings::from_config(&ctx.config), live))
                 })));
             }
+            let setup_services = std::sync::Arc::new(review_buddy::setup::Services::system(
+                ctx.env.as_ref(),
+                &ctx.config,
+            ));
+            options.settings_services = Some(std::sync::Arc::new(
+                review_buddy::settings::Services::system(cli.global.clone(), setup_services),
+            ));
+            if options.reload.is_none() {
+                let args = cli.global.clone();
+                options.reload = Some(runtime::Reload(std::sync::Arc::new(move || {
+                    let ctx = cmd::context::Context::build(
+                        args.clone(),
+                        cmd::context::Terminal::detect(),
+                    )?;
+                    if let Some(problem) = ctx.config_problem() {
+                        anyhow::bail!("{problem}");
+                    }
+                    let live =
+                        std::sync::Arc::new(review_buddy::providers::Live::from_context(&ctx)?);
+                    Ok((runtime::Settings::from_config(&ctx.config), live))
+                })));
+            }
             options.settings = Some(runtime::Settings::from_config(&ctx.config));
             options.no_mouse = !ctx.config.ui.mouse;
             options.live = Some(std::sync::Arc::new(

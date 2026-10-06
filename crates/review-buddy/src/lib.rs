@@ -10,5 +10,6 @@ pub mod load;
 #[cfg(feature = "live")]
 pub mod providers;
 pub mod runtime;
+pub mod settings;
 pub mod setup;
 pub mod ui;

@@ -8,7 +8,7 @@
 
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::{composer, dashboard, diff, update, Action, App, Cmd, Screen};
+use super::{composer, dashboard, diff, settings, update, Action, App, Cmd, Screen};
 use crate::ui::help;
 
 /// Two clicks on the same row this many ticks apart (a tick is 250 ms) make a double-click.
@@ -21,6 +21,9 @@ pub(super) fn on_mouse(app: &mut App, mouse: MouseEvent) -> Vec<Cmd> {
     }
     if app.show.open {
         return on_show(app, mouse, shift);
+    }
+    if app.screen == Screen::Settings {
+        return settings::on_mouse(app, mouse, shift);
     }
     if app.diff.as_ref().is_some_and(|s| s.has_overlay()) {
         return on_overlay(app, mouse, shift);

@@ -53,6 +53,11 @@ impl ConfigEditor {
         &self.path
     }
 
+    /// The parsed document, for edits `set` and `remove` can't express (arrays of tables).
+    pub fn document_mut(&mut self) -> &mut DocumentMut {
+        &mut self.doc
+    }
+
     /// The document as it would be written.
     pub fn text(&self) -> String {
         self.doc.to_string()

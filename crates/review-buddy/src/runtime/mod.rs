@@ -107,6 +107,8 @@ pub struct RunOptions {
     pub open: Option<rb_core::ChangeId>,
     #[cfg(feature = "live")]
     pub live: Option<std::sync::Arc<crate::providers::Live>>,
+    /// What Settings → Sources needs. Without it, Settings opens but can't reach the config.
+    pub settings_services: Option<std::sync::Arc<crate::settings::Services>>,
     /// Open first run on this flow, with what its effects need.
     pub setup: Option<(crate::setup::Flow, std::sync::Arc<crate::setup::Services>)>,
     /// Rebuilds the settings and live backend from the config first run just wrote.
@@ -332,6 +334,17 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 let _ = tx.send(Msg::Setup(input));
             });
         }
+        Cmd::Settings(effect) => {
+            let Some(services) = platform.settings().cloned() else {
+                let _ = tx.send(Msg::Settings(crate::settings::unavailable(effect)));
+                return;
+            };
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                let input = crate::settings::run_effect(&services, effect).await;
+                let _ = tx.send(Msg::Settings(input));
+            });
+        }
         Cmd::FinishSetup => {}
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
@@ -358,6 +371,9 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     if let Some((_, services)) = &options.setup {
         platform = platform.with_setup(std::sync::Arc::clone(services));
     }
+    if let Some(services) = &options.settings_services {
+        platform = platform.with_settings(std::sync::Arc::clone(services));
+    }
     let open = options.open.clone();
     let mut guard = TerminalGuard::enter(!options.no_mouse)?;
     let size = guard.terminal.size()?;
@@ -369,6 +385,8 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     if let Some(settings) = &options.settings {
         settings.apply(&mut app);
     }
+
+    app.demo = backend.is_demo();
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Msg>();
     let mut events = EventStream::new();
