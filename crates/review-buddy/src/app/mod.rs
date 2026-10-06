@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
 use rb_core::{
-    ChangeId, ChangeSummary, Check, Comment, ReviewDraft, Source, SourceId, Thread, ThreadId,
-    Timestamp, Verdict,
+    ChangeId, ChangeSummary, Check, Comment, FeatureAction, ProbeOutcome, ReviewDraft, Source,
+    SourceId, Thread, ThreadId, Timestamp, Verdict,
 };
 use rb_theme::{ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID};
 
@@ -189,6 +189,12 @@ pub enum Msg {
     },
     /// The result of a first-run [`Cmd::Setup`] effect.
     Setup(crate::setup::Input),
+    /// What a source can do, from its capability probe. `at` is when the instance was asked.
+    Probed {
+        source: SourceId,
+        outcome: Box<ProbeOutcome>,
+        at: Timestamp,
+    },
     /// The answer to a [`Cmd::Reply`].
     ReplyPosted {
         id: ChangeId,
@@ -269,6 +275,8 @@ pub struct AppState {
     pub failures: HashMap<SourceId, SourceFailure>,
     /// Sources a refresh is still waiting on.
     pub pending_sources: usize,
+    /// What each source can do, once probed. Sources not in here show every action.
+    pub probes: HashMap<SourceId, SourceProbe>,
     /// The sources in `pending_sources`, so each row can show its own spinner.
     pub refreshing: HashSet<SourceId>,
     /// Each source's last reported state.
@@ -283,9 +291,46 @@ pub struct AppState {
     pub queue_settings: queue::QueueSettings,
 }
 
+/// A source's probe result and when it was taken.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceProbe {
+    pub outcome: ProbeOutcome,
+    pub at: Timestamp,
+}
+
 impl AppState {
     pub fn source(&self, id: &SourceId) -> Option<&Source> {
         self.sources.iter().find(|s| &s.id == id)
+    }
+
+    /// Whether `action` is on for the source. Unprobed sources are given the benefit of the doubt.
+    pub fn supports(&self, source: &SourceId, action: FeatureAction) -> bool {
+        self.probes
+            .get(source)
+            .is_none_or(|p| p.outcome.capabilities.supports(action))
+    }
+
+    /// A calm sentence for why `action` is off on the source; `None` when it's on or unprobed.
+    pub fn explain_unsupported(&self, source: &SourceId, action: FeatureAction) -> Option<String> {
+        let probe = self.probes.get(source)?;
+        if probe.outcome.capabilities.supports(action) {
+            return None;
+        }
+        let host = self
+            .source(source)
+            .map_or("this source", |s| s.host.as_str());
+        let alternative = match action {
+            FeatureAction::RequestChanges => " Approve or comment instead.",
+            _ => "",
+        };
+        Some(match probe.outcome.reason(action) {
+            Some(reason) => format!("{reason}{alternative}"),
+            None => probe
+                .outcome
+                .capabilities
+                .explain_unsupported(action, host)
+                .unwrap_or_default(),
+        })
     }
 }
 

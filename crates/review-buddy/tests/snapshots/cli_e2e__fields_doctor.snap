@@ -6,4 +6,5 @@ version
 auth
 rateLimits
 apiVersions
+capabilities
 paths

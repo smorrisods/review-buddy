@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
@@ -30,10 +31,51 @@ pub trait Provider: Send + Sync {
     fn checkout_refspec(&self, id: &ChangeId) -> String;
     fn web_url(&self, id: &ChangeId) -> Url;
     fn capabilities(&self) -> Capabilities;
+    /// Asks the instance what it can do. Defaults to the static [`capabilities`](Self::capabilities).
+    /// Implementations tolerate a failed version check and fall back to the static answer with no
+    /// `version`; an error is only for a rejected sign-in.
+    async fn probe(&self) -> Result<ProbeOutcome> {
+        Ok(ProbeOutcome::new(self.capabilities()))
+    }
+}
+
+/// What a capability probe learned about one source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProbeOutcome {
+    pub capabilities: Capabilities,
+    /// The instance version as reported, such as `17.4.1`. `None` when the forge has none to
+    /// report or it couldn't be read.
+    pub version: Option<String>,
+    /// The instance answered the probe. When `false`, `capabilities` is the static fallback and
+    /// shouldn't be cached.
+    #[serde(default)]
+    pub complete: bool,
+    /// A calm sentence for each unsupported action that has a specific reason.
+    #[serde(default)]
+    pub reasons: Vec<(FeatureAction, String)>,
+}
+
+impl ProbeOutcome {
+    pub fn new(capabilities: Capabilities) -> Self {
+        Self {
+            capabilities,
+            version: None,
+            complete: false,
+            reasons: Vec::new(),
+        }
+    }
+
+    /// Why `action` is off here, when the probe knows.
+    pub fn reason(&self, action: FeatureAction) -> Option<&str> {
+        self.reasons
+            .iter()
+            .find(|(a, _)| *a == action)
+            .map(|(_, r)| r.as_str())
+    }
 }
 
 /// Optional actions a forge or instance may not offer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FeatureAction {
     RequestChanges,
     ViewedFiles,
@@ -57,7 +99,7 @@ impl FeatureAction {
 }
 
 /// What a connected forge instance can do. Unsupported actions are hidden and explained.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Capabilities {
     pub request_changes: bool,
     pub viewed_files: bool,

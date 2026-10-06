@@ -28,8 +28,8 @@ expression: plain_dump(& mut app)
 │1 suggestion · 0 comments       ││              │ ada · 20h                                      ││
 │0 of 3 files viewed             ││              │ I went with wrapping so a held key never gets  ││
 │Your verdict: not started       ││              │ stuck. Happy to make it configurable if you'd  ││
-│                                ││              │ rather.                                        ││
-│                                ││              ╰────────────────────────────────────────────────╯│
+│a approve · c comment           ││              │ rather.                                        ││
+│x request changes               ││              ╰────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
  j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
 
@@ -165,11 +165,11 @@ expression: plain_dump(& mut app)
 25:33 D "│"
 25:34 B "│"
 25:99 B "│"
-26:0 D "│"
+26:0 D "│a approve · c comment"
 26:33 D "│"
 26:34 B "│"
 26:99 B "│"
-27:0 D "│"
+27:0 D "│x request changes"
 27:33 D "│"
 27:34 B "│"
 27:99 B "│"

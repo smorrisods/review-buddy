@@ -8,10 +8,19 @@ use super::auth::{self, SourceAuth};
 use super::context::Context;
 use super::error::CmdError;
 use super::output::{self, json};
+use super::probe::{detect, Detected};
+use super::source_test::{caps_json, has, CAPABILITIES};
 use super::DEMO_LABEL;
 use rb_core::ForgeKind;
 
-const FIELDS: &[&str] = &["version", "auth", "rateLimits", "apiVersions", "paths"];
+const FIELDS: &[&str] = &[
+    "version",
+    "auth",
+    "rateLimits",
+    "apiVersions",
+    "capabilities",
+    "paths",
+];
 
 fn now_epoch() -> u64 {
     std::time::SystemTime::now()
@@ -79,7 +88,7 @@ fn api_line(a: &SourceAuth) -> String {
     }
 }
 
-fn to_json(ctx: &Context, auths: &[SourceAuth]) -> Value {
+fn to_json(ctx: &Context, auths: &[SourceAuth], found: &[Option<Detected>]) -> Value {
     json!({
         "version": env!("CARGO_PKG_VERSION"),
         "auth": auth::auths_json(auths),
@@ -96,6 +105,12 @@ fn to_json(ctx: &Context, auths: &[SourceAuth]) -> Value {
             "host": a.host,
             "rest": API_VERSION,
         })).collect::<Vec<_>>(),
+        "capabilities": auths.iter().zip(found).filter_map(|(a, d)| d.as_ref().map(|d| json!({
+            "source": a.name,
+            "host": a.host,
+            "capabilities": caps_json(Some(&d.outcome.capabilities)),
+            "probe": d.json(),
+        }))).collect::<Vec<_>>(),
         "paths": {
             "configDir": ctx.paths.paths.config_dir.display().to_string(),
             "dataDir": ctx.paths.paths.data_dir.display().to_string(),
@@ -103,6 +118,42 @@ fn to_json(ctx: &Context, auths: &[SourceAuth]) -> Value {
             "stateDir": ctx.paths.paths.state_dir.display().to_string(),
         },
     })
+}
+
+fn detect_all(ctx: &Context, auths: &[SourceAuth]) -> Result<Vec<Option<Detected>>, CmdError> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
+    Ok(auths.iter().map(|a| detect(ctx, &runtime, a)).collect())
+}
+
+fn capability_lines(auths: &[SourceAuth], found: &[Option<Detected>]) -> Vec<String> {
+    auths
+        .iter()
+        .zip(found)
+        .filter_map(|(a, d)| {
+            let d = d.as_ref()?;
+            let forge = match a.kind {
+                ForgeKind::GitHub => "GitHub",
+                ForgeKind::GitLab => "GitLab",
+            };
+            let off: Vec<String> = CAPABILITIES
+                .iter()
+                .filter(|(_, _, which)| !has(&d.outcome.capabilities, *which))
+                .map(|(_, label, _)| label.to_lowercase())
+                .collect();
+            let unavailable = if off.is_empty() {
+                "everything available".to_string()
+            } else {
+                format!("not available: {}", off.join(", "))
+            };
+            Some(format!(
+                "{}  {} · {unavailable}",
+                a.label(),
+                d.summary(forge)
+            ))
+        })
+        .collect()
 }
 
 fn section(text: &mut String, title: &str, body: &str) {
@@ -115,7 +166,13 @@ fn indented(lines: &[String]) -> String {
 
 pub fn run(ctx: &Context) -> Result<(), CmdError> {
     let auths = auth::gather(ctx)?;
-    if let Some(text) = json::render(&ctx.args, FIELDS, &to_json(ctx, &auths), ctx.out.tty) {
+    let found = detect_all(ctx, &auths)?;
+    if let Some(text) = json::render(
+        &ctx.args,
+        FIELDS,
+        &to_json(ctx, &auths, &found),
+        ctx.out.tty,
+    ) {
         output::print(&text?)?;
         return auth::require_signed_in(&auths);
     }
@@ -136,6 +193,11 @@ pub fn run(ctx: &Context) -> Result<(), CmdError> {
     section(&mut text, "Rate limits", &indented(&rate_lines(&auths)));
     let api: Vec<String> = auths.iter().map(api_line).collect();
     section(&mut text, "API versions", &indented(&api));
+    section(
+        &mut text,
+        "Capabilities",
+        &indented(&capability_lines(&auths, &found)),
+    );
     let paths: Vec<String> = ctx.paths.to_string().lines().map(str::to_string).collect();
     section(&mut text, "Paths", &indented(&paths));
     output::print(&text)?;

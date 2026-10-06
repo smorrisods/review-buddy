@@ -32,8 +32,11 @@ pub enum PlannedCall {
     },
     /// The review summary, as a draft note without a position.
     CreateSummary { body: String },
-    /// `bulk_publish`: posts every draft note you have on the change.
-    Publish,
+    /// `bulk_publish`: posts every draft note you have on the change. `reviewer_state` is set
+    /// when requesting changes.
+    Publish {
+        reviewer_state: Option<&'static str>,
+    },
     /// `approve`, guarded by the head SHA.
     Approve,
 }
@@ -82,9 +85,9 @@ fn side_name(side: Side) -> &'static str {
 /// Checks a draft and lists the calls that would submit it.
 pub fn plan_review(review: &ReviewDraft, verdict: Verdict) -> Result<ReviewPlan> {
     let body = review.body.trim();
-    if verdict == Verdict::RequestChanges {
-        return Err(Error::Unsupported(
-            "requesting changes on GitLab. Leave a comment or approve instead".to_string(),
+    if verdict == Verdict::RequestChanges && body.is_empty() {
+        return Err(invalid(
+            "Requesting changes needs a summary. Say what should change first",
         ));
     }
     if verdict == Verdict::Comment && body.is_empty() && review.comments.is_empty() {
@@ -100,7 +103,9 @@ pub fn plan_review(review: &ReviewDraft, verdict: Verdict) -> Result<ReviewPlan>
         });
     }
     if !calls.is_empty() {
-        calls.push(PlannedCall::Publish);
+        calls.push(PlannedCall::Publish {
+            reviewer_state: (verdict == Verdict::RequestChanges).then_some("requested_changes"),
+        });
     }
     if verdict == Verdict::Approve {
         calls.push(PlannedCall::Approve);
@@ -497,12 +502,17 @@ pub(crate) async fn submit_review(
         }
     }
 
-    if created > 0 || existing.iter().any(is_pending) {
+    let reviewer_state = (verdict == Verdict::RequestChanges).then_some("requested_changes");
+    if created > 0 || reviewer_state.is_some() || existing.iter().any(is_pending) {
+        let publish = match reviewer_state {
+            Some(state) => json!({ "reviewer_state": state }),
+            None => json!({}),
+        };
         client
             .write_json(
                 Method::POST,
                 &format!("{base}/draft_notes/bulk_publish"),
-                &json!({}),
+                &publish,
             )
             .await
             .map_err(write_error)
@@ -601,7 +611,9 @@ mod tests {
                     ..
                 },
                 PlannedCall::CreateSummary { .. },
-                PlannedCall::Publish,
+                PlannedCall::Publish {
+                    reviewer_state: None
+                },
                 PlannedCall::Approve
             ]
         ));
@@ -613,10 +625,15 @@ mod tests {
 
     #[test]
     fn validation_is_calm() {
-        assert!(matches!(
-            plan_review(&draft("x", vec![]), Verdict::RequestChanges),
-            Err(Error::Unsupported(_))
-        ));
+        assert!(plan_review(&draft(" ", vec![]), Verdict::RequestChanges).is_err());
+        let plan = plan_review(&draft("fix this", vec![]), Verdict::RequestChanges).unwrap();
+        assert_eq!(
+            plan.calls.last(),
+            Some(&PlannedCall::Publish {
+                reviewer_state: Some("requested_changes")
+            })
+        );
+        assert_eq!(plan.summary(), "Request changes");
         assert!(plan_review(&draft("", vec![]), Verdict::Comment).is_err());
         let bad = |c| plan_review(&draft("x", vec![c]), Verdict::Comment).is_err();
         assert!(bad(comment(None, 3, " ")));

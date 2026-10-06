@@ -28,7 +28,7 @@ expression: text(&render(&mut a))
 │1 suggestion · 0 comm│  ?          help                                     │                    ││
 │0 of 3 files viewed  │  T          theme                                    │he first item? Most ││
 │Your verdict: not sta│                                                      │.                   ││
-│                     │esc or ? to close                                     │                    ││
-│                     ╰──────────────────────────────────────────────────────╯eld key never gets  ││
+│a approve · c comment│esc or ? to close                                     │                    ││
+│x request changes    ╰──────────────────────────────────────────────────────╯eld key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
  j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

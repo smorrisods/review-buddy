@@ -398,3 +398,67 @@ async fn list_orgs_reports_a_rejected_token() {
     let e = client(&server, "").list_orgs().await.unwrap_err();
     assert!(matches!(e, Error::Unauthorized { .. }));
 }
+
+async fn mount_token(server: &MockServer, scopes: Option<&str>) {
+    let mut user = ResponseTemplate::new(200)
+        .insert_header("x-ratelimit-limit", "5000")
+        .insert_header("x-ratelimit-remaining", "4990")
+        .insert_header("x-ratelimit-reset", "1700000000")
+        .set_body_json(json!({"login": "octo"}));
+    if let Some(scopes) = scopes {
+        user = user.insert_header("x-oauth-scopes", scopes);
+    }
+    Mock::given(path("/user"))
+        .respond_with(user)
+        .mount(server)
+        .await;
+    Mock::given(path("/rate_limit"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "resources": {"core": {"limit": 5000, "remaining": 4989, "reset": 1700000100}}
+        })))
+        .mount(server)
+        .await;
+}
+
+#[tokio::test]
+async fn probe_enables_rerun_by_scope_and_trusts_fine_grained_tokens() {
+    for (scopes, rerun) in [
+        (Some("repo, read:org"), true),
+        (Some("read:org"), false),
+        (None, true),
+    ] {
+        let server = MockServer::start().await;
+        mount_token(&server, scopes).await;
+        let out = GithubProvider::new(client(&server, ""))
+            .probe()
+            .await
+            .unwrap();
+        assert_eq!(out.capabilities.rerun_failed, rerun, "{scopes:?}");
+        assert!(out.capabilities.request_changes && out.capabilities.viewed_files);
+    }
+}
+
+#[tokio::test]
+async fn probe_falls_back_when_the_scope_check_fails_but_reports_a_rejected_token() {
+    let server = MockServer::start().await;
+    Mock::given(path("/user"))
+        .respond_with(ResponseTemplate::new(500))
+        .mount(&server)
+        .await;
+    let p = GithubProvider::new(client(&server, ""));
+    assert_eq!(
+        p.probe().await.unwrap().capabilities,
+        rb_core::Capabilities::all()
+    );
+
+    let server = MockServer::start().await;
+    Mock::given(path("/user"))
+        .respond_with(ResponseTemplate::new(401))
+        .mount(&server)
+        .await;
+    let p = GithubProvider::new(client(&server, ""));
+    assert!(matches!(
+        p.probe().await.unwrap_err(),
+        Error::Unauthorized { .. }
+    ));
+}

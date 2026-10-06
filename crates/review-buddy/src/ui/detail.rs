@@ -129,7 +129,15 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     }
     y += 1;
 
-    draw_strip(frame, content.x, y, content.width, chips(app), "  ", hits);
+    draw_strip(
+        frame,
+        content.x,
+        y,
+        content.width,
+        chips(app, change),
+        "  ",
+        hits,
+    );
     y += 2;
     draw_strip(
         frame,
@@ -199,10 +207,14 @@ pub fn draw_strip(
     frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
 }
 
-fn chips(app: &App) -> Vec<(Vec<Span<'static>>, Option<Action>)> {
+fn chips(app: &App, change: &ChangeSummary) -> Vec<(Vec<Span<'static>>, Option<Action>)> {
     let palette = &app.palette;
     Chip::ALL
         .iter()
+        .filter(|chip| {
+            chip.feature()
+                .is_none_or(|action| app.state.supports(&change.id.source_id, action))
+        })
         .map(|chip| {
             let spans = vec![
                 Span::styled(

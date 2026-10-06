@@ -229,7 +229,7 @@ Within a bucket, sort by `updated_at` descending, with CI failures on your own c
 | Action | Key | GitHub | GitLab |
 |---|---|---|---|
 | Approve | `a` | Submit review `event: APPROVE` | `POST …/merge_requests/:iid/approve`, then publish draft notes |
-| Request changes | `x` | Submit review `event: REQUEST_CHANGES` (needs a body) | Publish draft notes, then set the reviewer state to "requested changes". **Probed on connect:** on instances without it, `x` is hidden (palette and chips) and pressing it says "gitlab.work.ca doesn't support request changes. Leave a comment instead (c)." |
+| Request changes | `x` | Submit review `event: REQUEST_CHANGES` (needs a body) | Publish draft notes, then set the reviewer state to "requested changes". **Probed on connect** (GitLab 17.3 or newer on an enterprise build): on instances without it, `x` is hidden (chips and the review block) and pressing it says "GitLab 16.9 on gitlab.work.ca doesn't support requesting changes (it needs 17.3 or newer). Approve or comment instead." |
 | Comment | `c` | Pending review comment (`line`, `side`, `start_line`) | Draft note with `position` |
 | Suggest | `s` / `⌃S` | Same, body contains a ` ```suggestion ` block | Same, body contains ` ```suggestion:-N+M ` |
 | Merge | `m` | `PUT /pulls/:n/merge` with `merge_method` | `PUT …/merge_requests/:iid/merge` with `squash`, `should_remove_source_branch` |
@@ -315,7 +315,7 @@ Themes are TOML files of named colour roles. Built-ins: **Liminal HQ** (default,
 
 | Question | Decision |
 |---|---|
-| GitLab instances without request changes | Probe on connect; hide `x` there and explain if it's pressed |
+| GitLab instances without request changes | Probe on connect (`GET /version`, token scopes), cached for 24 hours per host; hide `x` there and explain if it's pressed. See "Capability probe" in `docs/integrations.md` |
 | Linux with no Secret Service | `auth = "cli"`, `env:VAR` or `token_command` is enough; no file store |
 | Noise | A reachable collapsed bucket at the end of the queue **and** a `noise` Show filter |
 | Per-source triage | Yes, as an ordered rule list with match conditions (see `docs/configuration.md`) |

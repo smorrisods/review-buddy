@@ -22,3 +22,9 @@ API versions
   github.com (smorris)  GitHub REST 2022-11-28 (demo)
   gitlab.platform.example (platform)  GitLab REST v4 (demo)
   gitlab.com  GitLab REST v4 (demo)
+
+Capabilities
+  github.com (liminal-hq)  demo capabilities (demo) · everything available
+  github.com (smorris)  demo capabilities (demo) · everything available
+  gitlab.platform.example (platform)  demo capabilities (demo) · not available: request changes, viewed files
+  gitlab.com  demo capabilities (demo) · not available: request changes, viewed files

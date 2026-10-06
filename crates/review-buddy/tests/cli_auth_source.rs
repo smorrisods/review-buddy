@@ -538,6 +538,74 @@ mod source_test {
         assert_eq!(value[0]["capabilities"]["requestChanges"], false);
     }
 
+    async fn versioned_gitlab(version: Value) -> MockServer {
+        let server = gitlab().await;
+        Mock::given(path("/version"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(version))
+            .mount(&server)
+            .await;
+        server
+    }
+
+    #[tokio::test]
+    async fn it_reports_the_detected_version_and_what_that_turns_off() {
+        let gh = github(200).await;
+        let gl = versioned_gitlab(json!({"version": "16.9.2", "enterprise": true})).await;
+        let sb = Sandbox::new();
+        let file = sb.write_config(&two(&gh.uri(), &gl.uri()));
+        let (out, err, code) = run(sb
+            .cmd()
+            .env("RB_SECRET", SECRET)
+            .args(["source", "test", "lab", "--config"])
+            .arg(&file));
+        assert_eq!(code, 0, "{out}\n{err}");
+        assert!(
+            out.contains("Detected              GitLab 16.9.2, probed "),
+            "{out}"
+        );
+        assert!(out.contains("Request changes       no"), "{out}");
+        assert!(
+            out.contains("GitLab 16.9 on gitlab.test doesn't support requesting changes"),
+            "{out}"
+        );
+
+        let (out, _, _) = run(sb
+            .cmd()
+            .env("RB_SECRET", SECRET)
+            .args([
+                "source",
+                "test",
+                "lab",
+                "--json",
+                "probe,capabilities",
+                "--config",
+            ])
+            .arg(&file));
+        let value: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(value[0]["probe"]["version"], "16.9.2");
+        assert!(value[0]["probe"]["probedAt"]
+            .as_str()
+            .unwrap()
+            .ends_with('Z'));
+
+        let gl = versioned_gitlab(json!({"version": "17.5.1", "enterprise": true})).await;
+        let file = sb.write_config(&two(&gh.uri(), &gl.uri()));
+        let (out, err, code) = run(sb
+            .cmd()
+            .env("RB_SECRET", SECRET)
+            .args([
+                "source",
+                "test",
+                "lab",
+                "--require",
+                "request-changes",
+                "--config",
+            ])
+            .arg(&file));
+        assert_eq!(code, 0, "{out}\n{err}");
+        assert!(out.contains("GitLab 17.5.1"), "{out}");
+    }
+
     #[tokio::test]
     async fn exit_4_when_sign_in_fails_and_5_when_a_required_capability_is_missing() {
         let (gh, gl) = (github(401).await, gitlab().await);

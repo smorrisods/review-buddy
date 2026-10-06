@@ -458,14 +458,40 @@ async fn write_errors_are_mapped_with_a_next_step() {
 }
 
 #[tokio::test]
-async fn request_changes_is_unsupported_and_sends_nothing() {
+async fn requesting_changes_publishes_with_the_reviewer_state() {
+    let server = MockServer::start().await;
+    serve(&server, Stub::default()).await;
+    provider(&server, "")
+        .submit_review(&id(), &draft(vec![], "Please fix"), Verdict::RequestChanges)
+        .await
+        .unwrap();
+    let draft_path = format!("{MR}/draft_notes");
+    assert_eq!(
+        writes(&server).await,
+        vec![
+            (
+                "POST".to_string(),
+                draft_path.clone(),
+                json!({"note": "Please fix"})
+            ),
+            (
+                "POST".to_string(),
+                format!("{draft_path}/bulk_publish"),
+                json!({"reviewer_state": "requested_changes"})
+            ),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn requesting_changes_without_a_summary_sends_nothing() {
     let server = MockServer::start().await;
     serve(&server, Stub::default()).await;
     let err = provider(&server, "")
-        .submit_review(&id(), &draft(vec![], "Please fix"), Verdict::RequestChanges)
+        .submit_review(&id(), &draft(vec![], " "), Verdict::RequestChanges)
         .await
         .unwrap_err();
-    assert!(matches!(err, Error::Unsupported(_)), "{err:?}");
+    assert!(text(&err).contains("needs a summary"), "{err:?}");
     assert!(server.received_requests().await.unwrap().is_empty());
 }
 

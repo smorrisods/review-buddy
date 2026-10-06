@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/capabilities.rs
+expression: screen
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                   Afterglow Dark
+╭ files 1 ───────────────────────╮╭ src/status/cache.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│› · src/status/cache.rs    +8 −2││              @@ -21,5 +21,11 @@ impl StatusCache {                                                                         │
+│                                ││›   21   21       pub async fn lookup(&self, key: &PipelineKey) -> Result<Status> {                                         │
+│                                ││    22      -         let status = self.client.pipeline_status(key).await?;                                                 │
+│                                ││    23      -         Ok(status)                                                                                            │
+│                                ││         22 +         if let Some(hit) = self.entries.get(key) {                                                            │
+│                                ││         23 +             if hit.fetched_at.elapsed() < self.ttl {                                                          │
+│                                ││         24 +                 return Ok(hit.status.clone());                                                                │
+│                                ││         25 +             }                                                                                                 │
+│                                ││         26 +         }                                                                                                     │
+│                                ││         27 +         let status = self.client.pipeline_status(key).await?;                                                 │
+│                                ││         28 +         self.entries.insert(key.clone(), Entry::new(status.clone()));                                         │
+│                                ││         29 +         Ok(status)                                                                                            │
+│                                ││    24   30       }                                                                                                         │
+│                                ││    25   31   }                                                                                                             │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│                                ││                                                                                                                            │
+│ Your review · pending ─────────││                                                                                                                            │
+│Nothing pending yet.            ││                                                                                                                            │
+│0 of 1 file viewed              ││                                                                                                                            │
+│Your verdict: not started       ││                                                                                                                            │
+│a approve · c comment           ││                                                                                                                            │
+│                                ││                                                                                                                            │
+╰────────────────────────────────╯╰ hunk 1 of 1 · file 1 of 1 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
+ j/k move  n/p hunk  ]/[ file      · GitLab 16.9 on gitlab.example.com doesn't support requesting changes (it needs 17.3 or newer). Approve or comment instead.

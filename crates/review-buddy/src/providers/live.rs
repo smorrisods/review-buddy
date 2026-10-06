@@ -1,17 +1,18 @@
 //! The TUI's live backend: cached rows first, then every source refreshed concurrently.
 //! Results go back to the app as messages; nothing here touches app state.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use rb_core::{
-    ChangeId, ChangeSummary, Error, Etag, Provider, ReviewDraft, Scope, Source, SourceId, ThreadId,
-    Timestamp, Verdict,
+    Capabilities, ChangeId, ChangeSummary, Error, Etag, ProbeOutcome, Provider, ReviewDraft, Scope,
+    Source, SourceId, ThreadId, Timestamp, Verdict,
 };
 use rb_store::Store;
 use tokio::sync::mpsc::UnboundedSender;
 
+use super::probe::{self, probe_cached, Probed};
 use super::refresh::{
     classify, jittered_interval, Backoff, Class, Clock, Engine, Jitter, Next, SourceMachine,
 };
@@ -25,6 +26,10 @@ pub struct Live {
     sources: Vec<Source>,
     cache: Option<Mutex<Store>>,
     engine: Engine,
+    /// Sources already probed this session, so each is asked once.
+    probed: Mutex<HashSet<SourceId>>,
+    /// What each probed source can do, so diffs opened later carry it.
+    known: Mutex<HashMap<SourceId, Capabilities>>,
     /// `refresh.interval`; `None` means manual refreshes only.
     pub refresh_interval: Option<Duration>,
     pub refresh_on_focus: bool,
@@ -50,6 +55,8 @@ impl Live {
             sources,
             cache: cache.map(Mutex::new),
             engine: Engine::new(concurrency),
+            probed: Mutex::default(),
+            known: Mutex::default(),
             refresh_interval: None,
             refresh_on_focus: true,
         }
@@ -242,6 +249,7 @@ impl Live {
                 Ok(items) => {
                     engine.with_machine(&source.id, SourceMachine::succeed);
                     status(SourceStatus::Ok);
+                    self.probe_once(&source, &tx);
                     reply(&mut first, Ok(items));
                     return;
                 }
@@ -282,6 +290,65 @@ impl Live {
                 }
             }
         }
+    }
+
+    /// Probes the source the first time a refresh reaches it this session. The answer is the
+    /// saved one when it's under a day old, so most launches send nothing.
+    fn probe_once(self: &Arc<Self>, source: &Source, tx: &UnboundedSender<Msg>) {
+        let first = self
+            .probed
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(source.id.clone());
+        if !first {
+            return;
+        }
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        let source = source.clone();
+        tokio::spawn(async move {
+            if let Some(probed) = live.probe_source(&source, false).await {
+                live.remember(&source.id, &probed.outcome);
+                let _ = tx.send(Msg::Probed {
+                    source: source.id,
+                    outcome: Box::new(probed.outcome),
+                    at: probed.at,
+                });
+            }
+        });
+    }
+
+    /// Asks (or recalls) what one source can do. A failure is quiet: the refresh reports sign-in
+    /// trouble itself, and the source keeps showing every action meanwhile.
+    pub async fn probe_source(&self, source: &Source, force: bool) -> Option<Probed> {
+        let _permit = self.engine.semaphore(&source.host).acquire_owned().await;
+        let provider = self.provider(&source.id, &source.host).await.ok()?;
+        probe_cached(
+            provider.as_ref(),
+            self.cache.as_ref(),
+            &source.host,
+            self.engine.clock.now(),
+            force,
+        )
+        .await
+        .ok()
+    }
+
+    /// Forgets saved probes for every source, for when settings or sign-in changed.
+    pub fn forget_probes(&self) {
+        if let Some(cache) = &self.cache {
+            let mut store = cache.lock().unwrap_or_else(|e| e.into_inner());
+            for source in &self.sources {
+                probe::forget(&mut store, source.kind, &source.host);
+            }
+        }
+    }
+
+    fn remember(&self, id: &SourceId, outcome: &ProbeOutcome) {
+        self.known
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id.clone(), outcome.capabilities);
     }
 
     fn cached_rows(&self, id: &SourceId) -> Vec<ChangeSummary> {
@@ -414,9 +481,18 @@ impl Live {
         let host = self.host_of(&id.source_id);
         let _permit = self.engine.semaphore(&host).acquire_owned().await;
         let provider = self.provider(&id.source_id, &host).await?;
-        load::fetch_diff(provider.as_ref(), id, ReviewDraft::default())
+        let mut data = load::fetch_diff(provider.as_ref(), id, ReviewDraft::default())
             .await
-            .map_err(|e| SourceFailure::from_error(&e, &host))
+            .map_err(|e| SourceFailure::from_error(&e, &host))?;
+        if let Some(caps) = self
+            .known
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&id.source_id)
+        {
+            data.caps = *caps;
+        }
+        Ok(data)
     }
 
     /// Sends a review (or one standalone comment) to the change's forge. Only called after the

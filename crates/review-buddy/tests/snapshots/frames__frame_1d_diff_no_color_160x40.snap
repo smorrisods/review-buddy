@@ -38,8 +38,8 @@ expression: plain_dump(& mut app)
 │1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
 │0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
 │Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
-│                                ││              │ Fewer branches this way:                                                                                   ││
-│                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+│a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
+│x request changes               ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
 
@@ -224,12 +224,12 @@ expression: plain_dump(& mut app)
 35:33 D "│"
 35:34 B "│"
 35:49 B "╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│"
-36:0 D "│"
+36:0 D "│a approve · c comment"
 36:33 D "│"
 36:34 B "│"
 36:49 B "│"
 36:157 B " ││"
-37:0 D "│"
+37:0 D "│x request changes"
 37:33 D "│"
 37:34 B "│"
 37:49 B "│ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);"
