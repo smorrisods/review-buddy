@@ -101,9 +101,8 @@ impl Provider for GithubProvider {
     }
 
     fn web_url(&self, id: &ChangeId) -> Url {
-        let host = self.client.host();
-        Url::parse(&format!("https://{host}/{}/pull/{}", id.repo, id.number))
-            .unwrap_or_else(|_| Url::parse("https://github.com").expect("static URL"))
+        let base = self.client.web_base();
+        rb_core::http::join_web(&base, &format!("{}/pull/{}", id.repo, id.number)).unwrap_or(base)
     }
 
     async fn probe(&self) -> Result<ProbeOutcome> {

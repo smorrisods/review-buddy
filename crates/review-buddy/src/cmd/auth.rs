@@ -273,9 +273,13 @@ pub async fn check_source(cfg: &SourceConfig, factory: &Factory) -> SourceAuth {
 fn explain(err: &Error, method: &Method, host: &str) -> (String, String) {
     match err {
         Error::Unauthorized { .. } => ("token rejected".to_string(), method.fix(host)),
+        Error::Network { reason, .. } if reason.contains("TLS certificate") => (
+            err.to_string(),
+            format!("ask the administrator of {host} for a publicly trusted certificate; private certificate authorities aren't supported yet"),
+        ),
         Error::Network { .. } => (
             err.to_string(),
-            "check your connection and try again".to_string(),
+            "check the host name, `api_url` and your VPN, then try again".to_string(),
         ),
         Error::Forbidden { .. } => (
             err.to_string(),
@@ -778,6 +782,22 @@ mod tests {
             require_signed_in(&auths).unwrap_err()
         );
         assert!(!everything.contains("topsecretvalue"), "{everything}");
+    }
+
+    #[test]
+    fn tls_and_connection_failures_get_different_next_steps() {
+        let tls = Error::Network {
+            host: "ghe.test".into(),
+            reason: rb_core::http::tls_reason("invalid peer certificate: UnknownIssuer").unwrap(),
+        };
+        let (_, fix) = explain(&tls, &Method::Gh, "ghe.test");
+        assert!(fix.contains("publicly trusted certificate"), "{fix}");
+        let down = Error::Network {
+            host: "ghe.test".into(),
+            reason: "the connection failed".into(),
+        };
+        let (_, fix) = explain(&down, &Method::Gh, "ghe.test");
+        assert!(fix.contains("`api_url`"), "{fix}");
     }
 
     #[test]

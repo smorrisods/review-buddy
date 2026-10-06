@@ -14,7 +14,7 @@ mod threads;
 mod time;
 
 pub use auth::{Auth, AuthError, ResolvedToken, TokenOrigin};
-pub use client::{GithubClient, RateLimit, TokenReport, API_VERSION};
+pub use client::{GithubClient, RateLimit, ServerInfo, TokenReport, API_VERSION};
 pub use probe::{can_rerun_workflows, decide, probe};
 pub use provider::GithubProvider;
 pub use review::{plan_review, PlannedCall, ReviewPlan};

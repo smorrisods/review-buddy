@@ -362,26 +362,23 @@ impl Context {
         } else {
             git::GitInfo::default()
         };
+        let url_roots: Vec<(String, String)> = self
+            .configured()?
+            .iter()
+            .filter_map(|s| {
+                let root = selector::url_root(s.api_url.as_deref()?);
+                (!root.is_empty()).then(|| (s.host.clone(), root))
+            })
+            .collect();
         let inference = Inference {
+            url_roots: &url_roots,
             sources: &sources,
             only_sources: &[],
             repo_flag,
             git_remote: info.remote,
             current_branch: info.branch,
-            web_roots: &self.web_roots(),
         };
         Ok(selector::resolve(&selector, &inference)?)
-    }
-
-    fn web_roots(&self) -> Vec<(String, String)> {
-        self.config
-            .sources
-            .iter()
-            .filter_map(|s| {
-                let root = selector::web_root_of(s.api_url.as_deref()?)?;
-                Some((s.host.clone(), root))
-            })
-            .collect()
     }
 
     /// With `--source` narrowing the demo to one source, a bare number means the one repository

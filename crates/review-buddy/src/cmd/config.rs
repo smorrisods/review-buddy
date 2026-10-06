@@ -24,7 +24,7 @@ fn display(path: &std::path::Path) -> String {
     path.display().to_string()
 }
 
-fn paths_json(report: &PathsReport) -> Value {
+pub(super) fn paths_json(report: &PathsReport) -> Value {
     let p = &report.paths;
     let dirs =
         |dirs: &[std::path::PathBuf]| -> Vec<String> { dirs.iter().map(|d| display(d)).collect() };

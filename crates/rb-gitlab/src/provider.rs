@@ -102,12 +102,12 @@ impl Provider for GitlabProvider {
     }
 
     fn web_url(&self, id: &ChangeId) -> Url {
-        let host = self.client.host();
-        Url::parse(&format!(
-            "https://{host}/{}/-/merge_requests/{}",
-            id.repo, id.number
-        ))
-        .unwrap_or_else(|_| Url::parse("https://gitlab.com").expect("static URL"))
+        let base = self.client.web_base();
+        rb_core::http::join_web(
+            &base,
+            &format!("{}/-/merge_requests/{}", id.repo, id.number),
+        )
+        .unwrap_or(base)
     }
 
     async fn probe(&self) -> Result<ProbeOutcome> {

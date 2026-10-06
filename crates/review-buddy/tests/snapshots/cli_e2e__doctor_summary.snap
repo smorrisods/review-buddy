@@ -23,6 +23,18 @@ API versions
   gitlab.platform.example (platform)  GitLab REST v4 (demo)
   gitlab.com  GitLab REST v4 (demo)
 
+Endpoints
+  github.com (liminal-hq)  not used (demo)
+  github.com (smorris)  not used (demo)
+  gitlab.platform.example (platform)  not used (demo)
+  gitlab.com  not used (demo)
+
+Clock
+  github.com (liminal-hq)  not checked (demo)
+  github.com (smorris)  not checked (demo)
+  gitlab.platform.example (platform)  not checked (demo)
+  gitlab.com  not checked (demo)
+
 Capabilities
   github.com (liminal-hq)  demo capabilities (demo) · everything available
   github.com (smorris)  demo capabilities (demo) · everything available

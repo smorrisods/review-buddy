@@ -47,6 +47,21 @@ struct UserBody {
     name: Option<String>,
 }
 
+/// What `doctor` learns about the server itself.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerInfo {
+    pub version: String,
+    pub revision: Option<String>,
+    /// The server's clock from its `Date` header, in Unix seconds.
+    pub server_time: Option<i64>,
+}
+
+#[derive(Deserialize)]
+struct VersionBody {
+    version: String,
+    revision: Option<String>,
+}
+
 #[derive(Deserialize)]
 struct SelfBody {
     #[serde(default)]
@@ -131,6 +146,29 @@ impl GitlabClient {
 
     pub fn api_base(&self) -> &Url {
         &self.api_base
+    }
+
+    /// Where the forge's web pages live: the API base without `/api/v4`, keeping any scheme,
+    /// port and relative URL root (`https://example.com/gitlab`), else `https://<host>`.
+    pub fn web_base(&self) -> Url {
+        rb_core::http::web_base_from_api(&self.api_base, "/api/v4").unwrap_or_else(|| {
+            Url::parse(&format!("https://{}", self.host)).unwrap_or_else(|_| self.api_base.clone())
+        })
+    }
+
+    /// `GET /version`, for the GitLab version and the server's clock.
+    pub async fn probe(&self) -> Result<ServerInfo> {
+        let (body, headers) = self.send_full(self.http.get(self.url("/version"))).await?;
+        let v: VersionBody = self.parse(&body)?;
+        Ok(ServerInfo {
+            version: v.version,
+            revision: v.revision,
+            server_time: headers
+                .get("date")
+                .and_then(|d| d.to_str().ok())
+                .and_then(rb_core::http::parse_http_date)
+                .map(|t| t.0),
+        })
     }
 
     /// The last rate-limit numbers seen on any response.
@@ -259,6 +297,8 @@ impl GitlabClient {
     fn network_error(&self, e: reqwest::Error) -> Error {
         let reason = if e.is_timeout() {
             "the request timed out. Check your connection and try again".to_string()
+        } else if let Some(tls) = rb_core::http::tls_reason(&rb_core::http::error_chain(&e)) {
+            tls
         } else if e.is_connect() {
             "the connection failed. Check your network, VPN or `api_url`".to_string()
         } else {
@@ -287,6 +327,25 @@ mod tests {
             .unwrap();
         assert_eq!(c.url("/user"), "http://127.0.0.1:9/gl/api/v4/user");
         assert!(GitlabClient::new("x", Some("not a url"), Secret::new("t")).is_err());
+    }
+
+    #[test]
+    fn web_base_keeps_the_relative_root_and_port() {
+        let web = |host: &str, api: Option<&str>| {
+            GitlabClient::new(host, api, Secret::new("t"))
+                .unwrap()
+                .web_base()
+                .to_string()
+        };
+        assert_eq!(web("gitlab.com", None), "https://gitlab.com/");
+        assert_eq!(
+            web("x", Some("https://corp.test:8443/gitlab/api/v4/")),
+            "https://corp.test:8443/gitlab"
+        );
+        assert_eq!(
+            web("gl.test", Some("http://127.0.0.1:9")),
+            "https://gl.test/"
+        );
     }
 
     #[test]

@@ -113,16 +113,17 @@ pub fn apply_instead_of(url: &str, rules: &[InsteadOf]) -> String {
 pub fn parse_remote_url(url: &str) -> Option<RepoRef> {
     let url = url.trim();
     let (host, path) = match url.split_once("://") {
-        Some((_, rest)) => {
+        Some((scheme, rest)) => {
             let (authority, path) = rest.split_once('/')?;
-            (host_of(authority), path)
+            let web = scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https");
+            (host_of(authority, web), path)
         }
         None => {
             let (authority, path) = url.split_once(':')?;
             if authority.contains('/') {
                 return None;
             }
-            (host_of(authority), path)
+            (host_of(authority, false), path)
         }
     };
     let path = path.trim_matches('/');
@@ -136,10 +137,15 @@ pub fn parse_remote_url(url: &str) -> Option<RepoRef> {
     })
 }
 
-fn host_of(authority: &str) -> String {
+/// The host of a remote's authority. An http(s) port is the web port, so it stays (a source can
+/// name it); an ssh port says nothing about the web address, so it goes.
+fn host_of(authority: &str, keep_port: bool) -> String {
     let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
-    // A port is part of the authority in URL form but never part of the source host.
-    host.split(':').next().unwrap_or_default().to_string()
+    if keep_port {
+        host.to_string()
+    } else {
+        host.split(':').next().unwrap_or_default().to_string()
+    }
 }
 
 #[cfg(test)]
@@ -170,6 +176,26 @@ mod tests {
         assert_eq!(
             parse_remote_url("https://me:tok@GitLab.work.ca/platform/flow/"),
             repo("gitlab.work.ca", "platform/flow")
+        );
+    }
+
+    #[test]
+    fn web_ports_stay_and_ssh_ports_go() {
+        assert_eq!(
+            parse_remote_url("https://ghe.corp.test:8443/ghe/acme/widgets.git"),
+            repo("ghe.corp.test:8443", "ghe/acme/widgets")
+        );
+        assert_eq!(
+            parse_remote_url("ssh://git@ghe.corp.test:2222/acme/widgets.git"),
+            repo("ghe.corp.test", "acme/widgets")
+        );
+        assert_eq!(
+            parse_remote_url("git@git.corp.test:plat/infra/tf.git"),
+            repo("git.corp.test", "plat/infra/tf")
+        );
+        assert_eq!(
+            parse_remote_url("http://me:tok@git.corp.test:8929/gitlab/plat/tf"),
+            repo("git.corp.test:8929", "gitlab/plat/tf")
         );
     }
 

@@ -6,5 +6,7 @@ version
 auth
 rateLimits
 apiVersions
+endpoints
+clock
 capabilities
 paths
