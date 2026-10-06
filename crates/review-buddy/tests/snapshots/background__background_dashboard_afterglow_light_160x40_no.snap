@@ -1,6 +1,6 @@
 ---
 source: crates/review-buddy/tests/background.rs
-expression: bg_histogram(&buffer)
+expression: "pinned(\"afterglow-light\", (160, 40), BackgroundMode :: No)"
 ---
 Reset: 6250
 Rgb(244, 233, 222): 150

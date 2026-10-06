@@ -274,28 +274,55 @@ fn every_scene_is_painted_or_left_alone_without_holes() {
     }
 }
 
-#[test]
-fn the_dashboard_background_histograms_are_pinned() {
-    for theme in BUILTIN_IDS {
-        for (w, h) in SIZES {
-            for mode in MODES {
-                let setup = Setup {
-                    theme,
-                    size: (w, h),
-                    mode,
-                    depth: ColourDepth::TrueColour,
-                    no_color: false,
-                };
-                let mut app = setup.app();
-                dashboard(&mut app);
-                let buffer = setup.check(&mut app, "dashboard");
-                insta::assert_snapshot!(
-                    format!("background_dashboard_{theme}_{w}x{h}_{}", mode.key()),
-                    bg_histogram(&buffer)
-                );
+fn pinned(theme: &'static str, size: (u16, u16), mode: BackgroundMode) -> String {
+    let setup = Setup {
+        theme,
+        size,
+        mode,
+        depth: ColourDepth::TrueColour,
+        no_color: false,
+    };
+    let mut app = setup.app();
+    dashboard(&mut app);
+    bg_histogram(&setup.check(&mut app, "dashboard"))
+}
+
+macro_rules! histograms {
+    ($($name:ident: $theme:literal, $w:literal x $h:literal, $mode:ident;)*) => {
+        $(
+            #[test]
+            fn $name() {
+                insta::assert_snapshot!(pinned($theme, ($w, $h), BackgroundMode::$mode));
             }
-        }
-    }
+        )*
+    };
+}
+
+histograms! {
+    background_dashboard_liminal_hq_160x40_theme: "liminal-hq", 160 x 40, Theme;
+    background_dashboard_liminal_hq_160x40_yes: "liminal-hq", 160 x 40, Yes;
+    background_dashboard_liminal_hq_160x40_no: "liminal-hq", 160 x 40, No;
+    background_dashboard_liminal_hq_100x30_theme: "liminal-hq", 100 x 30, Theme;
+    background_dashboard_liminal_hq_100x30_yes: "liminal-hq", 100 x 30, Yes;
+    background_dashboard_liminal_hq_100x30_no: "liminal-hq", 100 x 30, No;
+    background_dashboard_dusk_160x40_theme: "dusk", 160 x 40, Theme;
+    background_dashboard_dusk_160x40_yes: "dusk", 160 x 40, Yes;
+    background_dashboard_dusk_160x40_no: "dusk", 160 x 40, No;
+    background_dashboard_dusk_100x30_theme: "dusk", 100 x 30, Theme;
+    background_dashboard_dusk_100x30_yes: "dusk", 100 x 30, Yes;
+    background_dashboard_dusk_100x30_no: "dusk", 100 x 30, No;
+    background_dashboard_afterglow_dark_160x40_theme: "afterglow-dark", 160 x 40, Theme;
+    background_dashboard_afterglow_dark_160x40_yes: "afterglow-dark", 160 x 40, Yes;
+    background_dashboard_afterglow_dark_160x40_no: "afterglow-dark", 160 x 40, No;
+    background_dashboard_afterglow_dark_100x30_theme: "afterglow-dark", 100 x 30, Theme;
+    background_dashboard_afterglow_dark_100x30_yes: "afterglow-dark", 100 x 30, Yes;
+    background_dashboard_afterglow_dark_100x30_no: "afterglow-dark", 100 x 30, No;
+    background_dashboard_afterglow_light_160x40_theme: "afterglow-light", 160 x 40, Theme;
+    background_dashboard_afterglow_light_160x40_yes: "afterglow-light", 160 x 40, Yes;
+    background_dashboard_afterglow_light_160x40_no: "afterglow-light", 160 x 40, No;
+    background_dashboard_afterglow_light_100x30_theme: "afterglow-light", 100 x 30, Theme;
+    background_dashboard_afterglow_light_100x30_yes: "afterglow-light", 100 x 30, Yes;
+    background_dashboard_afterglow_light_100x30_no: "afterglow-light", 100 x 30, No;
 }
 
 #[test]

@@ -1,6 +1,6 @@
 ---
 source: crates/review-buddy/tests/background.rs
-expression: bg_histogram(&buffer)
+expression: "pinned(\"liminal-hq\", (100, 30), BackgroundMode :: No)"
 ---
 Reset: 2887
 Rgb(46, 36, 27): 113

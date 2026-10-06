@@ -1,6 +1,6 @@
 ---
 source: crates/review-buddy/tests/background.rs
-expression: bg_histogram(&buffer)
+expression: "pinned(\"dusk\", (100, 30), BackgroundMode :: No)"
 ---
 Reset: 2887
 Rgb(49, 38, 40): 113
