@@ -23,7 +23,7 @@ use crate::error::header_u64;
 use crate::time::parse_rfc3339;
 use crate::GitlabClient;
 
-const PER_PAGE: u32 = 100;
+pub(crate) const PER_PAGE: u32 = 100;
 const MAX_PAGES: usize = 10;
 const DIFF_PAGES: usize = 3;
 /// Below this many requests left we stop sending until the window resets.
@@ -174,7 +174,7 @@ struct Extras {
 }
 
 /// Percent-encodes a path for use as a `:id` segment (`group/sub` becomes `group%2Fsub`).
-fn encode(raw: &str) -> String {
+pub(crate) fn encode(raw: &str) -> String {
     let mut out = String::with_capacity(raw.len());
     for b in raw.bytes() {
         if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~') {
@@ -193,7 +193,7 @@ fn now_epoch() -> u64 {
 }
 
 /// Refuses to send when the last reported budget is nearly spent and hasn't reset yet.
-fn guard(client: &GitlabClient) -> Result<()> {
+pub(crate) fn guard(client: &GitlabClient) -> Result<()> {
     let now = now_epoch();
     match client
         .rate_limit()
@@ -207,7 +207,7 @@ fn guard(client: &GitlabClient) -> Result<()> {
     }
 }
 
-async fn get(
+pub(crate) async fn get(
     client: &GitlabClient,
     path: &str,
     query: &[(&str, String)],

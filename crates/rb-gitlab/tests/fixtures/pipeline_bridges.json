@@ -1,0 +1,6 @@
+[
+  {"id": 20, "name": "trigger-deploy", "stage": "deploy", "status": "success", "allow_failure": false,
+   "web_url": "https://gitlab.test/platform/flow/-/pipelines/99",
+   "started_at": null, "finished_at": null,
+   "downstream_pipeline": {"id": 99, "project_id": 3, "status": "success"}}
+]

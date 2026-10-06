@@ -6,10 +6,11 @@ use rb_core::{
 };
 use url::Url;
 
-use crate::{changes, GitlabClient};
+use crate::{changes, checks, files, review, threads, GitlabClient};
 
-/// GitLab behind the `Provider` trait. Sign-in checks, listing and detail work; diffs, threads,
-/// pipelines and review writes report `Unsupported` until they land, and capabilities stay empty.
+/// GitLab behind the `Provider` trait. Listing, detail, files, threads, pipeline jobs and review
+/// writes (comment, approve, reply, resolve) are implemented; request changes, merge and re-run
+/// report `Unsupported`.
 #[derive(Debug, Clone)]
 pub struct GitlabProvider {
     client: GitlabClient,
@@ -59,33 +60,33 @@ impl Provider for GitlabProvider {
         changes::change_detail(&self.client, &self.source_id, id, self.web_url(id)).await
     }
 
-    async fn files(&self, _id: &ChangeId) -> Result<Vec<FilePatch>> {
-        not_yet("reading diffs")
+    async fn files(&self, id: &ChangeId) -> Result<Vec<FilePatch>> {
+        files::files(&self.client, id).await
     }
 
-    async fn threads(&self, _id: &ChangeId) -> Result<Vec<Thread>> {
-        not_yet("reading threads")
+    async fn threads(&self, id: &ChangeId) -> Result<Vec<Thread>> {
+        threads::threads(&self.client, id).await
     }
 
-    async fn checks(&self, _id: &ChangeId) -> Result<Vec<Check>> {
-        not_yet("reading pipelines")
+    async fn checks(&self, id: &ChangeId) -> Result<Vec<Check>> {
+        checks::checks(&self.client, id).await
     }
 
     async fn submit_review(
         &self,
-        _id: &ChangeId,
-        _review: &ReviewDraft,
-        _verdict: Verdict,
+        id: &ChangeId,
+        review: &ReviewDraft,
+        verdict: Verdict,
     ) -> Result<()> {
-        not_yet("submitting reviews")
+        review::submit_review(&self.client, id, review, verdict).await
     }
 
-    async fn reply(&self, _thread: &ThreadId, _body: &str) -> Result<Comment> {
-        not_yet("replying")
+    async fn reply(&self, thread: &ThreadId, body: &str) -> Result<Comment> {
+        review::reply(&self.client, thread, body).await
     }
 
-    async fn resolve(&self, _thread: &ThreadId, _resolved: bool) -> Result<()> {
-        not_yet("resolving threads")
+    async fn resolve(&self, thread: &ThreadId, resolved: bool) -> Result<()> {
+        review::resolve(&self.client, thread, resolved).await
     }
 
     async fn merge(&self, _id: &ChangeId, _opts: &MergeOpts) -> Result<MergeOutcome> {
@@ -110,6 +111,10 @@ impl Provider for GitlabProvider {
     }
 
     fn capabilities(&self) -> Capabilities {
-        Capabilities::none()
+        Capabilities {
+            range_comments: true,
+            resolve_threads: true,
+            ..Capabilities::none()
+        }
     }
 }
