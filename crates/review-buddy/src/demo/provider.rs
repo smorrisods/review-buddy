@@ -110,6 +110,46 @@ impl DemoWorld {
         self.lock().sources.clone()
     }
 
+    /// Sets the state of one named check, as if the forge's CI had moved on, and keeps its
+    /// start and finish times consistent with the demo clock. Returns false if the change or
+    /// check doesn't exist.
+    pub fn set_check_state(&self, id: &ChangeId, name: &str, to: CiState) -> bool {
+        let mut state = self.lock();
+        let now = state.now;
+        let Ok(change) = state.change_mut(id) else {
+            return false;
+        };
+        let Some(check) = change.checks.iter_mut().find(|c| c.name == name) else {
+            return false;
+        };
+        check.state = to;
+        if to == CiState::Running {
+            check.started_at = Some(now);
+            check.completed_at = None;
+        } else {
+            check.started_at.get_or_insert(now);
+            check.completed_at = Some(now);
+        }
+        change.detail.summary.ci = worst_state(&change.checks, change.detail.summary.ci);
+        true
+    }
+
+    /// Lets the first running check on a change finish passing. Returns false if none was running.
+    pub fn settle_next_running(&self, id: &ChangeId) -> bool {
+        let name = {
+            let state = self.lock();
+            let Ok(change) = state.change(id) else {
+                return false;
+            };
+            change
+                .checks
+                .iter()
+                .find(|c| c.state == CiState::Running)
+                .map(|c| c.name.clone())
+        };
+        name.is_some_and(|n| self.set_check_state(id, &n, CiState::Pass))
+    }
+
     /// Every confirmation shown so far, oldest first. Each ends with ` (demo)`.
     pub fn confirmations(&self) -> Vec<String> {
         self.lock().confirmations.clone()
