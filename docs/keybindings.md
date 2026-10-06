@@ -19,6 +19,8 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `1`–`9` | Switch source (`1` is All, then sources in config order) |
 | `⏎` / `d` | Open the diff for the selected change |
 | `⏎` on the Noise row | Expand or collapse the bot updates |
+| `⏎` on a `+N more` row | Show the rest of that bucket, past `triage.bucket_limit`. `⏎` again on the `show fewer` row collapses it |
+| `s` | Open the Show filters control: `reviewing`, `assigned`, `authored`, `drafts` and `noise`. Changes apply to the queue at once and last for the session |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
 | `T` | Cycle theme |
@@ -81,6 +83,23 @@ The same two-button modal is used for approving, posting now, and discarding a d
 | `⏎` | Confirm the highlighted button |
 | `esc` | Cancel |
 
+## Footer
+
+The footer lists the key hints on the left and a status on the right. When space is short, a status message you triggered keeps its place and the later hints drop first. The passive `refreshed HH:MM` time is the first to go: it shows only when every hint still fits, so `s show filters` and the hints before it are never cut for it.
+
+## Show filters
+
+`s` opens a small control over the queue. Tick a filter to let those changes in, clear it to hide them.
+
+| Key | Action |
+|---|---|
+| `↑↓` / `j` `k` | Move the cursor |
+| `space` / `⏎` | Toggle the filter under the cursor |
+| `1`–`5` | Toggle `reviewing`, `assigned`, `authored`, `drafts` or `noise` directly |
+| `esc` / `s` | Close |
+
+The filters start from `triage.show` and, when the Sources pane is showing, are also listed under the sources. Changes are kept for the session only and are never written to `config.toml`. The selection stays on the same change when it is still listed, and otherwise settles on the nearest row. Noise stays expanded or collapsed as you left it.
+
 ## Mouse
 
 Every mouse target is registered while drawing and resolved in `update`, so it behaves like the key it mirrors. Turn the mouse off with `ui.mouse = false`; then the terminal's own selection and wheel work everywhere.
@@ -90,7 +109,9 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | Top bar theme name | Cycles the theme (`T`) |
 | Footer hints | Run the hint's action |
 | Sources rows, or the source tabs when Sources is collapsed | Show that source. When the tabs overflow they scroll to keep the active one in view, and `‹` / `›` step to the previous or next source |
-| Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff |
+| Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff. Clicking a `+N more` row expands or collapses its bucket |
+| `N hidden by your Show filters` (the queue's end note) | Opens the Show filters control |
+| Show filters (the checkboxes under the sources, or the control) | Tick or clear a filter. A click outside the control closes it |
 | Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
 | Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; Approve and Comment open the diff and start there; Request changes and Merge explain they are planned for v0.3 |
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
@@ -114,7 +135,6 @@ These are in the spec and not built in 0.1. Pressing them does nothing, or says 
 | `⌃K` · `/` | v0.4 | Command palette · search all sources |
 | `,` | v0.4 | Settings |
 | `L` · `J` | v0.4 | Cycle layout · toggle Jax |
-| `space` | v0.4 | Toggle the Show filter under the cursor (the filters follow `triage.show`) |
 | `x` `m` on the dashboard | v0.3 | Request changes and merge |
 | `m` | v0.3 | Merge, with a confirm that defaults to **No, not yet** |
 | `R` · `b` | v0.3 | Re-run failed CI · check out the branch |

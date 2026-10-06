@@ -67,6 +67,7 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("Change", "⏎", "diff", Some(Action::Chip(Chip::Diff)), true),
             bind("Change", "o", "open", open, true),
             bind("Change", "y", "copy", copy, true),
+            bind("Change", "s", "show filters", Some(Action::OpenShow), true),
             bind("General", "?", "help", help, true),
             bind("General", "T", "theme", theme, true),
             bind("General", "q", "quit", Some(Action::Quit), true),
@@ -208,18 +209,22 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
         hints_for(app.screen)
     };
 
-    let status = app
-        .status
-        .as_ref()
-        .map(status_text)
-        .or_else(|| {
-            let at = app.state.last_refreshed?;
-            Some((format!("refreshed {}", refresh::hhmm(at)), Role::Muted))
-        })
-        .map(|(text, role)| {
-            let room = usize::from(area.width.saturating_sub(4));
-            (truncate(&text, room), role)
-        });
+    let fit = |text: String, role| {
+        let room = usize::from(area.width.saturating_sub(4));
+        (truncate(&text, room), role)
+    };
+    let mut status = app.status.as_ref().map(status_text).map(|(t, r)| fit(t, r));
+    if status.is_none() {
+        // The passive timestamp gives way to the hints: it only shows when none of them is cut.
+        status = app
+            .state
+            .last_refreshed
+            .map(|at| fit(format!("refreshed {}", refresh::hhmm(at)), Role::Muted))
+            .filter(|(t, _)| {
+                let room = area.width.saturating_sub(2 + width(t));
+                place_hints(&hints, room).len() == hints.len()
+            });
+    }
     let status_w = status.as_ref().map_or(0, |(t, _)| width(t) + 1);
     let hint_room = area.width.saturating_sub(1 + status_w);
 
@@ -364,5 +369,31 @@ mod tests {
             assert!(h.action.is_some());
             assert_eq!(h.label, h.label.to_lowercase());
         }
+    }
+
+    fn footer_text(width: u16) -> String {
+        use crate::app::AppConfig;
+        use ratatui::{backend::TestBackend, Terminal};
+        let mut app = App::new(AppConfig::from_env((width, 30)));
+        app.state.last_refreshed = Some(rb_core::Timestamp(1_000_000));
+        let mut terminal = Terminal::new(TestBackend::new(width, 1)).unwrap();
+        terminal
+            .draw(|f| draw_footer(f, &app, f.area(), &mut HitMap::default()))
+            .unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect()
+    }
+
+    #[test]
+    fn the_refreshed_time_gives_way_to_the_hints() {
+        let wide = footer_text(120);
+        assert!(wide.contains("s show filters") && wide.contains("refreshed"));
+        let narrow = footer_text(70);
+        assert!(narrow.contains("s show filters") && !narrow.contains("refreshed"));
     }
 }

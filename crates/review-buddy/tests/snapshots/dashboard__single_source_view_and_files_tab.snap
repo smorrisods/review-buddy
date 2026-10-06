@@ -15,12 +15,12 @@ expression: text(&render(&mut a))
 │  ● gitlab.com        1 ││                                              ││ 1 file changed  +1 −1                                                              │
 │    gitlab.com          ││                                              ││                                                                                    │
 │                        ││                                              ││ ⏎ to open the diff                                                                 │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
+│  Show  s to change     ││                                              ││                                                                                    │
+│  [x] reviewing         ││                                              ││                                                                                    │
+│  [x] assigned          ││                                              ││                                                                                    │
+│  [x] authored          ││                                              ││                                                                                    │
+│  [ ] drafts            ││                                              ││                                                                                    │
+│  [ ] noise             ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
@@ -41,4 +41,4 @@ expression: text(&render(&mut a))
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  ? help  T theme  q quit
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

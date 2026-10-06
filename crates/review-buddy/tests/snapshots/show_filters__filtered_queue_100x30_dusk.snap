@@ -1,9 +1,9 @@
 ---
-source: crates/review-buddy/tests/frames.rs
-expression: text(& render(& mut app))
+source: crates/review-buddy/tests/show_filters.rs
+expression: text(&render(&mut a))
 ---
- review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
-  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
+ review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
+  1 ● All 6   2 ● liminal-hq 3   3 ● smorris 0   4 ● platform 2   5 ● gitlab.com 1
 ╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ─────────────────────╮
 │  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus         │
 │▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                       │
@@ -11,20 +11,20 @@ expression: text(& render(& mut app))
 │  ● Raise muted text contrast in the ligh… 5h ││                                                  │
 │  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  │
 │                                              ││                                                  │
-│  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3  │
+│  Worth a look · 1                            ││  Overview   Files 3   Checks 6   Conversation 3  │
 │  ✕ Cache pipeline status lookups          7h ││ ──────────────────────────────────────────────── │
 │  GL flow!1182 · priya · you're mentioned     ││ Adds a menu bar along the top and a Menu type    │
-│  ● Tidy zsh startup                       1d ││ that tracks the selected item.                   │
-│  GH dotfiles#31 · smorris · yours            ││                                                  │
-│                                              ││ • Menu::select_next and Menu::select_prev move   │
-│  Can wait · 1                                ││ the highlight                                    │
-│  · Clarify the install steps              3d ││ • Menu::activate returns the action for the      │
-│  GL notes!12 · kai · approved by you         ││ highlighted item                                 │
+│                                              ││ that tracks the selected item.                   │
+│  Can wait · 1                                ││                                                  │
+│  · Clarify the install steps              3d ││ • Menu::select_next and Menu::select_prev move   │
+│  GL notes!12 · kai · approved by you         ││ the highlight                                    │
+│                                              ││ • Menu::activate returns the action for the      │
+│  ▸ Noise · 2 bot updates · ⏎ to expand       ││ highlighted item                                 │
 │                                              ││ • The bar itself is a plain Line, so it picks up │
-│  ▸ Noise · 2 bot updates · ⏎ to expand       ││ …                                                │
-│                                              ││                                                  │
-│  ── That's everything.                       ││ Reviewers                                        │
-│  7 in this view.                             ││ ◌ smorris requested                              │
+│  ── That's everything.                       ││ …                                                │
+│  1 hidden by your Show filters · s to change ││                                                  │
+│                                              ││ Reviewers                                        │
+│                                              ││ ◌ smorris requested                              │
 │                                              ││ ✎ jo commented                                   │
 │                                              ││                                                  │
 │                                              ││ Checks                                           │

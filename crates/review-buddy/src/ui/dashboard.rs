@@ -15,7 +15,7 @@ use super::text::{cells, justify};
 use super::{chrome::truncate, detail, layout, style, HitMap};
 use crate::app::{
     queue::{self, Item, Queue, Row},
-    refresh, Action, App, Pane, Selected, SourceStatus,
+    refresh, show, Action, App, Pane, Selected, SourceStatus,
 };
 
 const PLACEHOLDER: &str = "·  ·  ·";
@@ -179,6 +179,42 @@ fn draw_sources(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
         hits.push(Rect::new(area.x, y, area.width, 2), Action::SelectSource(n));
         y += 2;
     }
+    draw_show(frame, app, area, y + 1, hits);
+}
+
+/// The Show filters under the source list, when the pane has room for them.
+fn draw_show(frame: &mut Frame, app: &App, area: Rect, top: u16, hits: &mut HitMap) {
+    let palette = &app.palette;
+    let rows = show::FILTERS.len() as u16;
+    if top + 1 + rows > area.bottom() {
+        return;
+    }
+    let heading = Line::from(vec![
+        Span::raw(BLANK_RULE),
+        Span::styled(
+            "Show",
+            style::fg(palette, Role::TextSecondary).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("  s to change", style::fg(palette, Role::Muted)),
+    ]);
+    draw_line(frame, area, top, heading, false, app);
+    for (n, filter) in show::FILTERS.into_iter().enumerate() {
+        let y = top + 1 + n as u16;
+        let on = show::is_on(app, filter);
+        let role = if on { Role::Text } else { Role::Muted };
+        let line = Line::from(vec![
+            Span::raw(BLANK_RULE),
+            Span::styled(
+                format!("[{}] {}", if on { "x" } else { " " }, filter.as_str()),
+                style::fg(palette, role),
+            ),
+        ]);
+        draw_line(frame, area, y, line, false, app);
+        hits.push(
+            Rect::new(area.x, y, area.width, 1),
+            Action::ToggleShow(filter),
+        );
+    }
 }
 
 fn source_row(app: &App, source: Option<&Source>) -> (String, String, String, Style) {
@@ -340,6 +376,20 @@ fn draw_source_strip(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap
     );
 }
 
+fn hidden_count(app: &App) -> usize {
+    queue::hidden_in(&app.state, app.active_source().map(|s| &s.id))
+}
+
+/// The line under `── That's everything.`: what the Show filters hide, or what's in view.
+fn end_note(app: &App) -> String {
+    let hidden = hidden_count(app);
+    if hidden > 0 {
+        return format!("{hidden} hidden by your Show filters · s to change");
+    }
+    let n = queue::count_in(&app.state, app.active_source().map(|s| &s.id));
+    format!("{n} in this view.")
+}
+
 fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     let palette = &app.palette;
     if !app.state.loaded {
@@ -405,6 +455,9 @@ fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
             if let Some(n) = item_pos {
                 hits.push(Rect::new(area.x, y, area.width, 1), Action::SelectItem(n));
             }
+            if row == Row::End && k == 1 && hidden_count(app) > 0 {
+                hits.push(Rect::new(area.x, y, area.width, 1), Action::OpenShow);
+            }
         }
         top += height;
     }
@@ -433,6 +486,13 @@ fn empty_copy(app: &App) -> (String, String) {
             "This usually takes a moment.".to_string(),
         );
     }
+    let hidden = hidden_count(app);
+    if hidden > 0 {
+        return (
+            format!("Your Show filters hide all {hidden}."),
+            "Press s to widen them.".to_string(),
+        );
+    }
     (
         "That's everything.".to_string(),
         "Nothing is waiting on you.".to_string(),
@@ -442,6 +502,7 @@ fn empty_copy(app: &App) -> (String, String) {
 fn is_selected(app: &App, item: Item) -> bool {
     match (&app.dashboard.selected, item) {
         (Some(Selected::Noise), Item::Noise) => true,
+        (Some(Selected::More(a)), Item::More(b)) => a == &b,
         (Some(Selected::Change(id)), Item::Change(i)) => {
             app.state.changes.get(i).is_some_and(|c| &c.id == id)
         }
@@ -461,13 +522,23 @@ fn row_lines(
     let width = usize::from(width);
     match row {
         Row::Gap => vec![Line::raw("")],
-        Row::More(n) => vec![Line::from(vec![
-            Span::raw(BLANK_RULE),
-            Span::styled(
-                format!("+{n} more · raise triage.bucket_limit to see them"),
-                style::fg(palette, Role::Muted),
-            ),
-        ])],
+        Row::Item(Item::More(bucket)) => {
+            let section = queue.sections.iter().find(|s| s.bucket == bucket);
+            let text = match section {
+                Some(s) if s.expanded => "▾ show fewer · ⏎ to collapse".to_string(),
+                Some(s) => format!("▸ +{} more · ⏎ to expand", s.more),
+                None => String::new(),
+            };
+            let lead = if selected {
+                rule(app, focused)
+            } else {
+                Span::raw(BLANK_RULE)
+            };
+            vec![Line::from(vec![
+                lead,
+                Span::styled(text, style::fg(palette, Role::Muted)),
+            ])]
+        }
         Row::Heading(bucket, count) => vec![Line::from(vec![
             Span::raw(BLANK_RULE),
             Span::styled(
@@ -477,7 +548,6 @@ fn row_lines(
             Span::styled(format!(" · {count}"), style::fg(palette, Role::Muted)),
         ])],
         Row::End => {
-            let n = queue::count_in(&app.state, app.active_source().map(|s| &s.id));
             vec![
                 Line::from(vec![
                     Span::raw(BLANK_RULE),
@@ -485,10 +555,7 @@ fn row_lines(
                 ]),
                 Line::from(vec![
                     Span::raw(BLANK_RULE),
-                    Span::styled(
-                        format!("{n} in this view."),
-                        style::fg(palette, Role::Muted),
-                    ),
+                    Span::styled(end_note(app), style::fg(palette, Role::Muted)),
                 ]),
             ]
         }

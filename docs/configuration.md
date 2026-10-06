@@ -121,13 +121,13 @@ How a refresh behaves:
 
 ## `[triage]`
 
-The dashboard and the commands share one implementation: `noise_authors` and `stale_after` feed the built-in rules, `show` filters the queue by role and drafts, and `bucket_limit` cuts each bucket with a `+N more` row. Under `--demo` the defaults apply. The dashboard has no Show toggles yet, so it follows the configured `show`.
+The dashboard and the commands share one implementation: `noise_authors` and `stale_after` feed the built-in rules, `show` filters the queue by role and drafts, and `bucket_limit` cuts each bucket with a `+N more` row. Under `--demo` the defaults apply. The dashboard starts from the configured `show` and `s` opens a control to change it for the session; those changes aren't written back to `config.toml`. `review-buddy queue --show …` replaces `show` for one run. Items older than `stale_after` that would have been Waiting on you or Worth a look drop to Can wait, measured against the queue's own clock. Headings and the Sources counts reflect what the Show filters let through, and the queue's end note says how many they hide.
 
 | Key | Default | Notes |
 |---|---|---|
 | `noise_authors` | `["renovate[bot]", "dependabot[bot]", "release-please[bot]"]` | Exact logins or globs (`*[bot]`) |
-| `bucket_limit` | `20` | Rows shown per bucket before `+N more` |
-| `show` | `["reviewing", "assigned", "authored"]` | The default Show filters. Add `"drafts"` to show drafts, or `"noise"` to mix Noise into the normal buckets |
+| `bucket_limit` | `20` | Rows shown per bucket before `+N more`. `⏎` or a click on that row shows the rest |
+| `show` | `["reviewing", "assigned", "authored"]` | The starting Show filters. Add `"drafts"` to show drafts, or `"noise"` to mix Noise into the normal buckets (the `queue` command lists it as its own group instead) |
 | `noise_collapsed` | `true` | Show Noise as one collapsed row at the end of the queue |
 | `stale_after` | `"14d"` | Older items drop to Can wait |
 

@@ -1,6 +1,6 @@
 ---
-source: crates/review-buddy/tests/frames.rs
-expression: text(& render(& mut app))
+source: crates/review-buddy/tests/show_filters.rs
+expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
 ╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ───────────────────────────────────────────────────────╮
@@ -16,17 +16,17 @@ expression: text(& render(& mut app))
 │    gitlab.com          ││  ● Tidy zsh startup                       1d ││                                                                                    │
 │                        ││  GH dotfiles#31 · smorris · yours            ││ • Menu::select_next and Menu::select_prev move the highlight                       │
 │  Show  s to change     ││                                              ││ • Menu::activate returns the action for the highlighted item                       │
-│  [x] reviewing         ││  Can wait · 1                                ││ • The bar itself is a plain Line, so it picks up the active theme                  │
-│  [x] assigned          ││  · Clarify the install steps              3d ││                                                                                    │
-│  [x] authored          ││  GL notes!12 · kai · approved by you         ││ Reviewers                                Checks                                    │
-│  [ ] drafts            ││                                              ││ ◌ smorris requested                      ● 2 passing  ◐ 1 running                  │
-│  [ ] noise             ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││ ✎ jo commented                           ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
-│                        ││                                              ││                                                                                    │
-│                        ││  ── That's everything.                       ││ Latest comment                                                                     │
-│                        ││  7 in this view.                             ││ jo · 5h ago · menubar.rs:7                                                         │
-│                        ││                                              ││ These three lines could be one join. Is the intermediate Vec doing anything for    │
-│                        ││                                              ││ us?                                                                                │
-│                        ││                                              ││                                                                                    │
+│  [x] reviewing         ││  Can wait · 1            ╭ Show ──────────────────────────────────────────────╮e, so it picks up the active theme                  │
+│  [x] assigned          ││  · Clarify the install st│                                                    │                                                    │
+│  [x] authored          ││  GL notes!12 · kai · appr│▌ [x] reviewing  changes waiting on your review     │          Checks                                    │
+│  [ ] drafts            ││                          │  [x] assigned   changes assigned to you            │          ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates │  [x] authored   changes you opened                 │          ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││                          │  [ ] drafts     drafts, yours and others           │                                                    │
+│                        ││  ── That's everything.   │  [ ] noise      bot updates, mixed into the buckets│                                                    │
+│                        ││  7 in this view.         │                                                    │                                                    │
+│                        ││                          │  Nothing is hidden.                                │join. Is the intermediate Vec doing anything for    │
+│                        ││                          │  space toggle · esc close · this session only      │                                                    │
+│                        ││                          ╰────────────────────────────────────────────────────╯                                                    │
 │                        ││                                              ││ Your review  not started                                                           │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │

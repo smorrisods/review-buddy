@@ -25,6 +25,7 @@ pub mod queue;
 pub mod range;
 pub mod refresh;
 pub mod setup;
+pub mod show;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
@@ -90,6 +91,11 @@ pub enum Action {
     /// Copy the current change's URL.
     Copy,
     ToggleHelp,
+    /// Open the Show filters control.
+    OpenShow,
+    CloseShow,
+    /// Tick or clear one Show filter.
+    ToggleShow(crate::config::ShowFilter),
     DismissToast(u64),
     FocusPane(Pane),
     /// Show one source: 0 is All, then each source in order.
@@ -327,6 +333,8 @@ pub struct App {
     pub help: bool,
     /// Rows the help overlay is scrolled by.
     pub help_scroll: u16,
+    /// The Show filters control.
+    pub show: show::ShowControl,
     /// The last left click, for spotting a double-click: what it hit and the tick it came on.
     pub(crate) last_click: Option<(Action, u64)>,
     /// Preview before posting a single comment now (`review.confirm_post_now`).
@@ -367,6 +375,7 @@ impl App {
             setup: None,
             help: false,
             help_scroll: 0,
+            show: show::ShowControl::default(),
             last_click: None,
             confirm_post_now: true,
             tab_width: diffview::TAB_WIDTH,

@@ -11,12 +11,12 @@ expression: text(& mut app)
 │  ● oss               1 ││  GH web#2 · mira · review requested          ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
 │    … refreshing        ││                                              ││                                                                                    │
 │                        ││  ── That's everything.                       ││  Overview   Files 1   Checks   Conversation                                        │
-│                        ││  2 in this view.                             ││ ────────────────────────────────────────────────────────────────────────────────── │
-│                        ││                                              ││ ·  ·  ·                                                                            │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
+│  Show  s to change     ││  2 in this view.                             ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  [x] reviewing         ││                                              ││ ·  ·  ·                                                                            │
+│  [x] assigned          ││                                              ││                                                                                    │
+│  [x] authored          ││                                              ││                                                                                    │
+│  [ ] drafts            ││                                              ││                                                                                    │
+│  [ ] noise             ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
@@ -41,4 +41,4 @@ expression: text(& mut app)
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  ? help  T theme  q quit                                                                                                refreshed 10:42
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit                                                                                refreshed 10:42

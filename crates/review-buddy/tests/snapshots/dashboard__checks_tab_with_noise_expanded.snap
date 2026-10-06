@@ -1,6 +1,5 @@
 ---
 source: crates/review-buddy/tests/dashboard.rs
-assertion_line: 133
 expression: text(&buffer)
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
@@ -16,12 +15,12 @@ expression: text(&buffer)
 │  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ ● fmt  passing · 18s · required                                                    │
 │    gitlab.com          ││  ● Tidy zsh startup                       1d ││ ● clippy  passing · 1m 34s · required                                              │
 │                        ││  GH dotfiles#31 · smorris · yours            ││ ◐ test (linux)  running · required                                                 │
-│                        ││                                              ││ ↷ test (windows)  skipped                                                          │
-│                        ││  Can wait · 1                                ││ ○ coverage  neutral · 2m 11s · optional                                            │
-│                        ││  · Clarify the install steps              3d ││ ⊘ bench  cancelled · 40s · optional                                                │
-│                        ││  GL notes!12 · kai · approved by you         ││                                                                                    │
-│                        ││                                              ││                                                                                    │
-│                        ││  ▾ Noise · 2 bot updates · ⏎ to collapse     ││                                                                                    │
+│  Show  s to change     ││                                              ││ ↷ test (windows)  skipped                                                          │
+│  [x] reviewing         ││  Can wait · 1                                ││ ○ coverage  neutral · 2m 11s · optional                                            │
+│  [x] assigned          ││  · Clarify the install steps              3d ││ ⊘ bench  cancelled · 40s · optional                                                │
+│  [x] authored          ││  GL notes!12 · kai · approved by you         ││                                                                                    │
+│  [ ] drafts            ││                                              ││                                                                                    │
+│  [ ] noise             ││  ▾ Noise · 2 bot updates · ⏎ to collapse     ││                                                                                    │
 │                        ││  ● Update tokio to 1.47                   9h ││                                                                                    │
 │                        ││  GL flow!1190 · project_42_bot_a1b2c3 · bot …││                                                                                    │
 │                        ││  ● Update ratatui to 0.30                 1d ││                                                                                    │
@@ -42,4 +41,4 @@ expression: text(&buffer)
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  ? help  T theme  q quit
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

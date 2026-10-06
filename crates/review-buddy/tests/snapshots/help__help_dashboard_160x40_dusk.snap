@@ -15,16 +15,17 @@ expression: text(&render(&mut a))
 │  ● gitlab.com        1 ││  GL flow!1182 · priya · │Move                                                  │d a Menu type that tracks the selected item.       │
 │    gitlab.com          ││  ● Tidy zsh startup     │  j/k  move in the focused pane                       │                                                   │
 │                        ││  GH dotfiles#31 · smorri│  g/G  first / last row                               │lect_prev move the highlight                       │
-│                        ││                         │  tab  next pane                                      │ion for the highlighted item                       │
-│                        ││  Can wait · 1           │  h/l  previous / next pane                           │, so it picks up the active theme                  │
-│                        ││  · Clarify the install s│  1-9  switch source                                  │                                                   │
-│                        ││  GL notes!12 · kai · app│  [/]  previous / next detail tab                     │         Checks                                    │
-│                        ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
-│                        ││  ▸ Noise · 2 bot updates│Change                                                │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│  Show  s to change     ││                         │  tab  next pane                                      │ion for the highlighted item                       │
+│  [x] reviewing         ││  Can wait · 1           │  h/l  previous / next pane                           │, so it picks up the active theme                  │
+│  [x] assigned          ││  · Clarify the install s│  1-9  switch source                                  │                                                   │
+│  [x] authored          ││  GL notes!12 · kai · app│  [/]  previous / next detail tab                     │         Checks                                    │
+│  [ ] drafts            ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates│Change                                                │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
 │                        ││                         │  ⏎    diff                                           │                                                   │
 │                        ││  ── That's everything.  │  o    open                                           │                                                   │
 │                        ││  7 in this view.        │  y    copy                                           │                                                   │
-│                        ││                         │                                                      │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │  s    show filters                                   │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │                                                      │                                                   │
 │                        ││                         │General                                               │                                                   │
 │                        ││                         │  ?    help                                           │                                                   │
 │                        ││                         │  T    theme                                          │                                                   │
@@ -39,6 +40,5 @@ expression: text(&render(&mut a))
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
- ⏎ diff  o open  y copy  ? help  T theme  q quit
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
