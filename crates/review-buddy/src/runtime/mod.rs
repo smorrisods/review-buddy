@@ -46,6 +46,8 @@ pub enum Backend {
     None,
     #[cfg(feature = "demo")]
     Demo(crate::demo::DemoWorld),
+    #[cfg(feature = "live")]
+    Live(std::sync::Arc<crate::providers::Live>),
 }
 
 /// How the interface should start.
@@ -53,6 +55,8 @@ pub enum Backend {
 pub struct RunOptions {
     #[cfg(feature = "demo")]
     pub demo: Option<crate::demo::Demo>,
+    #[cfg(feature = "live")]
+    pub live: Option<std::sync::Arc<crate::providers::Live>>,
 }
 
 impl Backend {
@@ -62,6 +66,8 @@ impl Backend {
             Backend::None => false,
             #[cfg(feature = "demo")]
             Backend::Demo(_) => true,
+            #[cfg(feature = "live")]
+            Backend::Live(_) => false,
         }
     }
 }
@@ -71,6 +77,10 @@ impl RunOptions {
         #[cfg(feature = "demo")]
         if let Some(demo) = &self.demo {
             return Backend::Demo(demo.world.clone());
+        }
+        #[cfg(feature = "live")]
+        if let Some(live) = &self.live {
+            return Backend::Live(std::sync::Arc::clone(live));
         }
         Backend::None
     }
@@ -110,6 +120,25 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                     let _ = tx.send(msg);
                 });
             }
+            #[cfg(feature = "live")]
+            Backend::Live(live) => live.refresh(tx),
+        },
+        Cmd::LoadInfo(id) => match backend {
+            Backend::None => drop(id),
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                let provider = world.provider(id.kind);
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let result = crate::load::fetch_info(&provider, &id)
+                        .await
+                        .map(Box::new)
+                        .map_err(|err| err.to_string());
+                    let _ = tx.send(Msg::InfoLoaded { id, result });
+                });
+            }
+            #[cfg(feature = "live")]
+            Backend::Live(live) => live.load_info(id, tx),
         },
         Cmd::LoadDiff(id) => match backend {
             Backend::None => {
@@ -131,6 +160,8 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                     let _ = tx.send(Msg::DiffLoaded { id, result });
                 });
             }
+            #[cfg(feature = "live")]
+            Backend::Live(live) => live.load_diff(id, tx),
         },
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
@@ -145,7 +176,7 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
 /// Starts the interface and blocks until the user quits.
 pub fn run(options: RunOptions) -> Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_time()
+        .enable_all()
         .build()?;
     runtime.block_on(event_loop(options))
 }
@@ -163,7 +194,27 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
     let mut last_draw = Instant::now() - MIN_FRAME;
 
-    if !matches!(backend, Backend::None) {
+    #[cfg(feature = "live")]
+    if let Backend::Live(live) = &backend {
+        app.refresh_on_focus = live.refresh_on_focus;
+        app.state.loading = true;
+        // Saved rows paint on the first frame; the refresh they trigger fills in behind them.
+        for cmd in update(&mut app, Msg::Cached(Box::new(live.cached_snapshot()))) {
+            execute(cmd, &tx, &backend, &platform);
+        }
+    }
+    #[cfg(not(feature = "live"))]
+    if matches!(backend, Backend::None) {
+        let notice = Notice::new(
+            NoticeKind::Info,
+            "This build has no network support. Try review-buddy --demo to explore.",
+        );
+        for cmd in update(&mut app, Msg::Notify(notice)) {
+            execute(cmd, &tx, &backend, &platform);
+        }
+    }
+    #[cfg(feature = "demo")]
+    if matches!(backend, Backend::Demo(_)) {
         app.state.loading = true;
         // The first frame already shows the loaded data; the load is local and immediate.
         execute(Cmd::LoadChanges, &tx, &backend, &platform);

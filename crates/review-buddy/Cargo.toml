@@ -59,3 +59,5 @@ insta.workspace = true
 portable-pty.workspace = true
 predicates.workspace = true
 tempfile.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+wiremock.workspace = true

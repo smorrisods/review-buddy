@@ -189,15 +189,22 @@ fn source_row(app: &App, source: Option<&Source>) -> (String, String, String, Ro
             queue::count_in(&app.state, None).to_string(),
             Role::Accent,
         ),
-        Some(s) => (
-            s.label.clone(),
-            s.host.clone(),
-            queue::count_in(&app.state, Some(&s.id)).to_string(),
-            match s.kind {
-                rb_core::ForgeKind::GitHub => Role::Github,
-                rb_core::ForgeKind::GitLab => Role::Gitlab,
-            },
-        ),
+        Some(s) => {
+            let failure = app.state.failures.get(&s.id);
+            (
+                s.label.clone(),
+                match failure {
+                    Some(f) => f.short().to_string(),
+                    None => s.host.clone(),
+                },
+                queue::count_in(&app.state, Some(&s.id)).to_string(),
+                match (failure, s.kind) {
+                    (Some(_), _) => Role::Warning,
+                    (None, rb_core::ForgeKind::GitHub) => Role::Github,
+                    (None, rb_core::ForgeKind::GitLab) => Role::Gitlab,
+                },
+            )
+        }
     }
 }
 
@@ -270,16 +277,14 @@ fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     }
     let queue = app.queue();
     if queue.is_empty() {
+        let (head, sub) = empty_copy(app);
         centred(
             frame,
             app,
             area,
             vec![
-                Line::styled("That's everything.", style::fg(palette, Role::TextBright)),
-                Line::styled(
-                    "Nothing is waiting on you.",
-                    style::fg(palette, Role::Muted),
-                ),
+                Line::styled(head, style::fg(palette, Role::TextBright)),
+                Line::styled(sub, style::fg(palette, Role::Muted)),
             ],
         );
         return;
@@ -314,6 +319,35 @@ fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
         }
         top += height;
     }
+}
+
+/// What an empty queue says: nothing connected, a sign-in or other failure, or all clear.
+fn empty_copy(app: &App) -> (String, String) {
+    let state = &app.state;
+    if state.sources.is_empty() {
+        return (
+            "Nothing connected yet.".to_string(),
+            "Add a source to config.toml, or try review-buddy --demo.".to_string(),
+        );
+    }
+    let visible = state
+        .sources
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| app.dashboard.source == 0 || app.dashboard.source == i + 1);
+    if let Some(failure) = visible.clone().find_map(|(_, s)| state.failures.get(&s.id)) {
+        return (failure.headline(), failure.next_step.clone());
+    }
+    if visible.clone().next().is_some() && state.pending_sources > 0 {
+        return (
+            "Checking your sources…".to_string(),
+            "This usually takes a moment.".to_string(),
+        );
+    }
+    (
+        "That's everything.".to_string(),
+        "Nothing is waiting on you.".to_string(),
+    )
 }
 
 fn is_selected(app: &App, item: Item) -> bool {

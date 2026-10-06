@@ -124,3 +124,14 @@ Shells out to `git` in the repo found under `checkout.root`:
 - GitLab `RateLimit-Remaining` / `Retry-After` are honoured.
 - Retries use exponential backoff with full jitter (max 3) on 5xx and network errors, but never on 4xx.
 - Error copy maps status codes to fixes: 401 "Token rejected. Press e to paste a new one." · 403 with SSO "This org needs SSO approval for your token. o to open the approval page." · 404 on an MR "It may have been closed or moved. r to refresh." · 409 on merge "Head moved since you reviewed. Refresh and look again."
+
+## Live loading in the interface
+
+- A provider is built per enabled `[[source]]` by the factory in `providers/`, and `review-buddy` commands and the interface share it. GitHub tokens come from `gh auth token --hostname <host>` (then the keyring), the keyring, an `env:VAR` reference or a `token_command`; `api_url` points Enterprise or a test stub at its API. GitLab sources report "GitLab arrives in v0.2" and don't stop the others.
+- On launch, cached rows from the SQLite cache paint first, then every source refreshes at once (bounded by `max_concurrency_per_host`) and replaces its cached rows. Refresh runs on launch, on `r` and when the terminal regains focus (`refresh.on_focus`); there is no background polling yet.
+- A source that fails keeps its cached rows and shows a short reason in the Sources pane and the Detail pane, plus a toast with the next step. With no cache and no sign-in, the queue says "Sign in to see your reviews." and how to fix it. Rate limits say when the limit resets.
+- Details, checks and threads load the first time a change is selected; files and threads load when its diff opens.
+
+### Manual check against a real account (read-only)
+
+Sign in with `gh auth login` (or set `auth = "env:GITHUB_TOKEN"`), add a `[[source]]` for `github.com`, run `review-buddy`, and check that rows appear, `r` refreshes, selecting a change fills the Detail pane, and `d` opens its diff. Then run `gh auth logout`, relaunch, and check that cached rows remain with a "sign-in needed" note. Nothing in this flow writes to GitHub.

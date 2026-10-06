@@ -38,24 +38,29 @@ fn launch(cli: &cli::Cli) -> ExitCode {
     }
 }
 
-#[cfg(feature = "demo")]
 fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
-    let demo = if cli.global.demo {
-        Some(review_buddy::demo::Demo::start(
-            cli.global.frozen_time.as_deref(),
-        )?)
-    } else {
-        None
-    };
-    Ok(runtime::RunOptions { demo })
-}
-
-#[cfg(not(feature = "demo"))]
-fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
+    #[allow(unused_mut)]
+    let mut options = runtime::RunOptions::default();
     if cli.global.demo {
+        #[cfg(feature = "demo")]
+        {
+            options.demo = Some(review_buddy::demo::Demo::start(
+                cli.global.frozen_time.as_deref(),
+            )?);
+        }
+        #[cfg(not(feature = "demo"))]
         anyhow::bail!(
             "This build doesn't include demo mode. Install a release build, or rebuild with the `demo` feature."
         );
+    } else {
+        #[cfg(feature = "live")]
+        {
+            let ctx =
+                cmd::context::Context::build(cli.global.clone(), cmd::context::Terminal::detect())?;
+            options.live = Some(std::sync::Arc::new(
+                review_buddy::providers::Live::from_context(&ctx)?,
+            ));
+        }
     }
-    Ok(runtime::RunOptions::default())
+    Ok(options)
 }
