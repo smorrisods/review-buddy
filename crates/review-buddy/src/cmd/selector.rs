@@ -14,7 +14,7 @@ pub struct RepoRef {
 }
 
 impl RepoRef {
-    /// Parses `[host/]owner/repo`. A first segment containing a dot is a host, so GitLab
+    /// Parses `[host/]owner/repo`. A first segment containing a dot or a port is a host, so GitLab
     /// subgroups (`platform/infra/terraform`) stay paths.
     pub fn parse(text: &str) -> Result<Self, SelectorError> {
         let text = text.trim().trim_matches('/');
@@ -24,7 +24,7 @@ impl RepoRef {
             return Err(bad());
         }
         match segments.as_slice() {
-            [host, rest @ ..] if host.contains('.') && !rest.is_empty() => {
+            [host, rest @ ..] if (host.contains('.') || host.contains(':')) && !rest.is_empty() => {
                 if rest.len() < 2 {
                     return Err(bad());
                 }
@@ -40,6 +40,43 @@ impl RepoRef {
             _ => Err(bad()),
         }
     }
+}
+
+/// True when `wanted` names the same host as `source`. A port on only one side is ignored,
+/// since an ssh remote never carries the web port.
+pub fn host_matches(source: &str, wanted: &str) -> bool {
+    if source.eq_ignore_ascii_case(wanted) {
+        return true;
+    }
+    let split = |h: &str| match h.rsplit_once(':') {
+        Some((name, port)) if port.bytes().all(|b| b.is_ascii_digit()) => {
+            (name.to_string(), Some(port.to_string()))
+        }
+        _ => (h.to_string(), None),
+    };
+    let ((a, ap), (b, bp)) = (split(source), split(wanted));
+    a.eq_ignore_ascii_case(&b) && (ap.is_none() || bp.is_none())
+}
+
+/// The relative URL root of a self-hosted instance, from its API address:
+/// `https://example.com/gitlab/api/v4` is `gitlab`. Empty when there is none.
+pub fn url_root(api_url: &str) -> String {
+    let rest = api_url.split_once("://").map_or(api_url, |(_, r)| r);
+    let path = rest.split_once('/').map_or("", |(_, p)| p);
+    let path = path.trim_matches('/');
+    let path = ["api/v3", "api/v4"]
+        .iter()
+        .find_map(|s| path.strip_suffix(s))
+        .unwrap_or(path);
+    path.trim_matches('/').to_string()
+}
+
+/// `repo` without the instance's relative URL root.
+fn strip_root<'a>(repo: &'a str, root: &str) -> &'a str {
+    repo.strip_prefix(root)
+        .and_then(|rest| rest.strip_prefix('/'))
+        .filter(|rest| !root.is_empty() && rest.contains('/'))
+        .unwrap_or(repo)
 }
 
 fn has_space(s: &str) -> bool {
@@ -189,7 +226,7 @@ fn parse_url(input: &str) -> Result<UrlRef, SelectorError> {
     }
     if let Some(at) = segments.iter().position(|s| *s == "pull") {
         let number = segments.get(at + 1).and_then(|n| parse_number(n));
-        if let (Some(number), 2) = (number, at) {
+        if let (Some(number), true) = (number, at >= 2) {
             return Ok(UrlRef {
                 host,
                 kind: ForgeKind::GitHub,
@@ -229,9 +266,9 @@ pub struct Inference<'a> {
     /// The cwd repository's remote, already mapped through `insteadOf`.
     pub git_remote: Option<RepoRef>,
     pub current_branch: Option<String>,
-    /// Self-hosted GitLab hosts served below a path (`https://host/gitlab`), as `(host, root)`.
-    /// A change URL on such a host has the root stripped before the repository is matched.
-    pub web_roots: &'a [(String, String)],
+    /// Relative URL roots by source host, for instances served below a path
+    /// (`https://example.com/gitlab`). URLs and remotes on that host carry the root.
+    pub url_roots: &'a [(String, String)],
 }
 
 impl Inference<'_> {
@@ -307,10 +344,11 @@ fn pick(
     repo: &str,
     host: Option<&str>,
     kind: Option<ForgeKind>,
+    roots: &[(String, String)],
 ) -> Result<(SourceId, ForgeKind, String, String), SelectorError> {
     let on_host: Vec<&&Source> = pool
         .iter()
-        .filter(|s| host.is_none_or(|h| s.host.eq_ignore_ascii_case(h)))
+        .filter(|s| host.is_none_or(|h| host_matches(&s.host, h)))
         .filter(|s| kind.is_none_or(|k| s.kind == k))
         .collect();
     if on_host.is_empty() {
@@ -323,7 +361,18 @@ fn pick(
     }
     let matches: Vec<(&Source, String)> = on_host
         .into_iter()
-        .filter_map(|s| expand(s, repo).map(|full| (&**s, full)))
+        .filter_map(|s| {
+            let root = roots
+                .iter()
+                .find(|(h, _)| h.eq_ignore_ascii_case(&s.host))
+                .map_or("", |(_, r)| r.as_str());
+            let repo = if host.is_some() {
+                strip_root(repo, root)
+            } else {
+                repo
+            };
+            expand(s, repo).map(|full| (&**s, full))
+        })
         .collect();
     match matches.as_slice() {
         [] => Err(SelectorError::NoSourceForRepo {
@@ -353,34 +402,6 @@ fn pick(
     }
 }
 
-fn strip_web_root(url: &UrlRef, roots: &[(String, String)]) -> String {
-    roots
-        .iter()
-        .filter(|(host, _)| url.kind == ForgeKind::GitLab && host.eq_ignore_ascii_case(&url.host))
-        .find_map(|(_, root)| {
-            let root = root.trim_matches('/');
-            url.repo
-                .strip_prefix(root)
-                .and_then(|rest| rest.strip_prefix('/'))
-                .filter(|rest| rest.contains('/'))
-        })
-        .unwrap_or(&url.repo)
-        .to_string()
-}
-
-/// The part of an API address that sits below the host: `https://h/gitlab/api/v4` gives
-/// `gitlab`. `None` when the instance is served from the root.
-pub fn web_root_of(api_url: &str) -> Option<String> {
-    let rest = api_url.split_once("://").map_or(api_url, |(_, r)| r);
-    let path = rest.split_once('/')?.1;
-    let path = path.trim_end_matches('/');
-    let path = path
-        .strip_suffix("/api/v4")
-        .or_else(|| path.strip_suffix("api/v4"))?;
-    let path = path.trim_matches('/');
-    (!path.is_empty()).then(|| path.to_string())
-}
-
 /// Matches a parsed selector to one source, repository and change.
 pub fn resolve(selector: &Selector, inference: &Inference<'_>) -> Result<Target, SelectorError> {
     let pool = inference.pool()?;
@@ -393,8 +414,18 @@ pub fn resolve(selector: &Selector, inference: &Inference<'_>) -> Result<Target,
     };
     match selector {
         Selector::Url(url) => {
-            let repo = strip_web_root(url, inference.web_roots);
-            let picked = pick(&pool, &repo, Some(&url.host), Some(url.kind))?;
+            let picked = pick(
+                &pool,
+                &url.repo,
+                Some(&url.host),
+                Some(url.kind),
+                inference.url_roots,
+            )?;
+            if url.kind == ForgeKind::GitHub && picked.3.split('/').count() != 2 {
+                return Err(SelectorError::NoSourceForRepo {
+                    repo: url.repo.clone(),
+                });
+            }
             Ok(target(picked, Which::Number(url.number)))
         }
         Selector::Qualified {
@@ -403,7 +434,7 @@ pub fn resolve(selector: &Selector, inference: &Inference<'_>) -> Result<Target,
             number,
         } => {
             let source = find_source(inference.sources, name)?;
-            let picked = pick(&[source], repo, None, None)?;
+            let picked = pick(&[source], repo, None, None, inference.url_roots)?;
             Ok(target(picked, Which::Number(*number)))
         }
         Selector::Qualified {
@@ -411,17 +442,29 @@ pub fn resolve(selector: &Selector, inference: &Inference<'_>) -> Result<Target,
             repo,
             number,
         } => {
-            let picked = pick(&pool, repo, None, None)?;
+            let picked = pick(&pool, repo, None, None, inference.url_roots)?;
             Ok(target(picked, Which::Number(*number)))
         }
         Selector::Number(number) => {
             let hint = inference.repo_hint()?;
-            let picked = pick(&pool, &hint.path, hint.host.as_deref(), None)?;
+            let picked = pick(
+                &pool,
+                &hint.path,
+                hint.host.as_deref(),
+                None,
+                inference.url_roots,
+            )?;
             Ok(target(picked, Which::Number(*number)))
         }
         Selector::Branch(branch) => {
             let hint = inference.repo_hint()?;
-            let picked = pick(&pool, &hint.path, hint.host.as_deref(), None)?;
+            let picked = pick(
+                &pool,
+                &hint.path,
+                hint.host.as_deref(),
+                None,
+                inference.url_roots,
+            )?;
             Ok(target(picked, Which::Branch(branch.clone())))
         }
         Selector::Current => {
@@ -430,7 +473,13 @@ pub fn resolve(selector: &Selector, inference: &Inference<'_>) -> Result<Target,
                 .clone()
                 .ok_or(SelectorError::NoBranch)?;
             let hint = inference.repo_hint()?;
-            let picked = pick(&pool, &hint.path, hint.host.as_deref(), None)?;
+            let picked = pick(
+                &pool,
+                &hint.path,
+                hint.host.as_deref(),
+                None,
+                inference.url_roots,
+            )?;
             Ok(target(picked, Which::Branch(branch)))
         }
     }
@@ -614,7 +663,7 @@ mod tests {
         let roots = vec![("gl.test".to_string(), "gitlab".to_string())];
         let inf = Inference {
             sources: &sources,
-            web_roots: &roots,
+            url_roots: &roots,
             ..Inference::default()
         };
         let sel = parse(Some(
@@ -634,17 +683,11 @@ mod tests {
 
     #[test]
     fn the_web_root_comes_from_the_api_address() {
-        assert_eq!(
-            web_root_of("https://gl.test/gitlab/api/v4").as_deref(),
-            Some("gitlab")
-        );
-        assert_eq!(
-            web_root_of("https://gl.test/a/b/api/v4/").as_deref(),
-            Some("a/b")
-        );
-        assert_eq!(web_root_of("https://gl.test/api/v4"), None);
-        assert_eq!(web_root_of("https://gl.test"), None);
-        assert_eq!(web_root_of("http://127.0.0.1:4000"), None);
+        assert_eq!(url_root("https://gl.test/gitlab/api/v4"), "gitlab");
+        assert_eq!(url_root("https://gl.test/a/b/api/v4/"), "a/b");
+        assert_eq!(url_root("https://gl.test/api/v4"), "");
+        assert_eq!(url_root("https://gl.test"), "");
+        assert_eq!(url_root("http://127.0.0.1:4000"), "");
     }
 
     #[test]
@@ -654,7 +697,6 @@ mod tests {
             "https://github.com/a/b/issues/3",
             "https://github.com/a/b/pull/x",
             "https://github.com/a/b/pull/0",
-            "https://github.com/a/b/c/pull/3",
             "https://gitlab.work.ca/p/-/merge_requests/3",
             "https://github.com",
             "https://",
@@ -666,6 +708,129 @@ mod tests {
                 "{url}: {err}"
             );
         }
+    }
+
+    #[test]
+    fn urls_keep_ports_and_path_prefixes() {
+        let gh = parse(Some("http://ghe.corp.test:8080/ghe/acme/widgets/pull/7")).unwrap();
+        assert!(matches!(&gh, Selector::Url(u)
+            if u.host == "ghe.corp.test:8080" && u.repo == "ghe/acme/widgets" && u.number == 7));
+        let gl = parse(Some(
+            "https://git.corp.test:8929/gitlab/plat/infra/tf/-/merge_requests/3",
+        ))
+        .unwrap();
+        assert!(matches!(&gl, Selector::Url(u)
+            if u.host == "git.corp.test:8929" && u.repo == "gitlab/plat/infra/tf"));
+    }
+
+    fn enterprise_sources() -> Vec<Source> {
+        vec![
+            source("ghe", ForgeKind::GitHub, "ghe.corp.test:8080", &["acme"]),
+            source("lab", ForgeKind::GitLab, "git.corp.test", &["plat"]),
+        ]
+    }
+
+    #[test]
+    fn urls_on_self_hosted_hosts_drop_the_relative_root() {
+        let sources = enterprise_sources();
+        let roots = vec![
+            ("ghe.corp.test:8080".to_string(), "ghe".to_string()),
+            ("git.corp.test".to_string(), "gitlab".to_string()),
+        ];
+        let inf = Inference {
+            sources: &sources,
+            url_roots: &roots,
+            ..Inference::default()
+        };
+        let sel = parse(Some("http://ghe.corp.test:8080/ghe/acme/widgets/pull/7")).unwrap();
+        let t = resolve(&sel, &inf).unwrap();
+        assert_eq!(
+            (t.source, t.repo.as_str(), t.which),
+            (SourceId::new("ghe"), "acme/widgets", Which::Number(7))
+        );
+        let sel = parse(Some(
+            "https://git.corp.test:8929/gitlab/plat/infra/tf/-/merge_requests/3",
+        ))
+        .unwrap();
+        let t = resolve(&sel, &inf).unwrap();
+        assert_eq!(
+            (t.source, t.repo.as_str()),
+            (SourceId::new("lab"), "plat/infra/tf")
+        );
+    }
+
+    #[test]
+    fn a_github_url_with_extra_segments_and_no_root_is_not_a_repository() {
+        let sources = enterprise_sources();
+        let inf = Inference {
+            sources: &sources,
+            ..Inference::default()
+        };
+        let sel = parse(Some("http://ghe.corp.test:8080/acme/widgets/extra/pull/7")).unwrap();
+        assert!(matches!(
+            resolve(&sel, &inf),
+            Err(SelectorError::NoSourceForRepo { .. })
+        ));
+    }
+
+    #[test]
+    fn remote_hints_match_with_or_without_a_port_and_root() {
+        let sources = enterprise_sources();
+        let roots = vec![("git.corp.test".to_string(), "gitlab".to_string())];
+        let hint = |host: &str, path: &str| {
+            Some(RepoRef {
+                host: Some(host.into()),
+                path: path.into(),
+            })
+        };
+        for (remote, repo) in [
+            (hint("git.corp.test", "plat/infra/tf"), "plat/infra/tf"),
+            (hint("git.corp.test:8929", "plat/infra/tf"), "plat/infra/tf"),
+            (
+                hint("git.corp.test", "gitlab/plat/infra/tf"),
+                "plat/infra/tf",
+            ),
+        ] {
+            let inf = Inference {
+                sources: &sources,
+                url_roots: &roots,
+                git_remote: remote,
+                ..Inference::default()
+            };
+            let t = resolve(&Selector::Number(5), &inf).unwrap();
+            assert_eq!((t.source, t.repo.as_str()), (SourceId::new("lab"), repo));
+        }
+        let inf = Inference {
+            sources: &sources,
+            git_remote: hint("ghe.corp.test", "acme/widgets"),
+            ..Inference::default()
+        };
+        let t = resolve(&Selector::Number(5), &inf).unwrap();
+        assert_eq!(t.source, SourceId::new("ghe"));
+    }
+
+    #[test]
+    fn host_matching_and_url_roots() {
+        assert!(host_matches("GitHub.com", "github.com"));
+        assert!(host_matches("ghe.test:8443", "ghe.test"));
+        assert!(host_matches("ghe.test", "ghe.test:22"));
+        assert!(!host_matches("ghe.test:8443", "ghe.test:9443"));
+        assert!(!host_matches("ghe.test", "other.test"));
+        assert_eq!(url_root("https://x.test/gitlab/api/v4/"), "gitlab");
+        assert_eq!(url_root("http://x.test:8080/a/b/api/v3"), "a/b");
+        assert_eq!(url_root("https://x.test/api/v4"), "");
+        assert_eq!(url_root("https://api.github.com"), "");
+    }
+
+    #[test]
+    fn repo_flag_accepts_a_host_with_a_port() {
+        assert_eq!(
+            RepoRef::parse("localhost:8080/a/b"),
+            Ok(RepoRef {
+                host: Some("localhost:8080".into()),
+                path: "a/b".into()
+            })
+        );
     }
 
     #[test]

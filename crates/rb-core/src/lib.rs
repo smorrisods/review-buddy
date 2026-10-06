@@ -4,6 +4,7 @@
 //! current time in wherever it matters, which keeps everything here unit-testable.
 
 mod error;
+pub mod http;
 mod model;
 mod provider;
 pub mod triage;

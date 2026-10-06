@@ -34,6 +34,15 @@ impl RateLimit {
     }
 }
 
+/// What `doctor` learns about the server itself.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerInfo {
+    /// From `X-GitHub-Enterprise-Version`; `None` on github.com.
+    pub enterprise_version: Option<String>,
+    /// The server's clock from its `Date` header, in Unix seconds.
+    pub server_time: Option<i64>,
+}
+
 /// What `auth status` and `doctor` show about a token.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenReport {
@@ -106,7 +115,7 @@ impl GithubClient {
     /// uses `https://api.github.com` and any other host uses `https://<host>/api/v3`.
     pub fn new(host: &str, api_url: Option<&str>, token: Secret) -> Result<Self> {
         let base = match api_url {
-            Some(url) => url.to_string(),
+            Some(url) => url.trim().to_string(),
             None if host == "github.com" => DEFAULT_API.to_string(),
             None => format!("https://{host}/api/v3"),
         };
@@ -144,6 +153,35 @@ impl GithubClient {
 
     pub fn graphql_url(&self) -> &Url {
         &self.graphql_url
+    }
+
+    /// Where the forge's web pages live: `https://github.com` for github.com, the REST base
+    /// without `/api/v3` for Enterprise (keeping any scheme, port and path prefix), and
+    /// `https://<host>` when the override doesn't follow the Enterprise layout.
+    pub fn web_base(&self) -> Url {
+        if self.rest_base.host_str() == Some("api.github.com") {
+            return Url::parse("https://github.com").expect("static URL");
+        }
+        rb_core::http::web_base_from_api(&self.rest_base, "/api/v3").unwrap_or_else(|| {
+            Url::parse(&format!("https://{}", self.host)).unwrap_or_else(|_| self.rest_base.clone())
+        })
+    }
+
+    /// `GET /meta`, for the Enterprise Server version and the server's clock. Needs no scopes.
+    pub async fn probe(&self) -> Result<ServerInfo> {
+        let raw = self.send(self.http.get(self.rest_url("/meta"))).await?;
+        let header = |name: &str| {
+            raw.headers
+                .get(name)
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.trim().to_string())
+        };
+        Ok(ServerInfo {
+            enterprise_version: header("x-github-enterprise-version"),
+            server_time: header("date")
+                .and_then(|d| rb_core::http::parse_http_date(&d))
+                .map(|t| t.0),
+        })
     }
 
     /// The last rate-limit numbers seen on any response.
@@ -308,6 +346,8 @@ impl GithubClient {
     fn network_error(&self, e: reqwest::Error) -> Error {
         let reason = if e.is_timeout() {
             "the request timed out. Check your connection and try again".to_string()
+        } else if let Some(tls) = rb_core::http::tls_reason(&rb_core::http::error_chain(&e)) {
+            tls
         } else if e.is_connect() {
             "the connection failed. Check your network, VPN or `api_url`".to_string()
         } else {
@@ -380,6 +420,45 @@ mod tests {
         let c = GithubClient::new("x", Some("http://127.0.0.1:9/"), Secret::new("t")).unwrap();
         assert_eq!(c.graphql_url().as_str(), "http://127.0.0.1:9/graphql");
         assert!(GithubClient::new("x", Some("not a url"), Secret::new("t")).is_err());
+    }
+
+    #[test]
+    fn web_base_follows_the_api_base() {
+        let web = |host: &str, api: Option<&str>| {
+            GithubClient::new(host, api, Secret::new("t"))
+                .unwrap()
+                .web_base()
+                .to_string()
+        };
+        assert_eq!(web("github.com", None), "https://github.com/");
+        assert_eq!(web("ghe.example.com", None), "https://ghe.example.com/");
+        assert_eq!(
+            web("x", Some("http://127.0.0.1:8080/ghe/api/v3/")),
+            "http://127.0.0.1:8080/ghe"
+        );
+        assert_eq!(web("ghe.test:8443", None), "https://ghe.test:8443/");
+        assert_eq!(
+            web("ghe.test", Some("http://127.0.0.1:9")),
+            "https://ghe.test/"
+        );
+    }
+
+    #[test]
+    fn enterprise_urls_with_prefix_port_and_trailing_slash() {
+        let c = GithubClient::new(
+            "x",
+            Some(" https://corp.test:8443/ghe/api/v3/ "),
+            Secret::new("t"),
+        )
+        .unwrap();
+        assert_eq!(
+            c.rest_url("/user"),
+            "https://corp.test:8443/ghe/api/v3/user"
+        );
+        assert_eq!(
+            c.graphql_url().as_str(),
+            "https://corp.test:8443/ghe/api/graphql"
+        );
     }
 
     #[test]

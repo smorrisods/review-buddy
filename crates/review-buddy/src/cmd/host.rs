@@ -87,7 +87,7 @@ pub fn resolve(ctx: &Context, host: Option<&str>) -> Result<Target, CmdError> {
                     names(&all)
                 ))
             })?;
-        if host.is_some_and(|h| !h.eq_ignore_ascii_case(&found.host)) {
+        if host.is_some_and(|h| !super::selector::host_matches(&found.host, h)) {
             return Err(CmdError::usage(format!(
                 "Source {} is on {}, not {}.\nLeave out --host, or pick the matching source.",
                 found.name,
@@ -100,7 +100,7 @@ pub fn resolve(ctx: &Context, host: Option<&str>) -> Result<Target, CmdError> {
     if let Some(host) = host {
         return Ok(all
             .iter()
-            .find(|s| s.host.eq_ignore_ascii_case(host))
+            .find(|s| super::selector::host_matches(&s.host, host))
             .map_or_else(|| Target::bare(host), |s| Target::from_source(s)));
     }
     let enabled: Vec<&SourceConfig> = all.iter().copied().filter(|s| s.enabled).collect();

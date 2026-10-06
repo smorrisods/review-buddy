@@ -171,6 +171,8 @@ struct Extras {
     approvers: Vec<String>,
     adds: Option<u32>,
     dels: Option<u32>,
+    /// The relative URL root of a self-hosted instance (`gitlab` for `https://host/gitlab`).
+    root: String,
 }
 
 /// Percent-encodes a path for use as a `:id` segment (`group/sub` becomes `group%2Fsub`).
@@ -243,7 +245,7 @@ fn same(a: &str, b: &str) -> bool {
     a.eq_ignore_ascii_case(b)
 }
 
-fn project_path(node: &MrNode) -> Option<String> {
+fn project_path(node: &MrNode, root: &str) -> Option<String> {
     if let Some(full) = node.references.as_ref().and_then(|r| r.full.as_deref()) {
         if let Some((path, _)) = full.rsplit_once('!') {
             return Some(path.to_string());
@@ -253,6 +255,10 @@ fn project_path(node: &MrNode) -> Option<String> {
     let (before, _) = url.split_once("/-/merge_requests/")?;
     let (_, rest) = before.split_once("://")?;
     let (_, path) = rest.split_once('/')?;
+    let path = match root {
+        "" => path,
+        root => path.strip_prefix(root)?.trim_start_matches('/'),
+    };
     Some(path.to_string())
 }
 
@@ -446,7 +452,7 @@ fn summarize(
         .and_then(|r| r.head_sha.clone())
         .or_else(|| node.sha.clone())
         .unwrap_or_default();
-    let repo = project_path(node).ok_or_else(|| {
+    let repo = project_path(node, &extras.root).ok_or_else(|| {
         Error::Api(format!(
             "GitLab didn't say which project !{} belongs to. Try again, or run `review-buddy doctor`",
             node.iid
@@ -574,6 +580,7 @@ pub(crate) async fn list_changes(
 ) -> Result<Page<ChangeSummary>> {
     guard(client)?;
     let me = client.whoami().await?.login;
+    let root = client.web_base().path().trim_matches('/').to_string();
 
     let mut jobs = Vec::new();
     for target in targets(scope) {
@@ -592,7 +599,9 @@ pub(crate) async fn list_changes(
     for ((target, query), result) in jobs.iter().zip(lists) {
         for node in result? {
             let keep = match target {
-                Target::Everywhere => project_path(&node).is_some_and(|p| in_scope(scope, &me, &p)),
+                Target::Everywhere => {
+                    project_path(&node, &root).is_some_and(|p| in_scope(scope, &me, &p))
+                }
                 _ => true,
             };
             if !keep {
@@ -606,7 +615,7 @@ pub(crate) async fn list_changes(
         }
     }
     for node in mentions? {
-        if !project_path(&node).is_some_and(|p| in_scope(scope, &me, &p)) {
+        if !project_path(&node, &root).is_some_and(|p| in_scope(scope, &me, &p)) {
             continue;
         }
         found.entry(node.id).or_insert_with(|| {
@@ -627,7 +636,18 @@ pub(crate) async fn list_changes(
     let mut items = order
         .iter()
         .filter_map(|id| found.get(id))
-        .map(|(node, matched)| summarize(node, &me, source_id, *matched, &Extras::default()))
+        .map(|(node, matched)| {
+            summarize(
+                node,
+                &me,
+                source_id,
+                *matched,
+                &Extras {
+                    root: root.clone(),
+                    ..Extras::default()
+                },
+            )
+        })
         .collect::<Result<Vec<_>>>()?;
     items.sort_by(|a, b| b.updated_at.cmp(&a.updated_at).then(a.id.cmp(&b.id)));
     Ok(Page {
@@ -741,6 +761,7 @@ pub(crate) async fn change_detail(
             .unwrap_or_default(),
         adds: None,
         dels: None,
+        root: client.web_base().path().trim_matches('/').to_string(),
     };
     let stats = soft(stats)?.flatten();
     let extras = Extras {
@@ -850,10 +871,14 @@ mod tests {
     #[test]
     fn project_path_from_references_or_url() {
         let n = node(serde_json::json!({"references": {"full": "g/sub/p!2"}}));
-        assert_eq!(project_path(&n).as_deref(), Some("g/sub/p"));
+        assert_eq!(project_path(&n, "").as_deref(), Some("g/sub/p"));
         let n = node(serde_json::json!({"web_url": "https://gl.test/g/p/-/merge_requests/2"}));
-        assert_eq!(project_path(&n).as_deref(), Some("g/p"));
-        assert_eq!(project_path(&node(serde_json::json!({}))), None);
+        assert_eq!(project_path(&n, "").as_deref(), Some("g/p"));
+        let n = node(
+            serde_json::json!({"web_url": "https://gl.test/gitlab/g/sub/p/-/merge_requests/2"}),
+        );
+        assert_eq!(project_path(&n, "gitlab").as_deref(), Some("g/sub/p"));
+        assert_eq!(project_path(&node(serde_json::json!({})), ""), None);
     }
 
     #[test]

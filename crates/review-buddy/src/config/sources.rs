@@ -105,7 +105,10 @@ fn first_problem(sources: &[SourceConfig]) -> Option<Problem> {
         }
         if let Some(url) = &s.api_url {
             if !(url.starts_with("https://") || url.starts_with("http://")) {
-                return fail(Some("api_url"), "`api_url` should start with https://.");
+                return fail(
+                    Some("api_url"),
+                    "`api_url` should start with https:// (or http:// for a test server).",
+                );
             }
         }
         if s.auth == Some(AuthSetting::Command)
