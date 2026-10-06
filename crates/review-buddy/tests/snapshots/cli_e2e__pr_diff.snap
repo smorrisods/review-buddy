@@ -1,0 +1,69 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+diff --git a/src/ui/menus.rs b/src/ui/menus.rs
+--- a/src/ui/menus.rs
++++ b/src/ui/menus.rs
+@@ -10,7 +10,9 @@ use crate::app::Action;
+ 
+ pub struct Menu {
+     items: Vec<MenuItem>,
++    selected: usize,
++    open: bool,
+ }
+ 
+ impl Menu {
+     pub fn new(items: Vec<MenuItem>) -> Self {
+@@ -34,6 +36,24 @@ impl Menu {
+     pub fn len(&self) -> usize {
+         self.items.len()
+     }
++
++    pub fn select_next(&mut self) {
++        if self.items.is_empty() {
++            return;
++        }
++        self.selected = (self.selected + 1) % self.items.len();
++    }
++
++    pub fn select_prev(&mut self) {
++        if self.items.is_empty() {
++            return;
++        }
++        self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);
++    }
++
++    pub fn activate(&self) -> Option<&Action> {
++        self.items.get(self.selected).map(|item| &item.action)
++    }
+ }
+ 
+ pub struct MenuItem {
+@@ -58,3 +78,4 @@ pub struct MenuItem {
+     pub label: String,
+-    pub action: Option<Action>,
++    pub action: Action,
++    pub hint: Option<&'static str>,
+ }
+diff --git a/src/ui/menubar.rs b/src/ui/menubar.rs
+new file mode 100644
+--- /dev/null
++++ b/src/ui/menubar.rs
+@@ -0,0 +1,8 @@
++use ratatui::text::Line;
++
++use crate::ui::menus::Menu;
++
++pub fn render(menus: &[Menu]) -> Line<'static> {
++    let labels: Vec<String> = menus.iter().map(|m| m.title().to_string()).collect();
++    Line::from(labels.join("  "))
++}
+diff --git a/src/ui/mod.rs b/src/ui/mod.rs
+--- a/src/ui/mod.rs
++++ b/src/ui/mod.rs
+@@ -1,2 +1,4 @@ //! Rendering.
+ pub mod chrome;
++pub mod menubar;
++pub mod menus;
+ pub mod style;

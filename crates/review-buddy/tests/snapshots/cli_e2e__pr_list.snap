@@ -1,0 +1,11 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+liminal-hq	liminal-hq/review-buddy#214	open	running	ada	2026-10-05T08:00:00Z	Add a menu bar and keyboard-driven menus
+liminal-hq	liminal-hq/review-buddy#209	open	pass	jo	2026-10-05T05:00:00Z	Raise muted text contrast in the light theme
+platform	platform/flow!1182	open	fail	priya	2026-10-05T03:00:00Z	Cache pipeline status lookups
+platform	platform/flow!1190	open	pass	project_42_bot_a1b2c3	2026-10-05T01:00:00Z	Update tokio to 1.47
+liminal-hq	liminal-hq/review-buddy#201	open	pass	renovate[bot]	2026-10-04T10:00:00Z	Update ratatui to 0.30
+smorris	smorris/dotfiles#31	open	pass	smorris	2026-10-04T10:00:00Z	Tidy zsh startup
+gitlab-com	kai-codes/notes!12	open	none	kai	2026-10-02T10:00:00Z	Clarify the install steps

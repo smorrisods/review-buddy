@@ -1,0 +1,12 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: stdout
+---
+name
+kind
+host
+enabled
+inAll
+auth
+scope
+apiUrl

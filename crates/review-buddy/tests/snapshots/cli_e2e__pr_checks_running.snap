@@ -1,0 +1,13 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+pass	fmt	18	
+pass	clippy	94	
+running	test (linux)		
+skipped	test (windows)		
+neutral	coverage	131	
+cancelled	bench	40	
+--- stderr ---
+1 check is still running.
+Use --watch to wait for them.

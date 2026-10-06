@@ -1,0 +1,13 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: stdout
+---
+configDir
+dataDir
+cacheDir
+stateDir
+runtimeDir
+systemConfigDirs
+systemDataDirs
+configFiles
+writeTarget

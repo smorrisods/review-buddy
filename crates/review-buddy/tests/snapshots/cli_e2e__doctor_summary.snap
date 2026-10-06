@@ -1,0 +1,24 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: head
+---
+Review Buddy <version>
+Running on demo fixtures (demo)
+
+Auth
+  ✓ github.com (liminal-hq)  signed in as smorris via demo (demo)
+  ✓ github.com (smorris)  signed in as smorris via demo (demo)
+  ✓ gitlab.platform.example (platform)  signed in as smorris via demo (demo)
+  ✓ gitlab.com  signed in as smorris via demo (demo)
+
+Rate limits
+  github.com (liminal-hq)  not reported (demo)
+  github.com (smorris)  not reported (demo)
+  gitlab.platform.example (platform)  not reported (demo)
+  gitlab.com  not reported (demo)
+
+API versions
+  github.com (liminal-hq)  GitHub REST 2022-11-28 (demo)
+  github.com (smorris)  GitHub REST 2022-11-28 (demo)
+  gitlab.platform.example (platform)  not checked yet · checked in v0.2
+  gitlab.com  not checked yet · checked in v0.2

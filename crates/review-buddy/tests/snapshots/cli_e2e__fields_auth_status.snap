@@ -1,0 +1,14 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: stdout
+---
+source
+kind
+host
+method
+state
+user
+scopes
+expires
+message
+fix

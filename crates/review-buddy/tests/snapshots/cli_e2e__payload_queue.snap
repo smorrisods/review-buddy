@@ -1,0 +1,36 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: "serde_json::to_string_pretty(&value).unwrap()"
+---
+[
+  {
+    "ref": "liminal-hq/review-buddy#214",
+    "bucket": "wait",
+    "ci": "running",
+    "updatedAt": "2026-10-05T08:00:00Z"
+  },
+  {
+    "ref": "liminal-hq/review-buddy#209",
+    "bucket": "wait",
+    "ci": "pass",
+    "updatedAt": "2026-10-05T05:00:00Z"
+  },
+  {
+    "ref": "platform/flow!1182",
+    "bucket": "look",
+    "ci": "fail",
+    "updatedAt": "2026-10-05T03:00:00Z"
+  },
+  {
+    "ref": "smorris/dotfiles#31",
+    "bucket": "look",
+    "ci": "pass",
+    "updatedAt": "2026-10-04T10:00:00Z"
+  },
+  {
+    "ref": "kai-codes/notes!12",
+    "bucket": "later",
+    "ci": "none",
+    "updatedAt": "2026-10-02T10:00:00Z"
+  }
+]

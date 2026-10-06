@@ -1,0 +1,9 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: stdout
+---
+version
+auth
+rateLimits
+apiVersions
+paths

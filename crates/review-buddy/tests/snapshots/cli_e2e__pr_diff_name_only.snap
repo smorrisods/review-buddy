@@ -1,0 +1,7 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+src/ui/menus.rs
+src/ui/menubar.rs
+src/ui/mod.rs
