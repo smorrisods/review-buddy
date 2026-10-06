@@ -178,7 +178,7 @@ Planned for v0.3 with checkout. Parsed, not used in 0.1.
 
 ## `[[source]]`
 
-Repeat one table per source. Order sets the `2`–`9` keys (`1` is always All). In 0.1 only `kind = "github"` sources load; a GitLab source is listed, reports that GitLab arrives in v0.2, and doesn't stop the others.
+Repeat one table per source. Order sets the `2`–`9` keys (`1` is always All). `kind = "github"` sources load fully. A `kind = "gitlab"` source loads its merge request list and details; diffs, threads and review actions on GitLab arrive later in v0.2, and until then they say so without stopping other sources.
 
 | Key | Required | Notes |
 |---|---|---|

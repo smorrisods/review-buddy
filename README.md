@@ -6,7 +6,7 @@
 
 Every pull and merge request, in one quiet queue. **review buddy** is a keyboard-driven terminal UI that gathers your pull requests into a single, calm dashboard, with full diff review, inline comments and approvals, without leaving the terminal. Built in Rust with `ratatui` and `crossterm`, in the [Liminal HQ](https://github.com/liminal-hq) style.
 
-> **Status:** v0.1.0 is the first release candidate, and it is **GitHub only**. GitLab arrives in v0.2, and merging, suggestions, side-by-side diffs and the command palette follow in v0.3 and v0.4. See [What's in 0.1](#whats-in-01) for the honest list, and [`CHANGELOG.md`](CHANGELOG.md) for the history.
+> **Status:** v0.1.0 is the first release candidate, and it is **GitHub only**. GitLab listing and detail arrive in v0.2 (diffs and reviews follow in the same release), and merging, suggestions, side-by-side diffs and the command palette follow in v0.3 and v0.4. See [What's in 0.1](#whats-in-01) for the honest list, and [`CHANGELOG.md`](CHANGELOG.md) for the history.
 
 ## Highlights
 
@@ -22,7 +22,7 @@ Every pull and merge request, in one quiet queue. **review buddy** is a keyboard
 
 | Area | In v0.1.0 | Planned |
 |---|---|---|
-| Forges | GitHub, including Enterprise | GitLab in v0.2 |
+| Forges | GitHub, including Enterprise | GitLab merge request lists and details in v0.2; diffs and reviews to follow |
 | Dashboard | The three-pane layout (sources, queue, detail) with Overview, Files, Checks and Conversation tabs | Split and one-at-a-time layouts, command palette, search, settings (v0.4) |
 | Diff | Unified diff, file list, line cursor, inline threads, hunk and file jumps, syntax highlighting with tinted added and removed lines | Ranges, suggestions, side by side, merge, re-run CI, checkout (v0.3) |
 | Review | Line comments that collect into a pending review, replies, approve with a preview, open and copy the URL | Request changes (v0.3), draft persistence (1.0) |
@@ -46,7 +46,7 @@ The terminal needs to be at least 100×30. Press `?` for the keys on the current
 
 When you're ready to use your own accounts, just run `review-buddy`. With no config file it opens a calm first-run screen that finds the hosts you already use (from `gh` and `glab` sign-ins, your `~/.gitconfig` `insteadOf` rewrites and repositories under `~/src`), lists your accounts and organisations, lets you reuse a CLI sign-in or paste a token (tested live, then kept in your OS keyring and never in `config.toml`), previews a theme, and writes a commented `config.toml` only when you confirm. Press `esc` to skip it. Run `review-buddy --setup` any time to go through it again (an existing file is replaced only if you say yes, and a copy is kept as `config.toml.bak`), or `review-buddy --setup --plain` for a line-based version that also runs when there's no terminal to draw in.
 
-You can still write the config by hand: copy [`config.example.toml`](config.example.toml) to `~/.config/review-buddy/config.toml` (or `$XDG_CONFIG_HOME/review-buddy/config.toml`). GitLab hosts are detected and their tokens kept, but GitLab sources don't load until the GitLab provider lands. `review-buddy doctor` checks sign-in, rate limits and the paths in use.
+You can still write the config by hand: copy [`config.example.toml`](config.example.toml) to `~/.config/review-buddy/config.toml` (or `$XDG_CONFIG_HOME/review-buddy/config.toml`). GitLab sources list their merge requests and open details; diffs and reviews on GitLab arrive later in v0.2. `review-buddy doctor` checks sign-in, rate limits and the paths in use.
 
 ### Command line
 

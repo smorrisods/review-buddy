@@ -1,6 +1,6 @@
 # Architecture
 
-**Status (v0.1.0).** This page describes the target design. Where 0.1 differs it says so: `rb-gitlab` is a placeholder crate (GitLab arrives in v0.2), `rb-store` holds the SQLite cache only (no drafts or offline queue yet), the app has two screens (Dashboard and Diff), and there is no tracing or log file yet.
+**Status (v0.1.0).** This page describes the target design. Where 0.1 differs it says so: `rb-gitlab` lists merge requests and loads their details, with diffs, threads and review writes still to come, `rb-store` holds the SQLite cache only (no drafts or offline queue yet), the app has two screens (Dashboard and Diff), and there is no tracing or log file yet.
 
 ## Workspace
 
@@ -10,7 +10,7 @@ review-buddy/
 ├─ crates/
 │  ├─ rb-core/                domain types, triage (the built-in rules; the [[triage.rule]] engine is planned), review drafts, the Provider trait
 │  ├─ rb-github/              GitHub provider (hand-written GraphQL with typed serde structs + REST via reqwest)
-│  ├─ rb-gitlab/              GitLab provider (REST v4). A placeholder in 0.1
+│  ├─ rb-gitlab/              GitLab provider (REST v4). Sign-in, list and detail so far
 │  ├─ rb-paths/               XDG resolution and dir creation with 0700 (config layering lives in the binary crate's `config/`)
 │  ├─ rb-platform/            open URL, clipboard (OSC 52 first), keyring fallbacks, per-OS cfg
 │  ├─ rb-store/               SQLite cache (rusqlite) and ETag store; drafts and the offline queue are planned

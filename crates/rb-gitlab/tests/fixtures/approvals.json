@@ -1,0 +1,20 @@
+{
+  "id": 9001,
+  "iid": 11,
+  "approvals_required": 2,
+  "approvals_left": 1,
+  "approved_by": [
+    {
+      "user": {
+        "id": 3,
+        "username": "sam",
+        "name": "Sam",
+        "state": "active",
+        "locked": false,
+        "avatar_url": null,
+        "web_url": "https://gitlab.test/sam",
+        "bot": false
+      }
+    }
+  ]
+}
