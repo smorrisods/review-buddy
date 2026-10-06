@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/refresh_state.rs
+expression: text(& mut app)
+---
+ review buddy  ·  live · 2 sources · 2 changes                                           Liminal HQ
+  1 ● All 2   2 ● work 1   3 ● oss 1
+╭ queue ───────────────────────────────────────╮╭ acme/web#1 ──────────────────────────────────────╮
+│  Waiting on you · 2                          ││ Add retry to sync                                │
+│▌ ● Add retry to sync                      1h ││ mira wants feat → main                           │
+│▌ GH web#1 · mira · review requested          ││ +4 −2 · 1 file · opened 2h ago                   │
+│  ● Fix the flaky upload test              1h ││                                                  │
+│  GH web#2 · mira · review requested          ││ a Approve  x Request changes  c Comment  ⏎ Diff  │
+│                                              ││                                                  │
+│  ── That's everything.                       ││  Overview   Files 1   Checks   Conversation      │
+│  2 in this view.                             ││ ──────────────────────────────────────────────── │
+│                                              ││ github.com is rate limiting requests.            │
+│                                              ││ The limit resets in about 16 minutes. Press r to │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                              ││                                                  │
+│                                     ╭──────────────────────────────────────────────────────────╮ │
+│                                     │! work: github.com is rate limiting requests. The limit…  │ │
+│                                     ╰──────────────────────────────────────────────────────────╯ │
+╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  ? help  T theme  q quit                                    refreshed 10:42

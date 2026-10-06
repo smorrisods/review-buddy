@@ -16,6 +16,7 @@ use crate::app::SourceFailure;
 use crate::config::{AuthSetting, Config};
 
 mod live;
+pub mod refresh;
 
 pub use live::Live;
 

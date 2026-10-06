@@ -23,6 +23,7 @@ mod live;
 mod mouse;
 pub mod queue;
 pub mod range;
+pub mod refresh;
 pub mod setup;
 mod update;
 
@@ -32,6 +33,7 @@ pub use diff::{
 };
 pub use failure::{FailureKind, SourceFailure};
 pub use range::RowRange;
+pub use refresh::SourceStatus;
 pub use update::update;
 
 /// How long a status message or toast stays on screen.
@@ -138,6 +140,24 @@ pub enum Msg {
     Loaded(Box<Snapshot>),
     /// Saved rows to paint first. A refresh of every source follows straight away.
     Cached(Box<Snapshot>),
+    /// A source's state changed (paused, offline, back to normal).
+    SourceStatus {
+        source: SourceId,
+        status: SourceStatus,
+    },
+    /// A retry inside a refresh that has already answered once: updates rows without
+    /// counting as another answer.
+    SourceUpdated {
+        source: SourceId,
+        result: Result<Vec<ChangeSummary>, SourceFailure>,
+        now: Timestamp,
+    },
+    /// When the saved rows were last fetched, for the offline banner.
+    CacheTime(Timestamp),
+    /// The refresh interval elapsed.
+    RefreshDue,
+    /// A refresh was asked for too soon after the last one, so nothing was sent.
+    RefreshSkipped,
     /// One source's refresh finished.
     SourceLoaded {
         source: SourceId,
@@ -177,8 +197,13 @@ pub enum Msg {
 pub enum Cmd {
     /// Deliver `msg` after `delay`.
     After { delay: Duration, msg: Msg },
-    /// Fetch every source's changes from whatever backs this session.
+    /// Fetch every source's changes from whatever backs this session. Automatic refreshes
+    /// (launch, interval) respect a source's backoff.
     LoadChanges,
+    /// The same, because you asked (`r`): cuts a backoff wait short, but never a rate-limit pause.
+    LoadChangesNow,
+    /// The same, because the terminal regained focus: skipped if one just ran.
+    LoadChangesOnFocus,
     /// Fetch the description, checks and threads for one change.
     LoadInfo(ChangeId),
     /// Fetch the files, threads and your pending comments for one change.
@@ -238,6 +263,12 @@ pub struct AppState {
     pub failures: HashMap<SourceId, SourceFailure>,
     /// Sources a refresh is still waiting on.
     pub pending_sources: usize,
+    /// The sources in `pending_sources`, so each row can show its own spinner.
+    pub refreshing: HashSet<SourceId>,
+    /// Each source's last reported state.
+    pub statuses: HashMap<SourceId, SourceStatus>,
+    /// When a source last answered with fresh or confirmed-unchanged rows.
+    pub last_refreshed: Option<Timestamp>,
     pub sources: Vec<Source>,
     pub changes: Vec<ChangeSummary>,
     /// The clock the queue's relative ages are measured against.
@@ -302,6 +333,8 @@ pub struct App {
     pub confirm_post_now: bool,
     /// Columns a tab expands to in diffs (`diff.tab_width`).
     pub tab_width: u8,
+    /// Still glyphs instead of a spinner (`ui.reduced_motion`).
+    pub reduced_motion: bool,
     quit_armed: bool,
     pub(crate) syntax: Syntax,
     pub(crate) ticks: u64,
@@ -337,6 +370,7 @@ impl App {
             last_click: None,
             confirm_post_now: true,
             tab_width: diffview::TAB_WIDTH,
+            reduced_motion: false,
             quit_armed: false,
             syntax: Syntax::default(),
             ticks: 0,

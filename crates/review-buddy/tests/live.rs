@@ -511,12 +511,12 @@ async fn pressing_r_refreshes_again_once_the_first_refresh_is_done() {
 
     let key = crossterm::event::KeyEvent::from(crossterm::event::KeyCode::Char('r'));
     let cmds = update(&mut app, Msg::Key(key));
-    assert!(cmds.iter().any(|c| matches!(c, Cmd::LoadChanges)));
-    run_cmds(cmds, &backend, &tx, |c| matches!(c, Cmd::LoadChanges));
+    assert!(cmds.iter().any(|c| matches!(c, Cmd::LoadChangesNow)));
+    run_cmds(cmds, &backend, &tx, |c| matches!(c, Cmd::LoadChangesNow));
     let msg = next(&mut rx, is_source).await;
     update(&mut app, msg);
     assert_eq!(app.state.pending_sources, 0);
 
     let cmds = update(&mut app, Msg::FocusGained);
-    assert!(cmds.iter().any(|c| matches!(c, Cmd::LoadChanges)));
+    assert!(cmds.iter().any(|c| matches!(c, Cmd::LoadChangesOnFocus)));
 }

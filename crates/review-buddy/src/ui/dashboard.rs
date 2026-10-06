@@ -15,7 +15,7 @@ use super::text::{cells, justify};
 use super::{chrome::truncate, detail, layout, style, HitMap};
 use crate::app::{
     queue::{self, Item, Queue, Row},
-    Action, App, Pane, Selected,
+    refresh, Action, App, Pane, Selected, SourceStatus,
 };
 
 const PLACEHOLDER: &str = "·  ·  ·";
@@ -192,17 +192,27 @@ fn source_row(app: &App, source: Option<&Source>) -> (String, String, String, St
         ),
         Some(s) => {
             let failure = app.state.failures.get(&s.id);
+            let status = app.state.status_of(&s.id);
+            let paused = matches!(status, SourceStatus::RateLimited { .. });
+            let note = match status {
+                SourceStatus::Refreshing => Some(format!(
+                    "{} refreshing",
+                    refresh::spinner(app.ticks(), app.reduced_motion)
+                )),
+                _ => refresh::status_note(status, failure),
+            };
+            let calm = paused || status == SourceStatus::Refreshing;
             (
                 s.label.clone(),
-                match failure {
-                    Some(f) => f.short().to_string(),
+                match note {
+                    Some(note) => note,
                     None if s.in_all => s.host.clone(),
                     None => format!("not in All · {}", s.host),
                 },
                 queue::count_in(&app.state, Some(&s.id)).to_string(),
                 match failure {
-                    Some(_) => style::fg(palette, Role::Warning),
-                    None => style::tag_fg(palette, Some(s), s.kind),
+                    Some(_) if !calm => style::fg(palette, Role::Warning),
+                    _ => style::tag_fg(palette, Some(s), s.kind),
                 },
             )
         }

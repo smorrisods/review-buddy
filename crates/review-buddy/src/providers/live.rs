@@ -3,14 +3,20 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
-use rb_core::{ChangeId, Provider, ReviewDraft, Source, SourceId, ThreadId, Verdict};
+use rb_core::{
+    ChangeId, ChangeSummary, Error, Etag, Provider, ReviewDraft, Scope, Source, SourceId, ThreadId,
+    Timestamp, Verdict,
+};
 use rb_store::Store;
 use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::Semaphore;
 
-use super::Factory;
-use crate::app::{ChangeInfo, Msg, Snapshot, SourceFailure};
+use super::refresh::{
+    classify, jittered_interval, Backoff, Class, Clock, Engine, Jitter, Next, SourceMachine,
+};
+use super::{Factory, ProviderError};
+use crate::app::{ChangeInfo, Msg, Snapshot, SourceFailure, SourceStatus};
 use crate::cmd::context::Context;
 use crate::load;
 
@@ -18,7 +24,9 @@ pub struct Live {
     factory: Arc<Factory>,
     sources: Vec<Source>,
     cache: Option<Mutex<Store>>,
-    limit: Arc<Semaphore>,
+    engine: Engine,
+    /// `refresh.interval`; `None` means manual refreshes only.
+    pub refresh_interval: Option<Duration>,
     pub refresh_on_focus: bool,
 }
 
@@ -41,9 +49,30 @@ impl Live {
             factory,
             sources,
             cache: cache.map(Mutex::new),
-            limit: Arc::new(Semaphore::new(concurrency.max(1))),
+            engine: Engine::new(concurrency),
+            refresh_interval: None,
             refresh_on_focus: true,
         }
+    }
+
+    pub fn with_clock(mut self, clock: Arc<dyn Clock>) -> Self {
+        self.engine.clock = clock;
+        self
+    }
+
+    pub fn with_jitter(mut self, jitter: Arc<dyn Jitter>) -> Self {
+        self.engine.jitter = jitter;
+        self
+    }
+
+    pub fn with_backoff(mut self, backoff: Backoff) -> Self {
+        self.engine.backoff = backoff;
+        self
+    }
+
+    /// What this source is doing right now, as the engine sees it.
+    pub fn status(&self, id: &SourceId) -> SourceStatus {
+        self.engine.status(id)
     }
 
     /// Built from the same sources, factory and cache path the commands use.
@@ -56,6 +85,7 @@ impl Live {
             usize::from(ctx.config.refresh.max_concurrency_per_host),
         );
         live.refresh_on_focus = ctx.config.refresh.on_focus;
+        live.refresh_interval = ctx.config.refresh.interval.filter(|d| !d.is_zero());
         Ok(live)
     }
 
@@ -77,38 +107,265 @@ impl Live {
         }
     }
 
-    /// Refreshes every source at once, at most `concurrency` requests in flight.
+    /// An automatic refresh (launch, interval): every source at once, each respecting its own
+    /// backoff and rate-limit pause.
     pub fn refresh(self: &Arc<Self>, tx: &UnboundedSender<Msg>) {
+        self.start(Ask::Auto, tx);
+    }
+
+    /// A refresh you asked for: also cuts a source's backoff wait short.
+    pub fn refresh_now(self: &Arc<Self>, tx: &UnboundedSender<Msg>) {
+        self.start(Ask::Manual, tx);
+    }
+
+    /// A refresh on focus: skipped when one started less than `focus_gap` ago.
+    pub fn refresh_on_focus_gap(self: &Arc<Self>, tx: &UnboundedSender<Msg>) {
+        if self.engine.mark_started(Some(self.engine.focus_gap)) {
+            self.start_unmarked(Ask::Focus, tx);
+        } else {
+            let _ = tx.send(Msg::RefreshSkipped);
+        }
+    }
+
+    /// Sends `Msg::RefreshDue` every `interval` (spread a little by jitter) until the app closes.
+    pub fn spawn_interval(self: &Arc<Self>, interval: Duration, tx: &UnboundedSender<Msg>) {
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            loop {
+                let wait = jittered_interval(interval, live.engine.jitter.unit());
+                live.engine.clock.sleep(wait).await;
+                if tx.send(Msg::RefreshDue).is_err() {
+                    break;
+                }
+            }
+        });
+    }
+
+    /// The newest time any source's rows were saved, for the offline banner.
+    pub fn cached_at(&self) -> Option<Timestamp> {
+        let cache = self.cache.as_ref()?;
+        let store = cache.lock().unwrap_or_else(|e| e.into_inner());
+        self.sources
+            .iter()
+            .filter_map(|s| store.last_fetched(&s.id).ok().flatten())
+            .max()
+    }
+
+    fn start(self: &Arc<Self>, how: Ask, tx: &UnboundedSender<Msg>) {
+        self.engine.mark_started(None);
+        self.start_unmarked(how, tx);
+    }
+
+    fn start_unmarked(self: &Arc<Self>, how: Ask, tx: &UnboundedSender<Msg>) {
         for source in &self.sources {
-            let live = Arc::clone(self);
-            let tx = tx.clone();
-            let source = source.clone();
-            tokio::spawn(async move {
-                let result = live.refresh_one(&source).await;
-                let _ = tx.send(Msg::SourceLoaded {
-                    source: source.id,
-                    result,
-                    now: load::now(),
-                });
+            if self.engine.begin(&source.id) {
+                let live = Arc::clone(self);
+                let tx = tx.clone();
+                let source = source.clone();
+                tokio::spawn(async move { live.run_cycle(source, tx).await });
+                continue;
+            }
+            if how == Ask::Manual
+                && matches!(self.engine.status(&source.id), SourceStatus::Offline { .. })
+            {
+                self.engine.kick(&source.id).notify_one();
+            }
+            let result = match self
+                .engine
+                .with_machine(&source.id, |m| m.last_failure().cloned())
+            {
+                Some(failure) => Err(failure),
+                None => Ok(self.cached_rows(&source.id)),
+            };
+            let _ = tx.send(Msg::SourceLoaded {
+                source: source.id.clone(),
+                result,
+                now: self.engine.clock.now(),
             });
         }
     }
 
-    async fn refresh_one(
-        &self,
-        source: &Source,
-    ) -> Result<Vec<rb_core::ChangeSummary>, SourceFailure> {
-        let _permit = self.limit.acquire().await;
-        let provider = self.provider(&source.id, &source.host).await?;
+    /// One source's refresh: tries, and on a transient failure waits and tries again, until it
+    /// works, is refused for good, or the app closes. The first answer is `SourceLoaded`; later
+    /// ones are `SourceUpdated`.
+    async fn run_cycle(self: Arc<Self>, source: Source, tx: UnboundedSender<Msg>) {
+        let engine = &self.engine;
+        let mut first = true;
+        let reply = |first: &mut bool, result| {
+            let source = source.id.clone();
+            let now = engine.clock.now();
+            let msg = if *first {
+                Msg::SourceLoaded {
+                    source,
+                    result,
+                    now,
+                }
+            } else {
+                Msg::SourceUpdated {
+                    source,
+                    result,
+                    now,
+                }
+            };
+            *first = false;
+            tx.send(msg).is_ok()
+        };
+        let status = |status| {
+            let _ = tx.send(Msg::SourceStatus {
+                source: source.id.clone(),
+                status,
+            });
+        };
+        loop {
+            if let Some(until) = engine.host_paused_until(&source.host) {
+                engine.with_machine(&source.id, |m| m.pause_until(until));
+                status(SourceStatus::RateLimited { until });
+                let wait = until.0 - engine.clock.now().0;
+                let failure = SourceFailure::from_error(
+                    &Error::RateLimited {
+                        host: source.host.clone(),
+                        retry_after_secs: u64::try_from(wait).ok(),
+                    },
+                    &source.host,
+                );
+                if !reply(&mut first, Err(failure)) {
+                    return;
+                }
+                engine
+                    .clock
+                    .sleep(Duration::from_secs(u64::try_from(wait).unwrap_or(1).max(1)))
+                    .await;
+                continue;
+            }
+            match self.attempt(&source).await {
+                Ok(items) => {
+                    engine.with_machine(&source.id, SourceMachine::succeed);
+                    status(SourceStatus::Ok);
+                    reply(&mut first, Ok(items));
+                    return;
+                }
+                Err(failed) => {
+                    let next = engine.with_machine(&source.id, |m| {
+                        m.fail(
+                            failed.class,
+                            failed.failure.clone(),
+                            engine.clock.now(),
+                            &engine.backoff,
+                            engine.jitter.unit(),
+                        )
+                    });
+                    if let Next::Pause { until } = next {
+                        engine.pause_host(&source.host, until);
+                    }
+                    status(engine.status(&source.id));
+                    if !reply(&mut first, Err(failed.failure)) {
+                        return;
+                    }
+                    match next {
+                        Next::Stop => return,
+                        Next::Retry(delay) => {
+                            let kicked = engine.kick(&source.id);
+                            tokio::select! {
+                                () = engine.clock.sleep(delay) => {}
+                                () = kicked.notified() => {}
+                            }
+                        }
+                        Next::Pause { until } => {
+                            let wait = until.0 - engine.clock.now().0;
+                            engine
+                                .clock
+                                .sleep(Duration::from_secs(u64::try_from(wait).unwrap_or(1).max(1)))
+                                .await;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn cached_rows(&self, id: &SourceId) -> Vec<ChangeSummary> {
+        self.cache.as_ref().map_or_else(Vec::new, |cache| {
+            let store = cache.lock().unwrap_or_else(|e| e.into_inner());
+            store.list_summaries(id).unwrap_or_default()
+        })
+    }
+
+    /// One request for a source's changes, sent conditionally when rows are cached under a
+    /// saved ETag. A not-modified answer keeps the cached rows.
+    async fn attempt(&self, source: &Source) -> Result<Vec<ChangeSummary>, Failed> {
+        let _permit = self.engine.semaphore(&source.host).acquire_owned().await;
+        let (provider, host) = (
+            self.provider_raw(&source.id, &source.host).await?,
+            &source.host,
+        );
+        let key = etag_key(&source.scope);
+        let (since, cached) = self.conditional(&source.id, &key);
         let page = provider
-            .list_changes(&source.scope, None)
+            .list_changes(&source.scope, since)
             .await
-            .map_err(|e| SourceFailure::from_error(&e, &source.host))?;
-        if let Some(cache) = &self.cache {
-            let mut store = cache.lock().unwrap_or_else(|e| e.into_inner());
-            let _ = store.replace_summaries(&source.id, &page.items, load::now());
+            .map_err(|e| Failed {
+                class: classify(&e),
+                failure: SourceFailure::from_error(&e, host),
+            })?;
+        let now = self.engine.clock.now();
+        let Some(cache) = &self.cache else {
+            return Ok(page.items);
+        };
+        let mut store = cache.lock().unwrap_or_else(|e| e.into_inner());
+        if page.not_modified {
+            let _ = store.put_summaries(&source.id, &cached, now);
+            return Ok(cached);
+        }
+        let _ = store.replace_summaries(&source.id, &page.items, now);
+        match &page.etag {
+            Some(etag) => {
+                let _ = store.set_etag(&source.id, &key, etag, now);
+            }
+            None => {
+                let _ = store.clear_etag(&source.id, &key);
+            }
         }
         Ok(page.items)
+    }
+
+    /// The saved ETag and rows, when there are rows to fall back on.
+    fn conditional(&self, id: &SourceId, key: &str) -> (Option<Etag>, Vec<ChangeSummary>) {
+        let Some(cache) = &self.cache else {
+            return (None, Vec::new());
+        };
+        let store = cache.lock().unwrap_or_else(|e| e.into_inner());
+        let cached = store.list_summaries(id).unwrap_or_default();
+        if cached.is_empty() {
+            return (None, cached);
+        }
+        (store.etag(id, key).ok().flatten(), cached)
+    }
+
+    async fn provider_raw(
+        &self,
+        id: &SourceId,
+        host: &str,
+    ) -> Result<Arc<dyn rb_core::Provider>, Failed> {
+        let factory = Arc::clone(&self.factory);
+        let wanted = id.clone();
+        let built = tokio::task::spawn_blocking(move || factory.provider(&wanted))
+            .await
+            .map_err(|_| Failed {
+                class: Class::Other,
+                failure: SourceFailure::unavailable(
+                    "Couldn't start the sign-in check.",
+                    "Press r to try again.",
+                ),
+            })?;
+        built.map_err(|e| Failed {
+            class: match &e {
+                ProviderError::Auth(_) | ProviderError::GitlabAuth(_) => Class::Auth,
+                ProviderError::Client(error) => classify(error),
+                ProviderError::UnknownSource(_) => Class::Other,
+            },
+            failure: e.failure(host),
+        })
     }
 
     async fn provider(
@@ -116,17 +373,7 @@ impl Live {
         id: &SourceId,
         host: &str,
     ) -> Result<Arc<dyn rb_core::Provider>, SourceFailure> {
-        let factory = Arc::clone(&self.factory);
-        let wanted = id.clone();
-        tokio::task::spawn_blocking(move || factory.provider(&wanted))
-            .await
-            .map_err(|_| {
-                SourceFailure::unavailable(
-                    "Couldn't start the sign-in check.",
-                    "Press r to try again.",
-                )
-            })?
-            .map_err(|e| e.failure(host))
+        self.provider_raw(id, host).await.map_err(|f| f.failure)
     }
 
     fn host_of(&self, id: &SourceId) -> String {
@@ -147,7 +394,7 @@ impl Live {
 
     async fn info(&self, id: &ChangeId) -> Result<ChangeInfo, SourceFailure> {
         let host = self.host_of(&id.source_id);
-        let _permit = self.limit.acquire().await;
+        let _permit = self.engine.semaphore(&host).acquire_owned().await;
         let provider = self.provider(&id.source_id, &host).await?;
         load::fetch_info(provider.as_ref(), id)
             .await
@@ -165,7 +412,7 @@ impl Live {
 
     async fn diff(&self, id: &ChangeId) -> Result<crate::app::DiffData, SourceFailure> {
         let host = self.host_of(&id.source_id);
-        let _permit = self.limit.acquire().await;
+        let _permit = self.engine.semaphore(&host).acquire_owned().await;
         let provider = self.provider(&id.source_id, &host).await?;
         load::fetch_diff(provider.as_ref(), id, ReviewDraft::default())
             .await
@@ -232,6 +479,23 @@ impl Live {
         let host = self.host_of(&id.source_id);
         self.provider(&id.source_id, &host).await.map_err(describe)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Ask {
+    Auto,
+    Manual,
+    Focus,
+}
+
+struct Failed {
+    class: Class,
+    failure: SourceFailure,
+}
+
+/// Where a source's ETag is kept: one per scope, so changing the scope never reuses a stale one.
+fn etag_key(scope: &Scope) -> String {
+    format!("changes:{scope:?}")
 }
 
 fn describe(failure: SourceFailure) -> String {

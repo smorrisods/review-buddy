@@ -132,7 +132,7 @@ Shells out to `git` in the repo found under `checkout.root`:
 ## Rate limits, caching, errors
 
 - Every GET uses an ETag cache (`If-None-Match`) stored in SQLite; 304s don't count against GitHub's REST limit.
-- GitHub GraphQL cost is read from `rateLimit { remaining, resetAt }`. Below 10% left, refresh pauses for that source with a footer note.
+- GitHub GraphQL cost is read from `rateLimit { remaining, resetAt }`. Below 10% left, refresh pauses for that source until the reset (the Sources pane says `paused until HH:MM`), and no other request goes to that host meanwhile.
 - GitLab `RateLimit-Remaining` / `Retry-After` are honoured.
 - Retries use exponential backoff with full jitter (max 3) on 5xx and network errors, but never on 4xx.
 - Error copy maps status codes to fixes: 401 "Token rejected. Press e to paste a new one." · 403 with SSO "This org needs SSO approval for your token. o to open the approval page." · 404 on an MR "It may have been closed or moved. r to refresh." · 409 on merge "Head moved since you reviewed. Refresh and look again."
@@ -140,7 +140,7 @@ Shells out to `git` in the repo found under `checkout.root`:
 ## Live loading in the interface
 
 - A provider is built per enabled `[[source]]` by the factory in `providers/`, and `review-buddy` commands and the interface share it. GitHub tokens come from `gh auth token --hostname <host>` (then the keyring), the keyring, an `env:VAR` reference or a `token_command`; `api_url` points Enterprise or a test stub at its API. GitLab tokens come from `glab config get token --host <host>` (then `glab auth status -t`), the keyring, `env:VAR` or a `token_command`, with the same `api_url` override.
-- On launch, cached rows from the SQLite cache paint first, then every source refreshes at once (bounded by `max_concurrency_per_host`) and replaces its cached rows. Refresh runs on launch, on `r` and when the terminal regains focus (`refresh.on_focus`); there is no background polling yet.
+- On launch, cached rows from the SQLite cache paint first, then every source refreshes at once (bounded by `max_concurrency_per_host`) and replaces its cached rows. Refresh runs on launch, on `r`, every `refresh.interval` and when the terminal regains focus (`refresh.on_focus`). Transient failures retry with backoff and jitter. See `docs/configuration.md` for the full behaviour.
 - A source that fails keeps its cached rows and shows a short reason in the Sources pane and the Detail pane, plus a toast with the next step. With no cache and no sign-in, the queue says "Sign in to see your reviews." and how to fix it. Rate limits say when the limit resets.
 - Details, checks and threads load the first time a change is selected; files and threads load when its diff opens.
 

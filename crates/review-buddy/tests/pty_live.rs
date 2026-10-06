@@ -188,3 +188,62 @@ async fn a_missing_token_shows_the_sign_in_state() {
     assert!(server.received_requests().await.unwrap().is_empty());
     session.quit();
 }
+
+async fn serve_rows(server: &MockServer) {
+    let fixture = format!(
+        "{}/../rb-github/tests/fixtures/review_requested_p2.json",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let body: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(fixture).unwrap()).unwrap();
+    Mock::given(method("POST"))
+        .and(path("/graphql"))
+        .and(Searching)
+        .respond_with(ResponseTemplate::new(200).set_body_json(body))
+        .mount(server)
+        .await;
+}
+
+async fn wait_for_requests_beyond(server: &MockServer, seen: usize) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline {
+        if server.received_requests().await.unwrap().len() > seen {
+            return true;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    false
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn pressing_r_sends_another_refresh_and_the_footer_says_when() {
+    let server = MockServer::start().await;
+    serve_rows(&server).await;
+    let config = format!("{}\n[refresh]\ninterval = \"off\"\n", config(&server));
+
+    let (_home, mut session) = spawn(&config, Some("ghp_pty_stub_token"));
+    assert!(
+        session.sees("Add retry to sync"),
+        "output so far: {:?}",
+        tail(&session.seen)
+    );
+    assert!(session.sees("refreshed "), "{:?}", tail(&session.seen));
+    let before = server.received_requests().await.unwrap().len();
+    session.writer.write_all(b"r").unwrap();
+    session.writer.flush().unwrap();
+    assert!(wait_for_requests_beyond(&server, before).await);
+    session.quit();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_refresh_interval_polls_without_a_keypress() {
+    let server = MockServer::start().await;
+    serve_rows(&server).await;
+    let config = format!("{}\n[refresh]\ninterval = \"1s\"\n", config(&server));
+
+    let (_home, mut session) = spawn(&config, Some("ghp_pty_stub_token"));
+    assert!(session.sees("Add retry to sync"));
+    let before = server.received_requests().await.unwrap().len();
+    assert!(wait_for_requests_beyond(&server, before).await);
+    session.quit();
+}
