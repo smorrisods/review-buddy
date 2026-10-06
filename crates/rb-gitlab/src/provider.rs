@@ -1,23 +1,31 @@
 use async_trait::async_trait;
 use rb_core::{
     Capabilities, ChangeDetail, ChangeId, ChangeSummary, Check, Comment, Error, Etag, FilePatch,
-    ForgeKind, MergeOpts, MergeOutcome, Page, Provider, Result, ReviewDraft, Scope, Thread,
-    ThreadId, User, Verdict,
+    ForgeKind, MergeOpts, MergeOutcome, Page, Provider, Result, ReviewDraft, Scope, SourceId,
+    Thread, ThreadId, User, Verdict,
 };
 use url::Url;
 
-use crate::GitlabClient;
+use crate::{changes, GitlabClient};
 
-/// GitLab behind the `Provider` trait. Only sign-in checks work so far; everything else reports
-/// `Unsupported` until listing, details and review writes land, and capabilities stay empty.
+/// GitLab behind the `Provider` trait. Sign-in checks, listing and detail work; diffs, threads,
+/// pipelines and review writes report `Unsupported` until they land, and capabilities stay empty.
 #[derive(Debug, Clone)]
 pub struct GitlabProvider {
     client: GitlabClient,
+    source_id: SourceId,
 }
 
 impl GitlabProvider {
     pub fn new(client: GitlabClient) -> Self {
-        Self { client }
+        let source_id = SourceId::new(client.host());
+        Self { client, source_id }
+    }
+
+    /// The source these changes belong to; defaults to the host name.
+    pub fn with_source_id(mut self, source_id: SourceId) -> Self {
+        self.source_id = source_id;
+        self
     }
 
     pub fn client(&self) -> &GitlabClient {
@@ -41,14 +49,14 @@ impl Provider for GitlabProvider {
 
     async fn list_changes(
         &self,
-        _scope: &Scope,
-        _since: Option<Etag>,
+        scope: &Scope,
+        since: Option<Etag>,
     ) -> Result<Page<ChangeSummary>> {
-        not_yet("listing merge requests")
+        changes::list_changes(&self.client, &self.source_id, scope, since).await
     }
 
-    async fn change_detail(&self, _id: &ChangeId) -> Result<ChangeDetail> {
-        not_yet("opening merge requests")
+    async fn change_detail(&self, id: &ChangeId) -> Result<ChangeDetail> {
+        changes::change_detail(&self.client, &self.source_id, id, self.web_url(id)).await
     }
 
     async fn files(&self, _id: &ChangeId) -> Result<Vec<FilePatch>> {

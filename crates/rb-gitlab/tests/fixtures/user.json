@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "username": "octo",
+  "name": "Octo",
+  "state": "active",
+  "locked": false,
+  "avatar_url": null,
+  "web_url": "https://gitlab.test/octo",
+  "bot": false
+}

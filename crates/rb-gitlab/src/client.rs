@@ -191,7 +191,21 @@ impl GitlabClient {
         )
     }
 
+    /// A GET that also returns the response headers (pagination and totals live there).
+    pub(crate) async fn get_page(
+        &self,
+        path: &str,
+        query: &[(&str, String)],
+    ) -> Result<(Vec<u8>, HeaderMap)> {
+        self.send_full(self.http.get(self.url(path)).query(query))
+            .await
+    }
+
     pub(crate) async fn send(&self, req: reqwest::RequestBuilder) -> Result<Vec<u8>> {
+        self.send_full(req).await.map(|(body, _)| body)
+    }
+
+    async fn send_full(&self, req: reqwest::RequestBuilder) -> Result<(Vec<u8>, HeaderMap)> {
         let mut auth = match self.scheme {
             Scheme::PrivateToken => HeaderValue::from_str(self.token.expose()),
             Scheme::Bearer => HeaderValue::from_str(&format!("Bearer {}", self.token.expose())),
@@ -225,7 +239,7 @@ impl GitlabClient {
             .map_err(|e| self.network_error(e))?
             .to_vec();
         if status.is_success() {
-            Ok(body)
+            Ok((body, headers))
         } else {
             Err(map_status(&self.host, status, &headers, &body, now_epoch()))
         }

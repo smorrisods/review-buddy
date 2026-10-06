@@ -2844,6 +2844,7 @@ name = "rb-gitlab"
 version = "0.0.0"
 dependencies = [
  "async-trait",
+ "futures-util",
  "rb-core",
  "rb-platform",
  "reqwest",

@@ -1,0 +1,64 @@
+[
+  {
+    "id": 9002,
+    "iid": 12,
+    "project_id": 900,
+    "title": "Draft: Rework auth",
+    "description": "Body of Draft: Rework auth.",
+    "state": "opened",
+    "created_at": "2026-09-01T10:00:00.000Z",
+    "updated_at": "2026-09-29T09:30:00.000Z",
+    "merged_by": null,
+    "closed_by": null,
+    "target_branch": "main",
+    "source_branch": "feat/12",
+    "user_notes_count": 2,
+    "upvotes": 0,
+    "downvotes": 0,
+    "author": {
+      "id": 3,
+      "username": "sam",
+      "name": "Sam",
+      "state": "active",
+      "locked": false,
+      "avatar_url": null,
+      "web_url": "https://gitlab.test/sam",
+      "bot": false
+    },
+    "assignees": [],
+    "assignee": null,
+    "reviewers": [
+      {
+        "id": 1,
+        "username": "octo",
+        "name": "Octo",
+        "state": "active",
+        "locked": false,
+        "avatar_url": null,
+        "web_url": "https://gitlab.test/octo",
+        "bot": false
+      }
+    ],
+    "source_project_id": 900,
+    "target_project_id": 900,
+    "labels": [
+      "auth"
+    ],
+    "draft": true,
+    "work_in_progress": true,
+    "milestone": null,
+    "merge_when_pipeline_succeeds": false,
+    "merge_status": "can_be_merged",
+    "detailed_merge_status": "mergeable",
+    "sha": "1212121212121212121212121212121212121212",
+    "merge_commit_sha": null,
+    "has_conflicts": false,
+    "blocking_discussions_resolved": true,
+    "web_url": "https://gitlab.test/platform/sub/api/-/merge_requests/12",
+    "references": {
+      "short": "!12",
+      "relative": "!12",
+      "full": "platform/sub/api!12"
+    }
+  }
+]

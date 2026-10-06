@@ -215,7 +215,9 @@ impl Factory {
     fn build(&self, entry: &Entry) -> Result<Arc<dyn Provider>, ProviderError> {
         if entry.source.kind == ForgeKind::GitLab {
             let (client, _) = self.gitlab_client_for(entry)?;
-            return Ok(Arc::new(GitlabProvider::new(client)));
+            return Ok(Arc::new(
+                GitlabProvider::new(client).with_source_id(entry.source.id.clone()),
+            ));
         }
         let (client, _) = self.client_for(entry)?;
         Ok(Arc::new(

@@ -1,0 +1,85 @@
+{
+  "id": 9001,
+  "iid": 11,
+  "project_id": 900,
+  "title": "Add retry to sync",
+  "description": "Body of Add retry to sync.",
+  "state": "opened",
+  "created_at": "2026-09-01T10:00:00.000Z",
+  "updated_at": "2026-09-30T12:00:00.000Z",
+  "merged_by": null,
+  "closed_by": null,
+  "target_branch": "main",
+  "source_branch": "feat/11",
+  "user_notes_count": 2,
+  "upvotes": 0,
+  "downvotes": 0,
+  "author": {
+    "id": 2,
+    "username": "mira",
+    "name": "Mira",
+    "state": "active",
+    "locked": false,
+    "avatar_url": null,
+    "web_url": "https://gitlab.test/mira",
+    "bot": false
+  },
+  "assignees": [],
+  "assignee": null,
+  "reviewers": [
+    {
+      "id": 1,
+      "username": "octo",
+      "name": "Octo",
+      "state": "active",
+      "locked": false,
+      "avatar_url": null,
+      "web_url": "https://gitlab.test/octo",
+      "bot": false
+    },
+    {
+      "id": 3,
+      "username": "sam",
+      "name": "Sam",
+      "state": "active",
+      "locked": false,
+      "avatar_url": null,
+      "web_url": "https://gitlab.test/sam",
+      "bot": false
+    }
+  ],
+  "source_project_id": 900,
+  "target_project_id": 900,
+  "labels": [
+    "sync",
+    "needs-review"
+  ],
+  "draft": false,
+  "work_in_progress": false,
+  "milestone": null,
+  "merge_when_pipeline_succeeds": false,
+  "merge_status": "can_be_merged",
+  "detailed_merge_status": "not_approved",
+  "sha": "1111111111111111111111111111111111111111",
+  "merge_commit_sha": null,
+  "has_conflicts": false,
+  "blocking_discussions_resolved": true,
+  "web_url": "https://gitlab.test/platform/flow/-/merge_requests/11",
+  "references": {
+    "short": "!11",
+    "relative": "!11",
+    "full": "platform/flow!11"
+  },
+  "head_pipeline": {
+    "id": 77,
+    "iid": 5,
+    "status": "failed",
+    "web_url": "https://gitlab.test/platform/flow/-/pipelines/77"
+  },
+  "diff_refs": {
+    "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "head_sha": "cccccccccccccccccccccccccccccccccccccccc",
+    "start_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "changes_count": "3"
+}

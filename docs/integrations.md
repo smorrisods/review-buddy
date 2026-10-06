@@ -46,7 +46,13 @@ GraphQL has no ETags, so the page's `etag` is a fingerprint of every change's no
 - `author_username=<me>`
 - `my_reaction_emoji` is not used; mentions come from `GET /todos?action=mentioned&type=MergeRequest`
 
-These are scoped per source with `/groups/:id/merge_requests` or `/projects/:id/merge_requests`. Approval state comes from `GET /projects/:id/merge_requests/:iid/approvals`; pipeline status from `head_pipeline` on the MR detail. The list requests run in parallel; the details load lazily for the selected change and the visible rows.
+These are scoped per source: a group (`owners`) uses `GET /groups/:id/merge_requests` with `include_subgroups=true`, a project (`repos`) uses `GET /projects/:id/merge_requests`, and an everything or `user` scope uses `GET /merge_requests`, keeping only your own namespace for `user`. Group and project paths are URL-encoded (`platform/sub` becomes `platform%2Fsub`). Mention to-dos have no group filter, so they are matched against the scope by project path, and done to-dos are ignored. All requests run in parallel, 100 per page, following `X-Next-Page` for up to 10 pages each, and the results merge and de-duplicate by merge request id.
+
+A change's role comes from which queries matched plus its own reviewer, assignee and author fields (reviewing, then authored, assigned, mentioned). A draft is `draft`, `work_in_progress` or a `Draft:`/`WIP:` title prefix; a bot author is `author.bot` or a `project_…_bot`/`group_…_bot` username. `detailed_merge_status` maps to mergeability, and `head_pipeline` (or `pipeline`) maps to CI: `success` is pass, `running`/`pending`/`created`/`preparing`/`scheduled`/`waiting_for_resource` running, `failed` fail, `canceled` cancelled, `skipped` skipped, `manual` neutral.
+
+The list endpoint carries no approvals, reviewer states, pipelines, line counts or commit counts, so queue rows show reviewers as requested, no CI state and no line counts until you open the change. `change_detail` then makes a handful of small calls: the merge request itself (`head_pipeline`, `diff_refs`, `changes_count`), `…/approvals`, `…/reviewers` (per-reviewer state, which gives `my_review` and `i_commented`), `…/commits?per_page=1` (commit count from `X-Total`) and the first 300 files of `…/diffs` (added and removed lines). Any of the extras that an instance doesn't offer is left unknown rather than failing the detail. `my_reviewed_sha` and `has_new_activity` aren't available from GitLab's REST API and stay unset.
+
+GitLab does send ETags, but because a refresh merges several queries the page's `etag` is a fingerprint of every merge request's id and `updated_at`, as on GitHub; a matching `since` returns a `not_modified` page. Before each request the client checks the last `RateLimit-Remaining`, and below 10 it stops and returns `RateLimited` with the seconds until `RateLimit-Reset`. A `429` carries `Retry-After` the same way. Self-hosted instances work through `api_url`.
 
 ## Diffs
 

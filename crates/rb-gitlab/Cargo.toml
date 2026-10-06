@@ -10,6 +10,7 @@ description = "Review Buddy GitLab provider (REST v4)."
 
 [dependencies]
 async-trait.workspace = true
+futures-util.workspace = true
 rb-core.workspace = true
 rb-platform.workspace = true
 reqwest.workspace = true

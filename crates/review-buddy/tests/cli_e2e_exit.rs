@@ -125,25 +125,6 @@ fn exit_4_when_the_token_is_missing() {
         .stderr(predicate::str::contains("auth login"));
 }
 
-#[cfg(feature = "live")]
-#[test]
-fn exit_5_for_gitlab_listing_until_it_lands() {
-    let sandbox = Sandbox::new();
-    let config = sandbox.write_config(SOURCES);
-    sandbox
-        .cmd()
-        .arg("--config")
-        .arg(&config)
-        .env("RB_E2E_TOKEN", "not-a-real-token")
-        .args(["pr", "list", "--source", "lab"])
-        .assert()
-        .code(5)
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::contains(
-            "listing merge requests on GitLab yet",
-        ));
-}
-
 #[cfg(not(feature = "live"))]
 #[test]
 fn without_network_support_live_commands_exit_2() {
