@@ -55,6 +55,6 @@ fn auth_status_without_sources_points_at_the_config() {
     let sandbox = Sandbox::new();
     let out = sandbox.cmd().args(["auth", "status"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("config.toml"), "{stdout}");
-    assert!(!stdout.contains("source add"), "{stdout}");
+    assert!(stdout.contains("review-buddy source add"), "{stdout}");
+    assert!(stdout.contains("--setup"), "{stdout}");
 }

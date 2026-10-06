@@ -11,10 +11,15 @@ pub mod prompt;
 pub mod selector;
 
 mod auth;
+mod auth_login;
+mod auth_logout;
+mod auth_token;
 mod changes;
 mod completion;
 mod config;
+mod config_get;
 mod doctor;
+mod host;
 mod markdown;
 mod open;
 mod pr_checks;
@@ -24,6 +29,8 @@ mod pr_view;
 mod queue;
 mod setup;
 mod source;
+mod source_add;
+mod source_test;
 mod stub;
 mod theme;
 
@@ -115,9 +122,30 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
         Command::Auth {
             action: AuthAction::Status,
         } => auth::status(&ctx),
+        Command::Auth {
+            action: AuthAction::Login { host, with_token },
+        } => auth_login::run(&ctx, host.as_deref(), with_token),
+        Command::Auth {
+            action: AuthAction::Logout { host },
+        } => auth_logout::run(&ctx, host.as_deref()),
+        Command::Auth {
+            action: AuthAction::Token { host, show },
+        } => auth_token::run(&ctx, host.as_deref(), show),
+        Command::Config {
+            action: ConfigAction::Get { key },
+        } => config_get::get(&ctx, &key),
+        Command::Config {
+            action: ConfigAction::List,
+        } => config_get::list(&ctx),
         Command::Source {
             action: SourceAction::List,
         } => source::list(&ctx),
+        Command::Source {
+            action: SourceAction::Test { name, require },
+        } => source_test::run(&ctx, name.as_deref(), &require),
+        Command::Source {
+            action: SourceAction::Add(args),
+        } => source_add::run(&ctx, &args),
         Command::Doctor => doctor::run(&ctx),
         Command::Open { selector } => open::run(&ctx, selector.as_deref(), terminal),
         Command::Pr {
@@ -157,13 +185,8 @@ mod tests {
 
     #[test]
     fn unbuilt_commands_exit_2_before_touching_anything() {
-        for args in [
-            &["triage", "explain", "x"][..],
-            &["config", "get", "ui.theme"],
-        ] {
-            let err = execute(parse(args), Terminal::detect()).unwrap_err();
-            assert_eq!(err.exit(), Exit::Usage, "{args:?}");
-            assert!(err.to_string().starts_with("Not built yet."));
-        }
+        let err = execute(parse(&["triage", "explain", "x"]), Terminal::detect()).unwrap_err();
+        assert_eq!(err.exit(), Exit::Usage);
+        assert!(err.to_string().starts_with("Not built yet."));
     }
 }
