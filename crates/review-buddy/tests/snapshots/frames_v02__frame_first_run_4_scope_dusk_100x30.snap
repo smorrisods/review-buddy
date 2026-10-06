@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  first run                                                                    Dusk
+
+
+
+
+
+
+
+
+
+           ╭ 2 · What to include ───────────────────────────────────────────────────────╮
+           │ Pick what each account covers. Leave everything unticked to include        │
+           │ everything you can see.                                                    │
+           │                                                                            │
+           │ › [x] github.com · my own repositories                                     │
+           │   [ ] github.com · org liminal-hq                                          │
+           │   [ ] github.com · org acme                                                │
+           │                                                                            │
+           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now

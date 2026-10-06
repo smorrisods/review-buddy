@@ -1,13 +1,13 @@
-//! Headless renders of Settings → Sources, pinned with `insta`.
+//! Settings → Sources behaviour: confirm, clicks, check results. The screens themselves are pinned
+//! in `frames_v02.rs`.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 use rb_core::ForgeKind;
-use rb_platform::auth::CliTool;
 use rb_theme::ColourDepth;
 use review_buddy::app::{update, Action, App, AppConfig, Msg};
 use review_buddy::settings::{Click, Input, Origin, Snapshot, SourceRow, TestInfo};
-use review_buddy::setup::{AuthKind, Detection, Evidence, FoundHost, SourceSpec};
+use review_buddy::setup::{AuthKind, SourceSpec};
 use review_buddy::ui::{self, HitMap};
 
 fn row(name: &str, kind: ForgeKind, host: &str, auth: AuthKind, owners: &[&str]) -> SourceRow {
@@ -117,108 +117,6 @@ fn render(app: &App, w: u16, h: u16) -> (String, HitMap) {
 
 fn key(app: &mut App, code: KeyCode) {
     update(app, Msg::Key(KeyEvent::new(code, KeyModifiers::NONE)));
-}
-
-fn type_text(app: &mut App, text: &str) {
-    for c in text.chars() {
-        key(app, KeyCode::Char(c));
-    }
-}
-
-fn found(host: &str, kind: ForgeKind, cli: bool) -> FoundHost {
-    FoundHost {
-        host: host.into(),
-        kind,
-        evidence: vec![if cli {
-            Evidence::Cli {
-                tool: CliTool::Glab,
-                user: "smorris".into(),
-            }
-        } else {
-            Evidence::GitConfig
-        }],
-    }
-}
-
-fn tour(w: u16, h: u16, theme: &str) -> String {
-    let mut a = app(w, h, theme, None);
-    let mut out = vec![render(&a, w, h).0];
-
-    key(&mut a, KeyCode::Char('j'));
-    out.push(render(&a, w, h).0);
-
-    key(&mut a, KeyCode::Char('e'));
-    key(&mut a, KeyCode::Tab);
-    key(&mut a, KeyCode::Tab);
-    key(&mut a, KeyCode::Tab);
-    key(&mut a, KeyCode::Tab);
-    key(&mut a, KeyCode::Tab);
-    type_text(&mut a, "glpat-secret");
-    let edit = render(&a, w, h).0;
-    assert!(!edit.contains("glpat"), "the token never shows");
-    out.push(edit);
-    key(&mut a, KeyCode::Esc);
-
-    key(&mut a, KeyCode::Char('a'));
-    update(
-        &mut a,
-        Msg::Settings(Input::Detected(Detection {
-            hosts: vec![
-                found("gitlab.example.org", ForgeKind::GitLab, true),
-                found("git.sr.ht", ForgeKind::GitHub, false),
-            ],
-            notes: Vec::new(),
-        })),
-    );
-    out.push(render(&a, w, h).0);
-    key(&mut a, KeyCode::Enter);
-    out.push(render(&a, w, h).0);
-    key(&mut a, KeyCode::Esc);
-
-    key(&mut a, KeyCode::Char('x'));
-    out.push(render(&a, w, h).0);
-    out.join("\n=====\n")
-}
-
-#[test]
-fn tour_160x40_default() {
-    insta::assert_snapshot!(tour(160, 40, "liminal-hq"));
-}
-
-#[test]
-fn tour_100x30_default() {
-    insta::assert_snapshot!(tour(100, 30, "liminal-hq"));
-}
-
-#[test]
-fn tour_160x40_dusk() {
-    insta::assert_snapshot!(tour(160, 40, "dusk"));
-}
-
-#[test]
-fn tour_100x30_dusk() {
-    insta::assert_snapshot!(tour(100, 30, "dusk"));
-}
-
-fn origin_screen(w: u16, h: u16) -> String {
-    let origin = Origin {
-        path: "/etc/xdg/review-buddy/config.toml".into(),
-        label: "from /etc/xdg/review-buddy/config.toml".into(),
-    };
-    let mut a = app(w, h, "liminal-hq", Some(origin));
-    key(&mut a, KeyCode::Char('x'));
-    let toast = a.toasts[0].notice.text.clone();
-    format!("{}\n=====\n{toast}", render(&a, w, h).0)
-}
-
-#[test]
-fn a_read_only_origin_is_labelled_and_explained_160x40() {
-    insta::assert_snapshot!(origin_screen(160, 40));
-}
-
-#[test]
-fn a_read_only_origin_is_labelled_and_explained_100x30() {
-    insta::assert_snapshot!(origin_screen(100, 30));
 }
 
 #[test]

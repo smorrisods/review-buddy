@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  settings                                                                                                                           Liminal HQ
+ Settings       ╭ Sources ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+                │ Where your pull and merge requests come from. Changes save to your config right away.                                                        │
+› Sources       │                                                                                                                                              │
+                │   on     name               host                   sign-in        all scope                      token                                       │
+                │   on  GH github.com         github.com             gh             yes liminal-hq, acme, you      ✓ smorris · expires 2027-03-01              │
+                │ › on  GL work               gitlab.work.ca         keyring        yes platform                   ✗ Couldn't sign in to gitlab.work.ca: the…  │
+                │   off GL old-lab            gitlab.old.example     env:OLD_LAB_T… yes everything you can see     · not tested                                │
+                │                                                                                                                                              │
+                │ work  ·  gitlab.work.ca                                                                                                                      │
+                │ Signs in with a token in your OS keyring (never shown)                                                                                       │
+                │ Covers        platform                                                                                                                       │
+                │ Last check    ✗ Couldn't sign in to gitlab.work.ca: the token was rejected. To fix it, run review-buddy auth login --host gitlab.work.ca.    │
+                │ Queue         in All · d╭ Remove source? ──────────────────────────────────────────────────────────╮                                         │
+                │                         │ Remove work (gitlab.work.ca)?                                            │                                         │
+                │                         │                                                                          │                                         │
+                │                         │ This takes the work source out of                                        │                                         │
+                │                         │ /home/u/.config/review-buddy/config.toml. Its pull and merge requests    │                                         │
+                │                         │ leave your queue. Nothing changes on gitlab.work.ca.                     │                                         │
+                │                         │                                                                          │                                         │
+                │                         │ The token in your keyring (review-buddy/gitlab.work.ca) stays unless you │                                         │
+                │                         │ remove it too.                                                           │                                         │
+                │                         │                                                                          │                                         │
+                │                         │ › No, keep it  ⏎ ‹                                                       │                                         │
+                │                         │   Remove the source  y                                                   │                                         │
+                │                         │   Remove the source and its keyring token  d                             │                                         │
+                │                         ╰──────────────────────────────────────────────────────────────────────────╯                                         │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                │                                                                                                                                              │
+                ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ choose  y remove  esc no, keep it

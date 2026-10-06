@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  first run                                                         Afterglow Light
+
+
+
+
+
+
+
+
+
+           ╭ 3 · Pick a look ───────────────────────────────────────────────────────────╮
+           │ ← → changes the screen live. You can change it later with T.               │
+           │                                                                            │
+           │   Liminal HQ       ██ ██ ██ ██                                             │
+           │   Dusk             ██ ██ ██ ██                                             │
+           │   Afterglow Dark   ██ ██ ██ ██                                             │
+           │ › Afterglow Light  ██ ██ ██ ██                                             │
+           │                                                                            │
+           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now

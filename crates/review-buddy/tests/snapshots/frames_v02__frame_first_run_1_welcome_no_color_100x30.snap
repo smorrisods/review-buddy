@@ -1,0 +1,70 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  first run                                                              Liminal HQ
+
+
+
+
+
+
+
+
+           ╭ Getting started ───────────────────────────────────────────────────────────╮
+           │ Welcome to Review Buddy.                                                   │
+           │ Every pull and merge request, in one quiet queue.                          │
+           │                                                                            │
+           │ Let's connect the accounts you already use. It takes about a minute, and   │
+           │ nothing is saved until you say so.                                         │
+           │                                                                            │
+           │ Found 2 places you might want to connect.                                  │
+           │                                                                            │
+           │ [ Continue ⏎ ]  [ Skip for now · esc ]                                     │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:88 D " Liminal HQ"
+9:11 B "╭ Getting started ───────────────────────────────────────────────────────────╮"
+10:11 B "│"
+10:13 B "Welcome to Review Buddy."
+10:88 B "│"
+11:11 B "│"
+11:13 D "Every pull and merge request, in one quiet queue."
+11:88 B "│"
+12:11 B "│"
+12:88 B "│"
+13:11 B "│"
+13:88 B "│"
+14:11 B "│"
+14:88 B "│"
+15:11 B "│"
+15:88 B "│"
+16:11 B "│"
+16:13 D "Found 2 places you might want to connect."
+16:88 B "│"
+17:11 B "│"
+17:88 B "│"
+18:11 B "│"
+18:13 B "[ Continue ⏎ ]"
+18:29 D "[ Skip for now · esc ]"
+18:88 B "│"
+19:11 B "╰────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " continue"
+29:13 B "space"
+29:18 D " pick"
+29:25 B "esc"
+29:28 D " skip for now"

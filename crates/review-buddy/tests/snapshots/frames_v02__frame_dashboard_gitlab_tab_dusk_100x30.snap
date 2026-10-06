@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
+  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
+╭ queue ───────────────────────────────────────╮╭ platform/flow!1182 ──────────────────────────────╮
+│  Worth a look · 1                            ││ Cache pipeline status lookups                    │
+│▌ ✕ Cache pipeline status lookups          7h ││ priya wants priya/status-cache → main            │
+│▌ GL flow!1182 · priya · you're mentioned     ││ +8 −2 · 1 file · opened 2d ago                   │
+│                                              ││                                                  │
+│  ▸ Noise · 1 bot update · ⏎ to expand        ││ a Approve  x Request changes  c Comment  ⏎ Diff  │
+│                                              ││                                                  │
+│  ── That's everything.                       ││  Overview   Files 1   Checks 3   Conversation 0  │
+│  2 in this view.                             ││ ──────────────────────────────────────────────── │
+│                                              ││ The status panel asks for the same pipeline many │
+│                                              ││ times a second. This keeps results for a short   │
+│                                              ││ time to coax the load down. @smorris, does the   │
+│                                              ││ TTL look right to you?                           │
+│                                              ││                                                  │
+│                                              ││ Reviewers                                        │
+│                                              ││ ◌ tomas requested                                │
+│                                              ││                                                  │
+│                                              ││ Checks                                           │
+│                                              ││ ● 2 passing  ✕ 1 failing                         │
+│                                              ││                                                  │
+│                                              ││ Latest comment                                   │
+│                                              ││ No comments yet                                  │
+│                                              ││                                                  │
+│                                              ││ Your review  not started                         │
+│                                              ││                                                  │
+│                                              ││                                                  │
+╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

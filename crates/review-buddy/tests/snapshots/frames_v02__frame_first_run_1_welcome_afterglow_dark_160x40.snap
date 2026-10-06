@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  first run                                                                                                                      Afterglow Dark
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                         ╭ Getting started ───────────────────────────────────────────────────────────╮
+                                         │ Welcome to Review Buddy.                                                   │
+                                         │ Every pull and merge request, in one quiet queue.                          │
+                                         │                                                                            │
+                                         │ Let's connect the accounts you already use. It takes about a minute, and   │
+                                         │ nothing is saved until you say so.                                         │
+                                         │                                                                            │
+                                         │ Found 2 places you might want to connect.                                  │
+                                         │                                                                            │
+                                         │ [ Continue ⏎ ]  [ Skip for now · esc ]                                     │
+                                         ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now

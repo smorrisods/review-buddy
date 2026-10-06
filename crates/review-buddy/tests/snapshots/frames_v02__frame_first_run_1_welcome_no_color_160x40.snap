@@ -1,0 +1,80 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  first run                                                                                                                          Liminal HQ
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                         ╭ Getting started ───────────────────────────────────────────────────────────╮
+                                         │ Welcome to Review Buddy.                                                   │
+                                         │ Every pull and merge request, in one quiet queue.                          │
+                                         │                                                                            │
+                                         │ Let's connect the accounts you already use. It takes about a minute, and   │
+                                         │ nothing is saved until you say so.                                         │
+                                         │                                                                            │
+                                         │ Found 2 places you might want to connect.                                  │
+                                         │                                                                            │
+                                         │ [ Continue ⏎ ]  [ Skip for now · esc ]                                     │
+                                         ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:148 D " Liminal HQ"
+14:41 B "╭ Getting started ───────────────────────────────────────────────────────────╮"
+15:41 B "│"
+15:43 B "Welcome to Review Buddy."
+15:118 B "│"
+16:41 B "│"
+16:43 D "Every pull and merge request, in one quiet queue."
+16:118 B "│"
+17:41 B "│"
+17:118 B "│"
+18:41 B "│"
+18:118 B "│"
+19:41 B "│"
+19:118 B "│"
+20:41 B "│"
+20:118 B "│"
+21:41 B "│"
+21:43 D "Found 2 places you might want to connect."
+21:118 B "│"
+22:41 B "│"
+22:118 B "│"
+23:41 B "│"
+23:43 B "[ Continue ⏎ ]"
+23:59 D "[ Skip for now · esc ]"
+23:118 B "│"
+24:41 B "╰────────────────────────────────────────────────────────────────────────────╯"
+39:1 B "⏎"
+39:2 D " continue"
+39:13 B "space"
+39:18 D " pick"
+39:25 B "esc"
+39:28 D " skip for now"

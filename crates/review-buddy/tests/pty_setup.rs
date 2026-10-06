@@ -3,55 +3,17 @@
 //! dashboard.
 #![cfg(all(unix, feature = "live"))]
 
-use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use serde_json::json;
 use wiremock::matchers::path;
+#[path = "support/pty.rs"]
+mod pty;
+
+use pty::Pty;
 use wiremock::{Mock, MockServer, ResponseTemplate};
-
-struct Session {
-    child: Box<dyn portable_pty::Child + Send + Sync>,
-    writer: Box<dyn Write + Send>,
-    rx: mpsc::Receiver<Vec<u8>>,
-    seen: Vec<u8>,
-    _master: Box<dyn portable_pty::MasterPty + Send>,
-}
-
-impl Session {
-    fn sees(&mut self, needle: &str) -> bool {
-        let deadline = Instant::now() + Duration::from_secs(20);
-        while Instant::now() < deadline {
-            if String::from_utf8_lossy(&self.seen).contains(needle) {
-                return true;
-            }
-            if let Ok(chunk) = self.rx.recv_timeout(Duration::from_millis(100)) {
-                self.seen.extend(chunk);
-            }
-        }
-        String::from_utf8_lossy(&self.seen).contains(needle)
-    }
-
-    fn send(&mut self, bytes: &[u8]) {
-        self.writer.write_all(bytes).unwrap();
-        self.writer.flush().unwrap();
-    }
-
-    fn tail(&self) -> String {
-        let text = String::from_utf8_lossy(&self.seen).into_owned();
-        text.chars()
-            .rev()
-            .take(800)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .collect()
-    }
-}
 
 fn stub_bin(dir: &Path) {
     std::fs::create_dir_all(dir).unwrap();
@@ -67,50 +29,11 @@ fn stub_bin(dir: &Path) {
     script("glab", "exit 1");
 }
 
-fn spawn(home: &Path, bin: &Path, args: &[&str]) -> Session {
-    let pair = native_pty_system()
-        .openpty(PtySize {
-            rows: 40,
-            cols: 160,
-            pixel_width: 0,
-            pixel_height: 0,
-        })
-        .unwrap();
-    let mut cmd = CommandBuilder::new(env!("CARGO_BIN_EXE_review-buddy"));
+fn spawn(home: &Path, bin: &Path, args: &[&str]) -> Pty {
+    let mut cmd = pty::command(home);
     cmd.args(args);
-    cmd.env_clear();
     cmd.env("PATH", format!("{}:/usr/bin:/bin", bin.display()));
-    cmd.env("TERM", "xterm-256color");
-    cmd.env("COLORTERM", "truecolor");
-    cmd.env("HOME", home);
-    for var in [
-        "XDG_CONFIG_HOME",
-        "XDG_DATA_HOME",
-        "XDG_CACHE_HOME",
-        "XDG_STATE_HOME",
-    ] {
-        cmd.env(var, home.join(var));
-    }
-    let child = pair.slave.spawn_command(cmd).unwrap();
-    drop(pair.slave);
-    let mut reader = pair.master.try_clone_reader().unwrap();
-    let writer = pair.master.take_writer().unwrap();
-    let (tx, rx) = mpsc::channel();
-    std::thread::spawn(move || {
-        let mut buf = [0u8; 4096];
-        while let Ok(n) = reader.read(&mut buf) {
-            if n == 0 || tx.send(buf[..n].to_vec()).is_err() {
-                break;
-            }
-        }
-    });
-    Session {
-        child,
-        writer,
-        rx,
-        seen: Vec::new(),
-        _master: pair.master,
-    }
+    Pty::spawn(cmd, 160, 40)
 }
 
 async fn stub_github() -> MockServer {
@@ -151,33 +74,22 @@ async fn the_rerun_flow_replaces_the_config_and_opens_the_dashboard() {
     std::fs::write(dir.join("config.toml"), &old).unwrap();
 
     let mut s = spawn(home.path(), &bin, &["--setup"]);
-    assert!(s.sees("Getting started"), "{}", s.tail());
-    s.send(b"\r");
-    assert!(s.sees("signed in as octo via gh"), "{}", s.tail());
-    s.send(b"\r");
-    assert!(s.sees("What to include"), "{}", s.tail());
-    s.send(b"\r");
-    assert!(s.sees("Afterglow Light"), "{}", s.tail());
+    s.expect("Getting started", "first run opens");
+    s.send_until(b"\r", "signed in as octo via gh", "the account is found");
+    s.send_expect(b"\r", "What to include", "scope step");
+    s.send_expect(b"\r", "Afterglow Light", "look step");
     s.send(b"\x1b[C");
-    std::thread::sleep(Duration::from_millis(400));
-    s.send(b"\r");
-    std::thread::sleep(Duration::from_millis(300));
-    s.send(b"\r");
-    std::thread::sleep(Duration::from_millis(300));
-    s.send(b"\r");
-    assert!(s.sees("Replace it?"), "{}", s.tail());
+    s.send_expect(b"\r", "Keep Jax around", "jax step");
+    s.send_expect(b"\r", "Jax around", "summary");
+    s.send_expect(b"\r", "Replace it?", "confirm");
     s.send(b"y");
     let wrote = dir.join("config.toml.bak");
     let deadline = Instant::now() + Duration::from_secs(10);
     while !wrote.exists() && Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(100));
     }
-    assert!(wrote.exists(), "config not written: {}", s.tail());
-    assert!(
-        s.sees("refresh"),
-        "the queue loads against the stub: {}",
-        s.tail()
-    );
+    assert!(wrote.exists(), "config not written:\n{}", s.screen());
+    s.expect("refresh", "the queue loads against the stub");
 
     let written = std::fs::read_to_string(dir.join("config.toml")).unwrap();
     assert!(written.contains("theme = \"dusk\""), "{written}");
@@ -196,14 +108,7 @@ async fn the_rerun_flow_replaces_the_config_and_opens_the_dashboard() {
     assert_eq!(mode, 0o600);
 
     s.send(b"q");
-    let deadline = Instant::now() + Duration::from_secs(10);
-    loop {
-        if s.child.try_wait().unwrap().is_some() {
-            break;
-        }
-        assert!(Instant::now() < deadline, "did not exit");
-        let _ = s.rx.recv_timeout(Duration::from_millis(50));
-    }
+    assert!(s.wait_exit(Duration::from_secs(10)));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -212,17 +117,12 @@ async fn a_first_launch_with_no_config_shows_first_run_and_esc_leaves_a_hint() {
     let bin = home.path().join("bin");
     stub_bin(&bin);
     let mut s = spawn(home.path(), &bin, &[]);
-    assert!(s.sees("Getting started"), "{}", s.tail());
-    s.send(b"\x1b");
-    assert!(s.sees("review-buddy --setup"), "{}", s.tail());
+    s.expect("Getting started", "first run opens");
+    s.send_until(b"\x1b", "review-buddy --setup", "esc leaves a hint");
     assert!(!home
         .path()
         .join("XDG_CONFIG_HOME/review-buddy/config.toml")
         .exists());
     s.send(b"q");
-    let deadline = Instant::now() + Duration::from_secs(10);
-    while s.child.try_wait().unwrap().is_none() {
-        assert!(Instant::now() < deadline, "did not exit");
-        let _ = s.rx.recv_timeout(Duration::from_millis(50));
-    }
+    assert!(s.wait_exit(Duration::from_secs(10)));
 }

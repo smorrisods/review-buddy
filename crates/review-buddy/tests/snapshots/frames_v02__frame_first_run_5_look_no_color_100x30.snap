@@ -1,0 +1,72 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: plain_dump(& mut app)
+---
+ review buddy  ·  first run                                                                    Dusk
+
+
+
+
+
+
+
+
+
+           ╭ 3 · Pick a look ───────────────────────────────────────────────────────────╮
+           │ ← → changes the screen live. You can change it later with T.               │
+           │                                                                            │
+           │   Liminal HQ       ██ ██ ██ ██                                             │
+           │ › Dusk             ██ ██ ██ ██                                             │
+           │   Afterglow Dark   ██ ██ ██ ██                                             │
+           │   Afterglow Light  ██ ██ ██ ██                                             │
+           │                                                                            │
+           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ ⏎ continue  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:94 D " Dusk"
+10:11 B "╭ 3 · Pick a look ───────────────────────────────────────────────────────────╮"
+11:11 B "│"
+11:13 D "← → changes the screen live. You can change it later with T."
+11:88 B "│"
+12:11 B "│"
+12:88 B "│"
+13:11 B "│"
+13:13 B ""
+13:88 B "│"
+14:11 B "│"
+14:13 BR "› Dusk"
+14:32 R "██ ██ ██ ██"
+14:88 B "│"
+15:11 B "│"
+15:13 B ""
+15:88 B "│"
+16:11 B "│"
+16:13 B ""
+16:88 B "│"
+17:11 B "│"
+17:88 B "│"
+18:11 B "│"
+18:13 D "[ Back ]"
+18:23 B "[ Continue ⏎ ]"
+18:39 D "[ Skip for now · esc ]"
+18:88 B "│"
+19:11 B "╰────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " continue"
+29:13 B "space"
+29:18 D " pick"
+29:25 B "esc"
+29:28 D " skip for now"

@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/frames_v02.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  settings                                                                     Dusk
+ Settings       ╭ Sources ─────────────────────────────────────────────────────────────────────────╮
+                │ Where your pull and merge requests come from. Changes save to your config right… │
+› Sources       │                                                                                  │
+                │   on     name           host               sign-in    all token                  │
+                │ › on  GH github.com     github.com         gh         yes ✓ smorris · expires …  │
+                │   on  GL work           gitlab.work.ca     keyring    yes ✗ Couldn't sign in t…  │
+                │   off GL old-lab        gitlab.old.example env:OLD_L… yes · not tested           │
+                │                                                                                  │
+                │ github.com  ·  github.com                                                        │
+                │ Signs in with your gh sign-in                                                    │
+            ╭ Add a source ────────────────────────────────────────────────────────────╮           │
+            │ Found on this machine. Pick one, or add another host.                    │ 2027-03-… │
+            │                                                                          │           │
+            │ › 1  GL  gitlab.example.org  ·  signed in with glab ‹                    │           │
+            │   2  GH  git.sr.ht  ·  found in your git config                          │           │
+            │   3  Another host…                                                       │           │
+            ╰──────────────────────────────────────────────────────────────────────────╯           │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                │                                                                                  │
+                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ choose  1-9 pick  esc cancel

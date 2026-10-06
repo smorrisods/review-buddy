@@ -182,7 +182,15 @@ frames! {
     rate_limit_note_dusk_160x40: paused("dusk", 160, 40);
     rate_limit_note_liminal_hq_100x30: paused("liminal-hq", 100, 30);
     rate_limit_note_dusk_100x30: paused("dusk", 100, 30);
+    offline_banner_afterglow_dark_160x40: offline("afterglow-dark", 160, 40);
+    offline_banner_afterglow_dark_100x30: offline("afterglow-dark", 100, 30);
+    rate_limit_note_afterglow_dark_160x40: paused("afterglow-dark", 160, 40);
+    rate_limit_note_afterglow_dark_100x30: paused("afterglow-dark", 100, 30);
+    refreshing_afterglow_dark_160x40: refreshing("afterglow-dark", 160, 40);
     refreshing_liminal_hq_160x40: refreshing("liminal-hq", 160, 40);
+    refreshing_liminal_hq_100x30: refreshing("liminal-hq", 100, 30);
+    refreshing_dusk_160x40: refreshing("dusk", 160, 40);
+    refreshing_afterglow_dark_100x30: refreshing("afterglow-dark", 100, 30);
     refreshing_dusk_100x30: refreshing("dusk", 100, 30);
 }
 

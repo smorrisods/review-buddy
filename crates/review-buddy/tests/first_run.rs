@@ -1,4 +1,4 @@
-//! Headless renders of the first-run screens, pinned with `insta`.
+//! First-run behaviour: clicks reach the flow. The screens themselves are pinned in `frames_v02.rs`.
 
 use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 use rb_core::ForgeKind;
@@ -86,58 +86,6 @@ fn render(app: &App, w: u16, h: u16) -> (String, HitMap) {
     let mut hits = HitMap::default();
     terminal.draw(|f| hits = ui::draw(f, app)).unwrap();
     (text(terminal.backend().buffer()), hits)
-}
-
-fn key(app: &mut App, code: crossterm::event::KeyCode) {
-    use crossterm::event::{KeyEvent, KeyModifiers};
-    update(app, Msg::Key(KeyEvent::new(code, KeyModifiers::NONE)));
-}
-
-fn tour(w: u16, h: u16, theme: &str) -> String {
-    use crossterm::event::KeyCode;
-    let mut a = app(w, h, theme);
-    detect(&mut a);
-    let mut out = vec![render(&a, w, h).0];
-    key(&mut a, KeyCode::Enter);
-    key(&mut a, KeyCode::Down);
-    key(&mut a, KeyCode::Char(' '));
-    for c in "glpat-secret".chars() {
-        key(&mut a, KeyCode::Char(c));
-    }
-    out.push(render(&a, w, h).0);
-    assert!(!out[1].contains("glpat"), "the token never shows");
-    key(&mut a, KeyCode::Esc);
-    key(&mut a, KeyCode::Enter);
-    key(&mut a, KeyCode::Char(' '));
-    out.push(render(&a, w, h).0);
-    key(&mut a, KeyCode::Enter);
-    key(&mut a, KeyCode::Right);
-    out.push(render(&a, w, h).0);
-    key(&mut a, KeyCode::Enter);
-    out.push(render(&a, w, h).0);
-    key(&mut a, KeyCode::Enter);
-    out.push(render(&a, w, h).0);
-    out.join("\n=====\n")
-}
-
-#[test]
-fn tour_160x40_default() {
-    insta::assert_snapshot!(tour(160, 40, "liminal-hq"));
-}
-
-#[test]
-fn tour_100x30_default() {
-    insta::assert_snapshot!(tour(100, 30, "liminal-hq"));
-}
-
-#[test]
-fn tour_160x40_dusk() {
-    insta::assert_snapshot!(tour(160, 40, "dusk"));
-}
-
-#[test]
-fn tour_100x30_dusk() {
-    insta::assert_snapshot!(tour(100, 30, "dusk"));
 }
 
 #[test]
