@@ -11,7 +11,7 @@ use rb_diff::{
 };
 
 use super::composer::{self, Composer, Confirm};
-use super::diffview::{self, Inputs, Rows, TAB_WIDTH};
+use super::diffview::{self, Inputs, Rows};
 use super::{Action, App, Cmd, Screen};
 use crate::ui::layout;
 
@@ -223,6 +223,28 @@ pub fn on_loaded(app: &mut App, id: &ChangeId, result: Result<Box<DiffData>, Str
     app.mark_dirty();
 }
 
+/// Swaps in freshly loaded threads for the open diff, keeping the cursor where it was.
+pub(super) fn refresh_threads(app: &mut App, id: &ChangeId, threads: &[rb_core::Thread]) {
+    let keep = app
+        .diff
+        .as_ref()
+        .and_then(|s| s.view.rows.line_id(s.view.cursor));
+    let Some(data) = app
+        .diff
+        .as_mut()
+        .filter(|s| &s.id == id)
+        .and_then(|s| s.data.as_mut())
+    else {
+        return;
+    };
+    if data.threads == threads {
+        return;
+    }
+    data.threads = threads.to_vec();
+    rebuild(app, keep);
+    app.mark_dirty();
+}
+
 pub(super) fn viewport(app: &App) -> layout::DiffLayout {
     layout::diff_screen(layout::body(app.size))
 }
@@ -232,6 +254,7 @@ pub(super) fn viewport(app: &App) -> layout::DiffLayout {
 pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
     let code = viewport(app).code;
     let now = app.state.now.unwrap_or(Timestamp(0));
+    let tab_width = app.tab_width;
     let App {
         diff,
         syntax,
@@ -255,6 +278,7 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
             threads: &data.threads,
             drafts: &data.draft.comments,
             now,
+            tab_width,
         },
         code.width,
     );
@@ -265,7 +289,7 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
                 &file.diff.path,
                 patch,
                 palette.theme(),
-                TAB_WIDTH,
+                tab_width,
             ))
         }
         DiffBody::Fallback(_) => Highlight::None,
@@ -287,6 +311,7 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
 /// Highlights the chunks of a windowed file that the viewport now covers.
 fn settle(app: &mut App) {
     let height = usize::from(viewport(app).code.height);
+    let tab_width = app.tab_width;
     let App {
         diff,
         syntax,
@@ -321,7 +346,7 @@ fn settle(app: &mut App) {
             &name,
             &chunk,
             palette.theme(),
-            TAB_WIDTH,
+            tab_width,
         );
         chunks.insert(key, done);
     }

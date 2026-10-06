@@ -57,6 +57,10 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
         {
             let ctx =
                 cmd::context::Context::build(cli.global.clone(), cmd::context::Terminal::detect())?;
+            if let Some(problem) = ctx.config_problem() {
+                anyhow::bail!("{problem}\nFix the config file, or see review-buddy config paths.");
+            }
+            options.settings = Some(runtime::Settings::from_config(&ctx.config));
             options.live = Some(std::sync::Arc::new(
                 review_buddy::providers::Live::from_context(&ctx)?,
             ));

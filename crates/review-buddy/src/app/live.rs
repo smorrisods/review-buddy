@@ -4,7 +4,7 @@
 use rb_core::{ChangeSummary, SourceId, Timestamp};
 
 use super::update::{push_toast, set_status};
-use super::{dashboard, App, ChangeInfo, Cmd, Notice, NoticeKind, SourceFailure};
+use super::{dashboard, diff, App, ChangeInfo, Cmd, Notice, NoticeKind, SourceFailure};
 use rb_core::ChangeId;
 
 /// Asks for every source to be refreshed, unless a refresh is already under way.
@@ -98,6 +98,7 @@ pub fn on_info_loaded(
     app.mark_dirty();
     match result {
         Ok(info) => {
+            diff::refresh_threads(app, &id, &info.threads);
             app.state.details.insert(id, *info);
             Vec::new()
         }
