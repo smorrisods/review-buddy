@@ -124,6 +124,16 @@ async fn doctor_reports_versions_endpoints_and_clock_for_both_forges() {
     ] {
         assert!(out.contains(needle), "{needle}\n{out}");
     }
+    let capabilities = out
+        .split("\nCapabilities\n")
+        .nth(1)
+        .and_then(|rest| rest.split("\nPaths\n").next())
+        .expect("a Capabilities section");
+    assert!(capabilities.contains("probed "), "{capabilities}");
+    assert!(
+        !capabilities.contains("16.11.2"),
+        "the server version is shown once, under API versions\n{capabilities}"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]

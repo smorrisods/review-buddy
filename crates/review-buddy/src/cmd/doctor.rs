@@ -386,10 +386,6 @@ fn capability_lines(auths: &[SourceAuth], found: &[Option<Detected>]) -> Vec<Str
         .zip(found)
         .filter_map(|(a, d)| {
             let d = d.as_ref()?;
-            let forge = match a.kind {
-                ForgeKind::GitHub => "GitHub",
-                ForgeKind::GitLab => "GitLab",
-            };
             let off: Vec<String> = CAPABILITIES
                 .iter()
                 .filter(|(_, _, which)| !has(&d.outcome.capabilities, *which))
@@ -400,11 +396,7 @@ fn capability_lines(auths: &[SourceAuth], found: &[Option<Detected>]) -> Vec<Str
             } else {
                 format!("not available: {}", off.join(", "))
             };
-            Some(format!(
-                "{}  {} · {unavailable}",
-                a.label(),
-                d.summary(forge)
-            ))
+            Some(format!("{}  {} · {unavailable}", a.label(), d.probed()))
         })
         .collect()
 }
