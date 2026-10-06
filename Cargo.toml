@@ -40,6 +40,7 @@ keyring = { version = "3.6", default-features = false }
 portable-pty = "0.9"
 predicates = "3"
 proptest = "1"
+pulldown-cmark = { version = "0.13", default-features = false }
 ratatui = "0.30"
 rb-core = { path = "crates/rb-core" }
 rb-diff = { path = "crates/rb-diff" }

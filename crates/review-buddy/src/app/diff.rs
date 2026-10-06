@@ -167,6 +167,15 @@ pub fn open(app: &mut App) -> Vec<Cmd> {
     vec![Cmd::LoadDiff(id)]
 }
 
+/// Starts on the diff for `id`, as `review-buddy open` does. The queue behind it may still be
+/// loading, so the change doesn't have to be known yet.
+pub fn open_change(app: &mut App, id: &ChangeId) -> Vec<Cmd> {
+    app.diff = Some(DiffState::loading(id.clone()));
+    app.screen = Screen::Diff;
+    app.mark_dirty();
+    vec![Cmd::LoadDiff(id.clone())]
+}
+
 fn close(app: &mut App) {
     app.diff = None;
     app.screen = Screen::Dashboard;
@@ -618,6 +627,20 @@ mod tests {
 
     fn cursor(app: &App) -> usize {
         app.diff.as_ref().unwrap().view.cursor
+    }
+
+    #[test]
+    fn opening_a_change_starts_on_its_diff_and_asks_for_the_patches() {
+        let mut app = App::new(AppConfig {
+            theme_id: "liminal-hq".into(),
+            depth: ColourDepth::TrueColour,
+            no_color: false,
+            size: (160, 40),
+        });
+        let cmds = open_change(&mut app, &id());
+        assert!(matches!(cmds.as_slice(), [Cmd::LoadDiff(got)] if *got == id()));
+        assert_eq!(app.screen, Screen::Diff);
+        assert_eq!(app.diff.as_ref().unwrap().phase, Phase::Loading);
     }
 
     #[test]

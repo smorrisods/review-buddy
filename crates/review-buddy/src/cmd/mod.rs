@@ -14,9 +14,12 @@ mod auth;
 mod changes;
 mod config;
 mod doctor;
+mod markdown;
+mod open;
 mod pr_checks;
 mod pr_diff;
 mod pr_list;
+mod pr_view;
 mod queue;
 mod source;
 mod stub;
@@ -106,6 +109,29 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
             action: SourceAction::List,
         } => source::list(&ctx),
         Command::Doctor => doctor::run(&ctx),
+        Command::Open { selector } => open::run(&ctx, selector.as_deref(), terminal),
+        Command::Pr {
+            action: PrAction::View {
+                selector, comments, ..
+            },
+        } => pr_view::run(
+            &ctx,
+            &pr_view::ViewOptions {
+                selector,
+                comments,
+                web: false,
+            },
+        ),
+        Command::Pr {
+            action: PrAction::Open { selector },
+        } => pr_view::run(
+            &ctx,
+            &pr_view::ViewOptions {
+                selector,
+                comments: false,
+                web: true,
+            },
+        ),
         other => unreachable!("{other:?} has no milestone but no implementation"),
     }
 }
@@ -121,7 +147,10 @@ mod tests {
 
     #[test]
     fn unbuilt_commands_exit_2_before_touching_anything() {
-        for args in [&["mr", "view", "!1"][..], &["triage", "explain", "x"]] {
+        for args in [
+            &["triage", "explain", "x"][..],
+            &["config", "get", "ui.theme"],
+        ] {
             let err = execute(parse(args), Terminal::detect()).unwrap_err();
             assert_eq!(err.exit(), Exit::Usage, "{args:?}");
             assert!(err.to_string().starts_with("Not built yet."));
