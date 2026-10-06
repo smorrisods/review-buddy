@@ -17,6 +17,22 @@ Every pull and merge request, in one quiet queue. **review buddy** is a keyboard
 - **Your secrets stay put.** Tokens live in the OS keyring, or reuse `gh`/`glab`, an `env:VAR`, or a `token_command`. Never on disk.
 - **Themeable.** Liminal HQ is the default look, with the Dusk signature palette, Afterglow Dark and Light, and your own TOML themes.
 
+## Install
+
+Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/smorrisods/review-buddy/main/scripts/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/smorrisods/review-buddy/main/scripts/install.ps1 | iex
+```
+
+Both verify the download against `SHA256SUMS` and support an uninstall (`--uninstall` / `-Uninstall`) and a dry run (`--dry-run` / `-DryRun`). To do it by hand, download an archive and `SHA256SUMS` from the [releases page](https://github.com/smorrisods/review-buddy/releases), check it with `sha256sum -c SHA256SUMS --ignore-missing`, and unpack it into a prefix. See `docs/release.md` for details.
+
 ## Getting started
 
 ```bash
