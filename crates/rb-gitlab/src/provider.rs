@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use rb_core::{
     Capabilities, ChangeDetail, ChangeId, ChangeSummary, Check, Comment, Error, Etag, FilePatch,
-    ForgeKind, MergeOpts, MergeOutcome, Page, Provider, Result, ReviewDraft, Scope, SourceId,
-    Thread, ThreadId, User, Verdict,
+    ForgeKind, MergeOpts, MergeOutcome, Page, ProbeOutcome, Provider, Result, ReviewDraft, Scope,
+    SourceId, Thread, ThreadId, User, Verdict,
 };
 use url::Url;
 
@@ -108,6 +108,10 @@ impl Provider for GitlabProvider {
             id.repo, id.number
         ))
         .unwrap_or_else(|_| Url::parse("https://gitlab.com").expect("static URL"))
+    }
+
+    async fn probe(&self) -> Result<ProbeOutcome> {
+        crate::probe::probe(&self.client, self.capabilities()).await
     }
 
     fn capabilities(&self) -> Capabilities {

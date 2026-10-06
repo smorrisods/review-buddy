@@ -10,5 +10,5 @@ pub mod triage;
 
 pub use error::{Error, Result};
 pub use model::*;
-pub use provider::{Capabilities, FeatureAction, Provider};
+pub use provider::{Capabilities, FeatureAction, ProbeOutcome, Provider};
 pub use triage::{Bucket, TriageConfig, TriageOutcome, TriageReason};

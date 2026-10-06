@@ -7,7 +7,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rb_core::{ChangeDetail, ChangeId, ChangeSummary, Etag, SourceId, Timestamp};
+use rb_core::{
+    ChangeDetail, ChangeId, ChangeSummary, Etag, ForgeKind, ProbeOutcome, SourceId, Timestamp,
+};
 use rusqlite::{params, Connection, OptionalExtension};
 
 pub type Result<T, E = StoreError> = std::result::Result<T, E>;
@@ -26,7 +28,8 @@ pub enum StoreError {
 }
 
 /// Ordered migrations; entry `n` upgrades schema version `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &["
+const MIGRATIONS: &[&str] = &[
+    "
     CREATE TABLE changes (
         source_id    TEXT NOT NULL,
         repo         TEXT NOT NULL,
@@ -46,7 +49,21 @@ const MIGRATIONS: &[&str] = &["
         fetched_at INTEGER NOT NULL,
         PRIMARY KEY (source_id, request)
     ) WITHOUT ROWID;
-"];
+",
+    "
+    CREATE TABLE probes (
+        key          TEXT NOT NULL PRIMARY KEY,
+        api_version  TEXT,
+        outcome_json TEXT NOT NULL,
+        probed_at    INTEGER NOT NULL
+    ) WITHOUT ROWID;
+",
+];
+
+/// Where a source's capability probe is kept: per forge and host, never per token.
+pub fn probe_key(kind: ForgeKind, host: &str) -> String {
+    format!("{kind:?}:{}", host.to_ascii_lowercase())
+}
 
 /// The schema version this build writes.
 pub const SCHEMA_VERSION: u32 = MIGRATIONS.len() as u32;
@@ -244,6 +261,46 @@ impl Store {
         Ok(())
     }
 
+    /// Saves a capability probe under `key` (see [`probe_key`]), replacing any earlier one.
+    pub fn put_probe(&mut self, key: &str, outcome: &ProbeOutcome, now: Timestamp) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO probes (key, api_version, outcome_json, probed_at) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT (key) DO UPDATE SET api_version = excluded.api_version,
+               outcome_json = excluded.outcome_json, probed_at = excluded.probed_at",
+            params![key, outcome.version, serde_json::to_string(outcome)?, now.0],
+        )?;
+        Ok(())
+    }
+
+    /// The saved probe and when it was taken, unless it's older than `ttl_secs` at `now` or
+    /// can't be read any more (a probe saved by a different build is simply probed again).
+    pub fn get_probe(
+        &self,
+        key: &str,
+        now: Timestamp,
+        ttl_secs: i64,
+    ) -> Result<Option<(ProbeOutcome, Timestamp)>> {
+        let row = self
+            .conn
+            .query_row(
+                "SELECT outcome_json, probed_at FROM probes WHERE key = ?1",
+                params![key],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)),
+            )
+            .optional()?;
+        Ok(row.and_then(|(json, at)| {
+            let fresh = now.0.saturating_sub(at) < ttl_secs;
+            let outcome = serde_json::from_str(&json).ok()?;
+            fresh.then_some((outcome, Timestamp(at)))
+        }))
+    }
+
+    pub fn clear_probe(&mut self, key: &str) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM probes WHERE key = ?1", params![key])?;
+        Ok(())
+    }
+
     /// Forgets everything cached for a source, including its ETags.
     pub fn clear_source(&mut self, source: &SourceId) -> Result<()> {
         let tx = self.conn.transaction()?;
@@ -262,7 +319,7 @@ impl Store {
     /// Empties every table, keeping the schema.
     pub fn clear_all(&mut self) -> Result<()> {
         self.conn
-            .execute_batch("DELETE FROM changes; DELETE FROM etags;")?;
+            .execute_batch("DELETE FROM changes; DELETE FROM etags; DELETE FROM probes;")?;
         Ok(())
     }
 
@@ -659,6 +716,79 @@ mod tests {
         let mode = |p: &Path| fs::metadata(p).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode(&path), 0o600);
         assert_eq!(mode(path.parent().unwrap()), 0o700);
+    }
+
+    fn probe(version: &str) -> ProbeOutcome {
+        ProbeOutcome {
+            version: Some(version.to_string()),
+            ..ProbeOutcome::new(rb_core::Capabilities::all())
+        }
+    }
+
+    #[test]
+    fn probes_round_trip_expire_and_clear() {
+        let mut store = Store::open_in_memory().unwrap();
+        let key = probe_key(ForgeKind::GitLab, "GitLab.Example.com");
+        assert_eq!(key, "GitLab:gitlab.example.com");
+        assert!(store.get_probe(&key, Timestamp(0), 100).unwrap().is_none());
+        store
+            .put_probe(&key, &probe("17.4.1"), Timestamp(1000))
+            .unwrap();
+        let (out, at) = store
+            .get_probe(&key, Timestamp(1099), 100)
+            .unwrap()
+            .unwrap();
+        assert_eq!(out, probe("17.4.1"));
+        assert_eq!(at, Timestamp(1000));
+        assert!(store
+            .get_probe(&key, Timestamp(1100), 100)
+            .unwrap()
+            .is_none());
+        store
+            .put_probe(&key, &probe("17.5.0"), Timestamp(1200))
+            .unwrap();
+        let (out, _) = store
+            .get_probe(&key, Timestamp(1201), 100)
+            .unwrap()
+            .unwrap();
+        assert_eq!(out.version.as_deref(), Some("17.5.0"));
+        store.clear_probe(&key).unwrap();
+        assert!(store
+            .get_probe(&key, Timestamp(1201), 100)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn an_unreadable_probe_is_treated_as_missing_and_clear_all_drops_probes() {
+        let mut store = Store::open_in_memory().unwrap();
+        store
+            .conn
+            .execute(
+                "INSERT INTO probes (key, api_version, outcome_json, probed_at) VALUES ('k', NULL, '{nope', 5)",
+                [],
+            )
+            .unwrap();
+        assert!(store.get_probe("k", Timestamp(6), 100).unwrap().is_none());
+        store.put_probe("j", &probe("1.0.0"), Timestamp(5)).unwrap();
+        store.clear_all().unwrap();
+        assert!(store.get_probe("j", Timestamp(6), 100).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_version_one_database_gains_the_probes_table() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("cache.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(MIGRATIONS[0]).unwrap();
+            conn.pragma_update(None, "user_version", 1).unwrap();
+        }
+        let mut store = Store::open(&path).unwrap();
+        assert_eq!(store.schema_version().unwrap(), SCHEMA_VERSION);
+        store
+            .put_probe("k", &probe("17.0.0"), Timestamp(1))
+            .unwrap();
     }
 
     #[test]

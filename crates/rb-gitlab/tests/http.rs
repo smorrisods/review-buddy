@@ -269,3 +269,90 @@ async fn provider_skeleton() {
     let caps = p.capabilities();
     assert!(!caps.request_changes && !caps.viewed_files && caps.range_comments);
 }
+
+async fn mount_probe(server: &MockServer, version: serde_json::Value, scopes: &[&str]) {
+    Mock::given(path("/version"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(version))
+        .mount(server)
+        .await;
+    mount_user(server).await;
+    Mock::given(path("/personal_access_tokens/self"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"scopes": scopes})))
+        .mount(server)
+        .await;
+}
+
+fn provider_for(server: &MockServer) -> GitlabProvider {
+    GitlabProvider::new(client(server, ""))
+}
+
+#[tokio::test]
+async fn probe_reads_the_version_and_enables_request_changes() {
+    let server = MockServer::start().await;
+    mount_probe(
+        &server,
+        json!({"version": "17.5.1-ee", "revision": "abc", "enterprise": true}),
+        &["api"],
+    )
+    .await;
+    let out = provider_for(&server).probe().await.unwrap();
+    assert_eq!(out.version.as_deref(), Some("17.5.1"));
+    let caps = out.capabilities;
+    assert!(caps.request_changes && caps.rerun_failed && caps.suggestions);
+    assert!(!caps.viewed_files);
+}
+
+#[tokio::test]
+async fn probe_turns_request_changes_off_on_old_or_community_instances() {
+    let server = MockServer::start().await;
+    mount_probe(
+        &server,
+        json!({"version": "16.9.2", "enterprise": true}),
+        &["read_api"],
+    )
+    .await;
+    let out = provider_for(&server).probe().await.unwrap();
+    assert!(!out.capabilities.request_changes && !out.capabilities.rerun_failed);
+    assert!(out
+        .reason(rb_core::FeatureAction::RequestChanges)
+        .unwrap()
+        .contains("16.9"));
+
+    let server = MockServer::start().await;
+    mount_probe(&server, json!({"version": "17.6.0"}), &["api"]).await;
+    let out = provider_for(&server).probe().await.unwrap();
+    assert!(!out.capabilities.request_changes);
+}
+
+#[tokio::test]
+async fn probe_tolerates_a_missing_or_malformed_version() {
+    for response in [
+        ResponseTemplate::new(404),
+        ResponseTemplate::new(500),
+        ResponseTemplate::new(200).set_body_string("<html>proxy</html>"),
+        ResponseTemplate::new(200).set_body_json(json!({"version": "soon"})),
+    ] {
+        let server = MockServer::start().await;
+        Mock::given(path("/version"))
+            .respond_with(response)
+            .mount(&server)
+            .await;
+        let p = provider_for(&server);
+        let out = p.probe().await.unwrap();
+        assert_eq!(out.version, None);
+        assert_eq!(out.capabilities, p.capabilities());
+    }
+}
+
+#[tokio::test]
+async fn probe_reports_a_rejected_token() {
+    let server = MockServer::start().await;
+    Mock::given(path("/version"))
+        .respond_with(ResponseTemplate::new(401))
+        .mount(&server)
+        .await;
+    assert!(matches!(
+        provider_for(&server).probe().await.unwrap_err(),
+        Error::Unauthorized { .. }
+    ));
+}
