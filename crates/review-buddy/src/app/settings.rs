@@ -212,4 +212,44 @@ mod tests {
         update(&mut a, Msg::Paste("gitlab.work.ca".into()));
         assert!(a.settings.as_ref().unwrap().is_modal());
     }
+
+    #[test]
+    fn a_reload_resets_refresh_state_and_asks_for_a_fresh_refresh() {
+        use crate::app::{Snapshot as Load, SourceStatus};
+        let mut a = app();
+        let source = rb_core::Source {
+            id: rb_core::SourceId::new("gone"),
+            kind: rb_core::ForgeKind::GitHub,
+            host: "github.com".into(),
+            label: "gone".into(),
+            scope: Default::default(),
+            auth: rb_core::AuthMode::Cli,
+            in_all: true,
+            include_drafts: false,
+            tag_colour: None,
+        };
+        a.state.sources = vec![source.clone()];
+        a.state
+            .statuses
+            .insert(source.id.clone(), SourceStatus::default());
+        a.state.refreshing.insert(source.id.clone());
+        a.state.pending_sources = 1;
+        let cmds = update(
+            &mut a,
+            Msg::Cached(Box::new(Load {
+                label: "live".into(),
+                sources: vec![rb_core::Source {
+                    id: rb_core::SourceId::new("new"),
+                    label: "new".into(),
+                    ..source
+                }],
+                changes: Vec::new(),
+                now: rb_core::Timestamp(1),
+                details: Default::default(),
+            })),
+        );
+        assert!(a.state.statuses.is_empty());
+        assert!(cmds.iter().any(|c| matches!(c, Cmd::LoadChanges)));
+        assert_eq!(a.state.pending_sources, 1);
+    }
 }

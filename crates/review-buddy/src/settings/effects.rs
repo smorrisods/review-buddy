@@ -10,7 +10,6 @@ use rb_paths::{ConfigOrigin, PathsReport};
 use super::edit::{self, EditError};
 use super::state::{Change, Effect, Input, Origin, Saved, Snapshot, SourceRow, TestInfo};
 use crate::config::{AuthSetting, Config, Kind, SourceConfig};
-use crate::setup::flow::Credential;
 use crate::setup::{self, AuthKind, SourceSpec};
 
 /// The config as it is on disk right now.
@@ -326,24 +325,53 @@ async fn remove_message(services: &Arc<Services>, spec: &SourceSpec, forget: boo
     }
 }
 
-/// Tests a pasted token against the source's own host and keeps it in the keyring if it works.
+/// Tests a typed token against the source's own host (GitHub or GitLab, through the same
+/// `host::test_token` the CLI uses) and keeps it in the keyring if it works.
+#[cfg(feature = "live")]
 async fn keep_token(
     services: &Arc<Services>,
     spec: &SourceSpec,
     token: rb_platform::Secret,
 ) -> Result<(), String> {
-    let mut setup = (*services.setup).clone();
-    if let Some(url) = &spec.api_url {
-        setup.api_urls.insert(spec.host.clone(), url.clone());
-    }
-    setup::effects::probe(
-        &Arc::new(setup),
-        &spec.host,
-        spec.kind,
-        Credential::Pasted(token),
-    )
-    .await
-    .map(|_| ())
+    use rb_core::Error;
+    let target = crate::cmd::host::Target {
+        host: spec.host.clone(),
+        kind: spec.kind,
+        api_url: spec.api_url.clone(),
+        source: Some(spec.name.clone()),
+        auth: None,
+        token_command: None,
+    };
+    let host = &spec.host;
+    crate::cmd::host::test_token(&target, token.clone())
+        .await
+        .map_err(|e| match e {
+            Error::Unauthorized { .. } => {
+                "That token was rejected. Check that you copied all of it, then try again."
+                    .to_string()
+            }
+            Error::Network { .. } => {
+                format!("Couldn't reach {host}. Check your connection, then try again.")
+            }
+            other => other.to_string(),
+        })?;
+    let (store, account) = (Arc::clone(&services.setup.store), host.clone());
+    let saved = tokio::task::spawn_blocking(move || store.set(&account, &token))
+        .await
+        .map_err(|e| e.to_string())
+        .and_then(|r| r.map_err(|e| e.to_string()));
+    saved.map_err(|reason| {
+        format!("Couldn't save the token to the OS keyring ({reason}). Keep it in an environment variable instead and choose \"environment variable\" as the sign-in.")
+    })
+}
+
+#[cfg(not(feature = "live"))]
+async fn keep_token(
+    _services: &Arc<Services>,
+    _spec: &SourceSpec,
+    _token: rb_platform::Secret,
+) -> Result<(), String> {
+    Err("This build has no network support, so a token can't be checked or saved.".to_string())
 }
 
 async fn write(job: impl FnOnce() -> Result<(), EditError> + Send + 'static) -> Result<(), String> {
@@ -363,8 +391,11 @@ mod tests {
     use rb_platform::{
         CommandOutput, CommandRunner, MemorySecretStore, PlatformError, Secret, SecretStore,
     };
+    #[cfg(feature = "live")]
     use serde_json::json;
+    #[cfg(feature = "live")]
     use wiremock::matchers::path;
+    #[cfg(feature = "live")]
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     struct NoRunner;
@@ -425,6 +456,7 @@ mod tests {
         }))
     }
 
+    #[cfg(feature = "live")]
     async fn stub(server: &MockServer, status: u16) {
         Mock::given(path("/user"))
             .respond_with(
@@ -446,6 +478,7 @@ mod tests {
             .await;
     }
 
+    #[cfg(feature = "live")]
     fn spec(server: &MockServer) -> SourceSpec {
         SourceSpec {
             name: "ghe".into(),
@@ -458,6 +491,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "live")]
     #[tokio::test]
     async fn adding_with_a_token_tests_it_keeps_it_in_the_keyring_and_writes_no_secret() {
         let server = MockServer::start().await;
@@ -496,6 +530,7 @@ mod tests {
         assert!(snap.editable && snap.origin.is_none());
     }
 
+    #[cfg(feature = "live")]
     #[tokio::test]
     async fn a_rejected_token_writes_nothing_and_says_what_to_do() {
         let server = MockServer::start().await;

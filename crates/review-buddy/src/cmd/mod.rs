@@ -19,7 +19,7 @@ mod completion;
 mod config;
 mod config_get;
 mod doctor;
-mod host;
+pub(crate) mod host;
 mod markdown;
 mod open;
 mod pr_checks;
