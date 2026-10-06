@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "live"), allow(dead_code, unused_imports))]
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use serde_json::{json, Value};
@@ -63,6 +65,7 @@ fn run(mut cmd: Command) -> assert_cmd::assert::Assert {
     cmd.assert()
 }
 
+#[cfg(feature = "live")]
 #[tokio::test(flavor = "multi_thread")]
 async fn auth_status_signs_in_and_never_prints_the_token() {
     let server = mock_github().await;
@@ -83,6 +86,7 @@ async fn auth_status_signs_in_and_never_prints_the_token() {
     assert!(!all.contains(SECRET));
 }
 
+#[cfg(feature = "live")]
 #[tokio::test(flavor = "multi_thread")]
 async fn doctor_and_json_output_never_contain_the_token() {
     let server = mock_github().await;
@@ -119,6 +123,7 @@ async fn doctor_and_json_output_never_contain_the_token() {
     }
 }
 
+#[cfg(feature = "live")]
 #[test]
 fn a_source_that_cannot_sign_in_exits_4_with_the_fix() {
     let home = Home::new(&config("http://127.0.0.1:9"));
@@ -133,6 +138,7 @@ fn a_source_that_cannot_sign_in_exits_4_with_the_fix() {
     run(home.rb(&["doctor"])).code(4);
 }
 
+#[cfg(feature = "live")]
 #[test]
 fn auth_status_json_lists_fields_and_rows() {
     let home = Home::new(&config("http://127.0.0.1:9"));

@@ -3,10 +3,12 @@
 //! The check resolves a token the way the interface does, asks the forge who it belongs to, and
 //! reports what it found. The token itself is never kept in a report, printed or logged.
 
-use rb_core::{Error, ForgeKind};
-use rb_github::{Auth, AuthError, GithubClient, TokenOrigin, TokenReport};
+// Without `live` there is no network check, so the reporting types are only used by demo mode.
+#![cfg_attr(not(feature = "live"), allow(dead_code, unused_imports))]
+
+use rb_core::ForgeKind;
+use rb_github::TokenReport;
 use rb_platform::auth::AuthMode;
-use rb_platform::{CommandRunner, KeyringStore, SecretStore, SystemRunner};
 use rb_theme::Role;
 use serde_json::{json, Value};
 
@@ -14,18 +16,17 @@ use super::context::Context;
 use super::error::CmdError;
 use super::output::{self, json, Painter};
 use super::DEMO_LABEL;
-use crate::config::{AuthSetting, Kind, SourceConfig};
+use crate::config::{Kind, SourceConfig};
+#[cfg(feature = "live")]
+use crate::providers::{Factory, ProviderError};
+#[cfg(feature = "live")]
+use rb_core::{Error, SourceId};
+#[cfg(feature = "live")]
+use rb_github::{AuthError, TokenOrigin};
 
 pub const FIELDS: &[&str] = &[
     "source", "kind", "host", "method", "state", "user", "scopes", "expires", "message", "fix",
 ];
-
-/// Where the sign-in comes from, injected so tests never spawn a process or touch a keyring.
-pub struct Deps<'a> {
-    pub runner: &'a dyn CommandRunner,
-    pub store: &'a dyn SecretStore,
-    pub getenv: &'a dyn Fn(&str) -> Option<String>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Method {
@@ -54,6 +55,7 @@ impl Method {
         }
     }
 
+    #[cfg(feature = "live")]
     fn from_mode(mode: &AuthMode) -> Self {
         match mode {
             AuthMode::Cli => Self::Gh,
@@ -63,6 +65,7 @@ impl Method {
         }
     }
 
+    #[cfg(feature = "live")]
     fn from_origin(origin: &TokenOrigin) -> Self {
         match origin {
             TokenOrigin::GhCli => Self::Gh,
@@ -73,6 +76,7 @@ impl Method {
     }
 
     /// What to do when this method can't produce a working token for `host`.
+    #[cfg(feature = "live")]
     fn fix(&self, host: &str) -> String {
         match self {
             Self::Gh => format!(
@@ -180,15 +184,6 @@ pub fn kind_name(kind: ForgeKind) -> &'static str {
     }
 }
 
-fn mode_of(cfg: &SourceConfig) -> AuthMode {
-    match &cfg.auth {
-        None | Some(AuthSetting::Cli) => AuthMode::Cli,
-        Some(AuthSetting::Token) => AuthMode::Token,
-        Some(AuthSetting::Env(var)) => AuthMode::Env(var.clone()),
-        Some(AuthSetting::Command) => AuthMode::Command,
-    }
-}
-
 fn base(cfg: &SourceConfig, method: Option<Method>, state: State) -> SourceAuth {
     SourceAuth {
         name: cfg.name.clone(),
@@ -208,47 +203,54 @@ fn failed(cfg: &SourceConfig, method: Method, reason: String, fix: String) -> So
     base(cfg, Some(method), State::Failed { reason, fix })
 }
 
-/// Signs in to one configured source and reports how it went. Network access happens only for
-/// GitHub sources; GitLab sources report that they are checked in a later release.
-pub async fn check_source(cfg: &SourceConfig, deps: &Deps<'_>) -> SourceAuth {
+#[cfg(feature = "live")]
+/// Signs in to one configured source and reports how it went. Token resolution is the
+/// factory's, so this reports exactly what the interface would do. Network access happens only
+/// for GitHub sources; GitLab sources report that they are checked in a later release.
+pub async fn check_source(cfg: &SourceConfig, factory: &Factory) -> SourceAuth {
+    let id = SourceId::new(&cfg.name);
+    let configured = factory
+        .auth_mode(&id)
+        .as_ref()
+        .map_or(Method::Gh, Method::from_mode);
+    let host = &cfg.host;
     if cfg.kind == Kind::Gitlab {
         return base(
             cfg,
-            Some(Method::from_mode(&mode_of(cfg))),
+            Some(configured),
             State::Unchecked {
                 note: "checked in v0.2".into(),
             },
         );
     }
-    let mode = mode_of(cfg);
-    let configured = Method::from_mode(&mode);
-    let host = &cfg.host;
-    let mut auth = Auth::new(host.clone(), mode);
-    if let Some(command) = &cfg.token_command {
-        auth = auth.with_token_command(command.clone());
-    }
-    let resolved = match auth.resolve(deps.runner, deps.store, |k| (deps.getenv)(k)) {
-        Ok(token) => token,
-        Err(err) => {
-            let reason = match err {
-                AuthError::NoToken { .. } => "not signed in".to_string(),
-                AuthError::Unavailable { reason, .. } => format!("couldn't read a token: {reason}"),
-            };
-            return failed(cfg, configured.clone(), reason, configured.fix(host));
-        }
-    };
-    let method = Method::from_origin(&resolved.origin);
-    let client = match GithubClient::new(host, cfg.api_url.as_deref(), resolved.secret) {
-        Ok(client) => client,
-        Err(err) => {
+    let (client, origin) = match factory.github_client(&id) {
+        Ok(found) => found,
+        Err(ProviderError::Auth(AuthError::NoToken { .. })) => {
             return failed(
                 cfg,
-                method,
-                err.to_string(),
+                configured.clone(),
+                "not signed in".into(),
+                configured.fix(host),
+            )
+        }
+        Err(ProviderError::Auth(AuthError::Unavailable { reason, .. })) => {
+            return failed(
+                cfg,
+                configured.clone(),
+                format!("couldn't read a token: {reason}"),
+                configured.fix(host),
+            )
+        }
+        Err(other) => {
+            return failed(
+                cfg,
+                configured,
+                other.to_string(),
                 "fix `api_url` in the source".into(),
             )
         }
     };
+    let method = Method::from_origin(&origin);
     match client.test_token().await {
         Ok(report) => {
             let state = State::SignedIn {
@@ -299,6 +301,7 @@ async fn check_demo(ctx: &Context) -> Result<Vec<SourceAuth>, CmdError> {
     Ok(out)
 }
 
+#[cfg(feature = "live")]
 /// The sources an auth check covers: every enabled one, or the ones `--source` names.
 fn selected(ctx: &Context) -> Result<Vec<&SourceConfig>, CmdError> {
     let all = ctx.configured()?;
@@ -320,21 +323,24 @@ pub fn gather(ctx: &Context) -> Result<Vec<SourceAuth>, CmdError> {
     if ctx.is_demo() {
         return runtime.block_on(check_demo(ctx));
     }
-    let configs = selected(ctx)?;
-    let store = KeyringStore::new();
-    let getenv = |key: &str| ctx.env.var(key);
-    let deps = Deps {
-        runner: &SystemRunner,
-        store: &store,
-        getenv: &getenv,
-    };
-    Ok(runtime.block_on(async {
-        let mut out = Vec::new();
-        for cfg in configs {
-            out.push(check_source(cfg, &deps).await);
-        }
-        out
-    }))
+    #[cfg(feature = "live")]
+    {
+        let configs = selected(ctx)?;
+        let factory = ctx.factory();
+        Ok(runtime.block_on(async {
+            let mut out = Vec::new();
+            for cfg in configs {
+                out.push(check_source(cfg, &factory).await);
+            }
+            out
+        }))
+    }
+    #[cfg(not(feature = "live"))]
+    {
+        Err(CmdError::usage(
+            "This build has no network support.\nTry --demo.",
+        ))
+    }
 }
 
 /// One line per source: `✓ github.com  signed in as smorris via gh · scopes repo, read:org`.
@@ -413,10 +419,15 @@ pub fn status(ctx: &Context) -> Result<(), CmdError> {
     require_signed_in(&auths)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "live"))]
 mod tests {
     use super::*;
+    use std::sync::Arc;
+
+    use crate::config::Config;
+    use crate::providers::Deps;
     use rb_platform::{CommandOutput, MemorySecretStore, PlatformError, Secret};
+    use rb_platform::{CommandRunner, SecretStore};
     use serde_json::json;
     use wiremock::matchers::{header, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -483,20 +494,22 @@ mod tests {
     async fn run(
         cfg: &SourceConfig,
         gh: Option<&'static str>,
-        store: &MemorySecretStore,
-        env: Option<(&str, &str)>,
+        store: &Arc<MemorySecretStore>,
+        env: Option<(&'static str, &'static str)>,
     ) -> SourceAuth {
-        let runner = FakeRunner { stdout: gh };
-        let getenv = |k: &str| {
-            env.filter(|(name, _)| *name == k)
-                .map(|(_, v)| v.to_string())
-        };
         let deps = Deps {
-            runner: &runner,
-            store,
-            getenv: &getenv,
+            runner: Arc::new(FakeRunner { stdout: gh }),
+            store: store.clone(),
+            getenv: Arc::new(move |k| {
+                env.filter(|(name, _)| *name == k)
+                    .map(|(_, v)| v.to_string())
+            }),
         };
-        check_source(cfg, &deps).await
+        let config = Config {
+            sources: vec![cfg.clone()],
+            ..Config::default()
+        };
+        check_source(cfg, &Factory::from_config(&config, deps)).await
     }
 
     fn text(auths: &[SourceAuth]) -> String {
@@ -510,7 +523,7 @@ mod tests {
         let a = run(
             &cfg(&server, "cli"),
             Some("ghp_topsecretvalue123\n"),
-            &MemorySecretStore::new(),
+            &Arc::new(MemorySecretStore::new()),
             None,
         )
         .await;
@@ -526,7 +539,7 @@ mod tests {
     async fn keyring_env_and_command_methods_are_named() {
         let server = MockServer::start().await;
         mount_ok(&server).await;
-        let store = MemorySecretStore::new();
+        let store = Arc::new(MemorySecretStore::new());
         store.set("ghe.test", &Secret::new(SECRET)).unwrap();
         let a = run(&cfg(&server, "token"), None, &store, None).await;
         assert_eq!(a.method, Some(Method::Keyring));
@@ -535,7 +548,7 @@ mod tests {
         let a = run(
             &cfg(&server, "env:GH_T"),
             None,
-            &MemorySecretStore::new(),
+            &Arc::new(MemorySecretStore::new()),
             env,
         )
         .await;
@@ -544,7 +557,7 @@ mod tests {
         let a = run(
             &cfg(&server, "command"),
             Some("ghp_topsecretvalue123"),
-            &MemorySecretStore::new(),
+            &Arc::new(MemorySecretStore::new()),
             None,
         )
         .await;
@@ -554,7 +567,13 @@ mod tests {
     #[tokio::test]
     async fn missing_token_says_how_to_fix_it_and_exits_4() {
         let server = MockServer::start().await;
-        let a = run(&cfg(&server, "cli"), None, &MemorySecretStore::new(), None).await;
+        let a = run(
+            &cfg(&server, "cli"),
+            None,
+            &Arc::new(MemorySecretStore::new()),
+            None,
+        )
+        .await;
         let line = text(std::slice::from_ref(&a));
         assert!(line.starts_with("✕ ghe.test (work)  not signed in · run gh auth login"));
         let err = require_signed_in(&[a]).unwrap_err();
@@ -571,7 +590,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(401))
             .mount(&server)
             .await;
-        let store = MemorySecretStore::new();
+        let store = Arc::new(MemorySecretStore::new());
         store.set("ghe.test", &Secret::new(SECRET)).unwrap();
         let a = run(&cfg(&server, "token"), None, &store, None).await;
         assert!(text(&[a]).contains("token rejected · run review-buddy auth login"));
@@ -582,7 +601,7 @@ mod tests {
         let server = MockServer::start().await;
         let mut c = cfg(&server, "cli");
         c.kind = Kind::Gitlab;
-        let a = run(&c, None, &MemorySecretStore::new(), None).await;
+        let a = run(&c, None, &Arc::new(MemorySecretStore::new()), None).await;
         assert!(text(std::slice::from_ref(&a)).contains("not checked yet · checked in v0.2"));
         assert!(require_signed_in(&[a]).is_ok());
     }
@@ -591,7 +610,7 @@ mod tests {
     async fn no_output_ever_contains_the_token() {
         let server = MockServer::start().await;
         mount_ok(&server).await;
-        let store = MemorySecretStore::new();
+        let store = Arc::new(MemorySecretStore::new());
         store.set("ghe.test", &Secret::new(SECRET)).unwrap();
         let mut auths = vec![
             run(
