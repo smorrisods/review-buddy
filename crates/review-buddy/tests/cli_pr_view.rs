@@ -11,6 +11,8 @@ fn demo(args: &[&str]) -> (Command, tempfile::TempDir) {
     cmd.env_clear()
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .env("HOME", home.path())
+        .env("USERPROFILE", home.path())
+        .envs(std::env::var_os("SystemRoot").map(|v| ("SystemRoot", v)))
         .env("XDG_CONFIG_HOME", home.path().join("config"))
         .env("XDG_DATA_HOME", home.path().join("data"))
         .env("XDG_CACHE_HOME", home.path().join("cache"))

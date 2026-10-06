@@ -97,6 +97,8 @@ fn run(server: &MockServer, home: &std::path::Path, args: &[&str]) -> std::proce
     cmd.env_clear()
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .env("HOME", home)
+        .env("USERPROFILE", home)
+        .envs(std::env::var_os("SystemRoot").map(|v| ("SystemRoot", v)))
         .env("XDG_CONFIG_HOME", home.join("xdg-config"))
         .env("XDG_DATA_HOME", home.join("data"))
         .env("XDG_CACHE_HOME", home.join("cache"))
