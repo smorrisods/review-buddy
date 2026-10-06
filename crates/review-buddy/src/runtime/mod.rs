@@ -182,7 +182,29 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 let tx = tx.clone();
                 tokio::spawn(async move {
                     let msg = match world.snapshot().await {
-                        Ok(snapshot) => Msg::Loaded(Box::new(snapshot)),
+                        Ok(snapshot) => {
+                            let probes: Vec<Msg> = snapshot
+                                .sources
+                                .iter()
+                                .map(|source| {
+                                    use rb_core::Provider as _;
+                                    let caps = world.provider(source.kind).capabilities();
+                                    Msg::Probed {
+                                        source: source.id.clone(),
+                                        outcome: Box::new(rb_core::ProbeOutcome {
+                                            complete: true,
+                                            ..rb_core::ProbeOutcome::new(caps)
+                                        }),
+                                        at: snapshot.now,
+                                    }
+                                })
+                                .collect();
+                            let _ = tx.send(Msg::Loaded(Box::new(snapshot)));
+                            for probe in probes {
+                                let _ = tx.send(probe);
+                            }
+                            return;
+                        }
                         Err(err) => Msg::Notify(crate::app::Notice::new(
                             crate::app::NoticeKind::Warning,
                             format!("The demo data didn't load: {err}."),
@@ -458,6 +480,8 @@ fn finish_setup(
             settings.apply(app);
             app.refresh_on_focus = live.refresh_on_focus;
             app.state.loading = true;
+            live.forget_probes();
+            app.state.probes.clear();
             let snapshot = live.cached_snapshot();
             *backend = Backend::Live(live);
             for cmd in update(app, Msg::Cached(Box::new(snapshot))) {

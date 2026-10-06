@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
-use rb_core::{ChangeSummary, MyReview};
+use rb_core::{ChangeSummary, FeatureAction, MyReview};
 use rb_diff::{expand_tabs, DiffBody, DiffLine, LineKind};
 use rb_theme::Role;
 use unicode_width::UnicodeWidthChar;
@@ -184,6 +184,15 @@ fn draw_review(frame: &mut Frame, app: &App, state: &DiffState, area: Rect) {
     }
     if let Some(change) = app.state.changes.iter().find(|c| c.id == state.id) {
         lines.push(text(format!("Your verdict: {}", verdict_text(change))));
+    }
+    if state.data.is_some() {
+        lines.push(muted(app, "a approve · c comment"));
+        if app
+            .state
+            .supports(&state.id.source_id, FeatureAction::RequestChanges)
+        {
+            lines.push(muted(app, "x request changes"));
+        }
     }
     frame.render_widget(Paragraph::new(lines), inner);
 }

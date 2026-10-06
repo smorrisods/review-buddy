@@ -26,6 +26,7 @@ mod pr_checks;
 mod pr_diff;
 mod pr_list;
 mod pr_view;
+mod probe;
 mod queue;
 mod setup;
 mod source;

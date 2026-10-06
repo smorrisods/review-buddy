@@ -38,8 +38,8 @@ expression: plain_dump(& mut app)
 │1 suggestion · 0 comments       ││╭ Comment · menus.rs line 51 ──────────────────────────────────────────────────────────────────────────────────────────────╮│
 │0 of 3 files viewed             │││ Worth a guard here?                                                                                                      ││
 │Your verdict: not started       │││                                                                                                                          ││
-│                                │││                                                                                                                          ││
-│                                ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────────────────────────────────────────────────────────────────╯│
+│a approve · c comment           │││                                                                                                                          ││
+│x request changes               ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────────────────────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard
 
@@ -221,11 +221,11 @@ expression: plain_dump(& mut app)
 35:33 D "│"
 35:34 B "││"
 35:158 B "││"
-36:0 D "│"
+36:0 D "│a approve · c comment"
 36:33 D "│"
 36:34 B "││"
 36:158 B "││"
-37:0 D "│"
+37:0 D "│x request changes"
 37:33 D "│"
 37:34 B "│╰"
 37:36 BD " ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard"

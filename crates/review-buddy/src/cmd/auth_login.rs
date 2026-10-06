@@ -137,6 +137,7 @@ pub fn run(ctx: &Context, host: Option<&str>, with_token: bool) -> Result<(), Cm
             .enable_all()
             .build()?;
         let text = runtime.block_on(sign_in(&target, secret, store.as_ref()))?;
+        super::probe::forget(ctx, target.kind, &target.host);
         output::print(&text)
     }
 }

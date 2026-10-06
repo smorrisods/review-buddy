@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use super::{
     composer, dashboard, diff, links, live, mouse, setup, Action, App, AppState, Cmd, Entry, Msg,
-    Notice, NoticeKind, Screen, Snapshot, MAX_TOASTS, NOTICE_TTL,
+    Notice, NoticeKind, Screen, Snapshot, SourceProbe, MAX_TOASTS, NOTICE_TTL,
 };
 
 /// Applies one message and returns the effects to run. Does no I/O.
@@ -77,6 +77,20 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             now,
         } => live::on_source_updated(app, source, result, now),
         Msg::SourceStatus { source, status } => live::on_source_status(app, source, status),
+        Msg::Probed {
+            source,
+            outcome,
+            at,
+        } => {
+            app.state.probes.insert(
+                source,
+                SourceProbe {
+                    outcome: *outcome,
+                    at,
+                },
+            );
+            Vec::new()
+        }
         Msg::CacheTime(at) => live::on_cache_time(app, at),
         Msg::RefreshDue => live::on_refresh_due(app),
         Msg::RefreshSkipped => live::on_refresh_skipped(app),

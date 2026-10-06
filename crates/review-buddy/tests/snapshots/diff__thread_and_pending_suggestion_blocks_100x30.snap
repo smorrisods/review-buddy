@@ -28,7 +28,7 @@ expression: shown
 │1 suggestion · 0 comments       ││              ╭─ pending suggestion · line 51 ─────────────────╮│
 │0 of 3 files viewed             ││              │ Fewer branches this way:                       ││
 │Your verdict: not started       ││              │ -         self.selected = self.selected.check… ││
-│                                ││              │ +         self.selected = (self.selected + se… ││
-│                                ││              ╰────────────────────────────────────────────────╯│
+│a approve · c comment           ││              │ +         self.selected = (self.selected + se… ││
+│x request changes               ││              ╰────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
  j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

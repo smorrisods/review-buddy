@@ -266,6 +266,14 @@ fn keep_cursor_visible(app: &mut App) {
 
 /// `x`: requesting changes is explained rather than hidden, since the key is on the screen.
 pub fn request_changes(app: &mut App) -> Vec<Cmd> {
+    if let Some(id) = app.diff.as_ref().map(|s| s.id.source_id.clone()) {
+        if let Some(text) = app
+            .state
+            .explain_unsupported(&id, FeatureAction::RequestChanges)
+        {
+            return info(app, text);
+        }
+    }
     let Some((caps, kind)) = caps_and_kind(app) else {
         return Vec::new();
     };

@@ -1,6 +1,5 @@
 ---
 source: crates/review-buddy/tests/mouse.rs
-assertion_line: 496
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
@@ -29,7 +28,7 @@ expression: text(&render(&mut a))
 │1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
 │0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
 │Your verdict: not started       ││              │ menus I use stop at the end.                   ││
-│                                ││              │ ada · 20h                                      ││
-│                                ││              │ I went with wrapping so a held key never gets  ││
+│a approve · c comment           ││              │ ada · 20h                                      ││
+│x request changes               ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
  j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

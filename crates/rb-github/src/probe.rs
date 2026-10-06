@@ -18,6 +18,7 @@ pub fn decide(scopes: &[String], host: &str) -> ProbeOutcome {
         rerun_failed: rerun,
         ..Capabilities::all()
     });
+    out.complete = true;
     if !rerun {
         out.reasons.push((
             FeatureAction::RerunFailed,

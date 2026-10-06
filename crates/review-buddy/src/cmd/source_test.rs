@@ -13,15 +13,17 @@ use super::auth::{auths_json, render_lines, require_signed_in, Method, SourceAut
 use super::context::Context;
 use super::error::CmdError;
 use super::output::{self, json};
+use super::probe::{detect, Detected};
 use super::DEMO_LABEL;
 use crate::cli::CapabilityArg;
 
 struct Probe {
     auth: SourceAuth,
     caps: Option<Capabilities>,
+    detected: Option<Detected>,
 }
 
-const CAPABILITIES: &[(&str, &str, CapabilityArg)] = &[
+pub(super) const CAPABILITIES: &[(&str, &str, CapabilityArg)] = &[
     (
         "requestChanges",
         "Request changes",
@@ -46,7 +48,7 @@ const CAPABILITIES: &[(&str, &str, CapabilityArg)] = &[
     ),
 ];
 
-fn has(caps: &Capabilities, which: CapabilityArg) -> bool {
+pub(super) fn has(caps: &Capabilities, which: CapabilityArg) -> bool {
     match which {
         CapabilityArg::RequestChanges => caps.request_changes,
         CapabilityArg::ViewedFiles => caps.viewed_files,
@@ -57,7 +59,7 @@ fn has(caps: &Capabilities, which: CapabilityArg) -> bool {
     }
 }
 
-fn caps_json(caps: Option<&Capabilities>) -> Value {
+pub(super) fn caps_json(caps: Option<&Capabilities>) -> Value {
     caps.map_or(Value::Null, |caps| {
         Value::Object(
             CAPABILITIES
@@ -72,9 +74,24 @@ fn render(probe: &Probe, ctx: &Context) -> String {
     let mut text = render_lines(std::slice::from_ref(&probe.auth), &ctx.out.painter);
     match &probe.caps {
         Some(caps) => {
+            if let Some(found) = &probe.detected {
+                let forge = match probe.auth.kind {
+                    rb_core::ForgeKind::GitHub => "GitHub",
+                    rb_core::ForgeKind::GitLab => "GitLab",
+                };
+                text.push_str(&format!(
+                    "    Detected              {}\n",
+                    found.summary(forge)
+                ));
+            }
             for (_, label, which) in CAPABILITIES {
                 let answer = if has(caps, *which) { "yes" } else { "no" };
                 text.push_str(&format!("    {label:<22}{answer}\n"));
+            }
+            if let Some(found) = &probe.detected {
+                for (_, why) in &found.outcome.reasons {
+                    text.push_str(&format!("    {why}\n"));
+                }
             }
         }
         None => text.push_str("    Capabilities weren't checked because sign-in failed.\n"),
@@ -83,31 +100,34 @@ fn render(probe: &Probe, ctx: &Context) -> String {
 }
 
 fn demo_probes(ctx: &Context, name: Option<&str>) -> Result<Vec<Probe>, CmdError> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
     let mut out = Vec::new();
     for source in ctx.sources()? {
         if name.is_some_and(|n| source.id.as_str() != n && source.label != n) {
             continue;
         }
         let provider = ctx.provider_for(&source)?;
-        let user = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()?
-            .block_on(provider.whoami())?;
-        out.push(Probe {
-            auth: SourceAuth {
-                name: source.label.clone(),
-                kind: source.kind,
-                host: source.host.clone(),
-                api_url: None,
-                method: Some(Method::Demo),
-                state: State::SignedIn {
-                    user: user.login,
-                    scopes: Vec::new(),
-                    expires: None,
-                },
-                report: None,
+        let user = runtime.block_on(provider.whoami())?;
+        let auth = SourceAuth {
+            name: source.label.clone(),
+            kind: source.kind,
+            host: source.host.clone(),
+            api_url: None,
+            method: Some(Method::Demo),
+            state: State::SignedIn {
+                user: user.login,
+                scopes: Vec::new(),
+                expires: None,
             },
-            caps: Some(provider.capabilities()),
+            report: None,
+        };
+        let detected = detect(ctx, &runtime, &auth);
+        out.push(Probe {
+            caps: detected.as_ref().map(|d| d.outcome.capabilities),
+            detected,
+            auth,
         });
     }
     if out.is_empty() {
@@ -137,7 +157,6 @@ fn unknown(name: &str, known: &[String]) -> CmdError {
 
 #[cfg(feature = "live")]
 fn live_probes(ctx: &Context, name: Option<&str>) -> Result<Vec<Probe>, CmdError> {
-    use rb_core::SourceId;
     let all = ctx.configured()?;
     let flagged: Vec<&str> = ctx.args.sources.iter().map(String::as_str).collect();
     let wanted: Vec<&str> = name.into_iter().chain(flagged).collect();
@@ -162,15 +181,17 @@ fn live_probes(ctx: &Context, name: Option<&str>) -> Result<Vec<Probe>, CmdError
     for cfg in chosen {
         let auth = runtime.block_on(super::auth::check_source(cfg, &factory));
         let signed_in = matches!(auth.state, State::SignedIn { .. });
-        let caps = if signed_in && cfg.enabled {
-            factory
-                .provider(&SourceId::new(&cfg.name))
-                .ok()
-                .map(|p| p.capabilities())
+        let detected = if signed_in && cfg.enabled {
+            detect(ctx, &runtime, &auth)
         } else {
             None
         };
-        out.push(Probe { auth, caps });
+        let caps = detected.as_ref().map(|d| d.outcome.capabilities);
+        out.push(Probe {
+            auth,
+            caps,
+            detected,
+        });
     }
     Ok(out)
 }
@@ -219,10 +240,12 @@ pub fn run(ctx: &Context, name: Option<&str>, require: &[CapabilityArg]) -> Resu
     let auths: Vec<SourceAuth> = probes.iter().map(|p| p.auth.clone()).collect();
     let mut fields: Vec<&str> = FIELDS.to_vec();
     fields.push("capabilities");
+    fields.push("probe");
     let mut value = auths_json(&auths);
     if let Value::Array(items) = &mut value {
         for (item, probe) in items.iter_mut().zip(&probes) {
             item["capabilities"] = caps_json(probe.caps.as_ref());
+            item["probe"] = probe.detected.as_ref().map_or(Value::Null, Detected::json);
         }
     }
     if let Some(text) = json::render(&ctx.args, &fields, &value, ctx.out.tty) {
@@ -261,6 +284,7 @@ mod tests {
                 report: None,
             },
             caps,
+            detected: None,
         }
     }
 

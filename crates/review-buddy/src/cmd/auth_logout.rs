@@ -74,6 +74,7 @@ pub fn run(ctx: &Context, host: Option<&str>) -> Result<(), CmdError> {
             &mut stdin.lock(),
             &mut std::io::stdout(),
         )?;
+        super::probe::forget(ctx, target.kind, &target.host);
         output::print(&text)
     }
 }

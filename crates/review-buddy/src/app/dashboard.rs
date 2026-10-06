@@ -2,7 +2,7 @@
 //! scrolling and the detail tabs.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rb_core::{triage::Bucket, ChangeId, ChangeSummary, Source, SourceId};
+use rb_core::{triage::Bucket, ChangeId, ChangeSummary, FeatureAction, Source, SourceId};
 
 use super::queue::{item_span, total_height, Item, Queue};
 use super::update::set_status;
@@ -77,6 +77,14 @@ impl Chip {
             Chip::Comment => "c",
             Chip::Diff => "⏎",
             Chip::Merge => "m",
+        }
+    }
+
+    /// The optional action the chip stands for, if the source might not offer it.
+    pub fn feature(self) -> Option<FeatureAction> {
+        match self {
+            Chip::RequestChanges => Some(FeatureAction::RequestChanges),
+            _ => None,
         }
     }
 
@@ -456,8 +464,16 @@ fn chip_pressed(app: &mut App, chip: Chip) -> Vec<Cmd> {
         Chip::Approve => return super::diff::open_with_intent(app, Some(Intent::Approve)),
         Chip::Comment => return super::diff::open_with_intent(app, Some(Intent::Comment)),
         Chip::RequestChanges => {
-            "Requesting changes isn't available yet. Open the diff with ⏎, then approve with a or comment with c."
-                .to_string()
+            let source = app.selected_change().map(|c| c.id.source_id.clone());
+            source
+                .and_then(|id| {
+                    app.state
+                        .explain_unsupported(&id, FeatureAction::RequestChanges)
+                })
+                .unwrap_or_else(|| {
+                    "Requesting changes isn't available yet. Open the diff with ⏎, then approve with a or comment with c."
+                        .to_string()
+                })
         }
         Chip::Merge => "Merging isn't available yet. It's planned for v0.3.".to_string(),
     };

@@ -43,9 +43,13 @@ pub trait Provider: Send + Sync {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProbeOutcome {
     pub capabilities: Capabilities,
-    /// The instance version as reported, such as `17.4.1`. `None` when it couldn't be read, in
-    /// which case `capabilities` is the static answer and shouldn't be cached.
+    /// The instance version as reported, such as `17.4.1`. `None` when the forge has none to
+    /// report or it couldn't be read.
     pub version: Option<String>,
+    /// The instance answered the probe. When `false`, `capabilities` is the static fallback and
+    /// shouldn't be cached.
+    #[serde(default)]
+    pub complete: bool,
     /// A calm sentence for each unsupported action that has a specific reason.
     #[serde(default)]
     pub reasons: Vec<(FeatureAction, String)>,
@@ -56,6 +60,7 @@ impl ProbeOutcome {
         Self {
             capabilities,
             version: None,
+            complete: false,
             reasons: Vec::new(),
         }
     }

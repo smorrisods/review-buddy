@@ -721,6 +721,7 @@ mod tests {
     fn probe(version: &str) -> ProbeOutcome {
         ProbeOutcome {
             version: Some(version.to_string()),
+            complete: true,
             ..ProbeOutcome::new(rb_core::Capabilities::all())
         }
     }

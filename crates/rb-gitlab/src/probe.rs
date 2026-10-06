@@ -104,6 +104,7 @@ pub fn decide(version: Version, enterprise: bool, scopes: &[String], host: &str)
             rerun_failed: rerun,
         },
         version: Some(version.to_string()),
+        complete: true,
         reasons,
     }
 }

@@ -368,6 +368,35 @@ async fn a_closed_port_reads_as_offline_and_asking_with_r_retries_at_once() {
 }
 
 #[tokio::test]
+async fn a_source_is_probed_once_per_session_and_the_app_hears_about_it() {
+    let server = MockServer::start().await;
+    serve_ok(&server).await;
+    let (live, _clock) = live_with(&server.uri(), None);
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let mut app = new_app();
+
+    launch(&live, &mut app, &tx);
+    settle(&mut app, &mut rx, |m| matches!(m, Msg::Probed { .. })).await;
+    let id = SourceId::new("work");
+    assert!(app.state.probes.contains_key(&id));
+    assert!(app
+        .state
+        .supports(&id, rb_core::FeatureAction::RequestChanges));
+
+    live.refresh_now(&tx);
+    settle(&mut app, &mut rx, is_answer).await;
+    tokio::task::yield_now().await;
+    let probes = server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .filter(|r| r.url.path().ends_with("/user"))
+        .count();
+    assert_eq!(probes, 1, "the second refresh didn't probe again");
+}
+
+#[tokio::test]
 async fn overlapping_requests_coalesce_into_one_cycle() {
     let server = MockServer::start().await;
     serve_ok(&server).await;
@@ -383,11 +412,17 @@ async fn overlapping_requests_coalesce_into_one_cycle() {
             answers += 1;
         }
     }
-    let graphql = server.received_requests().await.unwrap().len();
+    let listings = |requests: Vec<wiremock::Request>| {
+        requests
+            .iter()
+            .filter(|r| r.url.path().ends_with("/graphql"))
+            .count()
+    };
+    let graphql = listings(server.received_requests().await.unwrap());
     let (solo, _) = live_with(&server.uri(), None);
     solo.refresh(&tx);
     while !is_answer(&rx.recv().await.unwrap()) {}
-    let one = server.received_requests().await.unwrap().len() - graphql;
+    let one = listings(server.received_requests().await.unwrap()) - graphql;
     assert_eq!(graphql, one, "three requests made the same calls as one");
 }
 
