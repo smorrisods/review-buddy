@@ -1,0 +1,21 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+Cache pipeline status lookups
+platform/flow!1182 · open
+priya wants priya/status-cache → main
++8 −2 · 1 file · opened 2d ago
+
+Bucket    Worth a look · you are mentioned
+Reviewers tomas (requested)
+Checks    1 failing · 2 passing
+          fail      unit tests
+Labels    performance
+Link      https://gitlab.platform.example/platform/flow/-/merge_requests/1182
+
+The status panel asks for the same pipeline many times a second. This keeps
+results for a short time to coax the load down. @smorris, does the TTL look
+right to you?
+
+No comments yet.

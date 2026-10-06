@@ -229,6 +229,9 @@ pub struct Inference<'a> {
     /// The cwd repository's remote, already mapped through `insteadOf`.
     pub git_remote: Option<RepoRef>,
     pub current_branch: Option<String>,
+    /// Self-hosted GitLab hosts served below a path (`https://host/gitlab`), as `(host, root)`.
+    /// A change URL on such a host has the root stripped before the repository is matched.
+    pub web_roots: &'a [(String, String)],
 }
 
 impl Inference<'_> {
@@ -270,10 +273,13 @@ fn find_source<'a>(sources: &'a [Source], name: &str) -> Result<&'a Source, Sele
 
 fn covers(source: &Source, repo: &str) -> bool {
     let scope = &source.scope;
-    let owner = repo.split('/').next().unwrap_or_default();
+    let under = |owner: &str| {
+        repo.strip_prefix(owner)
+            .is_some_and(|rest| rest.starts_with('/'))
+    };
     scope.is_everything()
         || scope.user
-        || scope.owners.iter().any(|o| o == owner)
+        || scope.owners.iter().any(|o| under(o))
         || scope.repos.iter().any(|r| r == repo)
 }
 
@@ -347,6 +353,34 @@ fn pick(
     }
 }
 
+fn strip_web_root(url: &UrlRef, roots: &[(String, String)]) -> String {
+    roots
+        .iter()
+        .filter(|(host, _)| url.kind == ForgeKind::GitLab && host.eq_ignore_ascii_case(&url.host))
+        .find_map(|(_, root)| {
+            let root = root.trim_matches('/');
+            url.repo
+                .strip_prefix(root)
+                .and_then(|rest| rest.strip_prefix('/'))
+                .filter(|rest| rest.contains('/'))
+        })
+        .unwrap_or(&url.repo)
+        .to_string()
+}
+
+/// The part of an API address that sits below the host: `https://h/gitlab/api/v4` gives
+/// `gitlab`. `None` when the instance is served from the root.
+pub fn web_root_of(api_url: &str) -> Option<String> {
+    let rest = api_url.split_once("://").map_or(api_url, |(_, r)| r);
+    let path = rest.split_once('/')?.1;
+    let path = path.trim_end_matches('/');
+    let path = path
+        .strip_suffix("/api/v4")
+        .or_else(|| path.strip_suffix("api/v4"))?;
+    let path = path.trim_matches('/');
+    (!path.is_empty()).then(|| path.to_string())
+}
+
 /// Matches a parsed selector to one source, repository and change.
 pub fn resolve(selector: &Selector, inference: &Inference<'_>) -> Result<Target, SelectorError> {
     let pool = inference.pool()?;
@@ -359,7 +393,8 @@ pub fn resolve(selector: &Selector, inference: &Inference<'_>) -> Result<Target,
     };
     match selector {
         Selector::Url(url) => {
-            let picked = pick(&pool, &url.repo, Some(&url.host), Some(url.kind))?;
+            let repo = strip_web_root(url, inference.web_roots);
+            let picked = pick(&pool, &repo, Some(&url.host), Some(url.kind))?;
             Ok(target(picked, Which::Number(url.number)))
         }
         Selector::Qualified {
@@ -495,6 +530,121 @@ mod tests {
         assert!(matches!(&old, Selector::Url(u) if u.repo == "g/p" && u.number == 9));
         let auth = parse(Some("https://me@github.com/a/b/pull/1")).unwrap();
         assert!(matches!(&auth, Selector::Url(u) if u.host == "github.com"));
+    }
+
+    #[test]
+    fn every_gitlab_url_shape_gives_the_project_and_number() {
+        for (url, repo, number) in [
+            ("https://gitlab.com/g/p/-/merge_requests/12", "g/p", 12),
+            (
+                "https://gitlab.com/g/s/p/-/merge_requests/12/diffs",
+                "g/s/p",
+                12,
+            ),
+            (
+                "https://gitlab.com/g/s/t/p/-/merge_requests/12/commits",
+                "g/s/t/p",
+                12,
+            ),
+            ("https://gitlab.com/g/p/merge_requests/12", "g/p", 12),
+            ("https://gitlab.com/g/p/merge_requests/12/diffs", "g/p", 12),
+            (
+                "https://gitlab.com/g/p/-/merge_requests/12?tab=pipelines",
+                "g/p",
+                12,
+            ),
+            (
+                "https://gitlab.com/g/p/-/merge_requests/12#note_5",
+                "g/p",
+                12,
+            ),
+            ("https://gitlab.com/g/p/-/merge_requests/12/", "g/p", 12),
+            ("http://localhost:8080/g/p/-/merge_requests/3", "g/p", 3),
+            (
+                "https://tok@GitLab.Example.com/g/p/-/merge_requests/3",
+                "g/p",
+                3,
+            ),
+        ] {
+            let Ok(Selector::Url(u)) = parse(Some(url)) else {
+                panic!("{url} didn't parse");
+            };
+            assert_eq!(
+                (u.repo.as_str(), u.number, u.kind),
+                (repo, number, ForgeKind::GitLab),
+                "{url}"
+            );
+        }
+    }
+
+    #[test]
+    fn gitlab_refs_take_subgroups_and_either_sigil() {
+        assert_eq!(
+            parse(Some("platform/infra/terraform!3")),
+            Ok(qualified(None, "platform/infra/terraform", 3))
+        );
+        assert_eq!(
+            parse(Some("platform:platform/infra/terraform#3")),
+            Ok(qualified(Some("platform"), "platform/infra/terraform", 3))
+        );
+        assert_eq!(parse(Some("!1182")), Ok(Selector::Number(1182)));
+        let repo = RepoRef::parse("gitlab.com/platform/infra/terraform").unwrap();
+        assert_eq!(repo.host.as_deref(), Some("gitlab.com"));
+        assert_eq!(repo.path, "platform/infra/terraform");
+        assert_eq!(
+            RepoRef::parse("platform/infra/terraform").unwrap().path,
+            "platform/infra/terraform"
+        );
+    }
+
+    #[test]
+    fn group_scopes_cover_their_subgroups_and_not_lookalikes() {
+        let lab = source("lab", ForgeKind::GitLab, "gitlab.test", &["platform/infra"]);
+        assert!(covers(&lab, "platform/infra/terraform"));
+        assert!(covers(&lab, "platform/infra/a/b"));
+        assert!(!covers(&lab, "platform/other"));
+        assert!(!covers(&lab, "platform/infrastructure/x"));
+        let top = source("top", ForgeKind::GitLab, "gitlab.test", &["platform"]);
+        assert!(covers(&top, "platform/infra/terraform"));
+    }
+
+    #[test]
+    fn urls_below_a_web_root_resolve_against_the_project_path() {
+        let sources = vec![source("lab", ForgeKind::GitLab, "gl.test", &["platform"])];
+        let roots = vec![("gl.test".to_string(), "gitlab".to_string())];
+        let inf = Inference {
+            sources: &sources,
+            web_roots: &roots,
+            ..Inference::default()
+        };
+        let sel = parse(Some(
+            "https://gl.test/gitlab/platform/infra/terraform/-/merge_requests/12",
+        ))
+        .unwrap();
+        assert_eq!(
+            resolve(&sel, &inf).unwrap().repo,
+            "platform/infra/terraform"
+        );
+        let plain = Inference {
+            sources: &sources,
+            ..Inference::default()
+        };
+        assert!(resolve(&sel, &plain).is_err());
+    }
+
+    #[test]
+    fn the_web_root_comes_from_the_api_address() {
+        assert_eq!(
+            web_root_of("https://gl.test/gitlab/api/v4").as_deref(),
+            Some("gitlab")
+        );
+        assert_eq!(
+            web_root_of("https://gl.test/a/b/api/v4/").as_deref(),
+            Some("a/b")
+        );
+        assert_eq!(web_root_of("https://gl.test/api/v4"), None);
+        assert_eq!(web_root_of("https://gl.test"), None);
+        assert_eq!(web_root_of("http://127.0.0.1:4000"), None);
     }
 
     #[test]

@@ -59,9 +59,13 @@ review-buddy --demo --frozen-time 2026-10-05T10:00 queue
 review-buddy --demo --frozen-time 2026-10-05T10:00 -s liminal-hq -R liminal-hq/review-buddy pr view 214
 review-buddy --demo --frozen-time 2026-10-05T10:00 -s liminal-hq -R liminal-hq/review-buddy pr diff 214 --stat
 review-buddy --demo --frozen-time 2026-10-05T10:00 -s liminal-hq -R liminal-hq/review-buddy pr checks 214
+review-buddy --demo --frozen-time 2026-10-05T10:00 -s platform mr view '!1182'
+review-buddy --demo --frozen-time 2026-10-05T10:00 -s platform mr diff '!1182' --stat
 review-buddy --demo auth status
 review-buddy --demo doctor
 ```
+
+GitLab works the same way: `mr` is a quiet alias of `pr`, refs are `group/project!12` (subgroups included), and any merge request URL is a selector. On a live GitLab source, `mr diff` rebuilds a `git apply`-ready patch and `mr checks` lists pipeline jobs. See `docs/cli.md`.
 
 Without `--demo`, a number needs `--repo`, or a git clone whose remote matches one of your sources (`review-buddy pr view 214`).
 

@@ -1,0 +1,16 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+Clarify the install steps
+kai-codes/notes!12 · open
+kai wants kai/install-docs → main
++1 −1 · 1 file · opened 5d ago
+
+Bucket    Can wait · nothing needs you right now
+Reviewers smorris (approved)
+Checks    none reported
+Labels    docs
+Link      https://gitlab.com/kai-codes/notes/-/merge_requests/12
+
+Mentions the demo mode so new readers can try it first.

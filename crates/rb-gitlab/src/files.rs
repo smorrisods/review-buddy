@@ -67,7 +67,9 @@ fn map(e: Entry) -> FilePatch {
     } else {
         FileStatus::Modified
     };
-    let hidden = e.too_large || e.collapsed || e.generated_file || e.diff.is_empty();
+    let pure_rename = e.renamed_file && e.diff.is_empty();
+    let hidden =
+        e.too_large || e.collapsed || e.generated_file || (e.diff.is_empty() && !pure_rename);
     let (adds, dels) = if hidden { (0, 0) } else { count(&e.diff) };
     let path = if e.new_path.is_empty() {
         e.old_path.clone()
@@ -153,6 +155,18 @@ mod tests {
             (p.path.as_str(), p.old_path.as_deref()),
             ("new.rs", Some("old.rs"))
         );
+    }
+
+    #[test]
+    fn a_rename_without_edits_keeps_an_empty_patch() {
+        let p = map(entry(|e| {
+            e.renamed_file = true;
+            e.old_path = "old.rs".into();
+            e.new_path = "new.rs".into();
+            e.diff.clear();
+        }));
+        assert_eq!(p.patch.as_deref(), Some(""));
+        assert_eq!((p.adds, p.dels, p.status), (0, 0, FileStatus::Renamed));
     }
 
     #[test]

@@ -12,7 +12,21 @@ This page is the design for the whole command line. What runs in 0.1 is the **re
 |---|---|
 | `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open`, `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3); `triage explain` and `theme check|export` (declared for v0.1 in the code, but not built yet); `api` (later) |
 
-Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. Only GitHub sources load against a live forge (the demo fixtures include GitLab, so `--demo` shows what GitLab output will look like), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
+Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
+
+## GitLab sources
+
+Every read command (`queue`, `pr list|view|diff|checks|open`) works against gitlab.com and self-hosted GitLab through the same `Provider` code path as GitHub, with the same columns and the same `--json` fields. `mr` is a hidden alias of `pr` (it isn't listed in `--help`), so `review-buddy mr list`, `mr view !1182`, `mr diff`, `mr checks` and `mr open` print exactly what the `pr` forms print.
+
+- **Refs.** Output is native: `platform/flow!1182`, with the project path in full, subgroups included. On input `!` and `#` are interchangeable, so `!1182`, `#1182`, `platform/infra/terraform!3` and `lab:platform/infra/terraform!3` all work.
+- **URLs.** Any merge request address is a selector: `https://gitlab.com/group/sub/proj/-/merge_requests/12`, with a tab suffix (`/diffs`, `/commits`), a query or fragment, a trailing slash, or the older form without `/-/`. The host picks the source. For a self-hosted instance served below a path (`https://example.com/gitlab`), set `api_url = "https://example.com/gitlab/api/v4"` on the source and the root is dropped before the project is matched.
+- **Scope.** A group in a source's scope covers its subgroups, so `groups = ["platform"]` matches `platform/infra/terraform`, and `groups = ["platform/infra"]` matches only that subgroup.
+- **`pr view`.** Adds a `Merge` row (`ready to merge`, `waiting on reviews or checks`, `has conflicts to resolve` and so on) when the forge says. Approvals show in the reviewer list as `approved`. `--comments` heads the conversation with the total and how many threads are unresolved, tags each thread `resolved` or `outdated`, and shows ranges as `path:start-end`; general notes sit under `Conversation`.
+- **`pr diff`.** GitLab sends hunks only, so piped output rebuilds the `diff --git` header from the file's status: new and deleted files get `new file mode` / `deleted file mode` and `/dev/null`, and renames get `similarity index`, `rename from` and `rename to`, even when nothing in the file changed. The result goes through `git apply --check`. File modes are written as `100644`, since GitLab's diff list doesn't carry them. Binary and oversized files are skipped with a note on stderr.
+- **`pr checks`.** Lists the head pipeline's jobs as `stage / name`. A failed job with `allow_failure` shows as `neutral` and counts as not required, so `--required` leaves it out; a trigger job is listed like any other.
+- **Errors.** A rejected token exits `4` and says to run `review-buddy auth login --host <host>`. A token without the `api` or `read_api` scope also exits `4`, names the scopes to create it with, and points at `review-buddy auth status`. A capability the instance lacks exits `5`.
+
+In demo mode, `--source` alone is enough to name a repository when exactly one repository in that source has the number, so `review-buddy --demo mr view !1182 -s platform` works. Live runs still need `--repo` or a matching git remote.
 
 ## Principles
 
@@ -164,7 +178,7 @@ Unbucketed listing, closer to `gh pr list`. Flags: `--state open|closed|merged|a
 
 ### `pr view`
 
-Header (`title`, `author wants head → base`, `+adds −dels · N files · opened 2h ago`), reviewers, checks summary, bucket and reason, then the description rendered from Markdown. `--comments` appends the conversation. `--web` opens it.
+Header (`title`, `author wants head → base`, `+adds −dels · N files · opened 2h ago`), reviewers, checks summary, merge readiness when known, bucket and reason, then the description rendered from Markdown. `--comments` appends the conversation, with resolved and outdated threads tagged and ranges shown as `path:start-end`. `--web` opens it.
 
 ### `pr diff`
 

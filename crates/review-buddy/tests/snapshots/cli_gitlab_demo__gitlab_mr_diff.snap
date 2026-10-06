@@ -1,0 +1,21 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+diff --git a/src/status/cache.rs b/src/status/cache.rs
+--- a/src/status/cache.rs
++++ b/src/status/cache.rs
+@@ -21,5 +21,11 @@ impl StatusCache {
+     pub async fn lookup(&self, key: &PipelineKey) -> Result<Status> {
+-        let status = self.client.pipeline_status(key).await?;
+-        Ok(status)
++        if let Some(hit) = self.entries.get(key) {
++            if hit.fetched_at.elapsed() < self.ttl {
++                return Ok(hit.status.clone());
++            }
++        }
++        let status = self.client.pipeline_status(key).await?;
++        self.entries.insert(key.clone(), Entry::new(status.clone()));
++        Ok(status)
+     }
+ }

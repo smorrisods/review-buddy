@@ -1,0 +1,6 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+platform	platform/flow!1182	open	fail	priya	2026-10-05T03:00:00Z	Cache pipeline status lookups
+platform	platform/flow!1190	open	pass	project_42_bot_a1b2c3	2026-10-05T01:00:00Z	Update tokio to 1.47

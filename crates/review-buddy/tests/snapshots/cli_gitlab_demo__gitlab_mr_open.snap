@@ -1,0 +1,7 @@
+---
+source: crates/review-buddy/tests/cli_gitlab_demo.rs
+expression: text
+---
+https://gitlab.platform.example/platform/flow/-/merge_requests/1182
+--- stderr ---
+Demo mode doesn't open a browser, so here's the link instead. (demo)

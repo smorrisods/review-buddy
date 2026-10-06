@@ -128,6 +128,9 @@ fn header_lines(file: &FilePatch, body: &str) -> Vec<String> {
             (format!("a/{old}"), "/dev/null".to_string())
         }
         FileStatus::Renamed => {
+            if !has_hunks(body) {
+                out.push("similarity index 100%".into());
+            }
             out.push(format!("rename from {old}"));
             out.push(format!("rename to {}", file.path));
             (format!("a/{old}"), format!("b/{}", file.path))
@@ -341,7 +344,7 @@ mod tests {
         moved.old_path = Some("old.rs".into());
         assert_eq!(
             raw_patch(&[moved]),
-            "diff --git a/old.rs b/new.rs\nrename from old.rs\nrename to new.rs\n"
+            "diff --git a/old.rs b/new.rs\nsimilarity index 100%\nrename from old.rs\nrename to new.rs\n"
         );
     }
 
