@@ -72,7 +72,8 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | `r` | Reply to the thread at the cursor |
 | `e` | Resolve / unresolve the thread at the cursor |
 | `f` | Mark the file as viewed |
-| `a` / `x` | Submit your review as approve / request changes |
+| `a` | Approve: opens a preview (`Approve with N comments`, the pending comments listed, the verdict) with **Cancel** and **Approve**. `⏎` confirms the focused button (Approve by default), `esc` cancels. On success your pending comments are cleared and a toast says `Approved` (with `(demo)` under `--demo`); on failure they stay pending and the toast says what to do next |
+| `x` | Request changes. Not built yet; where the forge can't do it at all the footer says so and points to `c` |
 | `b` / `o` | Check out / open in browser |
 
 **Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend · click the `unified │ side by side` toggle · click a file to open it · the wheel scrolls the diff.
@@ -82,11 +83,18 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | Key | Action |
 |---|---|
 | `⌃S` | Insert a ` ```suggestion ` block from the selected lines |
-| `⏎` | Add to your pending review |
-| `⌃⏎` | Post now as a standalone comment |
-| `⇧⏎` | Newline |
+| `⏎` | Add to your pending review. On a reply, post the reply |
+| `⌃⏎` | Post now as a standalone comment, after a preview (turn the preview off with `review.confirm_post_now = false`). `⌃P` does the same on terminals that can't tell `⌃⏎` from `⏎` |
+| `⇧⏎` · `⌥⏎` · `⌃J` | Newline |
+| `← → ↑ ↓` · `home` `end` | Move the cursor |
+| `⌥←` `⌥→` · `⌃←` `⌃→` · `⌥b` `⌥f` | Move by word |
+| `⌃home` `⌃end` | Start / end of the draft |
+| `⌫` · `del` · `⌃W` | Delete back / forward / the word before the cursor |
+| paste | Bracketed paste inserts the text as typed |
 | `⌃E` | Edit the draft in `$EDITOR` |
-| `esc` | Discard (asks first if longer than one line) |
+| `esc` | Close. If you've typed anything it asks first, and the answer defaults to **No, keep editing** |
+
+The composer is docked at the bottom of the diff and opens with `c` on the cursor line, or with `r` on a line that has a thread (`r` replies to that thread). Drafts live in memory for now; they are not saved between sessions, and quitting asks first if any are unsent. `⌃⏎` and `⇧⏎` need a terminal that reports those modifiers (kitty, WezTerm, foot, Ghostty and recent iTerm2 do); `⌥⏎`, `⌃J` and `⌃P` work everywhere.
 
 ## Command palette and search
 
@@ -97,6 +105,17 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⏎` Enter. On macOS, `⌘K` also opens 
 | `⏎` | Run the command / open the change |
 | `⌫` | Delete a character |
 | `esc` | Close |
+
+## Preview and discard confirms
+
+The same two-button modal is used for approving, posting now, and discarding a draft.
+
+| Key | Action |
+|---|---|
+| `← →` / `tab` | Switch buttons. Approve and post now start on the action; discard starts on **No, keep editing** |
+| `y` / `n` | Answer yes / no directly |
+| `⏎` | Confirm the highlighted button |
+| `esc` | Cancel |
 
 ## Merge confirm
 

@@ -76,6 +76,7 @@ impl Default for UiConfig {
 pub struct ReviewConfig {
     pub merge_method: MergeMethod,
     pub confirm_merge: bool,
+    pub confirm_post_now: bool,
     pub delete_branch_on_merge: bool,
     pub mark_viewed_on_open: bool,
     pub request_changes_needs_summary: bool,
@@ -86,6 +87,7 @@ impl Default for ReviewConfig {
         Self {
             merge_method: MergeMethod::Squash,
             confirm_merge: true,
+            confirm_post_now: true,
             delete_branch_on_merge: true,
             mark_viewed_on_open: true,
             request_changes_needs_summary: true,

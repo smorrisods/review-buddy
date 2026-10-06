@@ -1,6 +1,6 @@
 ---
-source: crates/review-buddy/tests/diff.rs
-expression: text(&render(&mut a))
+source: crates/review-buddy/tests/composer.rs
+expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
@@ -25,10 +25,10 @@ expression: text(&render(&mut a))
 │                                ││         43 +         }                                         │
 │                                ││         44 +         self.selected = (self.selected + 1) % sel…│
 │ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
-│1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
-│0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
-│Your verdict: not started       ││              │ menus I use stop at the end.                   ││
-│                                ││              │ ada · 20h                                      ││
-│                                ││              │ I went with wrapping so a held key never gets  ││
+│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
+│0 of 3 files viewed             │││ This could return early.                                     ││
+│Your verdict: not started       │││ Worth a guard?                                               ││
+│                                │││                                                              ││
+│                                ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard

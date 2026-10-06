@@ -41,10 +41,34 @@ impl TerminalGuard {
             restore();
             return Err(err);
         }
+        enhance_keys(&mut stdout);
         let terminal = Terminal::new(CrosstermBackend::new(stdout)).inspect_err(|_| restore())?;
         Ok(Self { terminal })
     }
 }
+
+/// Asks terminals that speak the kitty keyboard protocol to report `⌃⏎` and `⇧⏎` as such.
+/// Others ignore the request. It isn't available through the Windows console API, which
+/// already reports those modifiers.
+#[cfg(unix)]
+fn enhance_keys(out: &mut Stdout) {
+    use crossterm::event::{KeyboardEnhancementFlags, PushKeyboardEnhancementFlags};
+    let _ = execute!(
+        out,
+        PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
+    );
+}
+
+#[cfg(not(unix))]
+fn enhance_keys(_out: &mut Stdout) {}
+
+#[cfg(unix)]
+fn release_keys(out: &mut Stdout) {
+    let _ = execute!(out, crossterm::event::PopKeyboardEnhancementFlags);
+}
+
+#[cfg(not(unix))]
+fn release_keys(_out: &mut Stdout) {}
 
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
@@ -58,6 +82,7 @@ pub fn restore() {
         return;
     }
     let mut stdout = io::stdout();
+    release_keys(&mut stdout);
     let _ = execute!(
         stdout,
         Show,

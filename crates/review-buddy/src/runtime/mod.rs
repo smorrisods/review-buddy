@@ -39,6 +39,10 @@ pub fn msg_from_event(event: Event) -> Option<Msg> {
     }
 }
 
+/// Why review writes aren't sent to live sources yet.
+#[cfg(feature = "live")]
+const NOT_WIRED: &str = "Sending reviews isn't wired up for live sources yet";
+
 /// What answers [`Cmd::LoadChanges`].
 #[derive(Debug, Clone, Default)]
 pub enum Backend {
@@ -164,6 +168,84 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
             }
             #[cfg(feature = "live")]
             Backend::Live(live) => live.load_diff(id, tx),
+        },
+        Cmd::SubmitReview { id, draft, verdict } => match backend {
+            Backend::None => {
+                let _ = &draft;
+                let _ = tx.send(Msg::ReviewSubmitted {
+                    id,
+                    verdict,
+                    result: Err("No source is connected".to_string()),
+                    demo: false,
+                });
+            }
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                use rb_core::Provider;
+                let provider = world.provider(id.kind);
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let result = provider
+                        .submit_review(&id, &draft, verdict)
+                        .await
+                        .map_err(|err| err.to_string());
+                    let _ = tx.send(Msg::ReviewSubmitted {
+                        id,
+                        verdict,
+                        result,
+                        demo: true,
+                    });
+                });
+            }
+            #[cfg(feature = "live")]
+            Backend::Live(_) => {
+                let _ = &draft;
+                let _ = tx.send(Msg::ReviewSubmitted {
+                    id,
+                    verdict,
+                    result: Err(NOT_WIRED.to_string()),
+                    demo: false,
+                });
+            }
+        },
+        Cmd::Reply { id, thread, body } => match backend {
+            Backend::None => {
+                let _ = &body;
+                let _ = tx.send(Msg::ReplyPosted {
+                    id,
+                    thread,
+                    result: Err("No source is connected".to_string()),
+                    demo: false,
+                });
+            }
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                use rb_core::Provider;
+                let provider = world.provider(id.kind);
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let result = provider
+                        .reply(&thread, &body)
+                        .await
+                        .map_err(|err| err.to_string());
+                    let _ = tx.send(Msg::ReplyPosted {
+                        id,
+                        thread,
+                        result,
+                        demo: true,
+                    });
+                });
+            }
+            #[cfg(feature = "live")]
+            Backend::Live(_) => {
+                let _ = &body;
+                let _ = tx.send(Msg::ReplyPosted {
+                    id,
+                    thread,
+                    result: Err(NOT_WIRED.to_string()),
+                    demo: false,
+                });
+            }
         },
         Cmd::After { delay, msg } => {
             let tx = tx.clone();

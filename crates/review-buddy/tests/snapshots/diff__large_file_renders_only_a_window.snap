@@ -41,4 +41,4 @@ expression: shown
 │                                ││  1426 1426   let value_1426 = 1426;                                                                                        │
 │                                ││› 1427 1427   let value_1427 = 1427;                                                                                        │
 ╰────────────────────────────────╯╰ hunk 1 of 1 · file 1 of 1 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme

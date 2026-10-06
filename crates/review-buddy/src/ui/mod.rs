@@ -12,6 +12,7 @@ use rb_theme::Role;
 use crate::app::{App, Screen};
 
 pub mod chrome;
+pub mod composer;
 pub mod dashboard;
 pub mod detail;
 pub mod diff;

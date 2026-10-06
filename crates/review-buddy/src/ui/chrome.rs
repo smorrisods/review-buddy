@@ -78,6 +78,10 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("Move", "n/p", "hunk", None, true),
             bind("Move", "]/[", "file", None, true),
             bind("Move", "tab", "pane", None, true),
+            bind("Review", "c", "comment", None, true),
+            bind("Review", "r", "reply to the thread", None, false),
+            bind("Review", "a", "approve", None, true),
+            bind("Review", "x", "request changes", None, false),
             bind("Change", "o", "open", open, true),
             bind("Change", "y", "copy", copy, true),
             bind("General", "esc", "back", Some(Action::CloseDiff), true),
@@ -92,6 +96,21 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("General", "T", "theme", theme, true),
         ],
     }
+}
+
+/// The footer while a composer is open.
+pub fn composer_hints() -> Vec<Hint> {
+    let hint = |key, label| Hint {
+        key,
+        label,
+        action: None,
+    };
+    vec![
+        hint("⏎", "add to review"),
+        hint("⌃⏎", "post now"),
+        hint("⇧⏎", "newline"),
+        hint("esc", "discard"),
+    ]
 }
 
 pub fn hints_for(screen: Screen) -> Vec<Hint> {
@@ -162,7 +181,11 @@ fn wordmark_spans(app: &App) -> Vec<Span<'static>> {
 
 pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     let palette = &app.palette;
-    let hints = hints_for(app.screen);
+    let hints = if app.diff_state().is_some_and(|s| s.composer.is_some()) {
+        composer_hints()
+    } else {
+        hints_for(app.screen)
+    };
 
     let status = app.status.as_ref().map(status_text).map(|(text, role)| {
         let room = usize::from(area.width.saturating_sub(4));

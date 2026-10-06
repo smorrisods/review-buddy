@@ -25,7 +25,7 @@ pub async fn fetch_diff(
     draft: ReviewDraft,
 ) -> rb_core::Result<DiffData> {
     let (files, threads) = tokio::try_join!(provider.files(id), provider.threads(id))?;
-    Ok(DiffData::new(files, threads, draft))
+    Ok(DiffData::new(files, threads, draft).with_capabilities(provider.capabilities()))
 }
 
 pub fn now() -> Timestamp {
