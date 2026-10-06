@@ -194,8 +194,8 @@ Repeat one table per source. Order sets the `2`–`9` keys (`1` is always All). 
 |---|---|---|
 | `name` | yes | Short label in tabs |
 | `kind` | yes | `github` · `gitlab` |
-| `host` | yes | `github.com`, `ghe.corp.example`, `gitlab.com`, `gitlab.work.ca` |
-| `api_url` | no | Override the derived URL (`https://{host}/api/v3`, `https://{host}/api/v4`) |
+| `host` | yes | A bare host name, with a port when the web UI uses one: `github.com`, `ghe.corp.example`, `ghe.corp.example:8443`, `gitlab.com`, `gitlab.work.ca`. No scheme and no path |
+| `api_url` | no | Override the derived API base (GitHub: `https://api.github.com` for github.com, else `https://{host}/api/v3`; GitLab: `https://{host}/api/v4`). Needed for a path prefix or relative URL root (`https://example.com/gitlab/api/v4`), plain `http`, or an API on another port. A trailing slash is fine. GitHub's GraphQL address and every web link follow it: `…/api/v3` becomes `…/api/graphql`, and links use the base without `/api/v3` or `/api/v4`. `review-buddy doctor` prints the addresses it resolved |
 | `auth` | no | `cli` (gh / glab), `token` (keyring), `env:VAR_NAME`, or `command` (runs `token_command`). Default `cli` if the CLI is signed in, else `token` |
 | `token_command` | no | Used when `auth = "command"`, e.g. `"pass show gitlab/work"` or `"secret-tool lookup service gitlab host work"`. Stdout (trimmed) is the token. Run at start and on 401. For SSH or headless Linux without Secret Service |
 | `scope` | no | GitHub: `orgs = [..]`, `repos = [..]`, `user = true`. GitLab: `groups = [..]`, `projects = [..]`. Omit for everything you can see |

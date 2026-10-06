@@ -67,7 +67,7 @@ pub fn tls_reason(chain: &str) -> Option<String> {
     ["certificate", "tls", "ssl handshake", "handshake"]
         .iter()
         .any(|w| lower.contains(w))
-        .then(|| "the TLS certificate couldn't be verified. If the server uses a private certificate authority, add its certificate to your system trust store, then try again".to_string())
+        .then(|| "the TLS certificate couldn't be verified. Review Buddy trusts public certificate authorities only for now, so a server with a private or self-signed certificate needs a publicly trusted one".to_string())
 }
 
 #[cfg(test)]

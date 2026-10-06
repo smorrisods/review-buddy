@@ -19,6 +19,35 @@ On GitLab, a token read from `glab` is sent as `Authorization: Bearer` (it may b
 
 Token expiry is planned to surface 7 days ahead in the footer and in Settings → Sources.
 
+## GitHub Enterprise Server and self-hosted GitLab
+
+Both forges work against your own servers. Set `host` to the name you browse to (with the port if it isn't the default) and add an `api_url` when the API isn't at the usual place:
+
+```toml
+[[source]]
+name = "work"
+kind = "github"
+host = "ghe.corp.example"
+# https://ghe.corp.example/api/v3 and /api/graphql are derived without api_url
+
+[[source]]
+name = "lab"
+kind = "gitlab"
+host = "example.com"
+api_url = "https://example.com/gitlab/api/v4"   # GitLab served below /gitlab
+```
+
+| Layout | GitHub | GitLab |
+|---|---|---|
+| Default | `https://<host>/api/v3`, GraphQL `https://<host>/api/graphql` (github.com: `https://api.github.com` and `/graphql`) | `https://<host>/api/v4` |
+| Path prefix or relative root | `api_url = "https://example.com/ghe/api/v3"` gives GraphQL at `https://example.com/ghe/api/graphql` | `api_url = "https://example.com/gitlab/api/v4"` |
+| Port | `host = "ghe.corp.example:8443"`, or put the port in `api_url` | same |
+| Plain http | `api_url = "http://…"`, for test servers | same |
+
+Links to a change (`pr open`, `open in browser`, copied URLs) are built from the same address, so they keep the scheme, port and prefix. URLs you paste as selectors are matched by host and port, with the prefix removed when the source's `api_url` names it. Git remotes (`https://`, `git@host:owner/repo.git` and `ssh://git@host:2222/…`) are matched to the source by host; an ssh port is ignored because it isn't the web port.
+
+`review-buddy doctor` shows the resolved addresses, the server version (the GitHub Enterprise Server release, or GitLab's version and revision), and warns when the server's clock differs from yours by more than five minutes. Review Buddy trusts public certificate authorities only for now. If a server's certificate can't be verified, the error says so and asks for a publicly trusted certificate; private and self-signed certificates aren't supported yet.
+
 ## Listing changes
 
 ### GitHub

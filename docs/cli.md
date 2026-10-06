@@ -12,7 +12,7 @@ This page is the design for the whole command line. What runs in 0.1 is the **re
 |---|---|
 | `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open`, `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3); `triage explain` and `theme check|export` (declared for v0.1 in the code, but not built yet); `api` (later) |
 
-Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
+Commands that are declared but not built exit `2` with `Not built yet. It's planned for <milestone>.` The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), including GitHub Enterprise Server and self-hosted GitLab (see `integrations.md`), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
 
 ## GitLab sources
 
@@ -108,14 +108,14 @@ Every command that acts on one change takes a selector. In order of precedence:
 
 | Form | Example | Notes |
 |---|---|---|
-| Web URL | `https://github.com/liminal-hq/spindle/pull/214`, `https://gitlab.work.ca/platform/flow/-/merge_requests/88` | Host picks the source; works for any configured host |
+| Web URL | `https://github.com/liminal-hq/spindle/pull/214`, `https://gitlab.work.ca/platform/flow/-/merge_requests/88` | Host picks the source; works for any configured host, including Enterprise and self-hosted ones with a port (`https://ghe.corp.example:8443/…`) or a path prefix (`https://example.com/gitlab/…`, when the source's `api_url` carries the same prefix) |
 | Source-qualified | `platform:platform/flow!88`, `liminal-hq:spindle#214` | `source:` is a configured source name. The repo may be bare when the source is scoped to one owner or group |
 | Repo-qualified | `liminal-hq/spindle#214`, `platform/flow!88` | Matched against configured sources; if two sources could own it, the error lists them and suggests `--source` |
 | Number only | `214`, `#214`, `!88` | Needs `--repo`, or a git repo in the current directory whose remote matches a source |
 | Branch | `feat/titleset-menus` | The open change whose head is that branch, in the inferred repo |
 | Nothing | | The open change for the current branch, in the current git repo |
 
-`#` and `!` are interchangeable on input (`spindle!214` works) and native on output (`#214` on GitHub, `!1182` on GitLab). Repo inference reads `git remote` (preferring `upstream`, then `origin`), maps the remote host through `url.*.insteadOf`, and matches it to a source by host. Inference never makes a network call to decide which repo you meant. When several sources cover a repo but are all the same forge on the same host, the first enabled one wins, so `pr view 214 -R liminal-hq/review-buddy` works without `-s`; sources on different forges or hosts stay ambiguous and the error lists them.
+`#` and `!` are interchangeable on input (`spindle!214` works) and native on output (`#214` on GitHub, `!1182` on GitLab). Repo inference reads `git remote` (preferring `upstream`, then `origin`), maps the remote host through `url.*.insteadOf`, and matches it to a source by host. A port on an `http(s)` remote is the web port and is matched against the source's `host`; an ssh port is ignored, and a port on only one side still matches. Inference never makes a network call to decide which repo you meant. When several sources cover a repo but are all the same forge on the same host, the first enabled one wins, so `pr view 214 -R liminal-hq/review-buddy` works without `-s`; sources on different forges or hosts stay ambiguous and the error lists them.
 
 When a selector is ambiguous or matches nothing, the error says what was tried: `Couldn't find a change for branch feat/titleset-menus in liminal-hq/spindle. Pass a number or a URL, e.g. review-buddy pr view 214.`
 
@@ -219,6 +219,58 @@ All three work under `--demo` where it makes sense: `login` and `logout` print w
 `source test [name] [--require <capability>,…]` signs in to the named source (or every enabled one, or the ones `--source` names), prints who you are, and prints the source's `Capabilities` (request changes, range comments, viewed files, suggestions, resolve threads, re-run failed checks), from a fresh capability probe: the detected version, when it was probed, and why anything is off. `--json` adds `capabilities` and `probe` objects. `doctor` prints the same in its Capabilities section. Exit `4` if a source can't sign in; with `--require`, exit `5` when a tested source lacks a named capability (`request-changes`, `viewed-files`, `range-comments`, `suggestions`, `resolve-threads`, `rerun-failed`).
 
 `source add [--kind github|gitlab] [--host H] [--name N] [--auth cli|token|env:VAR|command] [--token-command CMD] [--org O]… [--group G]… [--user] [--api-url URL] [--no-test]` appends a `[[source]]` to the config write target (the `--config` file when given), with `toml_edit` so comments and ordering stay. It validates the result first, previews the block, and asks to confirm with a default of No on a TTY; without a TTY it needs `--yes`. Kind is guessed from the host and the host defaults to `github.com` or `gitlab.com`, so `source add --yes` is enough for the common case. `--org` is GitHub's scope and `--group` GitLab's. Afterwards it tests the sign-in unless `--no-test`; a failed test leaves the source added, says so, and exits `4` with the fix (for `auth = "token"`, run `auth login`). Under `--demo` it prints the block and writes nothing.
+
+### `doctor`
+
+`doctor` is the broad health check. It never changes anything, and its auth section is the same code as `auth status`. For every enabled source (or the ones `--source` names) it reports:
+
+- **Auth.** Who you are, how the token was found, scopes and expiry, or the fix when sign-in fails.
+- **Rate limits.** GitHub's core and GraphQL budgets; GitLab's `RateLimit-*` headers when the instance sends them.
+- **API versions.** The server's own version and the API Review Buddy speaks: the GitHub Enterprise Server release from the `X-GitHub-Enterprise-Version` header on `GET /meta`, or GitLab's `version` and `revision` from `GET /version`. github.com has no server version.
+- **Endpoints.** The REST and GraphQL addresses Review Buddy will call and the web address it builds links from, after `host` and `api_url` are applied. Check this first when an Enterprise or self-hosted source misbehaves.
+- **Clock.** Compares the server's `Date` header with this machine's clock and says so when they differ by more than five minutes, because token expiry checks compare dates.
+- **Paths.** The XDG directories and which config layers were loaded.
+
+A host that can't be reached, or whose TLS certificate can't be verified, shows up under Auth with a next step: check the host name, `api_url` and VPN, or ask for a publicly trusted certificate. Review Buddy trusts public certificate authorities only for now, so private and self-signed certificates aren't supported yet.
+
+Exit `4` only when a source can't sign in; a missing version or a clock difference is information, not a failure. `--json` fields are `version`, `auth`, `rateLimits`, `apiVersions` (with `product`, `server`, `revision` and `note` per source), `endpoints`, `clock` (`skewSeconds` and `warning`) and `paths` (the same object as `config paths --json`). A self-hosted run looks like this:
+
+```text
+Review Buddy 0.2.0
+
+Auth
+  ✓ ghe.corp.example:8443 (work)  signed in as smorris via env:RB_TOKEN · scopes repo, read:org · expires 2026-12-01
+  ✓ git.corp.example (lab)  signed in as smorris via env:RB_TOKEN · scopes api, read_user · expires 2027-01-12
+
+Rate limits
+  ghe.corp.example:8443 (work)  core 4900/5000 · resets in 38 min · graphql 4999/5000
+
+API versions
+  ghe.corp.example:8443 (work)  GitHub Enterprise Server 3.12.4 · REST 2022-11-28
+  git.corp.example (lab)  GitLab 16.11.2-ee (abc123def) · REST v4
+
+Endpoints
+  ghe.corp.example:8443 (work)  REST https://ghe.corp.example:8443/api/v3 · GraphQL https://ghe.corp.example:8443/api/graphql · web https://ghe.corp.example:8443
+  git.corp.example (lab)  REST https://git.corp.example/gitlab/api/v4 · web https://git.corp.example/gitlab
+
+Clock
+  ghe.corp.example:8443 (work)  in step with this machine
+  git.corp.example (lab)  the server's clock is 8 min behind this machine. Token expiry checks may be wrong; sync this machine's clock
+```
+
+Under `--demo` nothing is probed. The same sections appear, labelled `(demo)`:
+
+```text
+API versions
+  github.com (liminal-hq)  GitHub REST 2022-11-28 (demo)
+  gitlab.platform.example (platform)  GitLab REST v4 (demo)
+
+Endpoints
+  github.com (liminal-hq)  not used (demo)
+
+Clock
+  github.com (liminal-hq)  not checked (demo)
+```
 
 ### `config`
 
