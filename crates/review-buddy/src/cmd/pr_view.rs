@@ -414,6 +414,9 @@ impl View {
         ));
         rows.push(("Reviewers", vec![reviewers_line(&s.reviewers)]));
         rows.push(("Checks", self.checks_lines(p)));
+        if let Some(word) = merge_word(self.detail.mergeability) {
+            rows.push(("Merge", vec![word.to_string()]));
+        }
         if !s.labels.is_empty() {
             rows.push(("Labels", vec![s.labels.join(", ")]));
         }
@@ -485,10 +488,17 @@ impl View {
         if total == 0 {
             return format!("{}\n", p.paint(Role::Muted, "No comments yet."));
         }
-        let mut out = format!(
-            "{}\n",
-            p.paint(Role::TextBright, &format!("Comments ({total})"))
-        );
+        let unresolved = self
+            .threads
+            .iter()
+            .filter(|t| !t.resolved && !t.outdated && t.path.is_some())
+            .count();
+        let heading = if unresolved > 0 {
+            format!("Comments ({total}) · {unresolved} unresolved")
+        } else {
+            format!("Comments ({total})")
+        };
+        let mut out = format!("{}\n", p.paint(Role::TextBright, &heading));
         for thread in &self.threads {
             let place = match (&thread.path, thread.line) {
                 (Some(path), Some(line)) => match thread.start_line {
@@ -528,6 +538,18 @@ impl View {
             }
         }
         out
+    }
+}
+
+fn merge_word(mergeability: rb_core::Mergeability) -> Option<&'static str> {
+    use rb_core::Mergeability as M;
+    match mergeability {
+        M::Unknown => None,
+        M::Clean => Some("ready to merge"),
+        M::Conflicts => Some("has conflicts to resolve"),
+        M::Blocked => Some("waiting on reviews or checks"),
+        M::Behind => Some("behind its base branch"),
+        M::Unstable => Some("mergeable, though a check isn't passing"),
     }
 }
 

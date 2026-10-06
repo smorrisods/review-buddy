@@ -348,7 +348,10 @@ impl Context {
     pub fn resolve_selector(&self, input: Option<&str>) -> Result<Target, CmdError> {
         let selector = selector::parse(input)?;
         let sources = self.sources()?;
-        let repo_flag = self.args.repo.as_deref().map(RepoRef::parse).transpose()?;
+        let mut repo_flag = self.args.repo.as_deref().map(RepoRef::parse).transpose()?;
+        if repo_flag.is_none() {
+            repo_flag = self.demo_repo_for(&selector, &sources);
+        }
         let needs_git = repo_flag.is_none()
             && matches!(
                 selector,
@@ -365,8 +368,55 @@ impl Context {
             repo_flag,
             git_remote: info.remote,
             current_branch: info.branch,
+            web_roots: &self.web_roots(),
         };
         Ok(selector::resolve(&selector, &inference)?)
+    }
+
+    fn web_roots(&self) -> Vec<(String, String)> {
+        self.config
+            .sources
+            .iter()
+            .filter_map(|s| {
+                let root = selector::web_root_of(s.api_url.as_deref()?)?;
+                Some((s.host.clone(), root))
+            })
+            .collect()
+    }
+
+    /// With `--source` narrowing the demo to one source, a bare number means the one repository
+    /// there that has it. There's no git remote in demo mode, and nothing leaves memory.
+    fn demo_repo_for(&self, selector: &Selector, sources: &[Source]) -> Option<RepoRef> {
+        #[cfg(feature = "demo")]
+        {
+            let Selector::Number(number) = selector else {
+                return None;
+            };
+            let demo = self.demo.as_ref()?;
+            if self.args.sources.is_empty() {
+                return None;
+            }
+            let runtime = tokio::runtime::Builder::new_current_thread().build().ok()?;
+            let snapshot = runtime.block_on(demo.world.snapshot()).ok()?;
+            let mut repos: Vec<&str> = snapshot
+                .changes
+                .iter()
+                .filter(|c| {
+                    c.id.number == *number && sources.iter().any(|s| s.id == c.id.source_id)
+                })
+                .map(|c| c.id.repo.as_str())
+                .collect();
+            repos.dedup();
+            match repos.as_slice() {
+                [only] => RepoRef::parse(only).ok(),
+                _ => None,
+            }
+        }
+        #[cfg(not(feature = "demo"))]
+        {
+            let _ = (selector, sources);
+            None
+        }
     }
 }
 

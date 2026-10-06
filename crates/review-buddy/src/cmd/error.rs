@@ -106,9 +106,16 @@ impl From<rb_core::Error> for CmdError {
             Error::Network { host, reason } => Self::Failed(format!(
                 "Couldn't reach {host}: {reason}.\nCheck your connection and try again, or use --demo."
             )),
-            Error::Forbidden { host, reason } => Self::Failed(format!(
-                "{host} refused the request: {reason}.\nCheck the token's scopes with review-buddy auth status."
-            )),
+            Error::Forbidden { host, reason } => {
+                let text = format!(
+                    "{host} refused the request: {reason}.\nCheck the token's scopes with review-buddy auth status."
+                );
+                if reason.contains("scope") {
+                    Self::AuthNeeded(text)
+                } else {
+                    Self::Failed(text)
+                }
+            }
             Error::Conflict(what) => Self::Failed(format!(
                 "That conflicts with the current state: {what}.\nRefresh and try again."
             )),
