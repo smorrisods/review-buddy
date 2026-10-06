@@ -20,12 +20,15 @@ pub mod editor;
 pub mod failure;
 pub mod links;
 mod live;
+mod mouse;
 pub mod queue;
+pub mod range;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
 pub use diff::{open_change, DiffData, DiffFile, DiffFocus, DiffState, FileView, Phase, Syntax};
 pub use failure::{FailureKind, SourceFailure};
+pub use range::RowRange;
 pub use update::update;
 
 /// How long a status message or toast stays on screen.
@@ -94,6 +97,18 @@ pub enum Action {
     DiffFile(usize),
     /// Put the diff cursor at the nth row, or the nearest line to it.
     DiffRow(usize),
+    /// Focus the Files or Diff pane by clicking its border or empty space.
+    DiffFocus(DiffFocus),
+    /// Place the composer's cursor where the pointer is. `x` and `y` are the screen position of
+    /// the text's top-left cell; `first` and `across` are the rows and columns scrolled off.
+    ComposerCursor {
+        x: u16,
+        y: u16,
+        first: usize,
+        across: usize,
+    },
+    /// Press the preview's Cancel (`false`) or confirm (`true`) button.
+    Answer(bool),
 }
 
 /// Input, timers, and results of effects.
@@ -256,6 +271,10 @@ pub struct App {
     pub diff: Option<DiffState>,
     /// The help overlay is showing.
     pub help: bool,
+    /// Rows the help overlay is scrolled by.
+    pub help_scroll: u16,
+    /// The last left click, for spotting a double-click: what it hit and the tick it came on.
+    pub(crate) last_click: Option<(Action, u64)>,
     /// Preview before posting a single comment now (`review.confirm_post_now`).
     pub confirm_post_now: bool,
     /// Columns a tab expands to in diffs (`diff.tab_width`).
@@ -290,6 +309,8 @@ impl App {
             dashboard: Dashboard::default(),
             diff: None,
             help: false,
+            help_scroll: 0,
+            last_click: None,
             confirm_post_now: true,
             tab_width: diffview::TAB_WIDTH,
             quit_armed: false,

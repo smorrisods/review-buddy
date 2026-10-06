@@ -12,6 +12,7 @@ use rb_diff::{
 
 use super::composer::{self, Composer, Confirm};
 use super::diffview::{self, Inputs, Rows};
+use super::range::{self, RowRange};
 use super::{Action, App, Cmd, Screen};
 use crate::ui::layout;
 
@@ -140,6 +141,10 @@ pub struct DiffState {
     pub file: usize,
     pub files_scroll: usize,
     pub view: FileView,
+    /// The lines a drag or shift-click has selected. Groundwork for range comments.
+    pub range: Option<RowRange>,
+    /// The row a drag began on, while the button is held.
+    pub drag: Option<usize>,
     /// The docked composer, while one is open.
     pub composer: Option<Composer>,
     /// A preview or discard confirmation, shown over everything else.
@@ -158,6 +163,8 @@ impl DiffState {
             file: 0,
             files_scroll: 0,
             view: FileView::default(),
+            range: None,
+            drag: None,
             composer: None,
             confirm: None,
             submitting: false,
@@ -264,6 +271,8 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
     let Some(state) = diff.as_mut() else {
         return;
     };
+    state.range = None;
+    state.drag = None;
     let Some(data) = state.data.as_ref() else {
         state.view = FileView::default();
         return;
@@ -472,6 +481,11 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char('d') if ctrl => page(app, true, 2),
         KeyCode::Char('u') if ctrl => page(app, false, 2),
         _ if ctrl || key.modifiers.contains(KeyModifiers::ALT) => return Vec::new(),
+        KeyCode::Esc if app.diff.as_ref().is_some_and(|s| s.range.is_some()) => {
+            if let Some(state) = app.diff.as_mut() {
+                state.range = None;
+            }
+        }
         KeyCode::Esc | KeyCode::Char('q') => {
             close(app);
             return Vec::new();
@@ -548,14 +562,82 @@ pub fn on_action(app: &mut App, action: Action) -> Vec<Cmd> {
         Action::DiffRow(row) => {
             if let Some(state) = app.diff.as_mut() {
                 state.focus = DiffFocus::Diff;
+                state.range = None;
             }
             move_cursor(app, |rows, _| rows.nearest_line(row));
+        }
+        Action::DiffFocus(focus) => {
+            if let Some(state) = app.diff.as_mut() {
+                state.focus = focus;
+            }
         }
         _ => return Vec::new(),
     }
     settle(app);
     app.mark_dirty();
     Vec::new()
+}
+
+/// A left press on a diff row: places the cursor and starts a drag there. With shift held it
+/// extends the range from the cursor (or the range's anchor) to the row instead.
+pub fn on_press(app: &mut App, row: usize, extend: bool) -> Vec<Cmd> {
+    if !extend {
+        let cmds = on_action(app, Action::DiffRow(row));
+        if let Some(state) = app.diff.as_mut() {
+            state.drag = Some(state.view.cursor);
+        }
+        return cmds;
+    }
+    let Some(state) = app.diff.as_mut() else {
+        return Vec::new();
+    };
+    let Some(head) = state.view.rows.nearest_line(row) else {
+        return Vec::new();
+    };
+    let anchor = state.range.map_or(state.view.cursor, |r| r.anchor);
+    state.focus = DiffFocus::Diff;
+    state.range = RowRange::between(anchor, head);
+    state.drag = None;
+    move_cursor(app, |_, _| Some(head));
+    settle(app);
+    app.mark_dirty();
+    Vec::new()
+}
+
+/// The pointer moved with the left button held: grows the range to the line under it, and
+/// scrolls when the pointer is past the top or bottom of the code.
+pub fn on_drag(app: &mut App, y: u16) {
+    let code = viewport(app).code;
+    let Some(state) = app.diff.as_mut() else {
+        return;
+    };
+    let Some(anchor) = state.drag else {
+        return;
+    };
+    let view = &mut state.view;
+    let height = usize::from(code.height);
+    let max = diffview::max_scroll(view.rows.len(), height);
+    match range::edge_scroll(y, code.y, code.height) {
+        -1 => view.scroll = view.scroll.saturating_sub(1),
+        1 => view.scroll = (view.scroll + 1).min(max),
+        _ => {}
+    }
+    let Some(row) = range::row_at(y, code.y, code.height, view.scroll, view.rows.len()) else {
+        return;
+    };
+    let Some(head) = view.rows.nearest_line(row) else {
+        return;
+    };
+    state.range = RowRange::between(anchor, head);
+    state.view.cursor = head;
+    settle(app);
+    app.mark_dirty();
+}
+
+pub fn on_release(app: &mut App) {
+    if let Some(state) = app.diff.as_mut() {
+        state.drag = None;
+    }
 }
 
 pub fn on_scroll(app: &mut App, column: u16, row: u16, down: bool) {

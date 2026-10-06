@@ -391,7 +391,7 @@ fn jump(app: &mut App, to_end: bool) -> Vec<Cmd> {
     Vec::new()
 }
 
-fn activate(app: &mut App) -> Vec<Cmd> {
+pub(super) fn activate(app: &mut App) -> Vec<Cmd> {
     match (&app.dashboard.selected, app.dashboard.focus) {
         (Some(Selected::Noise), Pane::Queue) => {
             app.dashboard.noise_open = !app.dashboard.noise_open;

@@ -25,9 +25,11 @@ pub fn draw(frame: &mut Frame, app: &App, body: ratatui::layout::Rect, hits: &mu
         return;
     };
     let l = layout::diff_screen(body);
+    hits.push(l.files, Action::DiffFocus(DiffFocus::Files));
+    hits.push(l.diff, Action::DiffFocus(DiffFocus::Diff));
     draw_files(frame, app, state, &l, hits);
     draw_diff(frame, app, state, &l, hits);
-    super::composer::draw(frame, app, state, &l, body);
+    super::composer::draw(frame, app, state, &l, body, hits);
 }
 
 fn pane_block(app: &App, title: String, focused: bool) -> Block<'static> {
@@ -328,7 +330,8 @@ fn row_line(app: &App, state: &DiffState, index: usize, width: usize) -> (Line<'
                 return (Line::raw(""), Style::default());
             };
             let at_cursor = index == view.cursor;
-            diff_line(app, state, id, line, at_cursor, width)
+            let in_range = state.range.is_some_and(|r| r.contains(index));
+            diff_line(app, state, id, line, (at_cursor, in_range), width)
         }
         Some(Row::Block { block, line }) => match view.rows.block(block) {
             Some(b) => (block_line(app, b, line as usize, width), Style::default()),
@@ -343,7 +346,7 @@ fn diff_line(
     state: &DiffState,
     id: rb_diff::LineId,
     line: &DiffLine,
-    at_cursor: bool,
+    (at_cursor, in_range): (bool, bool),
     width: usize,
 ) -> (Line<'static>, Style) {
     let palette = &app.palette;
@@ -361,6 +364,8 @@ fn diff_line(
             "› ",
             style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD),
         )
+    } else if in_range {
+        Span::styled("▌ ", style::fg(palette, Role::Accent))
     } else {
         Span::raw("  ")
     };
@@ -381,7 +386,7 @@ fn diff_line(
             style::fg(palette, Role::Text),
         )),
     }
-    let base = if at_cursor && state.focus == DiffFocus::Diff {
+    let base = if in_range || (at_cursor && state.focus == DiffFocus::Diff) {
         style::bg(palette, Role::Selection)
     } else {
         tint.map_or_else(Style::default, |role| style::bg(palette, role))
