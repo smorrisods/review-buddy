@@ -36,7 +36,7 @@ Later layers override earlier ones key by key (tables merge; arrays and `[[sourc
 5. `$REVIEW_BUDDY_CONFIG` or `--config <path>`. If set, this replaces steps 3–4 rather than layering on top
 6. Environment overrides (`REVIEW_BUDDY_THEME` …) and command-line flags
 
-The app only ever **writes** to step 3 (or the file from step 5). In 0.1 nothing does: `source add` (v0.2) and a Settings screen (v0.4) are the planned writers. Edits will use `toml_edit`, so your comments and ordering are kept. `review-buddy config paths` prints every resolved location and which files were loaded.
+The app only ever **writes** to step 3 (or the file from step 5). First run (`--setup`) and `review-buddy source add` write to it today; a Settings screen (v0.4) is the next writer. Edits will use `toml_edit`, so your comments and ordering are kept. `review-buddy config paths` prints every resolved location and which files were loaded.
 
 ### Themes search order
 
