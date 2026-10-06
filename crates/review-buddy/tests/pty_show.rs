@@ -68,11 +68,20 @@ fn unticking_a_project_changes_the_counts_and_the_rows() {
         "1 hidden by your Show filters: 1 by project.",
         "esc clears the search and the control stays open",
     );
-    s.send_expect(
-        b"\x1b",
-        "1 hidden by project",
-        "esc then closes the control",
-    );
+    s.send(b"\x1b");
+    // The end note behind the control already says "1 hidden by project", so wait for the control
+    // itself to go; a `q` sent while it is still open is swallowed (and an immediate key after Esc
+    // can be read as Alt+key).
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    while s.sees("Changes last for this session only") {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "esc didn't close the control: {}",
+            s.screen()
+        );
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    std::thread::sleep(Duration::from_millis(300));
     assert!(
         !s.sees("Clarify the install"),
         "the project's rows are gone"
