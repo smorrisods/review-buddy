@@ -22,6 +22,7 @@ demo = ["dep:async-trait", "dep:tempfile", "dep:url"]
 anyhow.workspace = true
 async-trait = { workspace = true, optional = true }
 clap.workspace = true
+clap_complete.workspace = true
 crossterm.workspace = true
 futures-util.workspace = true
 jaq-core.workspace = true
@@ -49,6 +50,7 @@ url = { workspace = true, optional = true }
 
 [build-dependencies]
 clap.workspace = true
+clap_complete.workspace = true
 clap_mangen.workspace = true
 
 [lints]

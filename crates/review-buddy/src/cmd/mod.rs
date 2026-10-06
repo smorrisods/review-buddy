@@ -12,6 +12,7 @@ pub mod selector;
 
 mod auth;
 mod changes;
+mod completion;
 mod config;
 mod doctor;
 mod markdown;
@@ -51,6 +52,9 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
     };
     if let Some(milestone) = stub::milestone(&command) {
         return Err(CmdError::NotBuilt { milestone });
+    }
+    if let Command::Completion { shell } = &command {
+        return completion::run(*shell);
     }
     let ctx = Context::build(cli.global, terminal)?;
     match command {

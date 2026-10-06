@@ -72,6 +72,9 @@ Linux standalone binaries and tarballs are **static musl**, so they run on any d
 ```text
 bin/review-buddy                       (review-buddy.exe on Windows, at the zip root instead)
 share/man/man1/review-buddy.1.gz       (not in the Windows zip)
+share/bash-completion/completions/review-buddy   (not in the Windows zip)
+share/zsh/site-functions/_review-buddy           (not in the Windows zip)
+share/fish/vendor_completions.d/review-buddy.fish (not in the Windows zip)
 share/review-buddy/themes/*.toml
 share/review-buddy/config.example.toml
 share/doc/review-buddy/LICENSE
@@ -79,11 +82,15 @@ share/doc/review-buddy/LICENSE
 
 `share/review-buddy/themes/` lines up with the `$XDG_DATA_DIRS` theme search path, so a `/usr/local` install makes the bundled themes discoverable with no extra step.
 
-**Linux packages** (metadata pattern from jira-tui): package `review-buddy`, version = tag without the `v`, licence `MIT`, homepage `https://github.com/smorrisods/review-buddy`, summary `Every pull and merge request, in one quiet queue`, vendor `Liminal HQ`, maintainer `Liminal HQ <contact@liminalhq.ca>`. Debian arch `amd64` / `arm64`; RPM `x86_64` / `aarch64`. They install `/usr/bin/review-buddy`, `/usr/share/man/man1/review-buddy.1.gz` and `/usr/share/review-buddy/themes/`. GNU-linked: `Depends: libc6` on Debian; RPM relies on auto-detected requirements.
+**Linux packages** (metadata pattern from jira-tui): package `review-buddy`, version = tag without the `v`, licence `MIT`, homepage `https://github.com/smorrisods/review-buddy`, summary `Every pull and merge request, in one quiet queue`, vendor `Liminal HQ`, maintainer `Liminal HQ <contact@liminalhq.ca>`. Debian arch `amd64` / `arm64`; RPM `x86_64` / `aarch64`. They install `/usr/bin/review-buddy`, `/usr/share/man/man1/review-buddy.1.gz`, the bash, zsh and fish completions and `/usr/share/review-buddy/themes/`. GNU-linked: `Depends: libc6` on Debian; RPM relies on auto-detected requirements.
 
 ## Man page
 
 Generated at build time with `clap_mangen` from one shared `src/cli.rs`, `include!`d by both `main.rs` and `build.rs`. This is jira-tui's pattern, and it makes CLI/man-page drift structurally impossible. The packaging scripts find the newest `*/build/*/out/man` directory next to the release binary, using the OS-aware `stat` helper from jira-tui's script.
+
+## Shell completions
+
+`build.rs` also writes `review-buddy.bash`, `_review-buddy`, `review-buddy.fish`, `review-buddy.elv` and `_review-buddy.ps1` to `OUT_DIR/completions` with `clap_complete`, from the same `cli.rs`. The packaging scripts find them like the man page (`--completions-dir`, else the `completions` directory beside `--man-dir`, else the newest `*/build/review-buddy-*/out/completions` next to the binary). Archives and `.deb`/`.rpm` ship bash, zsh and fish; elvish and PowerShell users, including the Windows zip, run `review-buddy completion <shell>` instead. The binary prints the same scripts without touching config or the network.
 
 ## Install scripts
 

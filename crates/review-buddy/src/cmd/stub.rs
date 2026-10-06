@@ -20,9 +20,10 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
             action: SourceAction::List,
         }
         | Command::Open { .. }
-        | Command::Doctor => return None,
+        | Command::Doctor
+        | Command::Completion { .. } => return None,
         Command::Config { .. } => "v0.2.0",
         Command::Theme { .. } => "v0.1.0",
-        Command::Completion { .. } | Command::Triage { .. } => "v0.1.0",
+        Command::Triage { .. } => "v0.1.0",
     })
 }
