@@ -1,0 +1,13 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: "names.join(\"\\n\")"
+---
+config-dir
+data-dir
+cache-dir
+state-dir
+system-config-dir
+system-data-dir
+config-file
+config-file
+write-target

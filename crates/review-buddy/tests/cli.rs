@@ -1,6 +1,9 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 
+#[path = "support/cli.rs"]
+mod sandbox;
+
 fn rb() -> Command {
     Command::cargo_bin("review-buddy").unwrap()
 }
@@ -89,23 +92,11 @@ mod global_flags {
 
     /// A command with a throwaway HOME and XDG tree, and every variable the CLI reads cleared.
     fn sandbox() -> (Command, tempfile::TempDir) {
-        let home = tempfile::tempdir().unwrap();
-        let mut cmd = rb();
-        cmd.env_clear()
-            .env("PATH", std::env::var_os("PATH").unwrap_or_default())
-            .env("HOME", home.path())
-            .env("XDG_CONFIG_HOME", home.path().join("config"))
-            .env("XDG_DATA_HOME", home.path().join("data"))
-            .env("XDG_CACHE_HOME", home.path().join("cache"))
-            .env("XDG_STATE_HOME", home.path().join("state"))
-            .env("XDG_CONFIG_DIRS", home.path().join("etc"));
-        (cmd, home)
+        super::sandbox::sandboxed()
     }
 
     fn demo() -> (Command, tempfile::TempDir) {
-        let (mut cmd, home) = sandbox();
-        cmd.args(["--demo", "--frozen-time", "2026-10-05T10:00"]);
-        (cmd, home)
+        super::sandbox::demo_sandboxed()
     }
 
     fn stdout_of(mut cmd: Command) -> String {

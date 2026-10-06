@@ -1,0 +1,30 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: "serde_json::to_string_pretty(&value).unwrap()"
+---
+[
+  {
+    "name": "liminal-hq",
+    "kind": "github",
+    "host": "github.com",
+    "enabled": true
+  },
+  {
+    "name": "smorris",
+    "kind": "github",
+    "host": "github.com",
+    "enabled": true
+  },
+  {
+    "name": "platform",
+    "kind": "gitlab",
+    "host": "gitlab.platform.example",
+    "enabled": true
+  },
+  {
+    "name": "gitlab.com",
+    "kind": "gitlab",
+    "host": "gitlab.com",
+    "enabled": true
+  }
+]

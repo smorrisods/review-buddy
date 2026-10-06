@@ -1,0 +1,8 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+✓ github.com (liminal-hq)  signed in as smorris via demo (demo)
+✓ github.com (smorris)  signed in as smorris via demo (demo)
+✓ gitlab.platform.example (platform)  signed in as smorris via demo (demo)
+✓ gitlab.com  signed in as smorris via demo (demo)

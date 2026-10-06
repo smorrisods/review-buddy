@@ -1,0 +1,22 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: "serde_json::to_string_pretty(&value).unwrap()"
+---
+{
+  "number": 214,
+  "title": "Add a menu bar and keyboard-driven menus",
+  "state": "open",
+  "ci": "running",
+  "reviewers": [
+    {
+      "login": "smorris",
+      "state": "requested"
+    },
+    {
+      "login": "jo",
+      "state": "commented"
+    }
+  ],
+  "myRole": "reviewing",
+  "bucket": "wait"
+}

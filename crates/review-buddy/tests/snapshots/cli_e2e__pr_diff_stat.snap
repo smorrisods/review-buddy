@@ -1,0 +1,8 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+ src/ui/menus.rs   |  23 ++++++++++++++++++++++-
+ src/ui/menubar.rs |   8 ++++++++
+ src/ui/mod.rs     |   2 ++
+ 3 files changed, 32 insertions(+), 1 deletion(-)

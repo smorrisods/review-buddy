@@ -1,0 +1,22 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: "serde_json::to_string_pretty(&value).unwrap()"
+---
+[
+  {
+    "id": "liminal-hq",
+    "current": true
+  },
+  {
+    "id": "dusk",
+    "current": false
+  },
+  {
+    "id": "afterglow-dark",
+    "current": false
+  },
+  {
+    "id": "afterglow-light",
+    "current": false
+  }
+]

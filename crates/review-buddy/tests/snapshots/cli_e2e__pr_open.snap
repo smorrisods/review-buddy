@@ -1,0 +1,7 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+https://github.com/liminal-hq/review-buddy/pull/214
+--- stderr ---
+Demo mode doesn't open a browser, so here's the link instead. (demo)

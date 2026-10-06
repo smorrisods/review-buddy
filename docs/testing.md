@@ -35,3 +35,15 @@ INSTA_UPDATE=always cargo test -p review-buddy
 ## Snapshot hygiene
 
 `tests/snapshot_hygiene.rs` is a cheap file scan that fails when a `.snap.new` or `.pending-snap` file exists anywhere in the crate, or when a file in `tests/snapshots` has no test that still produces it (its `<test file>__<name>.snap` name must point at an existing `tests/<test file>.rs` that mentions `<name>`). When you rename or delete a snapshot test, delete its `.snap` file too.
+
+## CLI end-to-end tests
+
+The consolidated command layer runs the real `review-buddy` binary through `assert_cmd`:
+
+- **`tests/cli_e2e.rs`** runs every v0.1.0 command in demo mode, piped, with `--demo --frozen-time 2026-10-05T10:00`, and pins stdout with `insta` (`queue`, `pr list`, `pr view`, `pr diff` with `--stat` and `--name-only`, `pr checks`, `pr open`, `auth status`, `source list`, `theme list`, and the non-path parts of `doctor` and `config paths`). It also pins the `--json` field list for each command, a representative `--json` payload, and `--jq` examples. `open` (needs a terminal), `triage explain` (not built) and `completion` (a script when built, a calm exit `2` when not) are asserted directly.
+- **`tests/cli_e2e_exit.rs`** covers exit codes `0`, `1`, `2`, `4`, `5` and `8` through the binary, and the commands that work without `--demo` or a network. Demo-only and live-only cases are gated by feature, so the file passes under the default, `--no-default-features` and `--all-features` builds. Exit `3` (a write refused without `--yes` on a non-terminal) is covered by the unit tests in `cmd::prompt` and `cmd::error`, because no v0.1.0 command writes to a forge yet.
+- **`tests/cli_e2e_tty.rs`** (unix only) runs `queue`, `pr view`, `pr checks` and `theme list` in a pseudo-terminal and asserts headers, glyphs and colour, then repeats with `NO_COLOR` to check the same text survives without colour.
+
+All three include the shared sandbox helper with `#[path = "support/cli.rs"] mod sandbox;`. `Sandbox::cmd()` returns a command with a cleared environment and a throwaway home: `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` and every `XDG_*` variable point into a temp directory, `NO_COLOR` is set, and no `REVIEW_BUDDY_*` variable leaks in. Only `PATH` and, on Windows, `SystemRoot`, `windir`, `PATHEXT`, `COMSPEC` and the temp variables are passed through: a fully empty environment breaks sockets and home resolution on Windows. `Sandbox::demo()` adds `--demo --frozen-time`, `with_colour` forces colour on a pipe, and `normalise` makes output comparable across machines (LF endings, the demo temp directory replaced with `<demo>`, the crate version replaced with `<version>`).
+
+Snapshot names are plain (`cli_e2e__pr_view.snap`) so the hygiene check can find them: keep snapshot tests at the top level of the file rather than in nested modules.

@@ -1,0 +1,8 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+liminal-hq	github	github.com	yes	yes	demo	demo fixtures
+smorris	github	github.com	yes	yes	demo	demo fixtures
+platform	gitlab	gitlab.platform.example	yes	yes	demo	demo fixtures
+gitlab.com	gitlab	gitlab.com	yes	yes	demo	demo fixtures

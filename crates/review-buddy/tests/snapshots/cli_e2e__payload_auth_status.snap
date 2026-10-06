@@ -1,0 +1,26 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: "serde_json::to_string_pretty(&value).unwrap()"
+---
+[
+  {
+    "source": "liminal-hq",
+    "state": "signedIn",
+    "method": "demo"
+  },
+  {
+    "source": "smorris",
+    "state": "signedIn",
+    "method": "demo"
+  },
+  {
+    "source": "platform",
+    "state": "signedIn",
+    "method": "demo"
+  },
+  {
+    "source": "gitlab.com",
+    "state": "signedIn",
+    "method": "demo"
+  }
+]

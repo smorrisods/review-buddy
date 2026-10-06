@@ -1,0 +1,8 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: text
+---
+liminal-hq	Liminal HQ	dark	current
+dusk	Dusk	dark	
+afterglow-dark	Afterglow Dark	dark	
+afterglow-light	Afterglow Light	light

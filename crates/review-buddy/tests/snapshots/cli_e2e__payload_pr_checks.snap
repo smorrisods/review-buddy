@@ -1,0 +1,36 @@
+---
+source: crates/review-buddy/tests/cli_e2e.rs
+expression: "serde_json::to_string_pretty(&value).unwrap()"
+---
+[
+  {
+    "name": "fmt",
+    "state": "pass",
+    "durationSecs": 18
+  },
+  {
+    "name": "clippy",
+    "state": "pass",
+    "durationSecs": 94
+  },
+  {
+    "name": "test (linux)",
+    "state": "running",
+    "durationSecs": null
+  },
+  {
+    "name": "test (windows)",
+    "state": "skipped",
+    "durationSecs": null
+  },
+  {
+    "name": "coverage",
+    "state": "neutral",
+    "durationSecs": 131
+  },
+  {
+    "name": "bench",
+    "state": "cancelled",
+    "durationSecs": 40
+  }
+]
