@@ -92,16 +92,24 @@ The footer lists the key hints on the left and a status on the right. When space
 
 ## Show filters
 
-`s` opens a small control over the queue. Tick a filter to let those changes in, clear it to hide them.
+`s` opens a control over the queue. The kinds sit at the top: tick a filter to let those changes in, clear it to hide them. Below them is the **Projects** section, which lists every project (GitHub `owner/repo`, GitLab project path) that has an open change in the loaded or cached queue, grouped under its source with a count of changes, and says `N of M projects shown`. The list scrolls when it is long, and the control fits a 100×30 terminal.
 
 | Key | Action |
 |---|---|
-| `↑↓` / `j` `k` | Move the cursor |
-| `space` / `⏎` | Toggle the filter under the cursor |
+| `↑↓` / `j` `k` | Move the cursor through the kinds, then the projects |
+| `g` `G` / `Home` `End`, `PgUp` `PgDn` | First or last row, or a page at a time |
+| `space` / `⏎` | Toggle the filter or project under the cursor |
 | `1`–`5` | Toggle `reviewing`, `assigned`, `authored`, `drafts` or `noise` directly |
-| `esc` / `s` | Close |
+| `/` | Focus the project search. Typing narrows the list to matching project names, `⏎` returns to the list and keeps the search, `esc` clears it |
+| `a` / `n` | Show all or none of the projects the search lets through (every project when there is no search) |
+| `w` | Save the project choice to `hide_repos` in your config (see below). Only offered when there is a config file to write to; in demo mode it explains that nothing is written |
+| `esc` / `s` / `q` | Clear the search first, then close |
 
-The filters start from `triage.show` and, when the Sources pane is showing, are also listed under the sources. Changes are kept for the session only and are never written to `config.toml`. The selection stays on the same change when it is still listed, and otherwise settles on the nearest row. Noise stays expanded or collapsed as you left it.
+Clicking a project row toggles it, clicking the search line focuses it, and the mouse wheel scrolls the list.
+
+The kinds start from `triage.show` and, when the Sources pane is showing, are also listed under the sources. The project filter starts from each source's `hide_repos`. Every change applies at once and lasts for the session; `w` is the only thing that writes to `config.toml`, and it writes only `hide_repos`. The queue, the bucket headings, the Sources counts, the `+N more` rows and the end note all honour both filters, and the end note says what each one hides (`2 hidden · 1 by kind, 1 by project`). The selection stays on the same change when it is still listed, and otherwise settles on the nearest row. Noise stays expanded or collapsed as you left it.
+
+**Projects that appear later.** The filter remembers what you hid, not what you showed. A project that first appears after a refresh is shown, even when you had narrowed the list, until you untick it yourself. A `hide_repos` entry with a trailing `*` hides any project that matches it, including new ones; ticking one matching project switches that one back on without touching the rest of the pattern.
 
 ## Settings
 
@@ -135,7 +143,7 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | `⟩` on the Detail pane's top border / `⟨ detail` on the Queue's | Closes / reopens the Detail pane (`p`) |
 | Queue row | Selects it. A double-click (two clicks within about half a second) opens its diff. Clicking a `+N more` row expands or collapses its bucket |
 | `N hidden by your Show filters` (the queue's end note) | Opens the Show filters control |
-| Show filters (the checkboxes under the sources, or the control) | Tick or clear a filter. A click outside the control closes it |
+| Show filters (the checkboxes under the sources, or the control) | Tick or clear a filter or a project. The search line focuses the search, and the wheel scrolls the project list. A click outside the control closes it |
 | Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
 | Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; Approve and Comment open the diff and start there; Request changes and Merge explain they are planned for v0.3 |
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |

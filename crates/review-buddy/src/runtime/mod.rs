@@ -60,9 +60,17 @@ pub struct Settings {
     pub confirm_post_now: bool,
     pub reduced_motion: bool,
     pub layout: crate::ui::layout::Options,
+    /// Where `w` in the Show control writes `hide_repos`; `None` when there's nowhere to write.
+    pub write_target: Option<std::path::PathBuf>,
 }
 
 impl Settings {
+    /// Lets the Show control save the project choice to the config's write target.
+    pub fn with_write_target(mut self, path: std::path::PathBuf) -> Self {
+        self.write_target = Some(path);
+        self
+    }
+
     pub fn from_config(config: &crate::config::Config) -> Self {
         use std::str::FromStr;
         Self {
@@ -79,6 +87,7 @@ impl Settings {
                 sources: config.ui.sources,
                 detail: config.ui.detail,
             },
+            write_target: None,
         }
     }
 
@@ -97,6 +106,7 @@ impl Settings {
         app.reduced_motion = self.reduced_motion;
         app.layout = self.layout;
         app.state.queue_settings = self.queue.clone();
+        app.project_save.clone_from(&self.write_target);
     }
 }
 
@@ -162,6 +172,32 @@ impl RunOptions {
             return Backend::Live(std::sync::Arc::clone(live));
         }
         Backend::None
+    }
+}
+
+/// Writes the project choice and says what happened, in a sentence that points at the next step.
+fn save_hidden_projects(target: &std::path::Path, sources: &[(String, Vec<String>)]) -> Notice {
+    match crate::settings::edit::save_hide_repos(target, sources) {
+        Ok((saved, elsewhere)) if elsewhere.is_empty() => Notice::new(
+            NoticeKind::Success,
+            format!(
+                "Saved your project choice to {}{}.",
+                target.display(),
+                if saved.is_empty() { " (nothing to change)" } else { "" }
+            ),
+        ),
+        Ok((_, elsewhere)) => Notice::new(
+            NoticeKind::Warning,
+            format!(
+                "{} isn't defined in {}, so its projects weren't saved. Add hide_repos to it where it is defined.",
+                elsewhere.join(", "),
+                target.display()
+            ),
+        ),
+        Err(err) => Notice::new(
+            NoticeKind::Warning,
+            format!("Couldn't save the project choice: {err}"),
+        ),
     }
 }
 
@@ -330,6 +366,12 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
             #[cfg(feature = "live")]
             Backend::Live(live) => live.reply(id, thread, body, tx),
         },
+        Cmd::SaveHiddenProjects { target, sources } => {
+            let tx = tx.clone();
+            tokio::task::spawn_blocking(move || {
+                let _ = tx.send(Msg::Notify(save_hidden_projects(&target, &sources)));
+            });
+        }
         Cmd::Setup(effect) => {
             let Some(services) = platform.setup().cloned() else {
                 return;

@@ -43,6 +43,36 @@ pub fn set_enabled(path: &Path, name: &str, enabled: bool) -> Result<(), EditErr
     })
 }
 
+/// Writes a source's `hide_repos`; an empty list removes the key. Comments and every other key
+/// stay as they were.
+pub fn set_hide_repos(path: &Path, name: &str, entries: &[String]) -> Result<(), EditError> {
+    change(path, name, |table| {
+        if entries.is_empty() {
+            table.remove("hide_repos");
+        } else {
+            put(table, "hide_repos", string_array(entries));
+        }
+    })
+}
+
+/// Writes `hide_repos` for each `(source, entries)` that the file at `path` defines. Returns
+/// the names written and the names of sources the file doesn't define.
+pub fn save_hide_repos(
+    path: &Path,
+    sources: &[(String, Vec<String>)],
+) -> Result<(Vec<String>, Vec<String>), EditError> {
+    let (mut saved, mut elsewhere) = (Vec::new(), Vec::new());
+    for (name, entries) in sources {
+        match set_hide_repos(path, name, entries) {
+            Ok(()) => saved.push(name.clone()),
+            Err(EditError::Missing(_)) if entries.is_empty() => {}
+            Err(EditError::Missing(_)) => elsewhere.push(name.clone()),
+            Err(other) => return Err(other),
+        }
+    }
+    Ok((saved, elsewhere))
+}
+
 /// Removes a source's whole `[[source]]` table, and the comments attached to it.
 pub fn remove(path: &Path, name: &str) -> Result<(), EditError> {
     let mut editor = ConfigEditor::open(path)?;
@@ -267,6 +297,48 @@ projects = [\"platform/api\"]
             .unwrap()
             .config
             .sources
+    }
+
+    #[test]
+    fn hide_repos_round_trips_and_keeps_comments_and_other_keys() {
+        let (_t, p) = file();
+        let list = vec![
+            "liminal-hq/old".to_string(),
+            "liminal-hq/legacy-*".to_string(),
+        ];
+        set_hide_repos(&p, "work", &list).unwrap();
+        let text = std::fs::read_to_string(&p).unwrap();
+        assert!(text.contains("# my config") && text.contains("# evening"));
+        assert!(text.contains("# the day job") && text.contains("# reuse gh"));
+        assert!(text.contains("hide_repos = [\"liminal-hq/old\", \"liminal-hq/legacy-*\"]"));
+        assert_eq!(sources(&p)[0].hide_repos, list);
+        assert!(sources(&p)[1].hide_repos.is_empty());
+        assert_eq!(sources(&p)[0].tag_colour.as_deref(), Some("cyan"));
+
+        set_hide_repos(&p, "work", &["liminal-hq/new".to_string()]).unwrap();
+        assert_eq!(sources(&p)[0].hide_repos, ["liminal-hq/new"]);
+        set_hide_repos(&p, "work", &[]).unwrap();
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), FILE);
+    }
+
+    #[test]
+    fn saving_hide_repos_rejects_bad_entries_and_reports_sources_it_cannot_find() {
+        let (_t, p) = file();
+        let bad = set_hide_repos(&p, "work", &["a/*/b".to_string()]).unwrap_err();
+        assert!(bad.to_string().contains("hide_repos"), "{bad}");
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), FILE);
+
+        let (saved, elsewhere) = save_hide_repos(
+            &p,
+            &[
+                ("work".into(), vec!["o/a".into()]),
+                ("other".into(), vec!["x/y".into()]),
+                ("ghost".into(), vec![]),
+            ],
+        )
+        .unwrap();
+        assert_eq!(saved, ["work"]);
+        assert_eq!(elsewhere, ["other"]);
     }
 
     #[test]

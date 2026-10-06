@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/show_projects.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 19 changes                                                                                                      Liminal HQ
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
+│▌ ● All              15 ││  Waiting on you · 10╭ Show ────────────────────────────────────────────────────────╮enus                                           │
+│    every source        ││▌ ◐ Add a menu bar an│                                                              │                                               │
+│  ● liminal-hq       11 ││▌ GH review-buddy#214│  [x] reviewing  changes waiting on your review               │                                               │
+│    github.com          ││  ◐ Update eslint-con│  [x] assigned   changes assigned to you                      │                                               │
+│  ● smorris           1 ││  GH eslint-config#90│  [x] authored   changes you opened                           │ent  ⏎ Diff  m Merge                           │
+│    github.com          ││  ◐ Update icons     │  [ ] drafts     drafts, yours and others                     │                                               │
+│  ● platform          2 ││  GH icons#907 · ada │  [ ] noise      bot updates, mixed into the buckets          │versation 3                                    │
+│    gitlab.platform.ex… ││  ◐ Update ontario-de│                                                              │────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GH ontario-design-s│  Projects  12 of 16 projects shown                           │Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ◐ Update release-to│  / type to find a project                                    │                                               │
+│                        ││  GH release-tools#91│  liminal-hq                        13 projects · 15 changes  │_prev move the highlight                       │
+│  Show  s to change     ││  ◐ Update status-pag│▌ [x] liminal-hq/review-buddy                              3  │for the highlighted item                       │
+│  [x] reviewing         ││  GH status-page#911 │  [x] ongov/eslint-config                                  1  │ it picks up the active theme                  │
+│  [x] assigned          ││  ◐ Update storybook │  [x] ongov/icons                                          1  │                                               │
+│  [x] authored          ││  GH storybook#909 · │  [ ] ongov/legacy-forms                                   1  │     Checks                                    │
+│  [ ] drafts            ││  ◐ Update tokens    │  [ ] ongov/legacy-portal                                  1  │     ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  GH tokens#906 · ada│  [ ] ongov/legacy-search                                  1  │     ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││  ◐ Update web-compon│  [x] ongov/ontario-design-system                          1  │                                               │
+│                        ││  GH web-components#9│  [ ] ongov/ontario-design-system-legacy-docs              1  │                                               │
+│                        ││  ● Raise muted text │  [x] ongov/release-tools                                  1  │                                               │
+│                        ││  GH review-buddy#209│  [x] ongov/status-page                                    1  │ Is the intermediate Vec doing anything for    │
+│                        ││                     │  [x] ongov/storybook                                      1  │                                               │
+│                        ││  Worth a look · 2   │  [x] ongov/tokens                                         1  │                                               │
+│                        ││  ✕ Cache pipeline st│  [x] ongov/web-components                                 1  │                                               │
+│                        ││  GL flow!1182 · priy│  smorris                               1 project · 1 change  │                                               │
+│                        ││  ● Tidy zsh startup │  [x] smorris/dotfiles                                     1  │                                               │
+│                        ││  GH dotfiles#31 · sm│  platform                             1 project · 2 changes  │                                               │
+│                        ││                     │  [x] platform/flow                                        2  │                                               │
+│                        ││  Can wait · 1       │  gitlab.com                            1 project · 1 change  │                                               │
+│                        ││  · Clarify the insta│  [x] kai-codes/notes                                      1  │                                               │
+│                        ││  GL notes!12 · kai ·│                                                              │                                               │
+│                        ││                     │  4 hidden by your Show filters: 4 by project.                │                                               │
+│                        ││  ▸ Noise · 2 bot upd│  space toggle · / find · a all · n none · esc close          │                                               │
+│                        ││                     │  Changes last for this session only.                         │                                               │
+│                        ││  ── That's everythin╰──────────────────────────────────────────────────────────────╯                                               │
+│                        ││  4 hidden by project · s to change           ││                                                                                    │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

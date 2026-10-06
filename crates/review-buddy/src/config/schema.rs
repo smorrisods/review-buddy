@@ -273,6 +273,9 @@ pub struct SourceConfig {
     pub tag_colour: Option<String>,
     #[serde(default = "yes")]
     pub enabled: bool,
+    /// Projects (`owner/repo` or a GitLab path, optionally ending in `*`) the queue leaves out.
+    #[serde(default)]
+    pub hide_repos: Vec<String>,
 }
 
 fn yes() -> bool {

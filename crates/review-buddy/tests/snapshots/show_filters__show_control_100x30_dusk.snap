@@ -5,29 +5,29 @@ expression: text(&render(&mut a))
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
   1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
 ╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ────────────────── ⟩ ╮
-│  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus         │
-│▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                       │
-│▌ GH review-buddy#214 · ada · review requested││ +32 −1 · 3 files · opened 3d ago                 │
-│  ● Raise muted text contrast in the ligh… 5h ││                                                  │
-│  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  │
-│                                              ││                                                  │
-│  Worth a look · 2    ╭ Show ──────────────────────────────────────────────╮s 6   Conversation 3  │
-│  ✕ Cache pipeline sta│                                                    │───────────────────── │
-│  GL flow!1182 · priya│▌ [x] reviewing  changes waiting on your review     │op and a Menu type    │
-│  ● Tidy zsh startup  │  [x] assigned   changes assigned to you            │em.                   │
-│  GH dotfiles#31 · smo│  [x] authored   changes you opened                 │                      │
-│                      │  [ ] drafts     drafts, yours and others           │u::select_prev move   │
-│  Can wait · 1        │  [ ] noise      bot updates, mixed into the buckets│                      │
-│  · Clarify the instal│                                                    │e action for the      │
-│  GL notes!12 · kai · │  Nothing is hidden.                                │                      │
-│                      │  space toggle · esc close · this session only      │ Line, so it picks up │
-│  ▸ Noise · 2 bot upda╰────────────────────────────────────────────────────╯                      │
-│                                              ││                                                  │
-│  ── That's everything.                       ││ Reviewers                                        │
-│  7 in this view.                             ││ ◌ smorris requested                              │
-│                                              ││ ✎ jo commented                                   │
-│                                              ││                                                  │
-│                                              ││ Checks                                           │
+│  Waiting on you ╭ Show ────────────────────────────────────────────────────────╮en menus         │
+│▌ ◐ Add a menu ba│                                                              │                 │
+│▌ GH review-buddy│▌ [x] reviewing  changes waiting on your review               │                 │
+│  ● Raise muted t│  [x] assigned   changes assigned to you                      │                 │
+│  GH review-buddy│  [x] authored   changes you opened                           │Comment  ⏎ Diff  │
+│                 │  [ ] drafts     drafts, yours and others                     │                 │
+│  Worth a look · │  [ ] noise      bot updates, mixed into the buckets          │ Conversation 3  │
+│  ✕ Cache pipelin│                                                              │──────────────── │
+│  GL flow!1182 · │  Projects  4 of 4 projects shown                             │d a Menu type    │
+│  ● Tidy zsh star│  / type to find a project                                    │                 │
+│  GH dotfiles#31 │  liminal-hq                           1 project · 3 changes  │                 │
+│                 │  [x] liminal-hq/review-buddy                              3  │lect_prev move   │
+│  Can wait · 1   │  smorris                               1 project · 1 change  │                 │
+│  · Clarify the i│  [x] smorris/dotfiles                                     1  │ion for the      │
+│  GL notes!12 · k│  platform                             1 project · 2 changes  │                 │
+│                 │  [x] platform/flow                                        2  │, so it picks up │
+│  ▸ Noise · 2 bot│  gitlab.com                            1 project · 1 change  │                 │
+│                 │  [x] kai-codes/notes                                      1  │                 │
+│  ── That's every│                                                              │                 │
+│  7 in this view.│  Nothing is hidden.                                          │                 │
+│                 │  space toggle · / find · a all · n none · esc close          │                 │
+│                 │  Changes last for this session only.                         │                 │
+│                 ╰──────────────────────────────────────────────────────────────╯                 │
 │                                              ││ ● 2 passing  ◐ 1 running                         │
 │                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯

@@ -240,6 +240,14 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
             super::show::close(app);
             Vec::new()
         }
+        Action::ToggleProject(source, repo) => {
+            super::show::toggle_project(app, &source, &repo);
+            Vec::new()
+        }
+        Action::FocusProjectSearch => {
+            super::show::focus_search(app);
+            Vec::new()
+        }
         Action::ToggleShow(filter) => {
             super::show::toggle(app, filter);
             Vec::new()

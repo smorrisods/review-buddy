@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/show_projects.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 19 changes                                                Dusk
+  1 ● All 19   2 ●╭ Show ────────────────────────────────────────────────────────╮ 1
+╭ queue ──────────│                                                              │────────────── ⟩ ╮
+│  Waiting on you │  [x] reviewing  changes waiting on your review               │en menus         │
+│▌ ◐ Add a menu ba│  [x] assigned   changes assigned to you                      │                 │
+│▌ GH review-buddy│  [x] authored   changes you opened                           │                 │
+│  ◐ Update eslint│  [ ] drafts     drafts, yours and others                     │                 │
+│  GH eslint-confi│  [ ] noise      bot updates, mixed into the buckets          │Comment  ⏎ Diff  │
+│  ◐ Update icons │                                                              │                 │
+│  GH icons#907 · │  Projects  16 of 16 projects shown                           │ Conversation 3  │
+│  ◐ Update legacy│  / design▏                                        2 matches  │──────────────── │
+│  GH legacy-forms│  liminal-hq                          2 projects · 2 changes  │d a Menu type    │
+│  ◐ Update legacy│▌ [x] ongov/ontario-design-system                          1  │                 │
+│  GH legacy-porta│  [x] ongov/ontario-design-system-legacy-docs              1  │                 │
+│  ◐ Update legacy│                                                              │lect_prev move   │
+│  GH legacy-searc│                                                              │                 │
+│  ◐ Update ontari│                                                              │ion for the      │
+│  GH ontario-desi│                                                              │                 │
+│  ◐ Update ontari│                                                              │, so it picks up │
+│  GH ontario-desi│                                                              │                 │
+│  ◐ Update releas│                                                              │                 │
+│  GH release-tool│                                                              │                 │
+│  ◐ Update status│                                                              │                 │
+│  GH status-page#│                                                              │                 │
+│  ◐ Update storyb│                                                              │                 │
+│  GH storybook#90│  Nothing is hidden.                                          │                 │
+│  ◐ Update tokens│  space toggle · / find · a all · n none · esc close          │                 │
+│  GH tokens#906 ·│  Changes last for this session only.                         │ncelled          │
+╰─────────────────╰──────────────────────────────────────────────────────────────╯─────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

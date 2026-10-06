@@ -6,7 +6,7 @@ use rb_core::{
     ChangeState, ChangeSummary, CiState, MyReview, MyRole, SourceId, Timestamp,
 };
 
-use super::AppState;
+use super::{projects::ProjectFilter, AppState};
 use crate::config::{Config, ShowFilter};
 
 /// Everything the queue reads from `[triage]`, shared by the dashboard and the CLI.
@@ -14,6 +14,8 @@ use crate::config::{Config, ShowFilter};
 pub struct QueueSettings {
     pub triage: TriageConfig,
     pub show: Vec<ShowFilter>,
+    /// Projects the queue leaves out, from each source's `hide_repos` and the Show control.
+    pub projects: ProjectFilter,
     /// Rows each bucket shows before `+N more`.
     pub bucket_limit: usize,
 }
@@ -33,6 +35,7 @@ pub fn queue_settings(config: &Config) -> QueueSettings {
             stale_after: t.stale_after,
         },
         show: t.show.clone(),
+        projects: ProjectFilter::from_config(config),
         bucket_limit: t.bucket_limit as usize,
     }
 }
@@ -47,6 +50,13 @@ pub fn visible(change: &ChangeSummary, show: &[ShowFilter]) -> bool {
         MyRole::Assigned => show.contains(&ShowFilter::Assigned),
         MyRole::Authored => show.contains(&ShowFilter::Authored),
         MyRole::Mentioned => true,
+    }
+}
+
+impl QueueSettings {
+    /// Whether the Show filters and the project filter both let a change in.
+    pub fn admits(&self, change: &ChangeSummary) -> bool {
+        visible(change, &self.show) && !self.projects.hides(change)
     }
 }
 
@@ -106,7 +116,7 @@ impl Queue {
         for (index, change) in state.changes.iter().enumerate() {
             if change.state != ChangeState::Open
                 || !in_scope(state, change, source)
-                || !visible(change, &settings.show)
+                || !settings.admits(change)
             {
                 continue;
             }
@@ -295,7 +305,7 @@ pub fn count_in(state: &AppState, source: Option<&SourceId>) -> usize {
         .filter(|c| {
             c.state == ChangeState::Open
                 && in_scope(state, c, source)
-                && visible(c, &state.queue_settings.show)
+                && state.queue_settings.admits(c)
         })
         .count()
 }
@@ -303,6 +313,49 @@ pub fn count_in(state: &AppState, source: Option<&SourceId>) -> usize {
 /// How many open changes the Show filters hide (`None` is All).
 pub fn hidden_in(state: &AppState, source: Option<&SourceId>) -> usize {
     total_in(state, source) - count_in(state, source)
+}
+
+/// What the filters hide, split by cause. A change both filters would hide counts as hidden by
+/// kind.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Hidden {
+    pub by_kind: usize,
+    pub by_project: usize,
+}
+
+impl Hidden {
+    pub fn total(self) -> usize {
+        self.by_kind + self.by_project
+    }
+
+    /// `3 hidden by your Show filters.`, with what each filter hid when projects are involved.
+    pub fn note(self) -> Option<String> {
+        let lead = format!("{} hidden by your Show filters", self.total());
+        match (self.by_kind, self.by_project) {
+            (0, 0) => None,
+            (_, 0) => Some(format!("{lead}.")),
+            (0, p) => Some(format!("{lead}: {p} by project.")),
+            (k, p) => Some(format!("{lead}: {k} by kind, {p} by project.")),
+        }
+    }
+}
+
+/// [`hidden_in`], split into kinds and projects.
+pub fn hidden_split(state: &AppState, source: Option<&SourceId>) -> Hidden {
+    let settings = &state.queue_settings;
+    let mut out = Hidden::default();
+    for c in state
+        .changes
+        .iter()
+        .filter(|c| c.state == ChangeState::Open && in_scope(state, c, source))
+    {
+        if !visible(c, &settings.show) {
+            out.by_kind += 1;
+        } else if settings.projects.hides(c) {
+            out.by_project += 1;
+        }
+    }
+    out
 }
 
 /// The text of one two-line row, before styling.

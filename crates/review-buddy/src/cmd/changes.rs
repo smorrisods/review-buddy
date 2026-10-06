@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::app::queue::queue_settings;
+use crate::app::{projects::ProjectFilter, queue::queue_settings};
 use rb_core::triage::{triage, TriageConfig, TriageOutcome};
 use rb_core::{ChangeSummary, CiState, Provider, Source, SourceId, Timestamp};
 use serde::Serialize;
@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use super::context::Context;
 use super::error::CmdError;
 use super::output::Cell;
+use super::selector::{self, RepoRef};
 use crate::ui::dashboard::ci_look;
 
 /// Every field `--json` can name for a listed change.
@@ -51,6 +52,8 @@ pub struct Loaded {
     pub sources: Vec<Source>,
     pub now: Timestamp,
     pub triage_config: TriageConfig,
+    /// Open changes a source's `hide_repos` left out of `changes`.
+    pub hidden_by_project: usize,
     providers: HashMap<SourceId, Arc<dyn Provider>>,
     me: HashMap<SourceId, String>,
 }
@@ -95,14 +98,54 @@ pub fn load(ctx: &Context, with_me: bool) -> Result<Loaded, CmdError> {
             me.insert(source.id.clone(), login);
         }
     }
+    let settings = queue_settings(&ctx.config);
+    let repo = ctx.args.repo.as_deref().map(RepoRef::parse).transpose()?;
+    let before = open_count(&changes);
+    changes = scope_to_projects(changes, &sources, &settings.projects, repo.as_ref());
+    let hidden_by_project = if repo.is_some() {
+        0
+    } else {
+        before - open_count(&changes)
+    };
     Ok(Loaded {
         changes,
         sources,
         now: ctx.now(),
-        triage_config: queue_settings(&ctx.config).triage,
+        triage_config: settings.triage,
+        hidden_by_project,
         providers,
         me,
     })
+}
+
+fn open_count(changes: &[ChangeSummary]) -> usize {
+    changes
+        .iter()
+        .filter(|c| c.state == rb_core::ChangeState::Open)
+        .count()
+}
+
+/// `--repo` names the one project to list and beats `hide_repos`; without it, the projects each
+/// source's `hide_repos` names are left out.
+fn scope_to_projects(
+    mut changes: Vec<ChangeSummary>,
+    sources: &[Source],
+    projects: &ProjectFilter,
+    repo: Option<&RepoRef>,
+) -> Vec<ChangeSummary> {
+    match repo {
+        Some(wanted) => changes.retain(|c| {
+            c.id.repo.eq_ignore_ascii_case(&wanted.path)
+                && wanted.host.as_deref().is_none_or(|host| {
+                    sources
+                        .iter()
+                        .find(|s| s.id == c.id.source_id)
+                        .is_some_and(|s| selector::host_matches(&s.host, host))
+                })
+        }),
+        None => changes.retain(|c| !projects.hides(c)),
+    }
+    changes
 }
 
 impl Loaded {

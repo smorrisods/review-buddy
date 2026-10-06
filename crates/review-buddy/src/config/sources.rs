@@ -119,6 +119,11 @@ fn first_problem(sources: &[SourceConfig]) -> Option<Problem> {
                 "`auth = \"command\"` needs a `token_command`.",
             );
         }
+        for pattern in &s.hide_repos {
+            if let Some(why) = hide_pattern_problem(pattern) {
+                return fail(Some("hide_repos"), &why);
+            }
+        }
         let scope = &s.scope;
         let (wrong, right) = match s.kind {
             Kind::Github => (
@@ -138,6 +143,37 @@ fn first_problem(sources: &[SourceConfig]) -> Option<Problem> {
         }
     }
     None
+}
+
+/// What is wrong with a `hide_repos` entry, if anything. An entry is a project path, such as
+/// `owner/repo`, optionally ending in `*` to cover every project with that prefix.
+pub fn hide_pattern_problem(pattern: &str) -> Option<String> {
+    let body = pattern.strip_suffix('*').unwrap_or(pattern);
+    if pattern.trim().is_empty() {
+        return Some("`hide_repos` entries can't be empty.".to_string());
+    }
+    if pattern.contains(char::is_whitespace) || pattern.contains("://") {
+        return Some(format!(
+            "`hide_repos` entry `{pattern}` should be a project path like `owner/repo`, with no spaces or web address."
+        ));
+    }
+    if body.contains('*') {
+        return Some(format!(
+            "`hide_repos` entry `{pattern}` can only use `*` at the end, like `owner/legacy-*`."
+        ));
+    }
+    None
+}
+
+/// Whether `repo` is named by a `hide_repos` entry. Case doesn't matter, and a trailing `*`
+/// matches any project that starts with what comes before it.
+pub fn pattern_matches(pattern: &str, repo: &str) -> bool {
+    match pattern.strip_suffix('*') {
+        Some(prefix) => repo
+            .get(..prefix.len())
+            .is_some_and(|head| head.eq_ignore_ascii_case(prefix)),
+        None => pattern.eq_ignore_ascii_case(repo),
+    }
 }
 
 fn locate(text: &str, index: usize, key: Option<&str>) -> Option<Range<usize>> {
@@ -164,6 +200,42 @@ mod tests {
     }
 
     const GH: &str = "[[source]]\nname = \"a\"\nkind = \"github\"\nhost = \"github.com\"\n";
+
+    #[test]
+    fn hide_repos_accepts_paths_and_trailing_globs() {
+        let l = load(&format!(
+            "{GH}hide_repos = [\"o/old\", \"o/legacy-*\", \"g/sub/*\"]\n"
+        ))
+        .unwrap();
+        assert_eq!(l.config.sources[0].hide_repos.len(), 3);
+        assert!(load(GH).unwrap().config.sources[0].hide_repos.is_empty());
+    }
+
+    #[test]
+    fn hide_repos_problems_are_calm_and_point_at_the_key() {
+        for bad in ["o/*/x", "o/a b", "https://github.com/o/r", ""] {
+            let err = load(&format!("{GH}hide_repos = [\"{bad}\"]\n"))
+                .unwrap_err()
+                .to_string();
+            assert!(err.contains("hide_repos"), "{bad}: {err}");
+            assert!(err.contains("[[source]] #1"), "{err}");
+        }
+        let err = load(&format!("{GH}hide_repos = [\"o/*/x\"]\n"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("at the end"), "{err}");
+    }
+
+    #[test]
+    fn patterns_match_case_insensitively_with_a_trailing_star() {
+        assert!(pattern_matches("Acme/Widgets", "acme/widgets"));
+        assert!(!pattern_matches("acme/widget", "acme/widgets"));
+        assert!(pattern_matches("acme/legacy-*", "acme/legacy-api"));
+        assert!(pattern_matches("acme/legacy-*", "acme/legacy-"));
+        assert!(!pattern_matches("acme/legacy-*", "acme/new"));
+        assert!(pattern_matches("*", "any/thing"));
+        assert!(!pattern_matches("ünï*", "a"));
+    }
 
     #[test]
     fn converts_github_and_gitlab_sources() {

@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/show_projects.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 19 changes                                                                                                            Dusk
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
+│▌ ● All              19 ││  Waiting on you · 14╭ Show ────────────────────────────────────────────────────────╮enus                                           │
+│    every source        ││▌ ◐ Add a menu bar an│                                                              │                                               │
+│  ● liminal-hq       15 ││▌ GH review-buddy#214│  [x] reviewing  changes waiting on your review               │                                               │
+│    github.com          ││  ◐ Update eslint-con│  [x] assigned   changes assigned to you                      │                                               │
+│  ● smorris           1 ││  GH eslint-config#90│  [x] authored   changes you opened                           │ent  ⏎ Diff  m Merge                           │
+│    github.com          ││  ◐ Update icons     │  [ ] drafts     drafts, yours and others                     │                                               │
+│  ● platform          2 ││  GH icons#907 · ada │  [ ] noise      bot updates, mixed into the buckets          │versation 3                                    │
+│    gitlab.platform.ex… ││  ◐ Update legacy-for│                                                              │────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GH legacy-forms#903│  Projects  16 of 16 projects shown                           │Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ◐ Update legacy-por│  / design▏                                        2 matches  │                                               │
+│                        ││  GH legacy-portal#90│  liminal-hq                          2 projects · 2 changes  │_prev move the highlight                       │
+│  Show  s to change     ││  ◐ Update legacy-sea│▌ [x] ongov/ontario-design-system                          1  │for the highlighted item                       │
+│  [x] reviewing         ││  GH legacy-search#90│  [x] ongov/ontario-design-system-legacy-docs              1  │ it picks up the active theme                  │
+│  [x] assigned          ││  ◐ Update ontario-de│                                                              │                                               │
+│  [x] authored          ││  GH ontario-design-s│                                                              │     Checks                                    │
+│  [ ] drafts            ││  ◐ Update ontario-de│                                                              │     ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  GH ontario-design-s│                                                              │     ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││  ◐ Update release-to│                                                              │                                               │
+│                        ││  GH release-tools#91│                                                              │                                               │
+│                        ││  ◐ Update status-pag│                                                              │                                               │
+│                        ││  GH status-page#911 │                                                              │ Is the intermediate Vec doing anything for    │
+│                        ││  ◐ Update storybook │                                                              │                                               │
+│                        ││  GH storybook#909 · │                                                              │                                               │
+│                        ││  ◐ Update tokens    │                                                              │                                               │
+│                        ││  GH tokens#906 · ada│                                                              │                                               │
+│                        ││  ◐ Update web-compon│                                                              │                                               │
+│                        ││  GH web-components#9│                                                              │                                               │
+│                        ││  ● Raise muted text │                                                              │                                               │
+│                        ││  GH review-buddy#209│                                                              │                                               │
+│                        ││                     │                                                              │                                               │
+│                        ││  Worth a look · 2   │                                                              │                                               │
+│                        ││  ✕ Cache pipeline st│  Nothing is hidden.                                          │                                               │
+│                        ││  GL flow!1182 · priy│  space toggle · / find · a all · n none · esc close          │                                               │
+│                        ││  ● Tidy zsh startup │  Changes last for this session only.                         │                                               │
+│                        ││  GH dotfiles#31 · sm╰──────────────────────────────────────────────────────────────╯                                               │
+│                        ││                                              ││                                                                                    │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

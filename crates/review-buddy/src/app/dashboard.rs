@@ -962,7 +962,6 @@ mod tests {
         press(&mut app, KeyCode::Char('5'));
         assert!(app.queue().noise.is_empty());
         assert_eq!(app.queue().items().len(), 5);
-        press(&mut app, KeyCode::Char('j'));
         press(&mut app, KeyCode::Char('x'));
         assert!(app.show.open, "other keys don't leak through");
         press(&mut app, KeyCode::Char(' '));

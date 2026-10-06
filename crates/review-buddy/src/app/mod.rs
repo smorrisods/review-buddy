@@ -21,6 +21,7 @@ pub mod failure;
 pub mod links;
 mod live;
 mod mouse;
+pub mod projects;
 pub mod queue;
 pub mod range;
 pub mod refresh;
@@ -100,6 +101,10 @@ pub enum Action {
     ToggleHelp,
     /// Open the Show filters control.
     OpenShow,
+    /// Tick or clear one project in the Show control.
+    ToggleProject(SourceId, String),
+    /// Put the cursor in the Show control's project search.
+    FocusProjectSearch,
     CloseShow,
     /// Tick or clear one Show filter.
     ToggleShow(crate::config::ShowFilter),
@@ -244,6 +249,11 @@ pub enum Cmd {
         id: ChangeId,
         thread: ThreadId,
         body: String,
+    },
+    /// Write each source's `hide_repos` into the config file at `target`.
+    SaveHiddenProjects {
+        target: std::path::PathBuf,
+        sources: Vec<(String, Vec<String>)>,
     },
     /// Run one first-run effect (detection, a token check, the config write).
     Setup(crate::setup::Effect),
@@ -399,6 +409,9 @@ pub struct App {
     pub help_scroll: u16,
     /// The Show filters control.
     pub show: show::ShowControl,
+    /// The config file `w` in the Show control writes the project choice to. Never set in demo
+    /// mode.
+    pub project_save: Option<std::path::PathBuf>,
     /// The last left click, for spotting a double-click: what it hit and the tick it came on.
     pub(crate) last_click: Option<(Action, u64)>,
     /// Preview before posting a single comment now (`review.confirm_post_now`).
@@ -444,6 +457,7 @@ impl App {
             help: false,
             help_scroll: 0,
             show: show::ShowControl::default(),
+            project_save: None,
             last_click: None,
             confirm_post_now: true,
             tab_width: diffview::TAB_WIDTH,

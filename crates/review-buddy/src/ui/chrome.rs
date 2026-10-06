@@ -82,6 +82,13 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
                 Some(Action::CycleSources),
                 false,
             ),
+            bind(
+                "Change",
+                "s /",
+                "pick projects in show filters",
+                None,
+                false,
+            ),
             bind("General", "?", "help", help, true),
             bind(
                 "General",

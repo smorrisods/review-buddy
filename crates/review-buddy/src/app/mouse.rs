@@ -8,7 +8,7 @@
 
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::{composer, dashboard, diff, settings, update, Action, App, Cmd, Screen};
+use super::{composer, dashboard, diff, settings, show, update, Action, App, Cmd, Screen};
 use crate::ui::help;
 
 /// Two clicks on the same row this many ticks apart (a tick is 250 ms) make a double-click.
@@ -97,13 +97,28 @@ fn on_help(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
 
 /// The Show control answers its own rows; a click anywhere else closes it.
 fn on_show(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
-    if shift || !matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
+    if shift {
         return Vec::new();
     }
-    match app.hits.at(mouse.column, mouse.row).cloned() {
-        Some(action @ (Action::ToggleShow(_) | Action::DismissToast(_))) => {
-            update::run(app, action)
+    match mouse.kind {
+        MouseEventKind::ScrollDown => {
+            show::scroll(app, true);
+            return Vec::new();
         }
+        MouseEventKind::ScrollUp => {
+            show::scroll(app, false);
+            return Vec::new();
+        }
+        MouseEventKind::Down(MouseButton::Left) => {}
+        _ => return Vec::new(),
+    }
+    match app.hits.at(mouse.column, mouse.row).cloned() {
+        Some(
+            action @ (Action::ToggleShow(_)
+            | Action::ToggleProject(..)
+            | Action::FocusProjectSearch
+            | Action::DismissToast(_)),
+        ) => update::run(app, action),
         _ => update::run(app, Action::CloseShow),
     }
 }
