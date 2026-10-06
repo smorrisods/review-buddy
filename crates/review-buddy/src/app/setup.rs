@@ -29,6 +29,8 @@ pub(super) fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Backspace => Input::Back,
         KeyCode::Up => Input::Up,
         KeyCode::Down => Input::Down,
+        KeyCode::Tab => Input::Tab,
+        KeyCode::BackTab => Input::BackTab,
         KeyCode::Left => Input::Left,
         KeyCode::Right => Input::Right,
         KeyCode::Char(c) => Input::Char(c),

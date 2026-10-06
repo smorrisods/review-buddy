@@ -1,6 +1,6 @@
 ---
 source: crates/review-buddy/tests/frames_v02.rs
-expression: text(& render(& mut app))
+expression: plain_dump(& mut app)
 ---
  review buddy  ·  first run                                                                    Dusk
 
@@ -20,7 +20,7 @@ expression: text(& render(& mut app))
            │   Afterglow Dark   ██ ██ ██ ██                                             │
            │   Afterglow Light  ██ ██ ██ ██                                             │
            │                                                                            │
-           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           │ [ Back ]  [ Continue ⏎ ]  [› Skip for now · esc ‹]                         │
            ╰────────────────────────────────────────────────────────────────────────────╯
 
 
@@ -32,3 +32,45 @@ expression: text(& render(& mut app))
 
 
  ⏎ continue  ← → buttons  ⌫ back  space pick  esc skip for now
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  first run"
+0:94 D " Dusk"
+10:11 B "╭ 3 · Pick a look ───────────────────────────────────────────────────────────╮"
+11:11 B "│"
+11:13 D "← → changes the screen live. You can change it later with T."
+11:88 B "│"
+12:11 B "│"
+12:88 B "│"
+13:11 B "│"
+13:13 B ""
+13:88 B "│"
+14:11 B "│"
+14:13 BR "› Dusk"
+14:32 R "██ ██ ██ ██"
+14:88 B "│"
+15:11 B "│"
+15:13 B ""
+15:88 B "│"
+16:11 B "│"
+16:13 B ""
+16:88 B "│"
+17:11 B "│"
+17:88 B "│"
+18:11 B "│"
+18:13 D "[ Back ]"
+18:23 B "[ Continue ⏎ ]"
+18:39 BR "[› Skip for now · esc ‹]"
+18:88 B "│"
+19:11 B "╰────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " continue"
+29:13 B "← →"
+29:16 D " buttons"
+29:26 B "⌫"
+29:27 D " back"
+29:34 B "space"
+29:39 D " pick"
+29:46 B "esc"
+29:49 D " skip for now"

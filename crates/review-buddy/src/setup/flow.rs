@@ -218,6 +218,16 @@ pub enum Effect {
     Write(Plan),
 }
 
+/// Where keyboard focus sits: on the step's list, or on one of the buttons under it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Focus {
+    #[default]
+    List,
+    Back,
+    Next,
+    Skip,
+}
+
 /// A pointer press on part of the screen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Click {
@@ -247,6 +257,8 @@ pub enum Input {
     Down,
     Left,
     Right,
+    Tab,
+    BackTab,
     Toggle,
     Char(char),
     Backspace,
@@ -291,6 +303,7 @@ pub struct Flow {
     pub token: TokenInput,
     pub theme: usize,
     pub jax: bool,
+    pub focus: Focus,
     pub target: PathBuf,
     /// A config file is already at `target`.
     pub existing: bool,
@@ -313,6 +326,7 @@ impl Flow {
             token: TokenInput::default(),
             theme: BUILTIN_IDS.iter().position(|id| *id == theme).unwrap_or(0),
             jax,
+            focus: Focus::List,
             target,
             existing,
             asking_replace: false,
@@ -397,7 +411,30 @@ impl Flow {
         }
     }
 
+    /// The buttons that can take focus on this step, left to right.
+    pub fn buttons(&self) -> Vec<Focus> {
+        if self.asking_replace || self.step == Step::Done {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        if self.step.previous().is_some() {
+            out.push(Focus::Back);
+        }
+        out.push(Focus::Next);
+        out.push(Focus::Skip);
+        out
+    }
+
     pub fn apply(&mut self, input: Input) -> Vec<Effect> {
+        let before = self.step;
+        let effects = self.dispatch(input);
+        if self.step != before {
+            self.focus = Focus::List;
+        }
+        effects
+    }
+
+    fn dispatch(&mut self, input: Input) -> Vec<Effect> {
         self.message = None;
         match input {
             Input::Detected(detection) => self.on_detected(detection),
@@ -406,14 +443,21 @@ impl Flow {
             Input::Click(click) => self.on_click(click),
             Input::Skip => self.skip(),
             Input::Back => self.back(),
-            Input::Next => self.next(),
-            Input::Up => self.shift(-1),
-            Input::Down => self.shift(1),
-            Input::Left => self.look(-1),
-            Input::Right => self.look(1),
+            Input::Next => match self.focus {
+                Focus::Back => self.back(),
+                Focus::Skip => self.skip(),
+                Focus::List | Focus::Next => self.next(),
+            },
+            Input::Up => self.vertical(-1),
+            Input::Down => self.vertical(1),
+            Input::Left => self.horizontal(-1),
+            Input::Right => self.horizontal(1),
+            Input::Tab => self.cycle(1),
+            Input::BackTab => self.cycle(-1),
             Input::Toggle => self.toggle(),
             Input::Char(c) => self.typed(c),
             Input::Backspace => {
+                self.focus = Focus::List;
                 self.token.pop();
                 Vec::new()
             }
@@ -632,6 +676,47 @@ impl Flow {
         vec![Effect::Write(self.plan(replace))]
     }
 
+    fn vertical(&mut self, delta: isize) -> Vec<Effect> {
+        self.focus = Focus::List;
+        self.shift(delta)
+    }
+
+    /// ← and → change the theme on the look step; elsewhere they walk the button row.
+    fn horizontal(&mut self, delta: isize) -> Vec<Effect> {
+        if self.token_open {
+            return Vec::new();
+        }
+        if self.step == Step::Look {
+            return self.look(delta);
+        }
+        let buttons = self.buttons();
+        if buttons.is_empty() {
+            return Vec::new();
+        }
+        let current = if self.focus == Focus::List {
+            Focus::Next
+        } else {
+            self.focus
+        };
+        let at = buttons.iter().position(|b| *b == current).unwrap_or(0) as isize;
+        let to = (at + delta).clamp(0, buttons.len() as isize - 1);
+        self.focus = buttons[to as usize];
+        Vec::new()
+    }
+
+    /// Tab walks list → Back → Continue → Skip.
+    fn cycle(&mut self, delta: isize) -> Vec<Effect> {
+        let mut zones = vec![Focus::List];
+        zones.extend(self.buttons());
+        if zones.len() == 1 {
+            return Vec::new();
+        }
+        let n = zones.len() as isize;
+        let at = zones.iter().position(|z| *z == self.focus).unwrap_or(0) as isize;
+        self.focus = zones[(at + delta).rem_euclid(n) as usize];
+        Vec::new()
+    }
+
     fn shift(&mut self, delta: isize) -> Vec<Effect> {
         let len = match self.step {
             Step::Connect => self.hosts.len(),
@@ -691,6 +776,7 @@ impl Flow {
 
     fn typed(&mut self, c: char) -> Vec<Effect> {
         if self.token_open {
+            self.focus = Focus::List;
             self.token.push_str(c.encode_utf8(&mut [0; 4]));
             return Vec::new();
         }
@@ -701,32 +787,45 @@ impl Flow {
             (Step::Summary, 'n' | 'N') => self.confirm(false),
             (_, 'k') => self.shift(-1),
             (_, 'j') => self.shift(1),
-            (Step::Look, 'h') => self.look(-1),
-            (Step::Look, 'l') => self.look(1),
+            (_, 'h') => self.horizontal(-1),
+            (_, 'l') => self.horizontal(1),
+            (_, 'b') => self.back(),
             _ => Vec::new(),
         }
     }
 
     fn on_click(&mut self, click: Click) -> Vec<Effect> {
         match click {
-            Click::Next => self.next(),
-            Click::Back => self.back(),
-            Click::Skip => self.skip(),
+            Click::Next => {
+                self.focus = Focus::Next;
+                self.next()
+            }
+            Click::Back => {
+                self.focus = Focus::Back;
+                self.back()
+            }
+            Click::Skip => {
+                self.focus = Focus::Skip;
+                self.skip()
+            }
             Click::Yes => self.confirm(true),
             Click::No => self.confirm(false),
             Click::Jax => {
+                self.focus = Focus::List;
                 if self.step == Step::Jax {
                     self.jax = !self.jax;
                 }
                 Vec::new()
             }
             Click::Theme(i) => {
+                self.focus = Focus::List;
                 if i < BUILTIN_IDS.len() {
                     self.theme = i;
                 }
                 Vec::new()
             }
             Click::Row(i) => {
+                self.focus = Focus::List;
                 if self.token_open {
                     return Vec::new();
                 }
@@ -1080,5 +1179,138 @@ mod tests {
         assert!(!f.token_open);
         f.apply(Input::Click(Click::Row(0)));
         assert!(!f.hosts[0].selected);
+    }
+
+    fn on(step: Step) -> Flow {
+        let mut f = connected();
+        f.step = step;
+        f
+    }
+
+    #[test]
+    fn arrows_walk_the_buttons_on_every_step_but_look() {
+        for step in [Step::Connect, Step::Scope, Step::Jax, Step::Summary] {
+            let mut f = on(step);
+            assert_eq!(f.focus, Focus::List, "{step:?}");
+            f.apply(Input::Left);
+            assert_eq!(f.focus, Focus::Back, "{step:?}");
+            f.apply(Input::Left);
+            assert_eq!(f.focus, Focus::Back, "{step:?} clamps");
+            f.apply(Input::Right);
+            f.apply(Input::Right);
+            assert_eq!(f.focus, Focus::Skip, "{step:?}");
+            f.apply(Input::Right);
+            assert_eq!(f.focus, Focus::Skip, "{step:?} clamps");
+            f.apply(Input::Down);
+            assert_eq!(f.focus, Focus::List, "{step:?} down returns to the list");
+        }
+    }
+
+    #[test]
+    fn the_focus_skips_back_on_the_welcome_step() {
+        let mut f = flow();
+        assert_eq!(f.buttons(), vec![Focus::Next, Focus::Skip]);
+        f.apply(Input::Left);
+        assert_eq!(f.focus, Focus::Next);
+        f.apply(Input::Left);
+        assert_eq!(f.focus, Focus::Next);
+        f.apply(Input::Tab);
+        assert_eq!(f.focus, Focus::Skip);
+        f.apply(Input::Tab);
+        assert_eq!(f.focus, Focus::List);
+        f.apply(Input::Tab);
+        assert_eq!(f.focus, Focus::Next);
+    }
+
+    #[test]
+    fn tab_cycles_list_back_continue_skip() {
+        let mut f = on(Step::Scope);
+        let seen: Vec<Focus> = (0..4)
+            .map(|_| {
+                f.apply(Input::Tab);
+                f.focus
+            })
+            .collect();
+        assert_eq!(
+            seen,
+            vec![Focus::Back, Focus::Next, Focus::Skip, Focus::List]
+        );
+        f.apply(Input::BackTab);
+        assert_eq!(f.focus, Focus::Skip);
+    }
+
+    #[test]
+    fn the_look_step_keeps_arrows_for_the_theme_and_uses_tab_for_buttons() {
+        let mut f = on(Step::Look);
+        let start = f.theme;
+        f.apply(Input::Right);
+        assert_eq!(f.theme, (start + 1) % BUILTIN_IDS.len());
+        assert_eq!(f.focus, Focus::List);
+        f.apply(Input::Tab);
+        assert_eq!(f.focus, Focus::Back);
+        f.apply(Input::Tab);
+        assert_eq!(f.focus, Focus::Next);
+        f.apply(Input::BackTab);
+        f.apply(Input::BackTab);
+        assert_eq!(f.focus, Focus::List);
+    }
+
+    #[test]
+    fn the_token_field_keeps_arrows_and_tab_leaves_it() {
+        let mut f = on(Step::Connect);
+        f.cursor = 1;
+        f.apply(Input::Toggle);
+        assert!(f.token_open);
+        f.apply(Input::Left);
+        f.apply(Input::Right);
+        assert_eq!(f.focus, Focus::List);
+        f.apply(Input::Char('h'));
+        f.apply(Input::Char('b'));
+        assert_eq!(f.token.len(), 2);
+        assert_eq!(f.step, Step::Connect);
+        f.apply(Input::Tab);
+        assert_eq!(f.focus, Focus::Back);
+        f.apply(Input::Char('x'));
+        assert_eq!(f.focus, Focus::List);
+        assert_eq!(f.token.len(), 3);
+    }
+
+    #[test]
+    fn enter_on_a_focused_button_activates_it() {
+        let mut f = on(Step::Scope);
+        f.apply(Input::Left);
+        f.apply(Input::Next);
+        assert_eq!(f.step, Step::Connect);
+        assert_eq!(f.focus, Focus::List);
+
+        let mut f = on(Step::Scope);
+        f.apply(Input::Right);
+        f.apply(Input::Next);
+        assert_eq!(f.outcome, Some(Outcome::Skipped));
+
+        let mut f = on(Step::Scope);
+        f.apply(Input::Next);
+        assert_eq!(f.step, Step::Look);
+    }
+
+    #[test]
+    fn b_and_h_l_work_when_no_field_is_open() {
+        let mut f = on(Step::Scope);
+        f.apply(Input::Char('l'));
+        assert_eq!(f.focus, Focus::Skip);
+        f.apply(Input::Char('h'));
+        assert_eq!(f.focus, Focus::Next);
+        f.apply(Input::Char('b'));
+        assert_eq!(f.step, Step::Connect);
+    }
+
+    #[test]
+    fn clicking_a_button_moves_focus_to_it() {
+        let mut f = on(Step::Connect);
+        f.message = None;
+        f.hosts[0].selected = false;
+        f.apply(Input::Click(Click::Next));
+        assert_eq!(f.focus, Focus::Next);
+        assert!(f.message.is_some());
     }
 }

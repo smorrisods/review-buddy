@@ -149,7 +149,18 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 
 ## First run
 
-The first-run screen (a launch with no config, or `--setup`) uses `⏎` to continue, `space` to pick, `← →` to change the theme, `J` to toggle Jax, `esc` to skip and `⌫` to go back.
+The first-run screen (a launch with no config, or `--setup`) has two focus zones: the list for the step, and the button row under it (`Back`, `Continue`, `Skip for now`). `↑ ↓` always work the list, and `tab` / `shift-tab` cycle list → Back → Continue → Skip.
+
+| Key | Action |
+|---|---|
+| `⏎` | Continue. With a button focused, activates that button (so `⏎` on a focused Back goes back and on Skip skips) |
+| `← →` (`h` `l`) | Move focus along the buttons, starting from Continue. Back is skipped on the first step. Not while the token field is open, where `tab` leaves it |
+| `tab` / `shift-tab` | Cycle list → Back → Continue → Skip. On the look step `← →` change the theme live, so use these to reach the buttons |
+| `space` | Pick the row (`J` also toggles Jax on its step) |
+| `⌫` or `b` | Go back (in the token field `⌫` deletes and `b` types) |
+| `esc` | Skip for now (closes the token field first) |
+
+The focused button is drawn as `[› Back ‹]` in reverse video, so it shows without colour. Clicking a button moves focus to it. `--setup --plain` is unchanged.
 
 ## Planned keys
 

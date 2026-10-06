@@ -2,7 +2,7 @@
 source: crates/review-buddy/tests/frames_v02.rs
 expression: text(& render(& mut app))
 ---
- review buddy  ·  first run                                                         Afterglow Light
+ review buddy  ·  first run                                                          Afterglow Dark
 
 
 
@@ -17,10 +17,10 @@ expression: text(& render(& mut app))
            │                                                                            │
            │   Liminal HQ       ██ ██ ██ ██                                             │
            │   Dusk             ██ ██ ██ ██                                             │
-           │   Afterglow Dark   ██ ██ ██ ██                                             │
-           │ › Afterglow Light  ██ ██ ██ ██                                             │
+           │ › Afterglow Dark   ██ ██ ██ ██                                             │
+           │   Afterglow Light  ██ ██ ██ ██                                             │
            │                                                                            │
-           │ [ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]                           │
+           │ [ Back ]  [ Continue ⏎ ]  [› Skip for now · esc ‹]                         │
            ╰────────────────────────────────────────────────────────────────────────────╯
 
 

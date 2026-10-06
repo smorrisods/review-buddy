@@ -107,6 +107,8 @@ Shown when no `config.toml` is found in any XDG config location, or when it is l
 2. **Pick a look.** Liminal HQ / Afterglow Dark / Afterglow Light. Each shows swatches and changes the screen live (`← →`).
 3. **A little company.** `[x] Keep Jax around` (`J`).
 
+Keyboard focus has two zones: the step's list and the button row (`[ Back ]  [ Continue ⏎ ]  [ Skip for now · esc ]`). `tab` / `shift-tab` cycle list → Back → Continue → Skip, `← →` (or `h` `l`) walk the buttons on every step except the look step (where they change the theme and `tab` reaches the buttons) and while the token field is open, and `⏎` activates the focused button (Continue by default). The focused button is bracketed `[› Back ‹]` and reversed, so it reads without colour. Back is absent on the welcome step, and `⌫` or `b` goes back outside the token field. The footer reads `⏎ continue  ← → buttons  ⌫ back  space pick  esc skip for now`.
+
 `⏎` writes the config and opens the queue. `esc` skips; the app then runs with whatever was auto-detected and shows a one-line hint in the footer.
 
 ### 4.2 Dashboard (three layouts)

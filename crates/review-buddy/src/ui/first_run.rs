@@ -14,7 +14,7 @@ use unicode_width::UnicodeWidthStr;
 use super::chrome::truncate;
 use super::{style, HitMap};
 use crate::app::{Action, App};
-use crate::setup::flow::{required_scopes, Click, Flow, ScopeItem, Step};
+use crate::setup::flow::{required_scopes, Click, Flow, Focus, ScopeItem, Step};
 use crate::setup::plain::scope_summary;
 
 const CARD_WIDTH: u16 = 78;
@@ -187,16 +187,27 @@ fn buttons(frame: &mut Frame, app: &App, flow: &Flow, card: Rect, hits: &mut Hit
     };
     let mut x = card.x + 2;
     for (label, click, role) in items {
-        let text = format!("[ {label} ]");
+        let focused = !flow.asking_replace
+            && matches!(
+                (click, flow.focus),
+                (Click::Back, Focus::Back)
+                    | (Click::Next, Focus::Next)
+                    | (Click::Skip, Focus::Skip)
+            );
+        let (text, st) = if focused {
+            (
+                format!("[› {label} ‹]"),
+                style::fg(palette, Role::Accent).add_modifier(Modifier::REVERSED | Modifier::BOLD),
+            )
+        } else {
+            (format!("[ {label} ]"), style::fg(palette, role))
+        };
         let w = UnicodeWidthStr::width(text.as_str()) as u16;
         if x + w > card.right().saturating_sub(1) {
             break;
         }
         let rect = Rect::new(x, y, w, 1);
-        frame.render_widget(
-            Paragraph::new(Line::styled(text, style::fg(palette, role))),
-            rect,
-        );
+        frame.render_widget(Paragraph::new(Line::styled(text, st)), rect);
         hits.push(rect, Action::Setup(click));
         x += w + 2;
     }
