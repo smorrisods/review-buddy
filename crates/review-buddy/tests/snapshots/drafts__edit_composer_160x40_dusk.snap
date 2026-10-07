@@ -32,7 +32,7 @@ expression: text(& render(& mut a))
 │                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
 │                                ││              │ ada · 20h                                                                                                  ││
 │                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
-│ Your review · pending ─────────││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│ Your review · pending ─────────││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
 │1 suggestion · 1 comment        ││         45 +     }                                                                                                         │
 │0 of 3 files viewed             ││         46 +                                                                                                               │
 │Your review: not started        ││╭ Edit comment · menus.rs line 10 ─────────────────────────────────────────────────────────────────────────────────────────╮│

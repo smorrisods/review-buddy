@@ -21,7 +21,7 @@ expression: text(&render(&mut a))
 │                     │                                                      │                     │
 │                     │Review                                                │elf) {               │
 │                     │  c            comment                                │y() {                │
-│                     │  r            reply to the thread                    │                     │
+│                     │  r            reply to the thread on this line       │                     │
 │                     │  e / ⏎        edit the pending comment on this line  │                     │
 │ Your review · pendin│  d / del      delete it (asks first)                 │.selected + 1) % sel…│
 │1 suggestion · 0 comm│  , / .        previous / next comment on this line   │────────────────────╮│
