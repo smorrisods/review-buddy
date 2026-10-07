@@ -58,6 +58,7 @@ choice!(SourcesLayout { Auto = "auto", Left = "left", Top = "top" });
 choice!(DetailMode { Auto = "auto", Open = "open", Closed = "closed" });
 choice!(DetailPosition { Auto = "auto", Right = "right", Left = "left", Top = "top", Bottom = "bottom" });
 choice!(ColourDepth { Auto = "auto", Truecolor = "truecolor", Colour256 = "256", Colour16 = "16" });
+choice!(Images { Auto = "auto", Off = "off", Halfblocks = "halfblocks", ForgeOnly = "forge-only" });
 choice!(Background { Theme = "theme", Yes = "yes", No = "no" });
 choice!(MergeMethod { Merge = "merge", Squash = "squash", Rebase = "rebase" });
 choice!(DiffView { Unified = "unified", SideBySide = "side-by-side" });
@@ -81,6 +82,8 @@ pub struct UiConfig {
     pub queue_height: Option<Size>,
     pub jax: bool,
     pub reduced_motion: bool,
+    /// Pictures in descriptions: how they are drawn and where they may come from.
+    pub images: Images,
     pub unicode: bool,
     pub colour_depth: ColourDepth,
     pub background: Background,
@@ -107,6 +110,7 @@ impl Default for UiConfig {
             queue_height: None,
             jax: true,
             reduced_motion: false,
+            images: Images::Auto,
             unicode: true,
             colour_depth: ColourDepth::Auto,
             background: Background::Theme,

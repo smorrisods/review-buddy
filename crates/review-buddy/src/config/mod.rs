@@ -95,6 +95,11 @@ fn apply_env(config: &mut Config, env: &dyn Env) {
     {
         config.ui.detail_position = position;
     }
+    if let Some(mode) =
+        crate::images::detect::mode_from_env(env.var("REVIEW_BUDDY_IMAGES").as_deref())
+    {
+        config.ui.images = mode;
+    }
     if let Some(v) = env.var("REVIEW_BUDDY_REDUCED_MOTION") {
         if matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes") {
             config.ui.reduced_motion = true;

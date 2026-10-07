@@ -16,7 +16,7 @@ default = ["live", "demo"]
 # `live` pulls in the HTTP providers and keyring. Disable it for an offline build.
 live = []
 # `demo` bundles the offline fixtures behind `--demo`. Release builds keep it on.
-demo = ["dep:async-trait", "dep:tempfile", "dep:url"]
+demo = ["dep:async-trait", "dep:tempfile"]
 
 [dependencies]
 anyhow.workspace = true
@@ -25,11 +25,13 @@ clap.workspace = true
 clap_complete.workspace = true
 crossterm.workspace = true
 futures-util.workspace = true
+image.workspace = true
 jaq-core.workspace = true
 jaq-json.workspace = true
 jaq-std.workspace = true
 pulldown-cmark.workspace = true
 ratatui.workspace = true
+ratatui-image.workspace = true
 rb-core.workspace = true
 rb-diff.workspace = true
 rb-github.workspace = true
@@ -38,17 +40,20 @@ rb-paths.workspace = true
 rb-platform.workspace = true
 rb-store.workspace = true
 rb-theme.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
+sha1.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 toml.workspace = true
 toml_edit.workspace = true
 tempfile = { workspace = true, optional = true }
 unicode-width.workspace = true
-url = { workspace = true, optional = true }
+url.workspace = true
 
 [target.'cfg(unix)'.dependencies]
+rustix.workspace = true
 signal-hook.workspace = true
 
 [build-dependencies]
