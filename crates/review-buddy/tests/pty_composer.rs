@@ -63,10 +63,9 @@ fn request_changes_and_comment_reviews_in_demo() {
     );
     s.send_expect(
         b"\t",
-        "› Cancel ‹",
-        "tab moves to the buttons, on the safe one",
+        "› Request changes ‹",
+        "one tab from the summary reaches Submit",
     );
-    s.send_expect(b"\t", "› Request changes ‹", "tab again reaches Submit");
     s.send_expect(
         b"\r",
         "Changes requested (demo)",
@@ -84,4 +83,26 @@ fn request_changes_and_comment_reviews_in_demo() {
     s.send_expect(b"q", "Waiting on you", "q returns to the queue");
     s.send(b"q");
     assert!(s.wait_exit(Duration::from_secs(10)));
+}
+
+#[test]
+fn tab_then_enter_submits_and_the_hint_says_so_without_kitty_keys() {
+    let home = tempfile::tempdir().unwrap();
+    let mut cmd = pty::command(home.path());
+    cmd.env("REVIEW_BUDDY_KITTY_KEYS", "0");
+    cmd.args(["--demo", "--frozen-time", "2026-10-05T10:00"]);
+    let mut s = pty::Pty::spawn(cmd, 160, 40);
+    s.expect(
+        "Add a menu bar and keyboard-driven menus",
+        "the queue loads",
+    );
+    s.send_until(b"\r", "@@ -10,7 +10,9 @@", "the diff opens");
+    s.send_expect(b"x", "Submit your review", "x opens the review modal");
+    s.send_expect(b"Needs a test first", "Needs a test first", "typing");
+    s.expect(
+        "tab then ⏎ submits · ⌃P submits now",
+        "the hint doesn't promise ⌃⏎ here",
+    );
+    s.send_expect(b"\t", "› Request changes ‹", "tab reaches Submit");
+    s.send_expect(b"\r", "Changes requested (demo)", "⏎ submits");
 }

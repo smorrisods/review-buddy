@@ -314,6 +314,21 @@ fn draw_rows(frame: &mut Frame, app: &App, state: &DiffState, area: Rect, hits: 
         let (line, base) = row_line(app, state, index, usize::from(area.width));
         frame.render_widget(Paragraph::new(line).style(base), rect);
         hits.push(rect, Action::DiffRow(index));
+        if let Some(Row::Block { block, line }) = view.rows.row(index) {
+            let Some(b) = view.rows.block(block) else {
+                continue;
+            };
+            if line as usize + 1 == b.height() {
+                let total = usize::from(area.width)
+                    .saturating_sub(usize::from(GUTTER))
+                    .max(6);
+                if let Some(fill) = reply_hint_offset(b, total) {
+                    let x = area.x + GUTTER + 1 + fill as u16;
+                    let hint = Rect::new(x, rect.y, cells(REPLY_HINT) as u16, 1);
+                    hits.push(hint, Action::ReplyAt(index));
+                }
+            }
+        }
     }
 }
 
@@ -413,6 +428,14 @@ fn diff_line(
     (Line::from(clip(spans, width)), base)
 }
 
+const REPLY_HINT: &str = " r reply ";
+
+/// Dashes before the `r reply` hint in a thread block's bottom border, when it fits.
+fn reply_hint_offset(block: &crate::app::diffview::Block, total: usize) -> Option<usize> {
+    let hint = cells(REPLY_HINT);
+    (matches!(block.kind, BlockKind::Thread { .. }) && total >= hint + 8).then(|| total - 3 - hint)
+}
+
 fn block_line(
     app: &App,
     block: &crate::app::diffview::Block,
@@ -436,10 +459,17 @@ fn block_line(
         spans.push(Span::styled(head, border.add_modifier(Modifier::BOLD)));
         spans.push(Span::styled(format!("{}╮", "─".repeat(fill)), border));
     } else if line == last {
-        spans.push(Span::styled(
-            format!("╰{}╯", "─".repeat(total.saturating_sub(2))),
-            border,
-        ));
+        match reply_hint_offset(block, total) {
+            Some(fill) => {
+                spans.push(Span::styled(format!("╰{}", "─".repeat(fill)), border));
+                spans.push(Span::styled(REPLY_HINT, style::fg(palette, Role::Muted)));
+                spans.push(Span::styled("─╯", border));
+            }
+            None => spans.push(Span::styled(
+                format!("╰{}╯", "─".repeat(total.saturating_sub(2))),
+                border,
+            )),
+        }
     } else if let Some(content) = block.lines.get(line - 1) {
         let inner = total.saturating_sub(4);
         let (prefix, text_style, tint) = block_line_look(app, content);

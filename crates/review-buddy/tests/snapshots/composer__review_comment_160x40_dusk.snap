@@ -27,9 +27,9 @@ expression: text(& render(& mut a))
 │                                ││            │                                                                │─────────────────────────────────────────────╮│
 │                                ││            │ • menus.rs line 51 · Fewer branches this way:                  │                                             ││
 │                                ││            │                                                                │p at the end.                                ││
-│                                ││            │   Cancel    › Post review ‹   ⏎ choose · esc cancel            │                                             ││
-│                                ││            ╰────────────────────────────────────────────────────────────────╯make it configurable if you'd rather.        ││
-│                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│                                ││            │   Cancel    › Post review ‹                                    │                                             ││
+│                                ││            │ ⏎ submits · tab → cancel · esc cancels                         │make it configurable if you'd rather.        ││
+│                                ││            ╰────────────────────────────────────────────────────────────────╯─────────────────────────────────── r reply ─╯│
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
 │                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │

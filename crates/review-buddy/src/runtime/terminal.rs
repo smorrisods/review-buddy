@@ -100,6 +100,24 @@ fn enhance_keys(out: &mut Stdout) {
 #[cfg(not(unix))]
 fn enhance_keys(_out: &mut Stdout) {}
 
+/// Whether the terminal answered the kitty keyboard protocol query, so `⌃⏎` arrives as itself.
+/// Windows reports modifiers on its own. Anything that doesn't answer is treated as legacy.
+/// `REVIEW_BUDDY_KITTY_KEYS=1` or `0` skips the query, which a terminal that never answers
+/// would otherwise make wait.
+#[cfg(unix)]
+pub fn keys_enhanced() -> bool {
+    match std::env::var("REVIEW_BUDDY_KITTY_KEYS").as_deref() {
+        Ok("1") => true,
+        Ok("0") => false,
+        _ => crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false),
+    }
+}
+
+#[cfg(not(unix))]
+pub fn keys_enhanced() -> bool {
+    true
+}
+
 #[cfg(unix)]
 fn release_keys(out: &mut Stdout) {
     let _ = execute!(out, crossterm::event::PopKeyboardEnhancementFlags);

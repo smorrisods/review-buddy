@@ -22,9 +22,9 @@ expression: text(& render(& mut a))
 │                │                                                                │{               │
 │                │ • menus.rs line 51 · Fewer branches this way:                  │                │
 │                │                                                                │                │
-│                │   Cancel      Request changes     ⌃⏎ submit · esc cancel       │                │
-│                ╰────────────────────────────────────────────────────────────────╯cted + 1) % sel…│
-│ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
+│                │   Cancel      Request changes                                  │                │
+│                │ tab then ⏎ submits · ⌃P submits now · esc cancels              │cted + 1) % sel…│
+│ Your review · p╰────────────────────────────────────────────────────────────────╯───────────────╮│
 │1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
 │0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
 │Your review: not started        ││              │ menus I use stop at the end.                   ││

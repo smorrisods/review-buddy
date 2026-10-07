@@ -39,6 +39,8 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- **Review modal is reachable on every terminal.** `tab` from the summary now lands on Submit, `⌃P` and `⌥⏎` submit as well as `⌃⏎`, and the hint under the buttons only mentions `⌃⏎` when the terminal can report it. Clicks arm on press and fire on release (a lone release fires too), a failed submit keeps the modal open with the reason shown under the buttons, and the Submit button reads `sending…` while it works.
+- **Replying to a thread is discoverable.** On a line with a thread the footer shows `r reply`, the thread block's bottom border carries a clickable `r reply`, and the help overlay explains it.
 - **Web links and selectors honour the host's address.** A scheme, port or path prefix on an Enterprise or self-hosted source is kept in links, copied URLs and pasted selectors.
 - **Footer hints stay ahead of the refreshed time.** The passive `refreshed HH:MM` is the first thing to drop when space is short.
 - **v0.1.0 review polish.** Wording, spacing and CI-state output across the TUI and command line.

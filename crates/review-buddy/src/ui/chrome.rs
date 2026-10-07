@@ -173,7 +173,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
             ),
             bind("Select", "esc", "clear the selection", None, false),
             bind("Review", "c", "comment", None, true),
-            bind("Review", "r", "reply to the thread", None, false),
+            bind(
+                "Review",
+                "r",
+                "reply to the thread on this line",
+                None,
+                false,
+            ),
             bind("Review", "a", "approve", None, true),
             bind("Review", "x", "request changes", None, false),
             bind("Review", "R", "submit a review", None, true),
@@ -397,6 +403,22 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
         first_run_hints(flow)
     } else {
         let mut hints = hints_for(app.screen);
+        if let Some(row) = app
+            .diff_state()
+            .filter(|_| app.screen == Screen::Diff)
+            .filter(|_| crate::app::composer::cursor_has_thread(app))
+            .map(|s| s.view.cursor)
+        {
+            let at = hints.iter().position(|h| h.key == "c").map_or(0, |i| i + 1);
+            hints.insert(
+                at,
+                Hint {
+                    key: "r",
+                    label: "reply",
+                    action: Some(Action::ReplyAt(row)),
+                },
+            );
+        }
         if app.screen == Screen::Dashboard && !app.layout.detail_open() {
             let at = hints
                 .iter()

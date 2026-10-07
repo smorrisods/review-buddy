@@ -194,7 +194,15 @@ fn on_review(app: &mut App, mouse: MouseEvent, hit: Option<Action>) -> Vec<Cmd> 
             Vec::new()
         }
         (MouseEventKind::Down(MouseButton::Left), Some(Action::ReviewButton(go))) => {
-            super::review::press(app, go)
+            super::review::arm(app, go);
+            Vec::new()
+        }
+        (MouseEventKind::Up(MouseButton::Left), hit) => {
+            let over = match hit {
+                Some(Action::ReviewButton(go)) => Some(go),
+                _ => None,
+            };
+            super::review::release(app, over)
         }
         (MouseEventKind::Down(MouseButton::Left), Some(Action::DismissToast(id))) => {
             update::run(app, Action::DismissToast(id))

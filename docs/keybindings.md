@@ -69,7 +69,7 @@ Open with `⏎` or `d` from the dashboard.
 | `⇧↑` `⇧↓` · `⇧PgUp` `⇧PgDn` | Extend a range from the cursor by a line or a page. The first press anchors the range at the cursor line; the footer counts the lines (`3 lines selected`) |
 | `V` | Start a line-wise selection, for terminals that don't report Shift+arrows: plain `↑` `↓` `j` `k` `PgUp` `PgDn` (and `g` `G` `n` `p`) extend the range until you press `V` again, which ends the mode and keeps the range, or `esc`, which clears it |
 | `c` | Comment on the cursor line, or on the selected range (`start_line` to `line`, on the side of the last line) after a drag, shift-click or keyboard selection; the selection clears once the comment is added |
-| `r` | Reply to the thread at the cursor |
+| `r` | Reply to the thread on the cursor line. When the line has one, the footer shows `r reply` and the thread block's bottom border carries a clickable `r reply` hint. The cursor never rests on the thread block itself (`j`/`k` step over it), so `⏎` isn't a reply key |
 | `a` | Review modal with **Approve** selected (see [Review modal](#review-modal)) |
 | `x` | Review modal with **Request changes** selected. Where the source can't request changes the key stays on screen and says why in one line instead |
 | `R` | Review modal with **Comment** selected: submits the pending comments without approving |
@@ -87,21 +87,26 @@ A keyboard range is the same range a drag makes: the same highlight, the same `c
 
 - **Request changes** needs a summary. **Comment** needs at least one pending comment or a summary. **Approve** goes with both empty. Until the verdict is valid the modal says what is missing and **Submit** does nothing.
 - **Cancel** is the default focus for Request changes (or the summary field while it is empty), so ⏎ never sends one by accident. Changing the verdict never moves focus onto Submit by itself, and nothing is sent until you press Submit.
+- **Submitting:** `tab` from the summary lands on Submit, and `⏎` there sends. `⌃P` submits from anywhere, as do `⌥⏎` and, where the terminal can report it, `⌃⏎`. Many terminals (Windows Terminal among them) can't tell `⌃⏎` from `⏎`, so the line under the buttons shows `⌃⏎` only when the terminal answered the kitty keyboard protocol query at startup, and otherwise says `tab then ⏎ submits · ⌃P submits now`. `REVIEW_BUDDY_KITTY_KEYS=1` or `0` overrides the detection.
+- **Tab order** is Summary → Submit → Cancel → verdict row → Summary; `⇧tab` walks it backwards.
+- **While sending** the button reads `sending…`. If the forge refuses (for example it won't let you request changes on your own pull request), the reason shows in red under the buttons with a `✗`, the modal stays open with focus on Submit, and a toast repeats it. The next key clears the message; `⏎` retries, or change the verdict first.
 - Closing the modal keeps the pending comments and the summary; they are there next time. After a successful submit they clear, a toast says `Approved`, `Changes requested` or `Review posted` (with `(demo)` under `--demo`), and the Files pane and the queue row show `Your review: …`. On failure everything stays and the toast says what to do next.
 
 | Key | Action |
 |---|---|
-| `←` `→` / `h` `l` / `tab` `⇧tab` (verdict row) · `1` `2` `3` | Choose Comment, Approve or Request changes |
-| `↓` / `⏎` (verdict row) | Move to the summary |
+| `←` `→` / `h` `l` (verdict row) · `1` `2` `3` | Choose Comment, Approve or Request changes |
+| `↓` / `⏎` / `tab` (verdict row) | Move to the summary |
 | Typing, `⇧⏎` `⌃J` for a new line (summary) | Edit the summary. `⏎` adds a line here and never submits |
-| `tab` / `↓` on the last line (summary) · `↑` on the first line · `⇧tab` | Move to the buttons · back to the verdict row |
-| `⌃⏎` or `⌃P` (summary or anywhere in the modal) | Submit |
-| `←` `→` / `tab` (buttons) | Switch between Cancel and Submit |
+| `tab` (summary) · `↓` on the last line | Move to Submit · Cancel |
+| `↑` on the first line · `⇧tab` (summary) | Back to the verdict row |
+| `⌃P` · `⌥⏎` · `⌃⏎` (where reported), from anywhere in the modal | Submit |
+| `tab` (buttons) | Submit → Cancel → verdict row |
+| `←` `→` (buttons) | Switch between Cancel and Submit |
 | `⏎` (buttons) | Press the focused button |
 | `↑` / `e` (buttons) | Back to the summary |
 | `esc` / `n` | Cancel |
 
-**Mouse:** click a verdict, the summary (the caret goes under the pointer), Cancel or Submit. A click outside the modal is ignored.
+**Mouse:** click a verdict, the summary (the caret goes under the pointer), Cancel or Submit. A press on a button arms it and releasing on the same button presses it; a release with no press before it also presses it, for terminals that only report releases. A click on no control, or outside the modal, does nothing.
 
 ## Composer
 

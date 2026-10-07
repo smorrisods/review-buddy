@@ -29,9 +29,9 @@ expression: plain_dump(& mut app)
 │0 of 3 files viewed             ││              │ I went with wrapping so a held key never gets  ││
 │Your review: not started        ││              │ stuck. Happy to make it configurable if you'd  ││
 │a approve · c comment           ││              │ rather.                                        ││
-│x request changes · R review    ││              ╰────────────────────────────────────────────────╯│
+│x request changes · R review    ││              ╰────────────────────────────────────── r reply ─╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy
+ j/k move  n/p hunk  ← → file  tab pane  c comment  r reply  a approve  R submit a review  o open
 
 -- modifiers --
 0:1 B "review buddy"
@@ -172,6 +172,7 @@ expression: plain_dump(& mut app)
 27:0 D "│x request changes · R review"
 27:33 D "│"
 27:34 B "│"
+27:88 D " r reply"
 27:99 B "│"
 28:0 D "╰────────────────────────────────╯"
 28:34 B "╰"
@@ -187,11 +188,11 @@ expression: plain_dump(& mut app)
 29:34 D " pane"
 29:41 B "c"
 29:42 D " comment"
-29:52 B "a"
-29:53 D " approve"
-29:63 B "R"
-29:64 D " submit a review"
-29:82 B "o"
-29:83 D " open"
-29:90 B "y"
-29:91 D " copy"
+29:52 B "r"
+29:53 D " reply"
+29:61 B "a"
+29:62 D " approve"
+29:72 B "R"
+29:73 D " submit a review"
+29:91 B "o"
+29:92 D " open"

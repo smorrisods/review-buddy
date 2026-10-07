@@ -141,6 +141,8 @@ pub enum Action {
     },
     /// Pick a verdict in the review modal.
     ReviewVerdict(Verdict),
+    /// Reply to the thread at this diff row: moves the cursor there, then opens the reply box.
+    ReplyAt(usize),
     /// Press the review modal's Cancel (`false`) or Submit (`true`) button.
     ReviewButton(bool),
     /// Put the review summary's caret where the pointer is; fields as for `ComposerCursor`.
@@ -439,6 +441,8 @@ pub struct App {
     pub settings: Option<crate::settings::State>,
     /// Running on demo data: Settings shows it read-only and touches nothing real.
     pub demo: bool,
+    /// The terminal reports `⌃⏎` as such (the kitty keyboard protocol). Set at startup.
+    pub kitty_keys: bool,
     /// The help overlay is showing.
     pub help: bool,
     /// Rows the help overlay is scrolled by.
@@ -497,6 +501,7 @@ impl App {
             setup: None,
             settings: None,
             demo: false,
+            kitty_keys: false,
             help: false,
             help_scroll: 0,
             show: show::ShowControl::default(),

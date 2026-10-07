@@ -14,7 +14,7 @@ use unicode_width::UnicodeWidthStr;
 use super::composer::clip;
 use super::{chrome::truncate, style, HitMap};
 use crate::app::composer::comment_line;
-use crate::app::review::{submit_label, verdict_label, ReviewFocus, ReviewModal};
+use crate::app::review::{key_hint, submit_label, verdict_label, ReviewFocus, ReviewModal};
 use crate::app::{Action, App, DiffState};
 
 const SUMMARY_ROWS: usize = 3;
@@ -117,6 +117,23 @@ pub fn draw(
     let button_row = lines.len();
     let can_submit = modal.problem(pending).is_none();
     lines.push(buttons(app, state, modal, can_submit));
+    lines.push(muted(if state.submitting {
+        "sending…".to_string()
+    } else {
+        key_hint(modal.focus, app.kitty_keys).to_string()
+    }));
+    if let Some(error) = &modal.error {
+        for (i, part) in wrap(error, inner_width.saturating_sub(2))
+            .into_iter()
+            .enumerate()
+        {
+            let glyph = if i == 0 { "✗ " } else { "  " };
+            lines.push(Line::styled(
+                format!("{glyph}{part}"),
+                style::fg(palette, Role::Danger),
+            ));
+        }
+    }
 
     let height = (lines.len() as u16 + 2).min(body.height);
     let rect = Rect::new(
@@ -226,18 +243,31 @@ fn buttons(app: &App, state: &DiffState, modal: &ReviewModal, can_submit: bool) 
             Span::styled(format!("  {label}  "), style::fg(palette, Role::Muted))
         }
     };
-    let go = submit_label(modal.verdict);
-    let hint = if state.submitting {
-        "   sending…"
-    } else if modal.focus == ReviewFocus::Summary {
-        "   ⌃⏎ submit · esc cancel"
+    let go = if state.submitting {
+        "sending…"
     } else {
-        "   ⏎ choose · esc cancel"
+        submit_label(modal.verdict)
     };
     Line::from(vec![
         button("Cancel", modal.focus == ReviewFocus::Cancel, true),
         Span::raw("  "),
         button(go, modal.focus == ReviewFocus::Submit, can_submit),
-        Span::styled(hint, style::fg(palette, Role::Muted)),
     ])
+}
+
+fn wrap(text: &str, width: usize) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for word in text.split_whitespace() {
+        match out.last_mut() {
+            Some(line)
+                if UnicodeWidthStr::width(line.as_str()) + 1 + UnicodeWidthStr::width(word)
+                    <= width =>
+            {
+                line.push(' ');
+                line.push_str(word);
+            }
+            _ => out.push(word.to_string()),
+        }
+    }
+    out
 }

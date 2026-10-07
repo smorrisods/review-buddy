@@ -185,6 +185,11 @@ fn range_anchor(app: &App) -> Option<Anchor> {
 }
 
 /// The open thread that hangs from the cursor line, if any.
+/// Whether the cursor line has a thread to reply to.
+pub fn cursor_has_thread(app: &App) -> bool {
+    cursor_thread(app).is_some()
+}
+
 fn cursor_thread(app: &App) -> Option<(&Thread, Anchor)> {
     let anchor = cursor_anchor(app)?;
     let data = app.diff.as_ref()?.data.as_ref()?;
@@ -662,6 +667,14 @@ pub fn on_submitted(
         Err(err) => {
             app.mark_dirty();
             let err = err.trim_end_matches('.');
+            if reviewing {
+                super::review::show_failure(
+                    app,
+                    format!(
+                        "Couldn't submit your review: {err}. Your comments and summary are still here. Press ⏎ on Submit to try again, or change the verdict."
+                    ),
+                );
+            }
             let notice = if reviewing {
                 failure(
                     "Couldn't submit your review",
@@ -1334,6 +1347,10 @@ mod tests {
         diff(app).review.as_ref().expect("the review modal")
     }
 
+    fn modal_mut(app: &mut App) -> &mut ReviewModal {
+        app.diff.as_mut().unwrap().review.as_mut().unwrap()
+    }
+
     fn summary(app: &mut App, text: &str) {
         for c in text.chars() {
             key(app, KeyCode::Char(c));
@@ -1436,9 +1453,11 @@ mod tests {
             .preview(&data.draft)
             .starts_with("Request changes with 1 comment"));
         key(&mut a, KeyCode::Tab);
-        assert_eq!(modal(&a).focus, ReviewFocus::Cancel);
-        key(&mut a, KeyCode::Tab);
-        assert_eq!(modal(&a).focus, ReviewFocus::Submit);
+        assert_eq!(
+            modal(&a).focus,
+            ReviewFocus::Submit,
+            "one Tab reaches Submit"
+        );
         let blocked = key(&mut a, KeyCode::Enter);
         assert!(!blocked
             .iter()
@@ -1447,7 +1466,6 @@ mod tests {
         assert!(!diff(&a).submitting);
 
         key(&mut a, KeyCode::BackTab);
-        key(&mut a, KeyCode::Char('e'));
         assert_eq!(modal(&a).focus, ReviewFocus::Summary);
         summary(&mut a, "  Please split this up ");
         assert!(modal(&a).problem(1).is_none());
@@ -1516,9 +1534,99 @@ mod tests {
         assert_eq!(modal(&a).verdict, Verdict::RequestChanges);
         key(&mut a, KeyCode::Char('2'));
         assert_eq!(modal(&a).verdict, Verdict::Approve);
-        key(&mut a, KeyCode::BackTab);
+        key(&mut a, KeyCode::Left);
         assert_eq!(modal(&a).verdict, Verdict::Comment);
         assert!(!diff(&a).submitting, "choosing never sends");
+    }
+
+    #[test]
+    fn tab_goes_summary_to_submit_to_cancel_to_verdict_and_round() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('R'));
+        modal_mut(&mut a).focus = ReviewFocus::Summary;
+        let mut seen = Vec::new();
+        for _ in 0..4 {
+            key(&mut a, KeyCode::Tab);
+            seen.push(modal(&a).focus);
+        }
+        assert_eq!(
+            seen,
+            [
+                ReviewFocus::Submit,
+                ReviewFocus::Cancel,
+                ReviewFocus::Verdict,
+                ReviewFocus::Summary
+            ]
+        );
+        for _ in 0..3 {
+            key(&mut a, KeyCode::BackTab);
+        }
+        assert_eq!(
+            modal(&a).focus,
+            ReviewFocus::Submit,
+            "shift-tab walks it back"
+        );
+    }
+
+    #[test]
+    fn the_key_hint_matches_focus_and_the_terminal() {
+        use crate::app::review::key_hint;
+        assert!(key_hint(ReviewFocus::Summary, true).starts_with("⌃⏎ or ⌃P submits"));
+        let plain = key_hint(ReviewFocus::Summary, false);
+        assert!(plain.contains("tab then ⏎ submits") && !plain.contains("⌃⏎"));
+        assert!(key_hint(ReviewFocus::Submit, false).starts_with("⏎ submits"));
+        assert!(key_hint(ReviewFocus::Cancel, true).contains("⌃P submits"));
+    }
+
+    #[test]
+    fn alt_enter_and_ctrl_p_submit_from_the_summary() {
+        for (code, mods) in [
+            (KeyCode::Enter, KeyModifiers::ALT),
+            (KeyCode::Enter, KeyModifiers::CONTROL),
+            (KeyCode::Char('p'), KeyModifiers::CONTROL),
+        ] {
+            let mut a = app();
+            key(&mut a, KeyCode::Char('R'));
+            summary(&mut a, "Looks good");
+            let cmds = with(&mut a, code, mods);
+            assert_eq!(submit_cmd(&cmds).1, Verdict::Comment, "{code:?} {mods:?}");
+        }
+    }
+
+    #[test]
+    fn a_failed_submit_keeps_the_modal_open_on_submit_with_the_reason_until_a_key() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('a'));
+        key(&mut a, KeyCode::Enter);
+        assert!(diff(&a).submitting);
+        submitted(
+            &mut a,
+            Verdict::Approve,
+            Err("GitHub refused: you can't approve your own pull request.".into()),
+        );
+        let m = modal(&a);
+        assert_eq!(m.focus, ReviewFocus::Submit);
+        let error = m.error.clone().expect("the reason stays in the modal");
+        assert!(
+            error.contains("can't approve your own pull request"),
+            "{error}"
+        );
+        assert!(error.contains("try again"));
+        assert!(!diff(&a).submitting);
+        assert!(toast(&a).contains("Couldn't submit your review"));
+        key(&mut a, KeyCode::Tab);
+        assert!(modal(&a).error.is_none(), "the next keypress clears it");
+        assert!(diff(&a).review.is_some());
+    }
+
+    #[test]
+    fn a_failed_submit_can_be_retried_with_enter() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('a'));
+        key(&mut a, KeyCode::Enter);
+        submitted(&mut a, Verdict::Approve, Err("offline".into()));
+        let cmds = key(&mut a, KeyCode::Enter);
+        assert_eq!(submit_cmd(&cmds).1, Verdict::Approve);
     }
 
     #[test]
