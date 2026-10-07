@@ -1,11 +1,11 @@
 ---
-source: crates/review-buddy/tests/frames.rs
-expression: text(& render(& mut app))
+source: crates/review-buddy/tests/composer.rs
+expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
-│  · src/ui/menubar.rs      +8 −0││    10   10                                                                                                                 │
+│  · src/ui/menubar.rs      +8 −0││›   10   10                                                                                                                 │
 │  · src/ui/mod.rs          +2 −0││    11   11   pub struct Menu {                                                                                             │
 │                                ││    12   12       items: Vec<MenuItem>,                                                                                     │
 │                                ││         13 +     selected: usize,                                                                                          │
@@ -14,21 +14,21 @@ expression: text(& render(& mut app))
 │                                ││    14   16                                                                                                                 │
 │                                ││    15   17   impl Menu {                                                                                                   │
 │                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {                                                                │
-│                                ││              @@ -34,6 +36,24 @@ impl Menu {                                                                                │
-│                                ││    34   36       pub fn len(&self) -> usize {                                                                              │
-│                                ││    35   37           self.items.len()                                                                                      │
-│                                ││    36   38       }                                                                                                         │
-│                                ││         39 +                                                                                                               │
-│                                ││         40 +     pub fn select_next(&mut self) {                                                                           │
-│                                ││         41 +         if self.items.is_empty() {                                                                            │
-│                                ││         42 +             return;                                                                                           │
-│                                ││         43 +         }                                                                                                     │
-│                                ││›        44 +         self.selected = (self.selected + 1) % self.items.len();                                               │
-│                                ││              ╭─ thread · line 44 ─────────────────────────────────────────────────────────────────────────────────────────╮│
-│                                ││              │ jo · 1d                                                                                                    ││
-│                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
-│                                ││              │ ada · 20h                                                                                                  ││
-│                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
+│                                ││            ╭ Submit your review ────────────────────────────────────────────╮                                              │
+│                                ││    34   36 │ (•) 1 Comment  ( ) 2 Approve  ( ) 3 Request changes            │                                              │
+│                                ││    35   37 │                                                                │                                              │
+│                                ││    36   38 │ Post review with 1 comment                                     │                                              │
+│                                ││         39 │ Verdict: comment                                               │                                              │
+│                                ││         40 │                                                                │                                              │
+│                                ││         41 │ Summary (optional)                                             │                                              │
+│                                ││         42 │ ▏                                                              │                                              │
+│                                ││         43 │ ▏                                                              │                                              │
+│                                ││         44 │ ▏                                                              │                                              │
+│                                ││            │                                                                │─────────────────────────────────────────────╮│
+│                                ││            │ • menus.rs line 51 · Fewer branches this way:                  │                                             ││
+│                                ││            │                                                                │p at the end.                                ││
+│                                ││            │   Cancel    › Post review ‹   ⏎ choose · esc cancel            │                                             ││
+│                                ││            ╰────────────────────────────────────────────────────────────────╯make it configurable if you'd rather.        ││
 │                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
@@ -38,7 +38,7 @@ expression: text(& render(& mut app))
 │1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
 │0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
 │Your review: not started        ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
-│a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
-│x request changes · R review    ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
-╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
+│Choosing: comment               ││              │ Fewer branches this way:                                                                                   ││
+│                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

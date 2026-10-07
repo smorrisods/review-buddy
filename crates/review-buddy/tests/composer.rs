@@ -119,6 +119,27 @@ fn approving(theme: &str, width: u16, height: u16) -> App {
     a
 }
 
+fn reviewing(key: char, summary: &str, theme: &str, width: u16, height: u16) -> App {
+    let mut a = open_demo(theme, width, height);
+    press(&mut a, KeyCode::Char(key));
+    if !summary.is_empty() {
+        type_text(&mut a, summary);
+    }
+    a
+}
+
+fn comment_review(theme: &str, width: u16, height: u16) -> App {
+    reviewing('R', "", theme, width, height)
+}
+
+fn request_changes_empty(theme: &str, width: u16, height: u16) -> App {
+    reviewing('x', "", theme, width, height)
+}
+
+fn request_changes_filled(theme: &str, width: u16, height: u16) -> App {
+    reviewing('x', "Please add a test first.", theme, width, height)
+}
+
 macro_rules! snapshots {
     ($($name:ident: $scene:ident($theme:literal, $w:literal, $h:literal);)*) => {
         $(
@@ -144,6 +165,135 @@ snapshots! {
     approve_preview_160x40_dusk: approving("dusk", 160, 40);
     approve_preview_100x30_default_theme: approving("liminal-hq", 100, 30);
     approve_preview_100x30_dusk: approving("dusk", 100, 30);
+    review_comment_160x40_default_theme: comment_review("liminal-hq", 160, 40);
+    review_comment_160x40_dusk: comment_review("dusk", 160, 40);
+    review_comment_100x30_default_theme: comment_review("liminal-hq", 100, 30);
+    review_comment_100x30_dusk: comment_review("dusk", 100, 30);
+    review_request_changes_empty_160x40_default_theme: request_changes_empty("liminal-hq", 160, 40);
+    review_request_changes_empty_160x40_dusk: request_changes_empty("dusk", 160, 40);
+    review_request_changes_empty_100x30_default_theme: request_changes_empty("liminal-hq", 100, 30);
+    review_request_changes_empty_100x30_dusk: request_changes_empty("dusk", 100, 30);
+    review_request_changes_160x40_default_theme: request_changes_filled("liminal-hq", 160, 40);
+    review_request_changes_160x40_dusk: request_changes_filled("dusk", 160, 40);
+    review_request_changes_100x30_default_theme: request_changes_filled("liminal-hq", 100, 30);
+    review_request_changes_100x30_dusk: request_changes_filled("dusk", 100, 30);
+}
+
+#[test]
+fn the_modal_names_the_verdict_and_asks_for_a_summary_when_one_is_needed() {
+    let mut a = request_changes_empty("liminal-hq", 160, 40);
+    let shown = text(&render(&mut a));
+    assert!(shown.contains("(•) 3 Request changes"), "{shown}");
+    assert!(shown.contains("Summary (required)"));
+    assert!(shown.contains("Requesting changes needs a short summary"));
+    let mut a = comment_review("liminal-hq", 160, 40);
+    let shown = text(&render(&mut a));
+    assert!(shown.contains("Summary (optional)"));
+    assert!(shown.contains("Post review with 1 comment"), "{shown}");
+}
+
+#[test]
+fn the_files_pane_shows_the_verdict_choice_while_the_modal_is_open() {
+    let mut a = request_changes_filled("liminal-hq", 160, 40);
+    let shown = text(&render(&mut a));
+    assert!(shown.contains("Choosing: request changes"), "{shown}");
+    assert!(shown.contains("Your review: not started"));
+}
+
+#[test]
+fn requesting_changes_in_demo_sends_the_summary_and_updates_the_row() {
+    let world = world();
+    let backend = Backend::Demo(world.clone());
+    let mut a = open_in(&world, "liminal-hq", 160, 40);
+    let id = a.diff.as_ref().unwrap().id.clone();
+    press(&mut a, KeyCode::Char('x'));
+    type_text(&mut a, "Please add a test first.");
+    let cmds = update(
+        &mut a,
+        Msg::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::CONTROL)),
+    );
+    match cmds.as_slice() {
+        [Cmd::SubmitReview { draft, verdict, .. }] => {
+            assert_eq!(*verdict, Verdict::RequestChanges);
+            assert_eq!(draft.body, "Please add a test first.");
+        }
+        other => panic!("expected a submit, got {other:?}"),
+    }
+    settle(&mut a, &backend, cmds);
+    assert_eq!(
+        a.toasts.last().unwrap().notice.text,
+        "Changes requested (demo)"
+    );
+    let row = a.state.changes.iter().find(|c| c.id == id).unwrap();
+    assert_eq!(row.my_review, MyReview::ChangesRequested);
+    let shown = text(&render(&mut a));
+    assert!(
+        shown.contains("Your review: ✎ changes requested"),
+        "{shown}"
+    );
+    assert!(world.confirmations().last().unwrap().ends_with("(demo)"));
+}
+
+#[test]
+fn a_comment_review_in_demo_posts_the_pending_comments() {
+    let world = world();
+    let backend = Backend::Demo(world.clone());
+    let mut a = open_in(&world, "liminal-hq", 160, 40);
+    let id = a.diff.as_ref().unwrap().id.clone();
+    press(&mut a, KeyCode::Char('R'));
+    let cmds = press(&mut a, KeyCode::Enter);
+    assert!(matches!(
+        cmds.as_slice(),
+        [Cmd::SubmitReview {
+            verdict: Verdict::Comment,
+            ..
+        }]
+    ));
+    settle(&mut a, &backend, cmds);
+    assert_eq!(a.toasts.last().unwrap().notice.text, "Review posted (demo)");
+    let row = a.state.changes.iter().find(|c| c.id == id).unwrap();
+    assert_eq!(row.my_review, MyReview::Commented);
+    assert!(a.diff.as_ref().unwrap().review.is_none());
+}
+
+#[test]
+fn a_demo_gitlab_change_hides_request_changes_and_x_explains() {
+    let world = world();
+    let mut app = App::new(AppConfig {
+        theme_id: "liminal-hq".into(),
+        depth: ColourDepth::TrueColour,
+        no_color: false,
+        size: (160, 40),
+    });
+    update(&mut app, Msg::Loaded(Box::new(snapshot(&world))));
+    for _ in 0..60 {
+        if app
+            .selected_change()
+            .is_some_and(|c| c.id.kind == rb_core::ForgeKind::GitLab)
+        {
+            break;
+        }
+        press(&mut app, KeyCode::Char('j'));
+    }
+    let id = app.selected_change().unwrap().id.clone();
+    assert_eq!(id.kind, rb_core::ForgeKind::GitLab);
+    press(&mut app, KeyCode::Enter);
+    let data = block_on(world.diff_data(&id)).unwrap();
+    update(
+        &mut app,
+        Msg::DiffLoaded {
+            id,
+            result: Ok(Box::new(data)),
+        },
+    );
+    press(&mut app, KeyCode::Char('x'));
+    assert!(app.diff.as_ref().unwrap().review.is_none());
+    let status = app.status.as_ref().unwrap().notice.text.clone();
+    assert!(status.contains("request changes"), "{status}");
+    press(&mut app, KeyCode::Char('R'));
+    let shown = text(&render(&mut app));
+    assert!(shown.contains("(•) 1 Comment"), "{shown}");
+    assert!(shown.contains("2 Approve") && !shown.contains("3 Request changes"));
 }
 
 #[test]
@@ -175,8 +325,10 @@ fn the_discard_default_is_the_safe_button() {
 fn the_approve_preview_lists_the_pending_comment_and_the_verdict() {
     let mut a = approving("liminal-hq", 160, 40);
     let shown = text(&render(&mut a));
+    assert!(shown.contains("Submit your review"), "{shown}");
     assert!(shown.contains("Approve with 1 comment"), "{shown}");
     assert!(shown.contains("Verdict: approve"));
+    assert!(shown.contains("(•) 2 Approve"));
     assert!(shown.contains("› Approve ‹"));
 }
 
@@ -347,7 +499,7 @@ fn without_a_backend_the_failure_is_calm_and_keeps_the_draft() {
     settle(&mut a, &Backend::None, cmds);
     let toast = &a.toasts.last().unwrap().notice;
     assert!(
-        toast.text.contains("Press a to try again"),
+        toast.text.contains("Press ⏎ on Submit to try again"),
         "{}",
         toast.text
     );

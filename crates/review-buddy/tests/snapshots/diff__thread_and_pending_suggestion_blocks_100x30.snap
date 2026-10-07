@@ -27,8 +27,8 @@ expression: shown
 │ Your review · pending ─────────││›        51 +         self.selected = self.selected.checked_sub…│
 │1 suggestion · 0 comments       ││              ╭─ pending suggestion · line 51 ─────────────────╮│
 │0 of 3 files viewed             ││              │ Fewer branches this way:                       ││
-│Your verdict: not started       ││              │ -         self.selected = self.selected.check… ││
+│Your review: not started        ││              │ -         self.selected = self.selected.check… ││
 │a approve · c comment           ││              │ +         self.selected = (self.selected + se… ││
-│x request changes               ││              ╰────────────────────────────────────────────────╯│
+│x request changes · R review    ││              ╰────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

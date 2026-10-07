@@ -10,25 +10,25 @@ expression: text(& render(& mut a))
 │                                ││    12   12       items: Vec<MenuItem>,                         │
 │                                ││         13 +     selected: usize,                              │
 │                ╭ Submit your review ────────────────────────────────────────────╮                │
-│                │ ( ) 1 Comment  (•) 2 Approve  ( ) 3 Request changes            │                │
+│                │ ( ) 1 Comment  ( ) 2 Approve  (•) 3 Request changes            │                │
 │                │                                                                │                │
-│                │ Approve with 1 comment                                         │                │
-│                │ Verdict: approve                                               │>) -> Self {    │
+│                │ Request changes with 1 comment                                 │                │
+│                │ ! Requesting changes needs a short summary. Add one above.     │>) -> Self {    │
 │                │                                                                │                │
-│                │ Summary (optional)                                             │                │
+│                │ Summary (required)                                             │                │
 │                │ ▏                                                              │                │
 │                │ ▏                                                              │                │
 │                │ ▏                                                              │                │
 │                │                                                                │{               │
 │                │ • menus.rs line 51 · Fewer branches this way:                  │                │
 │                │                                                                │                │
-│                │   Cancel    › Approve ‹   ⏎ choose · esc cancel                │                │
+│                │   Cancel      Request changes     ⌃⏎ submit · esc cancel       │                │
 │                ╰────────────────────────────────────────────────────────────────╯cted + 1) % sel…│
 │ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
 │1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
 │0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
 │Your review: not started        ││              │ menus I use stop at the end.                   ││
-│Choosing: approve               ││              │ ada · 20h                                      ││
+│Choosing: request changes       ││              │ ada · 20h                                      ││
 │                                ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

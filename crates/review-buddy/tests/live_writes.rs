@@ -214,7 +214,7 @@ async fn a_comment_then_approve_sends_the_exact_review_and_clears_the_draft() {
     );
 
     s.press(KeyCode::Char('a'));
-    assert!(s.diff().confirm.is_some(), "the preview comes first");
+    assert!(s.diff().review.is_some(), "the preview comes first");
     assert!(
         writes(&server).await.is_empty(),
         "nothing is sent before confirming"
@@ -226,7 +226,7 @@ async fn a_comment_then_approve_sends_the_exact_review_and_clears_the_draft() {
     assert!(s.submitting());
     s.press(KeyCode::Char('a'));
     assert!(
-        s.diff().confirm.is_none(),
+        s.press(KeyCode::Enter).is_empty(),
         "no second submit while one is in flight"
     );
 
@@ -304,6 +304,77 @@ async fn an_existing_pending_review_is_reused_without_duplicating_comments() {
     assert_eq!(sent[1].1["input"]["pullRequestReviewId"], "PRR_old");
 }
 
+#[tokio::test]
+async fn request_changes_sends_the_summary_as_the_review_body() {
+    let server = full_stub().await;
+    let mut s = open_diff(&server, None).await;
+    add_comment(&mut s, "This branch can be simpler");
+    s.press(KeyCode::Char('x'));
+    assert!(
+        writes(&server).await.is_empty(),
+        "nothing is sent while the modal is open"
+    );
+    s.type_text("Please simplify before merging.");
+    let cmds = s.ctrl_enter();
+    assert!(matches!(
+        cmds.as_slice(),
+        [Cmd::SubmitReview {
+            verdict: rb_core::Verdict::RequestChanges,
+            ..
+        }]
+    ));
+    let cmds = s.settle(cmds, is_submitted).await;
+    assert_eq!(s.toast(), "Changes requested");
+    assert_eq!(s.draft_len(), 0);
+    assert!(cmds.iter().any(|c| matches!(c, Cmd::LoadChanges)));
+
+    let sent = writes(&server).await;
+    let names: Vec<_> = sent.iter().map(|(n, _)| *n).collect();
+    assert_eq!(
+        names,
+        ["find pending", "create review", "add thread", "submit"]
+    );
+    assert_eq!(
+        sent[3].1,
+        json!({"input": {
+            "pullRequestReviewId": "PRR_new",
+            "event": "REQUEST_CHANGES",
+            "body": "Please simplify before merging."
+        }})
+    );
+}
+
+#[tokio::test]
+async fn a_comment_review_posts_the_pending_comments_without_approving() {
+    let server = full_stub().await;
+    let mut s = open_diff(&server, None).await;
+    add_comment(&mut s, "A thought on naming");
+    s.press(KeyCode::Char('R'));
+    let cmds = s.press(KeyCode::Enter);
+    assert!(matches!(
+        cmds.as_slice(),
+        [Cmd::SubmitReview {
+            verdict: rb_core::Verdict::Comment,
+            ..
+        }]
+    ));
+    s.settle(cmds, is_submitted).await;
+    assert_eq!(s.toast(), "Review posted");
+    assert_eq!(s.draft_len(), 0);
+
+    let sent = writes(&server).await;
+    let names: Vec<_> = sent.iter().map(|(n, _)| *n).collect();
+    assert_eq!(
+        names,
+        ["find pending", "create review", "add thread", "submit"]
+    );
+    assert_eq!(sent[2].1["input"]["body"], "A thought on naming");
+    assert_eq!(
+        sent[3].1,
+        json!({"input": {"pullRequestReviewId": "PRR_new", "event": "COMMENT"}})
+    );
+}
+
 async fn failing_approval(thread: ResponseTemplate) -> (MockServer, Session) {
     let server = MockServer::start().await;
     serve_write_chain(&server, thread).await;
@@ -325,7 +396,8 @@ fn assert_draft_kept(s: &Session, toast_has: &[&str]) {
     let toast = s.toast();
     assert!(toast.starts_with("Couldn't submit your review"), "{toast}");
     assert!(
-        toast.ends_with("Your comments are still pending. Press a to try again."),
+        toast
+            .ends_with("Your comments and summary are still here. Press ⏎ on Submit to try again."),
         "{toast}"
     );
     for part in toast_has {

@@ -24,11 +24,11 @@ expression: text(&render(&mut a))
 │                     │  r            reply to the thread                    │                     │
 │                     │  a            approve                                │                     │
 │                     │  x            request changes                        │.selected + 1) % sel…│
-│ Your review · pendin│                                                      │────────────────────╮│
-│1 suggestion · 0 comm│Change                                                │                    ││
-│0 of 3 files viewed  │  o            open                                   │he first item? Most ││
-│Your verdict: not sta│  y            copy                                   │.                   ││
-│a approve · c comment│                                                      │                    ││
-│x request changes    │General                                               │eld key never gets  ││
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 32 ▼ ───────────────╯─────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+│ Your review · pendin│  R            submit a review                        │────────────────────╮│
+│1 suggestion · 0 comm│                                                      │                    ││
+│0 of 3 files viewed  │Change                                                │he first item? Most ││
+│Your review: not star│  o            open                                   │.                   ││
+│a approve · c comment│  y            copy                                   │                    ││
+│x request changes · R│                                                      │eld key never gets  ││
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 33 ▼ ───────────────╯─────────────────────╯
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

@@ -37,3 +37,51 @@ fn comment_then_approve_in_demo_and_quit_cleanly() {
     assert!(s.wait_exit(Duration::from_secs(10)));
     assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn request_changes_and_comment_reviews_in_demo() {
+    let home = tempfile::tempdir().unwrap();
+    let mut cmd = pty::command(home.path());
+    cmd.args(["--demo", "--frozen-time", "2026-10-05T10:00"]);
+    let mut s = pty::Pty::spawn(cmd, 160, 40);
+    s.expect(
+        "Add a menu bar and keyboard-driven menus",
+        "the queue loads",
+    );
+
+    s.send_until(b"\r", "@@ -10,7 +10,9 @@", "the diff opens");
+    s.send_expect(b"x", "Submit your review", "x opens the review modal");
+    s.expect("(•) 3 Request changes", "request changes is chosen");
+    s.expect(
+        "Requesting changes needs a short summary",
+        "an empty summary is explained",
+    );
+    s.send_expect(
+        b"Needs a test first",
+        "Needs a test first",
+        "typing fills the summary",
+    );
+    s.send_expect(
+        b"\t",
+        "› Cancel ‹",
+        "tab moves to the buttons, on the safe one",
+    );
+    s.send_expect(b"\t", "› Request changes ‹", "tab again reaches Submit");
+    s.send_expect(
+        b"\r",
+        "Changes requested (demo)",
+        "⏎ submits on the Submit button",
+    );
+    s.expect(
+        "Your review: ✎ changes requested",
+        "the review block shows the verdict",
+    );
+
+    s.send_expect(b"R", "Submit your review", "R opens it on Comment");
+    s.expect("(•) 1 Comment", "comment is chosen");
+    s.send_expect(b"\x1b", "Your review: ✎ changes requested", "esc closes it");
+
+    s.send_expect(b"q", "Waiting on you", "q returns to the queue");
+    s.send(b"q");
+    assert!(s.wait_exit(Duration::from_secs(10)));
+}

@@ -27,8 +27,8 @@ expression: text(&render(&mut a))
 │ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
 │1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
 │0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
-│Your verdict: not started       ││              │ menus I use stop at the end.                   ││
+│Your review: not started        ││              │ menus I use stop at the end.                   ││
 │a approve · c comment           ││              │ ada · 20h                                      ││
-│x request changes               ││              │ I went with wrapping so a held key never gets  ││
+│x request changes · R review    ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy      4 lines selected
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review   4 lines selected

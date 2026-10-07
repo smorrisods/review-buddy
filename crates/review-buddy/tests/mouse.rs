@@ -471,12 +471,62 @@ fn the_approve_preview_buttons_are_clickable() {
     let mut a = diff("liminal-hq", 160, 40);
     press(&mut a, KeyCode::Char('a'));
     click_text(&mut a, "Cancel");
-    assert!(a.diff_state().unwrap().confirm.is_none());
+    assert!(a.diff_state().unwrap().review.is_none());
     press(&mut a, KeyCode::Char('a'));
-    assert!(a.diff_state().unwrap().confirm.is_some());
+    assert!(a.diff_state().unwrap().review.is_some());
     click_text(&mut a, "› Approve ‹");
-    assert!(a.diff_state().unwrap().confirm.is_none());
     assert!(a.diff_state().unwrap().submitting, "the approval was sent");
+}
+
+#[test]
+fn every_control_of_the_review_modal_answers_the_mouse() {
+    use rb_core::Verdict;
+    let mut a = diff("liminal-hq", 160, 40);
+    press(&mut a, KeyCode::Char('R'));
+    click_text(&mut a, "( ) 2 Approve");
+    assert_eq!(
+        a.diff_state().unwrap().review.as_ref().unwrap().verdict,
+        Verdict::Approve
+    );
+    click_text(&mut a, "( ) 3 Request changes");
+    let m = a.diff_state().unwrap().review.as_ref().unwrap();
+    assert_eq!(m.verdict, Verdict::RequestChanges);
+
+    let before = a.diff_state().unwrap().view.cursor;
+    click(&mut a, (2, 2));
+    assert!(
+        a.diff_state().unwrap().review.is_some(),
+        "outside is ignored"
+    );
+    assert_eq!(a.diff_state().unwrap().view.cursor, before);
+
+    let (x, y) = find(&render(&mut a), "▏");
+    click(&mut a, (x + 4, y));
+    for c in "Needs work".chars() {
+        press(&mut a, KeyCode::Char(c));
+    }
+    let m = a.diff_state().unwrap().review.as_ref().unwrap();
+    assert_eq!(m.summary.text(), "Needs work");
+    assert_eq!(m.focus, review_buddy::app::review::ReviewFocus::Summary);
+
+    click_text(&mut a, "Cancel");
+    assert!(a.diff_state().unwrap().review.is_none());
+}
+
+#[test]
+fn clicking_a_disabled_submit_explains_and_sends_nothing() {
+    let mut a = diff("liminal-hq", 160, 40);
+    press(&mut a, KeyCode::Char('x'));
+    click_text(&mut a, "  Request changes  ");
+    let s = a.diff_state().unwrap();
+    assert!(s.review.is_some() && !s.submitting);
+    assert!(a
+        .status
+        .as_ref()
+        .unwrap()
+        .notice
+        .text
+        .contains("short summary"));
 }
 
 #[test]
