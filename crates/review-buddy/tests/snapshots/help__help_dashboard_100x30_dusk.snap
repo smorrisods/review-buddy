@@ -22,13 +22,13 @@ expression: text(&render(&mut a))
 │ Add a menu bar and k│  p    close / reopen the detail pane                 │                     │
 │ ada wants ada/menus │  S    sources: auto / left / top                     │                     │
 │ +32 −1 · 3 files · o│  P    detail: auto / right / left / top / bottom     │                     │
-│ a Approve  x Request│                                                      │                     │
-│  Overview   Files 3 │Change                                                │                     │
-│ ────────────────────│  s /  pick projects in show filters                  │──────────────────── │
+│ a Approve  x Request│  < >  shrink / grow the focused pane (or drag a seam)│                     │
+│  Overview   Files 3 │  =    reset that split to automatic                  │                     │
+│ ────────────────────│  W    save pane sizes to config                      │──────────────────── │
 │ Adds a menu bar alon│                                                      │                     │
-│                     │General                                               │                     │
-│ • Menu::select_next │  ?    help                                           │                     │
-│ • Menu::activate ret│  ,    settings                                       │                     │
-│ • The bar itself is │  T    theme                                          │                     │
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 28 ▼ ───────────────╯─────────────────────╯
+│                     │Change                                                │                     │
+│ • Menu::select_next │  s /  pick projects in show filters                  │                     │
+│ • Menu::activate ret│                                                      │                     │
+│ • The bar itself is │General                                               │                     │
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 31 ▼ ───────────────╯─────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
