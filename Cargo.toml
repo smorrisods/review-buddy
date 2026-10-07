@@ -7,6 +7,7 @@ members = [
     "crates/rb-paths",
     "crates/rb-platform",
     "crates/rb-store",
+    "crates/rb-term",
     "crates/rb-theme",
     "crates/rb-diff",
     "crates/review-buddy",
@@ -24,6 +25,7 @@ documentation = "https://github.com/smorrisods/review-buddy#readme"
 rust-version = "1.87"
 
 [workspace.dependencies]
+alacritty_terminal = "=0.26.0"
 anyhow = "1"
 assert_cmd = "2"
 async-trait = "0.1"
@@ -52,6 +54,7 @@ rb-gitlab = { path = "crates/rb-gitlab" }
 rb-paths = { path = "crates/rb-paths" }
 rb-platform = { path = "crates/rb-platform" }
 rb-store = { path = "crates/rb-store" }
+rb-term = { path = "crates/rb-term" }
 rb-theme = { path = "crates/rb-theme" }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "json"] }
 rustix = { version = "1", default-features = false, features = ["event", "std", "termios"] }
