@@ -16,8 +16,6 @@ use review_buddy::ui::layout::Size;
 mod render_support;
 use render_support::{render, text};
 
-const SIZES: [(u16, u16); 2] = [(160, 40), (100, 30)];
-
 fn block_on<T>(f: impl std::future::Future<Output = T>) -> T {
     tokio::runtime::Builder::new_current_thread()
         .build()
