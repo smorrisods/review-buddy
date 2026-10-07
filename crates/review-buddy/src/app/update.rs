@@ -10,6 +10,7 @@ use super::{
 pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     let mut cmds = apply(app, msg);
     cmds.extend(live::ensure_info(app));
+    cmds.extend(super::images::ensure(app));
     cmds.extend(remember_layout(app));
     cmds.extend(super::drafts::sync(app));
     cmds
@@ -131,6 +132,10 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
         Msg::RefreshDue => live::on_refresh_due(app),
         Msg::RefreshSkipped => live::on_refresh_skipped(app),
         Msg::InfoLoaded { id, result } => live::on_info_loaded(app, id, result),
+        Msg::ImageLoaded { url, result } => {
+            super::images::on_loaded(app, url, result);
+            Vec::new()
+        }
         Msg::DiffLoaded { id, result } => diff::on_loaded(app, &id, result),
         Msg::ReviewSubmitted {
             id,
@@ -348,11 +353,11 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
             super::show::toggle(app, filter);
             Vec::new()
         }
-        Action::Open => match links::current_url(app) {
+        Action::Open => match super::images::focused_url(app).or_else(|| links::current_url(app)) {
             Some(url) => vec![Cmd::OpenUrl(url)],
             None => nothing_selected(app, "open"),
         },
-        Action::Copy => match links::current_url(app) {
+        Action::Copy => match super::images::focused_url(app).or_else(|| links::current_url(app)) {
             Some(url) => vec![Cmd::Copy(url)],
             None => nothing_selected(app, "copy"),
         },

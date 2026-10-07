@@ -59,6 +59,8 @@ pub struct Settings {
     pub tab_width: u8,
     pub confirm_post_now: bool,
     pub reduced_motion: bool,
+    /// `ui.images`, with `REVIEW_BUDDY_IMAGES` already applied when it came from the config.
+    pub images: crate::config::Images,
     pub background: rb_theme::BackgroundMode,
     pub per_theme_background: std::collections::BTreeMap<String, rb_theme::BackgroundMode>,
     pub layout: crate::ui::layout::Options,
@@ -144,6 +146,7 @@ impl Settings {
             tab_width: config.diff.tab_width.clamp(1, 16),
             confirm_post_now: config.review.confirm_post_now,
             reduced_motion: config.ui.reduced_motion,
+            images: config.ui.images,
             background: background_mode(config.ui.background),
             per_theme_background: config
                 .ui
@@ -330,6 +333,24 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
         Cmd::Copy(text) => {
             let _ = tx.send(Msg::Status(platform.copy(&text)));
         }
+        Cmd::FetchImage { source, url } => match backend {
+            Backend::None => {
+                drop(source);
+                let result = Err(crate::images::Failure::NoSource);
+                let _ = tx.send(Msg::ImageLoaded { url, result });
+            }
+            #[cfg(feature = "demo")]
+            Backend::Demo(_) => {
+                let tx = tx.clone();
+                drop(source);
+                tokio::task::spawn_blocking(move || {
+                    let result = crate::demo::images::load(&url);
+                    let _ = tx.send(Msg::ImageLoaded { url, result });
+                });
+            }
+            #[cfg(feature = "live")]
+            Backend::Live(live) => live.fetch_image(source, url, tx),
+        },
         Cmd::LoadChanges | Cmd::LoadChangesNow | Cmd::LoadChangesOnFocus => match backend {
             Backend::None => {}
             #[cfg(feature = "demo")]
@@ -654,6 +675,14 @@ async fn event_loop(options: RunOptions) -> Result<()> {
 
     app.demo = backend.is_demo();
     app.kitty_keys = terminal::keys_enhanced();
+    let mode =
+        crate::images::detect::mode_from_env(std::env::var("REVIEW_BUDDY_IMAGES").ok().as_deref())
+            .or_else(|| options.settings.as_ref().map(|s| s.images))
+            .unwrap_or(crate::config::Images::Auto);
+    app.images = crate::images::State::new(
+        mode,
+        crate::images::detect::detect(mode, app.palette.depth(), app.palette.no_color()),
+    );
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Msg>();
     let mut events = EventStream::new();

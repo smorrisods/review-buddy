@@ -22,6 +22,7 @@ pub mod diffview;
 pub mod drafts;
 pub mod editor;
 pub mod failure;
+pub mod images;
 pub mod links;
 mod live;
 mod mouse;
@@ -265,6 +266,11 @@ pub enum Msg {
     },
     /// The result of a Settings [`Cmd::Settings`] effect.
     Settings(crate::settings::Input),
+    /// An image a [`Cmd::FetchImage`] asked for, decoded, or why it can't be shown.
+    ImageLoaded {
+        url: String,
+        result: Result<std::sync::Arc<image::DynamicImage>, crate::images::Failure>,
+    },
     /// The answer to a [`Cmd::Reply`].
     ReplyPosted {
         id: ChangeId,
@@ -320,6 +326,8 @@ pub enum Cmd {
         dir: std::path::PathBuf,
         writes: Vec<(ChangeId, Option<crate::drafts::StoredDraft>)>,
     },
+    /// Fetch, decode and cache one image from a description, for the source that shows it.
+    FetchImage { source: SourceId, url: String },
     /// Write each source's `hide_repos` into the config file at `target`.
     SaveHiddenProjects {
         target: std::path::PathBuf,
@@ -496,6 +504,8 @@ pub struct App {
     pub demo: bool,
     /// The terminal reports `⌃⏎` as such (the kitty keyboard protocol). Set at startup.
     pub kitty_keys: bool,
+    /// Pictures in descriptions: the renderer, each address's progress and the selected image.
+    pub images: crate::images::State,
     /// The help overlay is showing.
     pub help: bool,
     /// Rows the help overlay is scrolled by.
@@ -557,6 +567,7 @@ impl App {
             settings: None,
             demo: false,
             kitty_keys: false,
+            images: crate::images::State::default(),
             help: false,
             help_scroll: 0,
             show: show::ShowControl::default(),

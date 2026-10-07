@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/images.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#209 ──────────────────────────────────────────────────── ⟩ ╮
+│▌ ● All               7 ││  Waiting on you · 2                          ││ Raise muted text contrast in the light theme                                       │
+│    every source        ││  ◐ Add a menu bar and keyboard-driven me… 2h ││ jo wants jo/light-contrast → main                                                  │
+│  ● liminal-hq        3 ││  GH review-buddy#214 · ada · review requested││ +1 −1 · 1 file · opened 6d ago                                                     │
+│    github.com          ││▌ ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
+│  ● smorris           1 ││▌ GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                                              ││                                                                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 1   Checks 3   Conversation 0                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups          7h ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ Muted text dipped under 4.5:1 on the light surface. This raises the floor and adds │
+│    gitlab.com          ││  ● Tidy zsh startup                       1d ││ a regression test.                                                                 │
+│                        ││  GH dotfiles#31 · smorris · yours            ││ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄                                                           │
+│  Show  s to change     ││                                              ││ ▄▀▀▀▀▀▀▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄                                                           │
+│  [x] reviewing         ││  Can wait · 1                                ││  ▄▄▄▄▄▄▄▄▄▄                                                                        │
+│  [x] assigned          ││  · Clarify the install steps              3d ││ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀▀▀▀                                                                │
+│  [x] authored          ││  GL notes!12 · kai · approved by you         ││ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄                                                                │
+│  [ ] drafts            ││                                              ││ ▄▄▄▄▄▄▄▄▄▄                                                                         │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││ ▣ image: Muted text before the change                                              │
+│                        ││                                              ││ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄                                                           │
+│                        ││  ── That's everything.                       ││ ▀▀▀▀▀▀▀▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄                                                           │
+│                        ││  7 in this view.                             ││ ▄▄▄▄▄▄▄▄▄▄▄ ▀▀                                                                     │
+│                        ││                                              ││ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀▀▀▀                                                                │
+│                        ││                                              ││ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄                                                                │
+│                        ││                                              ││ ▄▄▄▄▄▄▄▄▄▄                                                                         │
+│                        ││                                              ││ ▣ image: Muted text after the change                                               │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││ Reviewers                                Checks                                    │
+│                        ││                                              ││ ✓ smorris approved                       ● 3 passing                               │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││ Latest comment                                                                     │
+│                        ││                                              ││ No comments yet                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││ Your review  ✓ approved                                                            │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

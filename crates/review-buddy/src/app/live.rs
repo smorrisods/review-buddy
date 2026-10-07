@@ -203,6 +203,7 @@ pub fn on_info_loaded(
         Ok(info) => {
             diff::refresh_threads(app, &id, &info.threads);
             app.state.details.insert(id, *info);
+            app.images.checked = None;
             Vec::new()
         }
         Err(message) => push_toast(

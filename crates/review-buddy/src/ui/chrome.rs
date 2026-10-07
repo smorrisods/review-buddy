@@ -98,6 +98,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
             bind("Change", "⏎", "diff", Some(Action::Chip(Chip::Diff)), true),
             bind("Change", "o", "open", open, true),
             bind("Change", "y", "copy", copy, true),
+            bind(
+                "Change",
+                "i",
+                "select next image (o opens, y copies)",
+                None,
+                false,
+            ),
             bind("Change", "s", "show filters", Some(Action::OpenShow), true),
             bind(
                 "Change",

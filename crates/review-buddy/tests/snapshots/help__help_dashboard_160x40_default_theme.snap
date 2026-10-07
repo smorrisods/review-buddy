@@ -17,14 +17,15 @@ expression: text(&render(&mut a))
 │                        ││  GH dotfiles#31 · smorri│  ⏎    diff                                           │lect_prev move the highlight                       │
 │  Show  s to change     ││                         │  o    open                                           │ion for the highlighted item                       │
 │  [x] reviewing         ││  Can wait · 1           │  y    copy                                           │, so it picks up the active theme                  │
-│  [x] assigned          ││  · Clarify the install s│  s    show filters                                   │                                                   │
-│  [x] authored          ││  GL notes!12 · kai · app│  D    pending reviews: your saved drafts             │         Checks                                    │
-│  [ ] drafts            ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
-│  [ ] noise             ││  ▸ Noise · 2 bot updates│View                                                  │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
-│                        ││                         │  p    close / reopen the detail pane                 │                                                   │
-│                        ││  ── That's everything.  │  S    sources: auto / left / top                     │                                                   │
-│                        ││  7 in this view.        │  P    rotate panes: list left → top → right → bottom │                                                   │
-│                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│oin. Is the intermediate Vec doing anything for    │
+│  [x] assigned          ││  · Clarify the install s│  i    select next image (o opens, y copies)          │                                                   │
+│  [x] authored          ││  GL notes!12 · kai · app│  s    show filters                                   │         Checks                                    │
+│  [ ] drafts            ││                         │  D    pending reviews: your saved drafts             │         ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates│                                                      │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││                         │View                                                  │                                                   │
+│                        ││  ── That's everything.  │  p    close / reopen the detail pane                 │                                                   │
+│                        ││  7 in this view.        │  S    sources: auto / left / top                     │                                                   │
+│                        ││                         │  P    rotate panes: list left → top → right → bottom │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│                                                   │
 │                        ││                         │  =    reset that split to automatic                  │                                                   │
 │                        ││                         │  W    save pane sizes to config                      │                                                   │
 │                        ││                         │                                                      │                                                   │
@@ -39,6 +40,5 @@ expression: text(&render(&mut a))
 │                        ││                         │  q    quit                                           │                                                   │
 │                        ││                         │  ⌃Z   suspend                                        │                                                   │
 │                        ││                         ╰ esc close ───────────────────────────────────────────╯                                                   │
-│                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

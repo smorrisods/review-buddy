@@ -19,6 +19,8 @@ use super::refresh::{
 use super::{Factory, ProviderError};
 use crate::app::{ChangeInfo, Msg, Snapshot, SourceFailure, SourceStatus};
 use crate::cmd::context::Context;
+use crate::images::cache::{self, DiskCache};
+use crate::images::fetch::{decode, Failure, Fetcher, Limits};
 use crate::load;
 
 pub struct Live {
@@ -33,6 +35,14 @@ pub struct Live {
     /// `refresh.interval`; `None` means manual refreshes only.
     pub refresh_interval: Option<Duration>,
     pub refresh_on_focus: bool,
+    images: ImageSettings,
+}
+
+/// Where fetched pictures are kept and whether third-party hosts are off limits.
+#[derive(Debug, Clone, Default)]
+pub struct ImageSettings {
+    pub cache: Option<DiskCache>,
+    pub forge_only: bool,
 }
 
 impl std::fmt::Debug for Live {
@@ -59,7 +69,13 @@ impl Live {
             known: Mutex::default(),
             refresh_interval: None,
             refresh_on_focus: true,
+            images: ImageSettings::default(),
         }
+    }
+
+    pub fn with_images(mut self, images: ImageSettings) -> Self {
+        self.images = images;
+        self
     }
 
     pub fn with_clock(mut self, clock: Arc<dyn Clock>) -> Self {
@@ -92,6 +108,13 @@ impl Live {
             usize::from(ctx.config.refresh.max_concurrency_per_host),
         );
         live.refresh_on_focus = ctx.config.refresh.on_focus;
+        live.images = ImageSettings {
+            cache: Some(DiskCache::new(
+                ctx.paths.paths.cache_dir.join("images"),
+                cache::DEFAULT_CAP,
+            )),
+            forge_only: ctx.config.ui.images == crate::config::Images::ForgeOnly,
+        };
         live.refresh_interval = ctx.config.refresh.interval.filter(|d| !d.is_zero());
         Ok(live)
     }
@@ -112,6 +135,78 @@ impl Live {
             now: load::now(),
             details: HashMap::new(),
         }
+    }
+
+    /// Loads one picture for a description: from the cache when it is fresh, else from the
+    /// network (with this source's token only on its own hosts), then decodes it.
+    pub fn fetch_image(self: &Arc<Self>, source: SourceId, url: String, tx: &UnboundedSender<Msg>) {
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let result = live.load_image(&source, &url).await;
+            let _ = tx.send(Msg::ImageLoaded { url, result });
+        });
+    }
+
+    async fn load_image(
+        &self,
+        source: &SourceId,
+        url: &str,
+    ) -> Result<Arc<image::DynamicImage>, Failure> {
+        let parsed = url::Url::parse(url).map_err(|_| Failure::NotWeb)?;
+        let limits = Limits::default();
+        let mut stale = None;
+        if let Some(cache) = self.images.cache.clone() {
+            let (key, c) = (parsed.clone(), cache.clone());
+            let hit = tokio::task::spawn_blocking(move || {
+                c.get(&key)
+                    .map(|hit| (decode(&hit.bytes, &limits), hit.fresh))
+            })
+            .await
+            .ok()
+            .flatten();
+            match hit {
+                Some((Ok(img), true)) => return Ok(Arc::new(img)),
+                Some((Ok(img), false)) => stale = Some(img),
+                Some((Err(_), _)) => cache.forget(&parsed),
+                None => {}
+            }
+        }
+        let fetched = self.download(source, &parsed, limits).await;
+        match fetched {
+            Ok(bytes) => {
+                let cache = self.images.cache.clone();
+                let key = parsed.clone();
+                tokio::task::spawn_blocking(move || {
+                    let img = decode(&bytes, &limits)?;
+                    if let Some(cache) = cache {
+                        let _ = cache.put(&key, &bytes);
+                    }
+                    Ok(Arc::new(img))
+                })
+                .await
+                .map_err(|_| Failure::Decode)?
+            }
+            Err(failure) => stale.map(Arc::new).ok_or(failure),
+        }
+    }
+
+    async fn download(
+        &self,
+        source: &SourceId,
+        url: &url::Url,
+        limits: Limits,
+    ) -> Result<Vec<u8>, Failure> {
+        let factory = Arc::clone(&self.factory);
+        let id = source.clone();
+        let (hosts, token) = tokio::task::spawn_blocking(move || factory.image_access(&id))
+            .await
+            .ok()
+            .flatten()
+            .ok_or(Failure::NoSource)?;
+        Fetcher::new(hosts, token, self.images.forge_only, limits)?
+            .fetch(url)
+            .await
     }
 
     /// An automatic refresh (launch, interval): every source at once, each respecting its own
