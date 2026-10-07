@@ -509,7 +509,8 @@ pub struct App {
     pub settings: Option<crate::settings::State>,
     /// Running on demo data: Settings shows it read-only and touches nothing real.
     pub demo: bool,
-    /// The terminal reports `⌃⏎` as such (the kitty keyboard protocol). Set at startup.
+    /// The terminal reports `⌃⏎` as such (the kitty keyboard protocol). Set at startup. The terminal pane uses it
+    /// to decide whether a child that asked for kitty keys can be given them.
     pub kitty_keys: bool,
     /// Pictures in descriptions: the renderer, each address's progress and the selected image.
     pub images: crate::images::State,
@@ -536,8 +537,6 @@ pub struct App {
     pub session: Option<crate::session::Tracker>,
     /// The terminal pane.
     pub term: terminal::TerminalState,
-    /// The host terminal reports keys in enough detail for the kitty keyboard protocol.
-    pub kitty_keys: bool,
     /// The seam being dragged with the mouse.
     pub drag: Option<resize::Drag>,
     /// The last press on a seam, for spotting a double-click: which seam and the tick.
@@ -590,7 +589,6 @@ impl App {
             layout: crate::ui::layout::Options::default(),
             session: None,
             term: terminal::TerminalState::default(),
-            kitty_keys: false,
             drag: None,
             last_seam: None,
             quit_armed: false,

@@ -7,7 +7,7 @@
 - `portable-pty` starts a child in the home directory when no working directory is set, so "use the current directory" opened a shell in `$HOME`. The pty test caught it; `Pty::spawn` now passes `current_dir()` when the caller gives none.
 - `git remote -v` prints a URL after `insteadOf` has rewritten it, so a clone whose `origin` is rewritten to a local path never matched its repository. Matching now also reads `remote.<name>.url` as written. The same quirk is what lets the worktree test fetch from a local bare repository with no network.
 - A legacy terminal reports `Ctrl-\` as `Ctrl-4` (the byte is 0x1c), so the escape chord compares control codes, not key names.
-- The brief mentioned `App::kitty_keys`; it did not exist in this tree. It is now an `App` field, seeded from the environment (`rb_term::host_supports_kitty`) and raised by the first key only the kitty protocol can produce. A startup `supports_keyboard_enhancement()` query would have been exact but waits on a reply that the `vt100`-hosted pty tests never send.
+- `App::kitty_keys` landed on `main` (PR #146) while this was in progress, with the same meaning I had given a field of my own; the rebase had two copies. I dropped mine and its environment guess, and the pane now reads the startup keyboard-enhancement query that #146 added (with its `REVIEW_BUDDY_KITTY_KEYS` override).
 - The shared cargo target directory gave a stale "method not found" for a function that existed; touching the crate roots and rebuilding once fixed it, as the brief said.
 
 **Decisions:**

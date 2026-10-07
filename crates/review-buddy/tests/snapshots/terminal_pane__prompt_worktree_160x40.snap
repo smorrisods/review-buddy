@@ -1,6 +1,6 @@
 ---
 source: crates/review-buddy/tests/terminal_pane.rs
-expression: text(&render(&mut app))
+expression: "prompt_frame((160, 40))"
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
 ╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮

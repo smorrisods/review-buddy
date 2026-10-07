@@ -55,23 +55,6 @@ pub fn encode_key(key: &KeyEvent, ctx: &KeyContext) -> Vec<u8> {
     legacy(key, ctx)
 }
 
-/// Whether the host terminal is one known to speak the kitty keyboard protocol, from its
-/// environment. The app also treats the first key event only that protocol can produce (a release,
-/// a Super key) as proof.
-pub fn host_supports_kitty(var: &dyn Fn(&str) -> Option<String>) -> bool {
-    let has = |k: &str| var(k).is_some_and(|v| !v.is_empty());
-    let term = var("TERM").unwrap_or_default().to_ascii_lowercase();
-    let program = var("TERM_PROGRAM").unwrap_or_default().to_ascii_lowercase();
-    has("KITTY_WINDOW_ID")
-        || has("WEZTERM_EXECUTABLE")
-        || ["kitty", "foot", "alacritty", "ghostty"]
-            .iter()
-            .any(|t| term.contains(t))
-        || ["ghostty", "wezterm", "kitty"]
-            .iter()
-            .any(|p| program == *p)
-}
-
 /// A paste, wrapped in bracketed-paste markers when the child asked for them. Without them,
 /// newlines become carriage returns like typed Enter. A stray end marker inside the text is removed
 /// so pasted text can't end the paste early.
@@ -553,28 +536,6 @@ mod tests {
             b"\x1b[200~xy\x1b[201~",
             "an embedded end marker can't end the paste early"
         );
-    }
-
-    #[test]
-    fn known_kitty_hosts_are_recognised_from_the_environment() {
-        let env = |pairs: &'static [(&'static str, &'static str)]| {
-            move |k: &str| {
-                pairs
-                    .iter()
-                    .find(|(n, _)| *n == k)
-                    .map(|(_, v)| (*v).to_string())
-            }
-        };
-        assert!(host_supports_kitty(&env(&[("TERM", "xterm-kitty")])));
-        assert!(host_supports_kitty(&env(&[("TERM_PROGRAM", "ghostty")])));
-        assert!(host_supports_kitty(&env(&[("KITTY_WINDOW_ID", "3")])));
-        assert!(host_supports_kitty(&env(&[("TERM", "foot")])));
-        assert!(!host_supports_kitty(&env(&[("TERM", "xterm-256color")])));
-        assert!(!host_supports_kitty(&env(&[(
-            "TERM_PROGRAM",
-            "Apple_Terminal"
-        )])));
-        assert!(!host_supports_kitty(&env(&[])));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 ---
 source: crates/review-buddy/tests/terminal_pane.rs
-expression: "frame(theme, (w, h))"
+expression: "frame(\"liminal-hq\", (100, 30))"
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
   1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1

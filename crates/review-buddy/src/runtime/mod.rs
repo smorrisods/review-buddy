@@ -693,7 +693,6 @@ async fn event_loop(options: RunOptions) -> Result<()> {
         Some(settings) => settings.app_config(base),
         None => base,
     });
-    app.kitty_keys = rb_term::host_supports_kitty(&|k| std::env::var(k).ok());
     app.background.env = background_from_env();
     if let Some(settings) = &options.settings {
         settings.apply(&mut app);

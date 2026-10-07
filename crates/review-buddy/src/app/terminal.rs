@@ -624,13 +624,6 @@ fn prompt_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
 /// Keys that belong to the terminal feature before anything else sees them: the start prompt, and
 /// the child while the pane has focus. `None` leaves the key to the app.
 pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
-    if key.kind != KeyEventKind::Press
-        || key
-            .modifiers
-            .intersects(KeyModifiers::SUPER | KeyModifiers::HYPER | KeyModifiers::META)
-    {
-        app.kitty_keys = true;
-    }
     if app.term.prompt.is_some() {
         if key.kind == KeyEventKind::Release {
             return Some(Vec::new());

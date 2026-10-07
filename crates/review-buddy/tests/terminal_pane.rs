@@ -834,14 +834,10 @@ fn frame(theme: &str, size: (u16, u16)) -> String {
 
 #[test]
 fn frames_with_the_scripted_pane() {
-    for theme in ["liminal-hq", "dusk"] {
-        for (w, h) in SIZES {
-            insta::assert_snapshot!(
-                format!("pane_{}_{w}x{h}", theme.replace('-', "_")),
-                frame(theme, (w, h))
-            );
-        }
-    }
+    insta::assert_snapshot!("pane_liminal_hq_160x40", frame("liminal-hq", (160, 40)));
+    insta::assert_snapshot!("pane_liminal_hq_100x30", frame("liminal-hq", (100, 30)));
+    insta::assert_snapshot!("pane_dusk_160x40", frame("dusk", (160, 40)));
+    insta::assert_snapshot!("pane_dusk_100x30", frame("dusk", (100, 30)));
 }
 
 #[test]
@@ -852,17 +848,20 @@ fn frame_with_the_chord_half_typed() {
     insta::assert_snapshot!("pane_armed_160x40", text(&render(&mut app)));
 }
 
+fn prompt_frame(size: (u16, u16)) -> String {
+    let mut app = dashboard("liminal-hq", size, false);
+    app.term.settings = TerminalSettings::from_config(&TerminalConfig::default())
+        .with_worktrees_root("/state/review-buddy/worktrees".into());
+    press(&mut app, KeyCode::Char('t'));
+    update(&mut app, Msg::Term(TermMsg::Planned(Ok(fixed_plan()))));
+    text(&render(&mut app))
+}
+
 #[cfg(unix)]
 #[test]
 fn frames_with_the_start_prompt() {
-    for (w, h) in SIZES {
-        let mut app = dashboard("liminal-hq", (w, h), false);
-        app.term.settings = TerminalSettings::from_config(&TerminalConfig::default())
-            .with_worktrees_root("/state/review-buddy/worktrees".into());
-        press(&mut app, KeyCode::Char('t'));
-        update(&mut app, Msg::Term(TermMsg::Planned(Ok(fixed_plan()))));
-        insta::assert_snapshot!(format!("prompt_worktree_{w}x{h}"), text(&render(&mut app)));
-    }
+    insta::assert_snapshot!("prompt_worktree_160x40", prompt_frame((160, 40)));
+    insta::assert_snapshot!("prompt_worktree_100x30", prompt_frame((100, 30)));
     let mut app = dashboard("dusk", (160, 40), false);
     app.term.settings = TerminalSettings::from_config(&TerminalConfig::default())
         .with_worktrees_root("/state/review-buddy/worktrees".into());
