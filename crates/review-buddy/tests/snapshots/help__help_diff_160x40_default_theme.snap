@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus · ada · ada/menus → main
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ╭ Keys · Diff ─────────────────────────────────────────╮───────────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ │Move                                                  │                                                   │
 │  · src/ui/menubar.rs      +8 −0││›   10   10      │  j/k          move                                   │                                                   │
@@ -22,23 +23,22 @@ expression: text(&render(&mut a))
 │                                ││         40 +    │Review                                                │                                                   │
 │                                ││         41 +    │  c            comment                                │                                                   │
 │                                ││         42 +    │  r            reply to the thread on this line       │                                                   │
-│                                ││         43 +    │  e / ⏎        edit the pending comment on this line  │                                                   │
-│                                ││         44 +    │  d / del      delete it (asks first)                 │n();                                               │
-│                                ││              ╭─ │  , / .        previous / next comment on this line   │──────────────────────────────────────────────────╮│
-│                                ││              │ j│  a            approve                                │                                                  ││
-│                                ││              │ S│  x            request changes                        │e stop at the end.                                ││
-│                                ││              │ a│  R            submit a review                        │                                                  ││
-│                                ││              │ I│                                                      │y to make it configurable if you'd rather.        ││
-│                                ││              ╰──│Change                                                │──────────────────────────────────────── r reply ─╯│
-│                                ││         45 +    │  o            open                                   │                                                   │
-│                                ││         46 +    │  y            copy                                   │                                                   │
-│                                ││         47 +    │                                                      │                                                   │
-│ Your review · pending ─────────││         48 +    │General                                               │                                                   │
-│1 suggestion · 0 comments       ││         49 +    │  esc          back                                   │                                                   │
-│0 of 3 files viewed             ││         50 +    │  q            back to the queue                      │                                                   │
-│Your review: not started        ││         51 +    │  ?            help                                   │_or(self.items.len() - 1);                         │
-│  menus.rs:51 Fewer branches th…││              ╭─ │  T            theme                                  │──────────────────────────────────────────────────╮│
-│a approve · c comment           ││              │ F│  B            background: theme / yes / no           │                                                  ││
-│x request changes · R review    ││              │ -│  ⌃Z           suspend                                │wrap_or(self.items.len() - 1);                    ││
-╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close ───────────────────────────────────────────╯───────────────────────────────────────────────────╯
+│                                ││         43 +    │  a            approve                                │                                                   │
+│                                ││         44 +    │  x            request changes                        │n();                                               │
+│                                ││              ╭─ │  R            submit a review                        │──────────────────────────────────────────────────╮│
+│                                ││              │ j│                                                      │                                                  ││
+│                                ││              │ S│Change                                                │e stop at the end.                                ││
+│                                ││              │ a│  o            open                                   │                                                  ││
+│                                ││              │ I│  y            copy                                   │y to make it configurable if you'd rather.        ││
+│                                ││              ╰──│                                                      │──────────────────────────────────────── r reply ─╯│
+│                                ││         45 +    │General                                               │                                                   │
+│                                ││         46 +    │  esc          back                                   │                                                   │
+│                                ││         47 +    │  q            back to the queue                      │                                                   │
+│ Your review · pending ─────────││         48 +    │  ?            help                                   │                                                   │
+│1 suggestion · 0 comments       ││         49 +    │  T            theme                                  │                                                   │
+│0 of 3 files viewed             ││         50 +    │  B            background: theme / yes / no           │                                                   │
+│Your review: not started        ││         51 +    │  ⌃Z           suspend                                │_or(self.items.len() - 1);                         │
+│a approve · c comment           ││              ╭─ ╰ esc close ───────────────────────────────────────────╯──────────────────────────────────────────────────╮│
+│x request changes · R review    ││              │ Fewer branches this way:                                                                                   ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

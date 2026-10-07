@@ -368,3 +368,118 @@ fn esc_returns_to_the_same_dashboard_selection() {
     assert_eq!(a.selected_change().unwrap().id, picked);
     assert!(text(&render(&mut a)).contains("queue"));
 }
+
+fn header_row(buffer: &Buffer) -> String {
+    text(buffer).lines().nth(1).unwrap_or_default().to_string()
+}
+
+fn footer_row(buffer: &Buffer) -> String {
+    text(buffer).lines().last().unwrap_or_default().to_string()
+}
+
+#[test]
+fn the_header_names_the_change_on_both_sizes() {
+    for (w, h) in [(160, 40), (100, 30)] {
+        let mut a = open_demo("liminal-hq", w, h);
+        let title = a.selected_change().unwrap().title.clone();
+        let row = header_row(&render(&mut a));
+        assert!(row.contains("GH liminal-hq/review-buddy#214"), "{row}");
+        assert!(row.contains("liminal-hq"), "{row}");
+        assert!(row.contains(&title) || row.contains('…'), "{row}");
+    }
+    let mut wide = open_demo("liminal-hq", 160, 40);
+    let row = header_row(&render(&mut wide));
+    let change = wide.selected_change().unwrap();
+    for part in [&change.title, &change.author, &change.branch, &change.base] {
+        assert!(row.contains(part.as_str()), "{row}");
+    }
+}
+
+#[test]
+fn the_header_reads_the_same_without_colour() {
+    let mut colour = open_demo("liminal-hq", 160, 40);
+    let mut plain = base("liminal-hq", 160, 40, true);
+    let id = colour.selected_change().unwrap().id.clone();
+    let data = block_on(world().diff_data(&id)).unwrap();
+    open_with(&mut plain, data);
+    assert_eq!(
+        header_row(&render(&mut colour)),
+        header_row(&render(&mut plain))
+    );
+}
+
+#[test]
+fn a_long_title_is_cut_with_an_ellipsis_and_the_footer_stays() {
+    let mut a = base("liminal-hq", 100, 30, false);
+    a.state.changes[0].title = "An extremely long pull request title ".repeat(8);
+    let id = a.state.changes[0].id.clone();
+    let data = block_on(world().diff_data(&id)).unwrap();
+    open_with(&mut a, data);
+    let buffer = render(&mut a);
+    let row = header_row(&buffer);
+    assert!(row.contains("GH liminal-hq/review-buddy#214"), "{row}");
+    assert!(row.ends_with('…'), "{row}");
+    assert!(row.chars().count() <= 100);
+    assert!(!row.contains("wants"), "extras give way first: {row}");
+    assert!(
+        footer_row(&buffer).contains("y copy"),
+        "{}",
+        footer_row(&buffer)
+    );
+}
+
+#[test]
+fn a_gitlab_change_uses_the_same_header() {
+    let mut a = base("liminal-hq", 160, 40, false);
+    let change = a
+        .state
+        .changes
+        .iter()
+        .find(|c| c.id.kind == rb_core::ForgeKind::GitLab)
+        .expect("the demo has a GitLab change")
+        .clone();
+    let data = block_on(world().diff_data(&change.id)).unwrap();
+    let cmds = review_buddy::app::open_change(&mut a, &change.id);
+    assert!(matches!(cmds.as_slice(), [Cmd::LoadDiff(_)]));
+    update(
+        &mut a,
+        Msg::DiffLoaded {
+            id: change.id.clone(),
+            result: Ok(Box::new(data)),
+        },
+    );
+    let row = header_row(&render(&mut a));
+    assert!(
+        row.contains(&format!("GL {}", change.id.short_ref())),
+        "{row}"
+    );
+    assert!(row.contains(&change.title), "{row}");
+}
+
+#[test]
+fn opening_by_id_before_the_queue_knows_the_change_still_names_it() {
+    let mut a = App::new(AppConfig {
+        theme_id: "liminal-hq".into(),
+        depth: ColourDepth::TrueColour,
+        no_color: false,
+        size: (100, 30),
+    });
+    let id = snapshot().changes[0].id.clone();
+    review_buddy::app::open_change(&mut a, &id);
+    let row = header_row(&render(&mut a));
+    assert!(row.contains(&id.short_ref()), "{row}");
+    assert!(row.contains("title not loaded yet"), "{row}");
+}
+
+#[test]
+fn the_header_survives_the_review_modal_and_the_composer() {
+    let mut a = open_demo("liminal-hq", 100, 30);
+    let before = header_row(&render(&mut a));
+    press(&mut a, KeyCode::Char('R'));
+    press(&mut a, KeyCode::Esc);
+    assert_eq!(header_row(&render(&mut a)), before);
+    press(&mut a, KeyCode::Char('c'));
+    assert!(header_row(&render(&mut a)).contains("#214"));
+    press(&mut a, KeyCode::Esc);
+    assert_eq!(header_row(&render(&mut a)), before);
+}

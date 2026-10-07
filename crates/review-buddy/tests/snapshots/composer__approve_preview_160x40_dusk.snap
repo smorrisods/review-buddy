@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/composer.rs
 expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus · ada · ada/menus → main
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                                                                                 │
@@ -13,23 +14,23 @@ expression: text(& render(& mut a))
 │                                ││    13   15   }                                                                                                             │
 │                                ││    14   16                                                                                                                 │
 │                                ││    15   17   impl Menu {                                                                                                   │
-│                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {                                                                │
-│                                ││            ╭ Submit your review ────────────────────────────────────────────╮                                              │
-│                                ││    34   36 │ ( ) 1 Comment  (•) 2 Approve  ( ) 3 Request changes            │                                              │
-│                                ││    35   37 │                                                                │                                              │
-│                                ││    36   38 │ Approve with 1 comment                                         │                                              │
-│                                ││         39 │ Verdict: approve                                               │                                              │
-│                                ││         40 │                                                                │                                              │
-│                                ││         41 │ Summary (optional)                                             │                                              │
+│                                ││    16   18 ╭ Submit your review ────────────────────────────────────────────╮                                              │
+│                                ││            │ ( ) 1 Comment  (•) 2 Approve  ( ) 3 Request changes            │                                              │
+│                                ││    34   36 │                                                                │                                              │
+│                                ││    35   37 │ Approve with 1 comment                                         │                                              │
+│                                ││    36   38 │ Verdict: approve                                               │                                              │
+│                                ││         39 │                                                                │                                              │
+│                                ││         40 │ Summary (optional)                                             │                                              │
+│                                ││         41 │ ▏                                                              │                                              │
 │                                ││         42 │ ▏                                                              │                                              │
 │                                ││         43 │ ▏                                                              │                                              │
-│                                ││         44 │ ▏                                                              │                                              │
-│                                ││            │                                                                │─────────────────────────────────────────────╮│
-│                                ││            │ • menus.rs line 51 · Fewer branches this way:                  │                                             ││
-│                                ││            │                                                                │p at the end.                                ││
-│                                ││            │   Cancel    › Approve ‹                                        │                                             ││
-│                                ││            │ ⏎ submits · tab → cancel · esc cancels                         │make it configurable if you'd rather.        ││
-│                                ││            ╰────────────────────────────────────────────────────────────────╯─────────────────────────────────── r reply ─╯│
+│                                ││         44 │                                                                │                                              │
+│                                ││            │ • menus.rs line 51 · Fewer branches this way:                  │─────────────────────────────────────────────╮│
+│                                ││            │                                                                │                                             ││
+│                                ││            │   Cancel    › Approve ‹                                        │p at the end.                                ││
+│                                ││            │ ⏎ submits · tab → cancel · esc cancels                         │                                             ││
+│                                ││            ╰────────────────────────────────────────────────────────────────╯make it configurable if you'd rather.        ││
+│                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
 │                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │
@@ -37,8 +38,7 @@ expression: text(& render(& mut a))
 │1 suggestion · 0 comments       ││         49 +             return;                                                                                           │
 │0 of 3 files viewed             ││         50 +         }                                                                                                     │
 │Your review: not started        ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
-│  menus.rs:51 Fewer branches th…││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
-│Choosing: approve               ││              │ Fewer branches this way:                                                                                   ││
-│                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+│Choosing: approve               ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
+│                                ││              │ Fewer branches this way:                                                                                   ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

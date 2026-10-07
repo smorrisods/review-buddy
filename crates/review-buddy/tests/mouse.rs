@@ -250,7 +250,7 @@ fn the_wheel_scrolls_the_pane_under_the_pointer_not_the_focused_one() {
 }
 
 fn code_row(offset: u16) -> (u16, u16) {
-    (60, 1 + 1 + offset)
+    (60, 1 + 1 + 1 + offset)
 }
 
 fn drag(app: &mut App, from: (u16, u16), to: (u16, u16)) {
@@ -585,7 +585,7 @@ fn the_range_is_drawn_with_the_selection_role() {
     let buffer = render(&mut a);
     let (lo, _) = range_bounds(&a).unwrap();
     let state = a.diff_state().unwrap();
-    let y = 2 + (lo - state.view.scroll) as u16;
+    let y = 3 + (lo - state.view.scroll) as u16;
     let want = ui::style::bg(&a.palette, Role::Selection).bg;
     assert_ne!(want, None);
     assert_eq!(buffer[(60, y)].bg, want.unwrap());

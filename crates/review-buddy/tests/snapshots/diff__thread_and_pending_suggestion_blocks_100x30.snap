@@ -3,11 +3,11 @@ source: crates/review-buddy/tests/diff.rs
 expression: shown
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
-│› · src/ui/menus.rs       +22 −1││         40 +     pub fn select_next(&mut self) {               │
-│  · src/ui/menubar.rs      +8 −0││         41 +         if self.items.is_empty() {                │
-│  · src/ui/mod.rs          +2 −0││         42 +             return;                               │
-│                                ││         43 +         }                                         │
+│› · src/ui/menus.rs       +22 −1││         41 +         if self.items.is_empty() {                │
+│  · src/ui/menubar.rs      +8 −0││         42 +             return;                               │
+│  · src/ui/mod.rs          +2 −0││         43 +         }                                         │
 │                                ││         44 +         self.selected = (self.selected + 1) % sel…│
 │                                ││              ╭─ thread · line 44 ─────────────────────────────╮│
 │                                ││              │ jo · 1d                                        ││

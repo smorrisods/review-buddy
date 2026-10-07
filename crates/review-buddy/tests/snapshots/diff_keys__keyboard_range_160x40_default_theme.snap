@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/diff_keys.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus · ada · ada/menus → main
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
 │  · src/ui/menubar.rs      +8 −0││▌   10   10                                                                                                                 │
@@ -37,8 +38,7 @@ expression: text(&render(&mut a))
 │1 suggestion · 0 comments       ││         49 +             return;                                                                                           │
 │0 of 3 files viewed             ││         50 +         }                                                                                                     │
 │Your review: not started        ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
-│  menus.rs:51 Fewer branches th…││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
-│a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
-│x request changes · R review    ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+│a approve · c comment           ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
+│x request changes · R review    ││              │ Fewer branches this way:                                                                                   ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme                    4 lines selected

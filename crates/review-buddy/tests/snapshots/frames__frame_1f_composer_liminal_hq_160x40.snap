@@ -3,11 +3,11 @@ source: crates/review-buddy/tests/frames.rs
 expression: text(& render(& mut app))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus · ada · ada/menus → main
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│› · src/ui/menus.rs       +22 −1││    14   16                                                                                                                 │
-│  · src/ui/menubar.rs      +8 −0││    15   17   impl Menu {                                                                                                   │
-│  · src/ui/mod.rs          +2 −0││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {                                                                │
-│                                ││              @@ -34,6 +36,24 @@ impl Menu {                                                                                │
+│› · src/ui/menus.rs       +22 −1││    15   17   impl Menu {                                                                                                   │
+│  · src/ui/menubar.rs      +8 −0││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {                                                                │
+│  · src/ui/mod.rs          +2 −0││              @@ -34,6 +36,24 @@ impl Menu {                                                                                │
 │                                ││    34   36       pub fn len(&self) -> usize {                                                                              │
 │                                ││    35   37           self.items.len()                                                                                      │
 │                                ││    36   38       }                                                                                                         │

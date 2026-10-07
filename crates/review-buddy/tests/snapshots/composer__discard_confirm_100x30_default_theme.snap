@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/composer.rs
 expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
@@ -13,21 +14,20 @@ expression: text(& render(& mut a))
 │                                ││    13   15   }                                                 │
 │                                ││    14   16                                                     │
 │                                ││    15   17   impl Menu {                                       │
-│                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {    │
-│                 ╭ Discard this comment? ───────────────────────────────────────╮                 │
+│                 ╭ Discard this comment? ───────────────────────────────────────╮m>) -> Self {    │
 │                 │ Your unsent text will be lost.                               │                 │
 │                 │                                                              │                 │
 │                 │ › No, keep editing ‹    Discard     ⏎ choose · esc cancel    │                 │
 │                 ╰──────────────────────────────────────────────────────────────╯                 │
+│                                ││         39 +                                                   │
 │                                ││         40 +     pub fn select_next(&mut self) {               │
 │                                ││         41 +         if self.items.is_empty() {                │
 │                                ││         42 +             return;                               │
 │                                ││         43 +         }                                         │
 │ Your review · pending ─────────││         44 +         self.selected = (self.selected + 1) % sel…│
-│1 suggestion · 0 comments       ││              ╭─ thread · line 44 ─────────────────────────────╮│
-│0 of 3 files viewed             ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
-│Your review: not started        │││ This could return early.                                     ││
-│  menus.rs:51 Fewer branches th…│││ Worth a guard?                                               ││
+│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
+│0 of 3 files viewed             │││ This could return early.                                     ││
+│Your review: not started        │││ Worth a guard?                                               ││
 │a approve · c comment           │││                                                              ││
 │x request changes · R review    ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯

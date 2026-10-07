@@ -145,6 +145,7 @@ Detail tab contents:
 
 Opened with `⏎` (or `d`) from any dashboard.
 
+- **Change header**: one row under the top bar, over both panes, always naming the change under review: the forge badge (`GH` or `GL`), the native reference (`owner/repo#214` or `group/project!1182`), the source label, the title, and `author · branch → base` when the whole line fits. The title is cut with an ellipsis before anything else gives way, and the footer hints and refresh time sit on their own row, so a long title can't push them off. It reads the same for GitHub and GitLab and relies on text, not colour. When the diff was opened by `review-buddy open <url>` before the queue knows the change, it shows the reference and `title not loaded yet`. Bodies shorter than eight rows leave the header out.
 - **Files pane** (34 cols): the file tree with `+/−` counts, the current file marked `›`. The bottom block shows "Your review · pending": the count of pending comments and suggestions, files viewed, and `a approve with these · x request changes · R review`, with `Your review: …` showing the verdict you've submitted (`approved`, `changes requested`, `commented`) and `Choosing: …` while the review modal is open.
 - **Diff pane**: the file path in the top border; the view toggle `v unified │ side by side` top-right; the range status in the bottom border (`lines 43–47 selected · c comment · s suggest · esc clear`).
 

@@ -3,10 +3,10 @@ source: crates/review-buddy/tests/diff.rs
 expression: shown
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files 2 ───────────────────────╮╭ assets/logo.png ───────────────────────────────────────────────╮
 │› · assets/logo.png        +1 −0││                                                                │
 │  · src/a.rs               +1 −0││                                                                │
-│                                ││                                                                │
 │                                ││                                                                │
 │                                ││                                                                │
 │                                ││                                                                │
