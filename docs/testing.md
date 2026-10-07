@@ -4,7 +4,7 @@ How the tests are organised, and how to review and accept snapshot changes. Run 
 
 ## Layout option snapshots
 
-`tests/layout_options.rs` renders the dashboard at 160×40, 129×40 and 100×30 for each combination of the `ui.sources` and `ui.detail` options (the default, Sources on top, Detail closed, both) in `liminal-hq`, plus `dusk` for two of them, and checks the toggle keys, the clickable markers and the footer hint. `tests/detail_position.rs` renders the five `ui.detail_position` values at the same sizes (plus Dusk, sources on top and a closed Detail) and tests hits in the stacked layouts, and `tests/pty_detail_position.rs` cycles `P` in the real binary. `tests/pty_layout.rs` presses `p` and `S` in the real binary under `--demo`.
+`tests/layout_options.rs` renders the dashboard at 160×40, 129×40 and 100×30 for each combination of the `ui.sources` and `ui.detail` options (the default, Sources on top, Detail closed, both) in `liminal-hq`, plus `dusk` for two of them, and checks the toggle keys, the clickable markers and the footer hint. `tests/detail_position.rs` renders the five `ui.detail_position` values at the same sizes (plus Dusk, sources on top and a closed Detail) and tests hits in the stacked layouts, and `tests/pty_detail_position.rs` cycles `P` in the real binary. `tests/resizable_panes.rs` snapshots dragged layouts at 160×40 and 100×30 (side by side and stacked) and tests the accent cue, hit-testing and the minimums; `tests/pty_resizable_panes.rs` sends SGR mouse press, drag and release sequences to the real binary. `tests/pty_layout.rs` presses `p` and `S` in the real binary under `--demo`.
 
 ## Frame snapshots
 

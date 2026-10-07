@@ -63,6 +63,34 @@ pub fn draw(frame: &mut Frame, app: &App, body: Rect, hits: &mut HitMap) {
         affordance(frame, app, l.queue, reopen_marker(place), hits);
     }
     hits.set_panes(panes);
+    if let Some(drag) = app.drag {
+        highlight_seam(frame, app, body, drag.seam.kind);
+    }
+}
+
+/// Draws the border glyphs along a seam in the accent role while it is being dragged.
+fn highlight_seam(frame: &mut Frame, app: &App, body: Rect, kind: layout::SeamKind) {
+    let Some(seam) = layout::seams(body, app.layout)
+        .into_iter()
+        .find(|s| s.kind == kind)
+    else {
+        return;
+    };
+    let accent = style::fg(&app.palette, Role::Accent);
+    let buffer = frame.buffer_mut();
+    for y in seam.hit.y..seam.hit.bottom() {
+        for x in seam.hit.x..seam.hit.right() {
+            if let Some(cell) = buffer.cell_mut((x, y)) {
+                if cell
+                    .symbol()
+                    .chars()
+                    .all(|c| ('\u{2500}'..='\u{257f}').contains(&c))
+                {
+                    cell.set_style(accent);
+                }
+            }
+        }
+    }
 }
 
 /// The arrow points to where Detail goes when it closes.

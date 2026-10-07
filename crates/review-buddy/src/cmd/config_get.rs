@@ -51,6 +51,13 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     put("ui.sources", json!(ui.sources.as_str()));
     put("ui.detail", json!(ui.detail.as_str()));
     put("ui.detail_position", json!(ui.detail_position.as_str()));
+    let size = |s: Option<crate::ui::layout::Size>| match s {
+        None => json!("auto"),
+        Some(crate::ui::layout::Size::Cells(n)) => json!(n),
+        Some(size) => json!(size.to_string()),
+    };
+    put("ui.queue_width", size(ui.queue_width));
+    put("ui.queue_height", size(ui.queue_height));
     put("ui.jax", json!(ui.jax));
     put("ui.reduced_motion", json!(ui.reduced_motion));
     put("ui.unicode", json!(ui.unicode));

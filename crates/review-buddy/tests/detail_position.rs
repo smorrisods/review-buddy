@@ -60,6 +60,7 @@ fn with(position: DetailPosition, sources: SourcesLayout, detail: DetailMode) ->
         sources,
         detail,
         position,
+        ..Options::default()
     }
 }
 

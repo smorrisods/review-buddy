@@ -5,6 +5,23 @@ use std::time::Duration;
 use serde::de::{self, Deserializer};
 use serde::Deserialize;
 
+use crate::ui::layout::Size;
+
+fn size_option<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Size>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Raw {
+        Number(i64),
+        Text(String),
+    }
+    match Raw::deserialize(d)? {
+        Raw::Number(n) => Size::parse(&n.to_string()),
+        Raw::Text(t) => Size::parse(&t),
+    }
+    .map(Some)
+    .map_err(de::Error::custom)
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -55,6 +72,12 @@ pub struct UiConfig {
     pub sources: SourcesLayout,
     pub detail: DetailMode,
     pub detail_position: DetailPosition,
+    /// Starting Queue width beside Detail: columns, or a percentage like `60%`.
+    #[serde(deserialize_with = "size_option")]
+    pub queue_width: Option<Size>,
+    /// Starting Queue height when stacked above or below Detail.
+    #[serde(deserialize_with = "size_option")]
+    pub queue_height: Option<Size>,
     pub jax: bool,
     pub reduced_motion: bool,
     pub unicode: bool,
@@ -74,6 +97,8 @@ impl Default for UiConfig {
             sources: SourcesLayout::Auto,
             detail: DetailMode::Auto,
             detail_position: DetailPosition::Auto,
+            queue_width: None,
+            queue_height: None,
             jax: true,
             reduced_motion: false,
             unicode: true,

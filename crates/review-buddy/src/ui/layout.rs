@@ -24,6 +24,92 @@ pub const QUEUE_SHARE: u16 = 55;
 pub const QUEUE_ROWS_MIN: u16 = 8;
 pub const DETAIL_ROWS_MIN: u16 = 6;
 
+/// Smallest and largest sizes a dragged split may take.
+pub const QUEUE_COLUMNS_MIN: u16 = 30;
+pub const DETAIL_COLUMNS_MIN: u16 = 36;
+pub const QUEUE_ROWS_DRAG_MIN: u16 = 6;
+pub const SOURCES_WIDTH_MIN: u16 = 16;
+pub const SOURCES_WIDTH_MAX: u16 = 60;
+/// Columns or rows a keyboard nudge moves a split by.
+pub const NUDGE: i32 = 2;
+
+/// A pane size: a count of columns or rows, or a share of the space the split divides.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Size {
+    Cells(u16),
+    Percent(u8),
+}
+
+impl Size {
+    /// Parses `52` or `60%`. Percentages run from 10 to 90 and cell counts from 1 up.
+    pub fn parse(text: &str) -> Result<Self, String> {
+        let text = text.trim();
+        let bad = || {
+            format!(
+                "`{text}` isn't a size. Use a number of columns like 52, or a percentage like 60%"
+            )
+        };
+        if let Some(number) = text.strip_suffix('%') {
+            let n: u8 = number.trim().parse().map_err(|_| bad())?;
+            if !(10..=90).contains(&n) {
+                return Err(format!(
+                    "{n}% is out of range. Use a percentage from 10% to 90%"
+                ));
+            }
+            return Ok(Self::Percent(n));
+        }
+        match text.parse::<u16>() {
+            Ok(0) | Err(_) => Err(bad()),
+            Ok(n) => Ok(Self::Cells(n)),
+        }
+    }
+
+    /// How many cells this is of `total`.
+    pub fn resolve(self, total: u16) -> u16 {
+        match self {
+            Self::Cells(n) => n,
+            Self::Percent(p) => (u32::from(total) * u32::from(p) / 100) as u16,
+        }
+    }
+}
+
+impl std::fmt::Display for Size {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Cells(n) => write!(f, "{n}"),
+            Self::Percent(p) => write!(f, "{p}%"),
+        }
+    }
+}
+
+/// Which seam: Sources against its neighbour, or Queue against Detail.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SeamKind {
+    Sources,
+    Queue,
+}
+
+/// Session sizes for the dashboard's splits. `None` means automatic. The Queue's width and
+/// height are separate, so each arrangement (side by side, stacked) keeps its own.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Split {
+    pub queue_width: Option<Size>,
+    pub queue_height: Option<Size>,
+    pub sources_width: Option<Size>,
+}
+
+/// A draggable boundary between two panes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Seam {
+    pub kind: SeamKind,
+    /// A vertical line (columns resize) rather than a horizontal one (rows resize).
+    pub vertical: bool,
+    /// The column or row where the second pane starts.
+    pub boundary: u16,
+    /// The two border columns or rows next to the boundary.
+    pub hit: Rect,
+}
+
 /// Where the Detail pane actually sits once `auto` has been resolved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Place {
@@ -46,6 +132,7 @@ pub struct Options {
     pub sources: SourcesLayout,
     pub detail: DetailMode,
     pub position: DetailPosition,
+    pub split: Split,
 }
 
 impl Default for Options {
@@ -54,6 +141,7 @@ impl Default for Options {
             sources: SourcesLayout::Auto,
             detail: DetailMode::Auto,
             position: DetailPosition::Auto,
+            split: Split::default(),
         }
     }
 }
@@ -151,8 +239,9 @@ pub fn dashboard(body: Rect, options: Options) -> DashboardLayout {
     let (sources, rest) = if collapsed {
         (None, rest)
     } else {
+        let width = sources_width(body.width, options);
         let [sources, rest] =
-            Layout::horizontal([Constraint::Length(SOURCES_WIDTH), Constraint::Min(0)]).areas(rest);
+            Layout::horizontal([Constraint::Length(width), Constraint::Min(0)]).areas(rest);
         (Some(sources), rest)
     };
     let wide_top = options.sources == SourcesLayout::Top && body.width >= COLLAPSE_BELOW;
@@ -163,10 +252,16 @@ pub fn dashboard(body: Rect, options: Options) -> DashboardLayout {
         let place = options.place(body.width);
         if place.stacked() {
             let h = rest.height;
-            let queue_h = (h * QUEUE_SHARE / 100)
-                .max(QUEUE_ROWS_MIN)
-                .min(h.saturating_sub(DETAIL_ROWS_MIN))
-                .max(QUEUE_ROWS_MIN.min(h));
+            let queue_h = match options.split.queue_height {
+                Some(size) => {
+                    let hi = h.saturating_sub(DETAIL_ROWS_MIN);
+                    size.resolve(h).clamp(QUEUE_ROWS_DRAG_MIN.min(hi), hi)
+                }
+                None => (h * QUEUE_SHARE / 100)
+                    .max(QUEUE_ROWS_MIN)
+                    .min(h.saturating_sub(DETAIL_ROWS_MIN))
+                    .max(QUEUE_ROWS_MIN.min(h)),
+            };
             let detail_h = h - queue_h;
             if place == Place::Top {
                 let [detail, queue] =
@@ -179,10 +274,14 @@ pub fn dashboard(body: Rect, options: Options) -> DashboardLayout {
                 (queue, detail)
             }
         } else {
-            let width = if wide_top {
-                QUEUE_WIDTH_TOP
-            } else {
-                QUEUE_WIDTH
+            let width = match options.split.queue_width {
+                Some(size) => {
+                    let hi = rest.width.saturating_sub(DETAIL_COLUMNS_MIN);
+                    size.resolve(rest.width)
+                        .clamp(QUEUE_COLUMNS_MIN.min(hi), hi)
+                }
+                None if wide_top => QUEUE_WIDTH_TOP,
+                None => QUEUE_WIDTH,
             };
             if place == Place::Left {
                 let [detail, queue] =
@@ -201,6 +300,148 @@ pub fn dashboard(body: Rect, options: Options) -> DashboardLayout {
         queue,
         detail,
     }
+}
+
+fn sources_width(total: u16, options: Options) -> u16 {
+    let Some(size) = options.split.sources_width else {
+        return SOURCES_WIDTH;
+    };
+    let rest_min = QUEUE_COLUMNS_MIN
+        + if options.detail_open() && !options.place(total).stacked() {
+            DETAIL_COLUMNS_MIN
+        } else {
+            0
+        };
+    let hi = total.saturating_sub(rest_min).min(SOURCES_WIDTH_MAX);
+    size.resolve(total).clamp(SOURCES_WIDTH_MIN.min(hi), hi)
+}
+
+/// The boundaries between panes that can be dragged, for this body and these options.
+pub fn seams(body: Rect, options: Options) -> Vec<Seam> {
+    let l = dashboard(body, options);
+    let mut out = Vec::new();
+    let vertical = |kind, boundary: u16, from: Rect| Seam {
+        kind,
+        vertical: true,
+        boundary,
+        hit: Rect::new(
+            boundary.saturating_sub(1),
+            from.y.saturating_add(1),
+            2,
+            from.height.saturating_sub(2),
+        ),
+    };
+    if let Some(sources) = l.sources {
+        out.push(vertical(SeamKind::Sources, sources.right(), sources));
+    }
+    if options.detail_open() {
+        let seam = match options.place(body.width) {
+            Place::Right => vertical(SeamKind::Queue, l.queue.right(), l.queue),
+            Place::Left => vertical(SeamKind::Queue, l.queue.x, l.queue),
+            place => {
+                let boundary = if place == Place::Bottom {
+                    l.queue.bottom()
+                } else {
+                    l.queue.y
+                };
+                Seam {
+                    kind: SeamKind::Queue,
+                    vertical: false,
+                    boundary,
+                    hit: Rect::new(
+                        l.queue.x.saturating_add(1),
+                        boundary.saturating_sub(1),
+                        l.queue.width.saturating_sub(2),
+                        2,
+                    ),
+                }
+            }
+        };
+        out.push(seam);
+    }
+    out
+}
+
+pub fn seam_at(body: Rect, options: Options, column: u16, row: u16) -> Option<Seam> {
+    seams(body, options).into_iter().find(|s| {
+        column >= s.hit.x && column < s.hit.right() && row >= s.hit.y && row < s.hit.bottom()
+    })
+}
+
+/// Moves a seam so the second pane starts at `boundary` (column or row), clamped by the
+/// layout. Returns the size that was stored.
+pub fn drag_to(options: &mut Options, body: Rect, seam: &Seam, boundary: u16) -> Size {
+    let l = dashboard(body, *options);
+    let boundary = i32::from(boundary);
+    let size = match (seam.kind, options.place(body.width)) {
+        (SeamKind::Sources, _) => boundary - i32::from(body.x),
+        (SeamKind::Queue, Place::Right) => boundary - i32::from(l.queue.x),
+        (SeamKind::Queue, Place::Left) => i32::from(l.queue.right()) - boundary,
+        (SeamKind::Queue, Place::Bottom) => boundary - i32::from(l.queue.y),
+        (SeamKind::Queue, Place::Top) => i32::from(l.queue.bottom()) - boundary,
+    };
+    set_cells(
+        options,
+        seam.kind,
+        size.clamp(1, i32::from(u16::MAX)) as u16,
+        body,
+    )
+}
+
+fn set_cells(options: &mut Options, kind: SeamKind, cells: u16, body: Rect) -> Size {
+    let size = Size::Cells(cells);
+    match kind {
+        SeamKind::Sources => options.split.sources_width = Some(size),
+        SeamKind::Queue if options.place(body.width).stacked() => {
+            options.split.queue_height = Some(size);
+        }
+        SeamKind::Queue => options.split.queue_width = Some(size),
+    }
+    size
+}
+
+/// The size a split has right now, in columns or rows, after clamping.
+pub fn current(options: Options, body: Rect, kind: SeamKind) -> u16 {
+    let l = dashboard(body, options);
+    match kind {
+        SeamKind::Sources => l.sources.map_or(0, |s| s.width),
+        SeamKind::Queue if options.place(body.width).stacked() => l.queue.height,
+        SeamKind::Queue => l.queue.width,
+    }
+}
+
+/// Grows (`delta` above zero) or shrinks the Queue side of a seam, or the Sources pane.
+pub fn nudge(options: &mut Options, body: Rect, kind: SeamKind, delta: i32) -> u16 {
+    let now = i32::from(current(*options, body, kind));
+    let next = (now + delta).clamp(1, i32::from(u16::MAX)) as u16;
+    set_cells(options, kind, next, body);
+    current(*options, body, kind)
+}
+
+/// Puts one split back to its automatic size.
+pub fn reset(options: &mut Options, body: Rect, kind: SeamKind) {
+    match kind {
+        SeamKind::Sources => options.split.sources_width = None,
+        SeamKind::Queue if options.place(body.width).stacked() => {
+            options.split.queue_height = None;
+        }
+        SeamKind::Queue => options.split.queue_width = None,
+    }
+}
+
+/// A short phrase for the status line: `queue 52 columns`.
+pub fn describe(options: Options, body: Rect, kind: SeamKind) -> String {
+    let n = current(options, body, kind);
+    let name = match kind {
+        SeamKind::Sources => "sources",
+        SeamKind::Queue => "queue",
+    };
+    let unit = if kind == SeamKind::Queue && options.place(body.width).stacked() {
+        "rows"
+    } else {
+        "columns"
+    };
+    format!("{name} {n} {unit}")
 }
 
 /// The inside of a bordered pane.
@@ -330,6 +571,7 @@ mod tests {
             sources,
             detail,
             position: DetailPosition::Right,
+            split: Split::default(),
         }
     }
 
@@ -561,5 +803,127 @@ mod position_tests {
                 DetailPosition::Auto
             ]
         );
+    }
+
+    #[test]
+    fn sizes_parse_columns_and_percentages_and_reject_the_rest() {
+        assert_eq!(Size::parse("52"), Ok(Size::Cells(52)));
+        assert_eq!(Size::parse(" 60% "), Ok(Size::Percent(60)));
+        for bad in ["0", "-3", "wide", "5%", "95%", "", "%"] {
+            assert!(Size::parse(bad).is_err(), "{bad}");
+        }
+        assert_eq!(Size::Percent(50).resolve(101), 50);
+        assert_eq!(Size::Percent(60).to_string(), "60%");
+    }
+
+    fn with_split(split: Split, position: DetailPosition) -> Options {
+        Options {
+            sources: SourcesLayout::Left,
+            position,
+            split,
+            ..Options::default()
+        }
+    }
+
+    #[test]
+    fn overrides_set_the_width_and_clamp_to_the_minimums() {
+        let b = body((160, 40));
+        let width = |size| {
+            let split = Split {
+                queue_width: Some(size),
+                ..Split::default()
+            };
+            dashboard(b, with_split(split, DetailPosition::Right))
+                .queue
+                .width
+        };
+        assert_eq!(width(Size::Cells(70)), 70);
+        assert_eq!(width(Size::Cells(5)), QUEUE_COLUMNS_MIN);
+        assert_eq!(width(Size::Percent(50)), 67);
+        let o = with_split(
+            Split {
+                queue_width: Some(Size::Cells(500)),
+                ..Split::default()
+            },
+            DetailPosition::Right,
+        );
+        assert_eq!(dashboard(b, o).detail.width, DETAIL_COLUMNS_MIN);
+    }
+
+    #[test]
+    fn stacked_overrides_set_the_height_with_a_six_row_floor_each() {
+        let b = body((100, 30));
+        let height = |cells| {
+            let split = Split {
+                queue_height: Some(Size::Cells(cells)),
+                ..Split::default()
+            };
+            dashboard(b, with_split(split, DetailPosition::Bottom))
+        };
+        assert_eq!(height(12).queue.height, 12);
+        assert_eq!(height(1).queue.height, QUEUE_ROWS_DRAG_MIN);
+        assert_eq!(height(99).detail.height, DETAIL_ROWS_MIN);
+    }
+
+    #[test]
+    fn a_stored_size_clamps_again_when_the_terminal_shrinks() {
+        let split = Split {
+            queue_width: Some(Size::Cells(80)),
+            sources_width: Some(Size::Cells(40)),
+            ..Split::default()
+        };
+        let o = with_split(split, DetailPosition::Right);
+        let wide = dashboard(body((200, 40)), o);
+        assert_eq!((wide.queue.width, wide.sources.unwrap().width), (80, 40));
+        let narrow = dashboard(body((130, 40)), o);
+        assert!(narrow.detail.width >= DETAIL_COLUMNS_MIN);
+        assert!(narrow.queue.width >= QUEUE_COLUMNS_MIN);
+        let left = narrow.sources.map_or(0, |s| s.width);
+        assert_eq!(left + narrow.queue.width + narrow.detail.width, 130);
+    }
+
+    #[test]
+    fn seams_follow_the_arrangement() {
+        let side_o = with_split(Split::default(), DetailPosition::Right);
+        let side = seams(body((160, 40)), side_o);
+        assert_eq!(side.len(), 2);
+        let q = side.iter().find(|s| s.kind == SeamKind::Queue).unwrap();
+        assert!(q.vertical && q.boundary == 26 + 48);
+        let at = |c, r| seam_at(body((160, 40)), side_o, c, r);
+        assert!(at(73, 10).is_some() && at(74, 10).is_some());
+        assert!(at(75, 10).is_none() && at(73, 1).is_none());
+
+        let stacked = with_split(Split::default(), DetailPosition::Bottom);
+        let l = dashboard(body((100, 30)), stacked);
+        let row = l.queue.bottom();
+        assert!(seam_at(body((100, 30)), stacked, 50, row).is_some());
+        assert!(seam_at(body((100, 30)), stacked, 50, row - 1).is_some());
+        assert!(seam_at(body((100, 30)), stacked, 50, row + 1).is_none());
+
+        let closed = Options {
+            detail: DetailMode::Closed,
+            ..stacked
+        };
+        assert_eq!(seams(body((100, 30)), closed).len(), 1);
+        let top = Options {
+            sources: SourcesLayout::Top,
+            detail: DetailMode::Closed,
+            ..stacked
+        };
+        assert!(seams(body((160, 40)), top).is_empty());
+    }
+
+    #[test]
+    fn nudging_and_resetting_work_per_arrangement() {
+        let b = body((160, 40));
+        let mut o = with_split(Split::default(), DetailPosition::Right);
+        assert_eq!(nudge(&mut o, b, SeamKind::Queue, 2), 50);
+        assert_eq!(nudge(&mut o, b, SeamKind::Queue, -100), QUEUE_COLUMNS_MIN);
+        assert_eq!(o.split.queue_height, None);
+        reset(&mut o, b, SeamKind::Queue);
+        assert_eq!(o.split.queue_width, None);
+        assert_eq!(describe(o, b, SeamKind::Queue), "queue 48 columns");
+        o.position = DetailPosition::Bottom;
+        assert!(describe(o, b, SeamKind::Queue).ends_with("rows"));
     }
 }

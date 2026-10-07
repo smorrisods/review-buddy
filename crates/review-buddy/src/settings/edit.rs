@@ -11,6 +11,7 @@ use toml_edit::{value, Array, ArrayOfTables, DocumentMut, InlineTable, Item, Tab
 
 use crate::config::{ConfigEditor, ConfigError, LoadedConfig};
 use crate::setup::{AuthKind, SourceSpec};
+use crate::ui::layout::Size;
 
 #[derive(Debug, thiserror::Error)]
 pub enum EditError {
@@ -71,6 +72,25 @@ pub fn save_hide_repos(
         }
     }
     Ok((saved, elsewhere))
+}
+
+/// Writes `ui.queue_width` and `ui.queue_height`; a size of `None` (automatic) removes its key.
+pub fn save_layout_sizes(
+    path: &Path,
+    queue_width: Option<Size>,
+    queue_height: Option<Size>,
+) -> Result<(), EditError> {
+    let mut editor = ConfigEditor::open(path)?;
+    for (key, size) in [("queue_width", queue_width), ("queue_height", queue_height)] {
+        match size {
+            Some(Size::Cells(n)) => editor.set("ui", key, i64::from(n)),
+            Some(size) => editor.set("ui", key, size.to_string()),
+            None => {
+                editor.remove("ui", key);
+            }
+        }
+    }
+    finish(editor)
 }
 
 /// Removes a source's whole `[[source]]` table, and the comments attached to it.
@@ -339,6 +359,20 @@ projects = [\"platform/api\"]
         .unwrap();
         assert_eq!(saved, ["work"]);
         assert_eq!(elsewhere, ["other"]);
+    }
+
+    #[test]
+    fn layout_sizes_are_written_and_removed_with_comments_kept() {
+        let (_t, p) = file();
+        save_layout_sizes(&p, Some(Size::Cells(52)), Some(Size::Percent(60))).unwrap();
+        let text = std::fs::read_to_string(&p).unwrap();
+        assert!(
+            text.contains("# evening") && text.contains("queue_width = 52"),
+            "{text}"
+        );
+        assert!(text.contains("queue_height = \"60%\""), "{text}");
+        save_layout_sizes(&p, None, None).unwrap();
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), FILE);
     }
 
     #[test]

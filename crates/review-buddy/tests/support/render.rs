@@ -159,3 +159,10 @@ pub fn bg_histogram(buffer: &Buffer) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
+
+/// The colour a theme role resolves to for this app, as the renderer would paint it.
+pub fn role_colour(app: &App, role: Role) -> Color {
+    style::fg(&app.palette, role)
+        .fg
+        .expect("a foreground colour")
+}
