@@ -3,8 +3,8 @@
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rb_core::{
-    Capabilities, ChangeId, Comment, DraftComment, FeatureAction, ForgeKind, ReviewDraft, Side,
-    Thread, ThreadId, Verdict,
+    ChangeId, Comment, DraftComment, ForgeKind, MyReview, ReviewDraft, Side, Thread, ThreadId,
+    Verdict,
 };
 use rb_github::plan_review;
 
@@ -86,12 +86,6 @@ pub enum ConfirmKind {
     Discard,
     /// Send one comment or reply now.
     PostNow { summary: String, body: String },
-    /// Submit the whole review with an approval.
-    Approve {
-        summary: String,
-        comments: Vec<String>,
-        verdict: Verdict,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,7 +105,6 @@ impl Confirm {
         match self.kind {
             ConfirmKind::Discard => "Discard this comment?",
             ConfirmKind::PostNow { .. } => "Post this comment now?",
-            ConfirmKind::Approve { .. } => "Approve this change?",
         }
     }
 
@@ -120,7 +113,6 @@ impl Confirm {
         match self.kind {
             ConfirmKind::Discard => ("No, keep editing", "Discard"),
             ConfirmKind::PostNow { .. } => ("Cancel", "Post now"),
-            ConfirmKind::Approve { .. } => ("Cancel", "Approve"),
         }
     }
 }
@@ -129,30 +121,30 @@ fn state(app: &mut App) -> Option<&mut diff::DiffState> {
     app.diff.as_mut()
 }
 
-fn forge_name(kind: ForgeKind) -> &'static str {
+pub(super) fn forge_name(kind: ForgeKind) -> &'static str {
     match kind {
         ForgeKind::GitHub => "GitHub",
         ForgeKind::GitLab => "GitLab",
     }
 }
 
-fn warn(app: &mut App, text: impl Into<String>) -> Vec<Cmd> {
+pub(super) fn warn(app: &mut App, text: impl Into<String>) -> Vec<Cmd> {
     set_status(app, Notice::new(NoticeKind::Warning, text))
 }
 
-fn info(app: &mut App, text: impl Into<String>) -> Vec<Cmd> {
+pub(super) fn info(app: &mut App, text: impl Into<String>) -> Vec<Cmd> {
     set_status(app, Notice::new(NoticeKind::Info, text))
 }
 
 /// What `plan_review` rejected, without the error's prefix.
-fn plan_message(err: &rb_core::Error) -> String {
+pub(super) fn plan_message(err: &rb_core::Error) -> String {
     match err {
         rb_core::Error::Api(message) => message.clone(),
         other => other.to_string(),
     }
 }
 
-fn ready(app: &App) -> bool {
+pub(super) fn ready(app: &App) -> bool {
     app.diff
         .as_ref()
         .is_some_and(|s| s.data.is_some() && !s.has_overlay())
@@ -264,61 +256,7 @@ fn keep_cursor_visible(app: &mut App) {
     view.scroll = super::diffview::reveal(view.scroll, top, bottom, height, view.rows.len());
 }
 
-/// `x`: requesting changes is explained rather than hidden, since the key is on the screen.
-pub fn request_changes(app: &mut App) -> Vec<Cmd> {
-    if let Some(id) = app.diff.as_ref().map(|s| s.id.source_id.clone()) {
-        if let Some(text) = app
-            .state
-            .explain_unsupported(&id, FeatureAction::RequestChanges)
-        {
-            return info(app, text);
-        }
-    }
-    let Some((caps, kind)) = caps_and_kind(app) else {
-        return Vec::new();
-    };
-    match caps.explain_unsupported(FeatureAction::RequestChanges, forge_name(kind)) {
-        Some(text) => info(app, text),
-        None => info(
-            app,
-            "Requesting changes isn't available yet. Approve with a, or leave a comment with c.",
-        ),
-    }
-}
-
-fn caps_and_kind(app: &App) -> Option<(Capabilities, ForgeKind)> {
-    let s = app.diff.as_ref()?;
-    Some((s.data.as_ref()?.caps, s.id.kind))
-}
-
-/// `a`: previews what approving will do.
-pub fn open_approve(app: &mut App) -> Vec<Cmd> {
-    if !ready(app) {
-        return Vec::new();
-    }
-    if app.diff.as_ref().is_some_and(|s| s.submitting) {
-        return info(app, "Still sending. One moment.");
-    }
-    let Some(s) = app.diff.as_ref() else {
-        return Vec::new();
-    };
-    let Some(data) = s.data.as_ref() else {
-        return Vec::new();
-    };
-    let plan = match plan_review(&data.draft, Verdict::Approve) {
-        Ok(plan) => plan,
-        Err(err) => return warn(app, plan_message(&err)),
-    };
-    let comments = data.draft.comments.iter().map(comment_line).collect();
-    let confirm = Confirm::new(ConfirmKind::Approve {
-        summary: plan.summary(),
-        comments,
-        verdict: plan.verdict,
-    });
-    set_confirm(app, confirm)
-}
-
-fn comment_line(c: &DraftComment) -> String {
+pub fn comment_line(c: &DraftComment) -> String {
     let anchor = Anchor {
         path: c.path.clone(),
         side: c.side,
@@ -342,6 +280,9 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     let Some(s) = app.diff.as_ref() else {
         return Vec::new();
     };
+    if s.review.is_some() {
+        return super::review::on_key(app, key);
+    }
     if s.confirm.is_some() {
         return on_confirm_key(app, key);
     }
@@ -389,7 +330,6 @@ pub(super) fn answer(app: &mut App, yes: bool) -> Vec<Cmd> {
             Vec::new()
         }
         ConfirmKind::PostNow { .. } => send_composer(app),
-        ConfirmKind::Approve { verdict, .. } => send_review(app, verdict),
     }
 }
 
@@ -412,7 +352,7 @@ pub fn place_cursor(app: &mut App, column: u16, row: u16, at: (u16, u16, usize, 
 
 /// The character index of the cell `cells` from the left edge of `line` once `across`
 /// characters have scrolled off. Clicks past the end land after the last character.
-fn char_at(line: &str, across: usize, cells: usize) -> usize {
+pub(super) fn char_at(line: &str, across: usize, cells: usize) -> usize {
     use unicode_width::UnicodeWidthChar;
     let mut used = 0;
     let mut index = across;
@@ -501,6 +441,10 @@ fn edit(app: &mut App, f: impl FnOnce(&mut Editor)) {
 
 /// Bracketed paste goes into the composer; anywhere else it's ignored.
 pub fn on_paste(app: &mut App, text: &str) -> Vec<Cmd> {
+    if app.diff.as_ref().is_some_and(|s| s.review.is_some()) {
+        super::review::on_paste(app, text);
+        return Vec::new();
+    }
     let open = app
         .diff
         .as_ref()
@@ -663,23 +607,6 @@ fn send_composer(app: &mut App) -> Vec<Cmd> {
     vec![cmd]
 }
 
-fn send_review(app: &mut App, verdict: Verdict) -> Vec<Cmd> {
-    let Some(s) = state(app) else {
-        return Vec::new();
-    };
-    let Some(data) = s.data.as_ref() else {
-        return Vec::new();
-    };
-    let cmd = Cmd::SubmitReview {
-        id: s.id.clone(),
-        draft: data.draft.clone(),
-        verdict,
-    };
-    s.submitting = true;
-    app.mark_dirty();
-    vec![cmd]
-}
-
 fn demo_suffix(demo: bool) -> &'static str {
     if demo {
         " (demo)"
@@ -692,7 +619,7 @@ fn failure(what: &str, err: &str, next: &str) -> Notice {
     Notice::new(NoticeKind::Warning, format!("{what}: {err}. {next}"))
 }
 
-/// The result of [`Cmd::SubmitReview`].
+/// The result of [`Cmd::SubmitReview`]: a review from the modal, or one comment posted now.
 pub fn on_submitted(
     app: &mut App,
     id: &ChangeId,
@@ -701,6 +628,7 @@ pub fn on_submitted(
     demo: bool,
 ) -> Vec<Cmd> {
     let here = app.diff.as_ref().is_some_and(|s| &s.id == id);
+    let reviewing = here && app.diff.as_ref().is_some_and(|s| s.review.is_some());
     if here {
         if let Some(s) = state(app) {
             s.submitting = false;
@@ -709,16 +637,17 @@ pub fn on_submitted(
             }
         }
     }
-    let approving = verdict == Verdict::Approve;
     match result {
         Ok(()) => {
             if here {
-                finish_submit(app, approving);
+                finish_submit(app, reviewing);
             }
-            let text = if approving {
-                "Approved"
-            } else {
-                "Comment posted"
+            record_verdict(app, id, verdict);
+            let text = match verdict {
+                Verdict::Approve => "Approved",
+                Verdict::RequestChanges => "Changes requested",
+                Verdict::Comment if here && !reviewing => "Comment posted",
+                Verdict::Comment => "Review posted",
             };
             let mut cmds = push_toast(
                 app,
@@ -732,16 +661,17 @@ pub fn on_submitted(
         }
         Err(err) => {
             app.mark_dirty();
-            let notice = if approving {
+            let err = err.trim_end_matches('.');
+            let notice = if reviewing {
                 failure(
                     "Couldn't submit your review",
-                    err.trim_end_matches('.'),
-                    "Your comments are still pending. Press a to try again.",
+                    err,
+                    "Your comments and summary are still here. Press ⏎ on Submit to try again.",
                 )
             } else {
                 failure(
                     "Couldn't post your comment",
-                    err.trim_end_matches('.'),
+                    err,
                     "Your text is still in the box. Press ⌃⏎ to try again.",
                 )
             };
@@ -750,13 +680,27 @@ pub fn on_submitted(
     }
 }
 
-fn finish_submit(app: &mut App, approving: bool) {
+/// Shows the submitted verdict on the queue row straight away; the refresh confirms it.
+fn record_verdict(app: &mut App, id: &ChangeId, verdict: Verdict) {
+    if let Some(change) = app.state.changes.iter_mut().find(|c| &c.id == id) {
+        if verdict != Verdict::Comment || change.my_review == MyReview::None {
+            change.my_review = super::review::my_review_of(verdict);
+        }
+        change.my_reviewed_sha = Some(change.head_sha.clone());
+        change.has_new_activity = false;
+        change.i_commented |= verdict == Verdict::Comment;
+        super::dashboard::reconcile(app);
+    }
+}
+
+fn finish_submit(app: &mut App, reviewing: bool) {
     let keep = app
         .diff
         .as_ref()
         .and_then(|s| s.view.rows.line_id(s.view.cursor));
     if let Some(s) = state(app) {
-        if approving {
+        if reviewing {
+            s.review = None;
             if let Some(data) = s.data.as_mut() {
                 data.draft = ReviewDraft::default();
             }
@@ -764,7 +708,7 @@ fn finish_submit(app: &mut App, approving: bool) {
             s.composer = None;
         }
     }
-    if approving {
+    if reviewing {
         diff::rebuild(app, keep);
     }
     app.mark_dirty();
@@ -853,8 +797,9 @@ mod tests {
         assert_eq!(char_at("a\tb", 0, 2), 2, "a tab shows as one space");
     }
 
+    use crate::app::review::{ReviewFocus, ReviewModal};
     use crossterm::event::KeyEvent;
-    use rb_core::{CommentId, FilePatch, FileStatus, Timestamp};
+    use rb_core::{Capabilities, CommentId, FilePatch, FileStatus, Timestamp};
     use rb_theme::ColourDepth;
 
     use super::*;
@@ -1385,27 +1330,60 @@ mod tests {
         assert!(status(&a).contains("Press c to comment instead"));
     }
 
+    fn modal(app: &App) -> &ReviewModal {
+        diff(app).review.as_ref().expect("the review modal")
+    }
+
+    fn summary(app: &mut App, text: &str) {
+        for c in text.chars() {
+            key(app, KeyCode::Char(c));
+        }
+    }
+
     #[test]
-    fn a_previews_the_approval_with_the_pending_comments() {
+    fn a_opens_the_modal_on_approve_with_the_pending_comments_previewed() {
         let mut a = app_with(
             vec![draft(3, "First"), draft(4, "Second\nmore")],
             Capabilities::all(),
         );
         key(&mut a, KeyCode::Char('a'));
-        let confirm = diff(&a).confirm.clone().expect("a preview");
-        let ConfirmKind::Approve {
-            summary,
-            comments,
-            verdict,
-        } = &confirm.kind
-        else {
-            panic!("expected an approve preview");
-        };
-        assert_eq!(summary, "Approve with 2 comments");
-        assert_eq!(*verdict, Verdict::Approve);
-        assert_eq!(comments, &["a.rs line 3 · First", "a.rs line 4 · Second"]);
-        assert!(confirm.yes);
-        assert_eq!(confirm.title(), "Approve this change?");
+        let m = modal(&a);
+        assert_eq!(m.verdict, Verdict::Approve);
+        assert_eq!(
+            m.verdicts,
+            [Verdict::Comment, Verdict::Approve, Verdict::RequestChanges]
+        );
+        assert_eq!(m.focus, ReviewFocus::Submit, "approving is safe to confirm");
+        let data = diff(&a).data.as_ref().unwrap();
+        assert_eq!(m.preview(&data.draft), "Approve with 2 comments");
+        assert_eq!(
+            comment_line(&data.draft.comments[1]),
+            "a.rs line 4 · Second"
+        );
+    }
+
+    #[test]
+    fn x_and_capital_r_preselect_their_verdicts() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('x'));
+        assert_eq!(modal(&a).verdict, Verdict::RequestChanges);
+        assert_eq!(modal(&a).focus, ReviewFocus::Summary, "a summary is needed");
+        key(&mut a, KeyCode::Esc);
+        assert!(diff(&a).review.is_none());
+        key(&mut a, KeyCode::Char('R'));
+        assert_eq!(modal(&a).verdict, Verdict::Comment);
+        assert_eq!(modal(&a).focus, ReviewFocus::Summary, "nothing to post yet");
+    }
+
+    #[test]
+    fn approve_goes_with_everything_empty_and_enter_confirms_it() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('a'));
+        let cmds = key(&mut a, KeyCode::Enter);
+        let (sent, verdict) = submit_cmd(&cmds);
+        assert_eq!(verdict, Verdict::Approve);
+        assert!(sent.is_empty());
+        assert!(diff(&a).submitting);
     }
 
     #[test]
@@ -1417,16 +1395,17 @@ mod tests {
         assert_eq!((verdict, sent.comments.len()), (Verdict::Approve, 1));
         assert!(diff(&a).submitting);
 
-        key(&mut a, KeyCode::Char('a'));
-        assert!(status(&a).starts_with("Still sending"));
-        assert!(diff(&a).confirm.is_none());
+        assert!(key(&mut a, KeyCode::Enter).is_empty(), "sending: ignored");
+        key(&mut a, KeyCode::Esc);
+        assert!(diff(&a).review.is_some(), "can't close mid-send");
 
         let cmds = submitted(&mut a, Verdict::Approve, Ok(()));
         assert!(cmds.iter().any(|c| matches!(c, Cmd::LoadChanges)));
         assert_eq!(toast(&a), "Approved (demo)");
         assert_eq!(a.toasts.last().unwrap().notice.kind, NoticeKind::Success);
         let s = diff(&a);
-        assert!(!s.submitting && s.data.as_ref().unwrap().draft.is_empty());
+        assert!(!s.submitting && s.review.is_none());
+        assert!(s.data.as_ref().unwrap().draft.is_empty());
         assert!(!a.has_unsent_drafts());
     }
 
@@ -1448,52 +1427,187 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_approval_keeps_the_draft_and_says_what_to_do_next() {
+    fn request_changes_needs_a_summary_and_sends_it_as_the_body() {
         let mut a = app_with(vec![draft(3, "First")], Capabilities::all());
+        key(&mut a, KeyCode::Char('x'));
+        assert!(modal(&a).problem(1).is_some());
+        let data = diff(&a).data.as_ref().unwrap();
+        assert!(modal(&a)
+            .preview(&data.draft)
+            .starts_with("Request changes with 1 comment"));
+        key(&mut a, KeyCode::Tab);
+        assert_eq!(modal(&a).focus, ReviewFocus::Cancel);
+        key(&mut a, KeyCode::Tab);
+        assert_eq!(modal(&a).focus, ReviewFocus::Submit);
+        let blocked = key(&mut a, KeyCode::Enter);
+        assert!(!blocked
+            .iter()
+            .any(|c| matches!(c, Cmd::SubmitReview { .. })));
+        assert!(status(&a).contains("needs a short summary"));
+        assert!(!diff(&a).submitting);
+
+        key(&mut a, KeyCode::BackTab);
+        key(&mut a, KeyCode::Char('e'));
+        assert_eq!(modal(&a).focus, ReviewFocus::Summary);
+        summary(&mut a, "  Please split this up ");
+        assert!(modal(&a).problem(1).is_none());
+        let cmds = with(&mut a, KeyCode::Enter, KeyModifiers::CONTROL);
+        let (sent, verdict) = submit_cmd(&cmds);
+        assert_eq!(verdict, Verdict::RequestChanges);
+        assert_eq!(sent.body, "Please split this up");
+        assert_eq!(sent.comments.len(), 1);
+    }
+
+    #[test]
+    fn enter_in_the_summary_adds_a_line_and_never_submits() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('x'));
+        summary(&mut a, "one");
+        assert!(key(&mut a, KeyCode::Enter).is_empty());
+        summary(&mut a, "two");
+        assert_eq!(modal(&a).summary.text(), "one\ntwo");
+        assert!(!diff(&a).submitting);
+    }
+
+    #[test]
+    fn a_comment_review_needs_a_pending_comment_or_a_summary() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('R'));
+        let none = with(&mut a, KeyCode::Enter, KeyModifiers::CONTROL);
+        assert!(!none.iter().any(|c| matches!(c, Cmd::SubmitReview { .. })));
+        assert!(status(&a).contains("Add a summary or a pending comment"));
+        summary(&mut a, "Looks fine overall");
+        let cmds = with(&mut a, KeyCode::Enter, KeyModifiers::CONTROL);
+        let (sent, verdict) = submit_cmd(&cmds);
+        assert_eq!(
+            (verdict, sent.body.as_str()),
+            (Verdict::Comment, "Looks fine overall")
+        );
+
+        let mut a = app_with(vec![draft(3, "First")], Capabilities::all());
+        key(&mut a, KeyCode::Char('R'));
+        assert_eq!(
+            modal(&a).focus,
+            ReviewFocus::Submit,
+            "a pending comment is enough"
+        );
+        let cmds = key(&mut a, KeyCode::Enter);
+        assert_eq!(submit_cmd(&cmds).1, Verdict::Comment);
+        submitted(&mut a, Verdict::Comment, Ok(()));
+        assert_eq!(toast(&a), "Review posted (demo)");
+    }
+
+    #[test]
+    fn the_verdict_changes_with_arrows_tab_and_digits_but_never_silently() {
+        let mut a = app();
         key(&mut a, KeyCode::Char('a'));
-        key(&mut a, KeyCode::Enter);
+        key(&mut a, KeyCode::Tab);
+        assert_eq!(modal(&a).focus, ReviewFocus::Cancel);
+        key(&mut a, KeyCode::Char('1'));
+        assert_eq!(modal(&a).verdict, Verdict::Comment);
+        key(&mut a, KeyCode::Char('3'));
+        assert_eq!(modal(&a).verdict, Verdict::RequestChanges);
+        key(&mut a, KeyCode::Up);
+        key(&mut a, KeyCode::Up);
+        assert_eq!(modal(&a).focus, ReviewFocus::Verdict);
+        key(&mut a, KeyCode::Right);
+        assert_eq!(modal(&a).verdict, Verdict::Comment, "wraps round");
+        key(&mut a, KeyCode::Left);
+        assert_eq!(modal(&a).verdict, Verdict::RequestChanges);
+        key(&mut a, KeyCode::Char('2'));
+        assert_eq!(modal(&a).verdict, Verdict::Approve);
+        key(&mut a, KeyCode::BackTab);
+        assert_eq!(modal(&a).verdict, Verdict::Comment);
+        assert!(!diff(&a).submitting, "choosing never sends");
+    }
+
+    #[test]
+    fn landing_on_request_changes_moves_focus_off_submit() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('a'));
+        assert_eq!(modal(&a).focus, ReviewFocus::Submit);
+        key(&mut a, KeyCode::Char('3'));
+        assert_eq!(modal(&a).focus, ReviewFocus::Cancel);
+    }
+
+    #[test]
+    fn esc_and_cancel_close_keeping_the_pending_comments_and_the_summary() {
+        let mut a = app_with(vec![draft(3, "First")], Capabilities::all());
+        key(&mut a, KeyCode::Char('x'));
+        summary(&mut a, "Not yet");
+        assert!(a.has_unsent_drafts());
+        assert!(key(&mut a, KeyCode::Esc).is_empty());
+        let data = diff(&a).data.as_ref().unwrap();
+        assert_eq!(
+            (data.draft.comments.len(), data.draft.body.as_str()),
+            (1, "Not yet")
+        );
+        key(&mut a, KeyCode::Char('x'));
+        assert_eq!(modal(&a).summary.text(), "Not yet", "it comes back");
+        assert_eq!(modal(&a).focus, ReviewFocus::Cancel);
+        assert!(key(&mut a, KeyCode::Enter).is_empty());
+        assert!(diff(&a).review.is_none() && !diff(&a).submitting);
+    }
+
+    #[test]
+    fn paste_goes_into_the_summary() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('x'));
+        update(&mut a, Msg::Paste("pasted words".into()));
+        assert_eq!(modal(&a).summary.text(), "pasted words");
+    }
+
+    #[test]
+    fn a_failed_review_keeps_everything_and_says_what_to_do_next() {
+        let mut a = app_with(vec![draft(3, "First")], Capabilities::all());
+        key(&mut a, KeyCode::Char('x'));
+        summary(&mut a, "Needs work");
+        with(&mut a, KeyCode::Enter, KeyModifiers::CONTROL);
         let cmds = submitted(
             &mut a,
-            Verdict::Approve,
+            Verdict::RequestChanges,
             Err("GitHub refused the request.".into()),
         );
         assert!(!cmds.iter().any(|c| matches!(c, Cmd::LoadChanges)));
         let s = diff(&a);
         assert!(!s.submitting);
         assert_eq!(s.data.as_ref().unwrap().draft.comments.len(), 1);
+        assert_eq!(modal(&a).summary.text(), "Needs work");
         assert_eq!(
             toast(&a),
-            "Couldn't submit your review: GitHub refused the request. Your comments are still pending. Press a to try again."
+            "Couldn't submit your review: GitHub refused the request. Your comments and summary are still here. Press ⏎ on Submit to try again."
         );
-        key(&mut a, KeyCode::Char('a'));
-        assert!(diff(&a).confirm.is_some(), "can try again");
+        assert_eq!(a.toasts.last().unwrap().notice.kind, NoticeKind::Warning);
+        let again = with(&mut a, KeyCode::Enter, KeyModifiers::CONTROL);
+        assert_eq!(submit_cmd(&again).1, Verdict::RequestChanges);
     }
 
     #[test]
-    fn cancelling_the_approval_sends_nothing() {
+    fn a_submitted_verdict_updates_the_queue_row() {
+        use rb_core::MyReview;
         let mut a = app();
-        key(&mut a, KeyCode::Char('a'));
-        assert!(matches!(
-            &diff(&a).confirm.as_ref().unwrap().kind,
-            ConfirmKind::Approve { summary, .. } if summary == "Approve"
-        ));
-        key(&mut a, KeyCode::Tab);
-        assert!(!diff(&a).confirm.as_ref().unwrap().yes);
-        assert!(
-            key(&mut a, KeyCode::Enter).is_empty(),
-            "the Cancel button is focused"
+        let mut row = crate::app::queue::tests::change(1, rb_core::MyRole::Reviewing, 100);
+        row.id = id();
+        a.state.changes.push(row);
+        key(&mut a, KeyCode::Char('x'));
+        summary(&mut a, "Needs work");
+        with(&mut a, KeyCode::Enter, KeyModifiers::CONTROL);
+        submitted(&mut a, Verdict::RequestChanges, Ok(()));
+        assert_eq!(a.state.changes[0].my_review, MyReview::ChangesRequested);
+        assert_eq!(toast(&a), "Changes requested (demo)");
+        submitted(&mut a, Verdict::Comment, Ok(()));
+        assert_eq!(
+            a.state.changes[0].my_review,
+            MyReview::ChangesRequested,
+            "a later comment doesn't downgrade it"
         );
-        assert!(diff(&a).confirm.is_none() && !diff(&a).submitting);
-        key(&mut a, KeyCode::Char('a'));
-        assert!(key(&mut a, KeyCode::Esc).is_empty());
-        assert!(diff(&a).confirm.is_none());
     }
 
     #[test]
-    fn an_invalid_draft_is_explained_before_the_preview() {
+    fn an_invalid_draft_is_explained_before_the_modal_opens() {
         let mut a = app_with(vec![draft(3, "  ")], Capabilities::all());
         key(&mut a, KeyCode::Char('a'));
-        assert!(diff(&a).confirm.is_none());
+        assert!(diff(&a).review.is_none());
         let text = status(&a);
         assert!(
             text.contains("is empty") && !text.contains("unexpected response"),
@@ -1502,20 +1616,76 @@ mod tests {
     }
 
     #[test]
-    fn x_explains_when_the_forge_cannot_request_changes() {
+    fn a_source_without_request_changes_hides_it_and_x_explains() {
         let caps = Capabilities {
             request_changes: false,
             ..Capabilities::all()
         };
         let mut a = app_with(Vec::new(), caps);
         key(&mut a, KeyCode::Char('x'));
+        assert!(diff(&a).review.is_none());
         assert_eq!(
             status(&a),
             "GitHub doesn't support request changes. Leave a comment instead (c)."
         );
+        key(&mut a, KeyCode::Char('R'));
+        assert_eq!(modal(&a).verdicts, [Verdict::Comment, Verdict::Approve]);
+        key(&mut a, KeyCode::Char('3'));
+        assert_eq!(modal(&a).verdict, Verdict::Comment, "3 does nothing");
+    }
+
+    #[test]
+    fn a_probe_that_says_no_hides_request_changes_too() {
+        use rb_core::{Capabilities as Caps, ProbeOutcome};
         let mut a = app();
+        let source = id().source_id;
+        let outcome = ProbeOutcome::new(Caps {
+            request_changes: false,
+            ..Caps::all()
+        });
+        update(
+            &mut a,
+            Msg::Probed {
+                source,
+                outcome: Box::new(outcome),
+                at: Timestamp(0),
+            },
+        );
         key(&mut a, KeyCode::Char('x'));
-        assert!(status(&a).contains("Approve with a"));
+        assert!(diff(&a).review.is_none());
+        key(&mut a, KeyCode::Char('a'));
+        assert_eq!(modal(&a).verdicts.len(), 2);
+    }
+
+    #[test]
+    fn a_probe_that_allows_it_wins_over_the_providers_static_answer() {
+        use rb_core::ProbeOutcome;
+        let none = Capabilities {
+            request_changes: false,
+            ..Capabilities::all()
+        };
+        let mut a = app_with(Vec::new(), none);
+        update(
+            &mut a,
+            Msg::Probed {
+                source: id().source_id,
+                outcome: Box::new(ProbeOutcome::new(Capabilities::all())),
+                at: Timestamp(0),
+            },
+        );
+        key(&mut a, KeyCode::Char('x'));
+        assert_eq!(modal(&a).verdict, Verdict::RequestChanges);
+    }
+
+    #[test]
+    fn keys_in_the_modal_never_reach_the_diff_beneath() {
+        let mut a = app();
+        key(&mut a, KeyCode::Char('a'));
+        let before = diff(&a).view.cursor;
+        key(&mut a, KeyCode::Char('j'));
+        key(&mut a, KeyCode::Char('c'));
+        assert_eq!(diff(&a).view.cursor, before);
+        assert!(diff(&a).composer.is_none());
     }
 
     #[test]

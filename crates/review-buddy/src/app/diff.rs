@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rb_core::{Capabilities, ChangeId, FilePatch, ReviewDraft, Thread, Timestamp};
+use rb_core::{Capabilities, ChangeId, FilePatch, ReviewDraft, Thread, Timestamp, Verdict};
 use rb_diff::{
     DiffBody, FileDiff, HighlightedFile, Highlighter, Hunk, HunkHeader, LineId, ParsedPatch,
 };
@@ -13,6 +13,7 @@ use rb_diff::{
 use super::composer::{self, Composer, Confirm};
 use super::diffview::{self, Inputs, Rows};
 use super::range::{self, RowRange};
+use super::review::{self, ReviewModal};
 use super::update::set_status;
 use super::{Action, App, Cmd, Notice, NoticeKind, Screen};
 use crate::ui::layout;
@@ -152,6 +153,8 @@ pub struct DiffState {
     pub composer: Option<Composer>,
     /// A preview or discard confirmation, shown over everything else.
     pub confirm: Option<Confirm>,
+    /// The submit-review modal, shown over everything else.
+    pub review: Option<ReviewModal>,
     /// A write is on its way to the forge and hasn't answered yet.
     pub submitting: bool,
     /// What to start once the patches arrive, when a dashboard key opened the diff.
@@ -162,6 +165,7 @@ pub struct DiffState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Intent {
     Approve,
+    RequestChanges,
     Comment,
 }
 
@@ -180,6 +184,7 @@ impl DiffState {
             select: None,
             composer: None,
             confirm: None,
+            review: None,
             submitting: false,
             intent: None,
         }
@@ -187,7 +192,7 @@ impl DiffState {
 
     /// Whether a composer or confirmation holds the keyboard.
     pub fn has_overlay(&self) -> bool {
-        self.composer.is_some() || self.confirm.is_some()
+        self.composer.is_some() || self.confirm.is_some() || self.review.is_some()
     }
 
     pub fn files(&self) -> &[DiffFile] {
@@ -204,7 +209,7 @@ pub fn open(app: &mut App) -> Vec<Cmd> {
     open_with_intent(app, None)
 }
 
-/// Like [`open`], and starts `intent` (an approve preview or a comment) once the diff loads.
+/// Like [`open`], and starts `intent` (a review modal or a comment) once the diff loads.
 pub fn open_with_intent(app: &mut App, intent: Option<Intent>) -> Vec<Cmd> {
     let Some(change) = app.selected_change() else {
         return Vec::new();
@@ -269,7 +274,8 @@ fn start_intent(app: &mut App) {
         reveal_cursor(state, height);
     }
     match intent {
-        Intent::Approve => composer::open_approve(app),
+        Intent::Approve => review::open(app, Verdict::Approve),
+        Intent::RequestChanges => review::open(app, Verdict::RequestChanges),
         Intent::Comment => composer::open_comment(app),
     };
 }
@@ -584,8 +590,9 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
             return cmds;
         }
         KeyCode::Char('r') => return composer::open_reply(app),
-        KeyCode::Char('a') => return composer::open_approve(app),
-        KeyCode::Char('x') => return composer::request_changes(app),
+        KeyCode::Char('a') => return review::open(app, Verdict::Approve),
+        KeyCode::Char('x') => return review::open(app, Verdict::RequestChanges),
+        KeyCode::Char('R') => return review::open(app, Verdict::Comment),
         code => match move_kind(code) {
             Some(kind) => cmds = on_move(app, focus, kind, shift),
             None => return Vec::new(),
@@ -977,10 +984,18 @@ mod tests {
     fn a_dashboard_approve_previews_once_the_diff_loads() {
         let app = loaded_with_intent(Intent::Approve);
         let s = app.diff.as_ref().unwrap();
-        assert!(matches!(
-            s.confirm.as_ref().map(|c| &c.kind),
-            Some(composer::ConfirmKind::Approve { .. })
-        ));
+        assert_eq!(s.review.as_ref().map(|m| m.verdict), Some(Verdict::Approve));
+        assert!(s.intent.is_none());
+    }
+
+    #[test]
+    fn a_dashboard_request_changes_opens_the_modal_on_that_verdict() {
+        let app = loaded_with_intent(Intent::RequestChanges);
+        let s = app.diff.as_ref().unwrap();
+        assert_eq!(
+            s.review.as_ref().map(|m| m.verdict),
+            Some(Verdict::RequestChanges)
+        );
         assert!(s.intent.is_none());
     }
 

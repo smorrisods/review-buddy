@@ -151,7 +151,11 @@ fn on_overlay(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
         return Vec::new();
     }
     let confirming = app.diff.as_ref().is_some_and(|s| s.confirm.is_some());
+    let reviewing = app.diff.as_ref().is_some_and(|s| s.review.is_some());
     let hit = app.hits.at(mouse.column, mouse.row).cloned();
+    if reviewing {
+        return on_review(app, mouse, hit);
+    }
     match (mouse.kind, hit) {
         (MouseEventKind::Down(MouseButton::Left), Some(Action::Answer(yes))) if confirming => {
             composer::answer(app, yes)
@@ -176,6 +180,42 @@ fn on_overlay(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
             Some(Action::ComposerCursor { .. }),
         ) if !confirming => {
             composer::scroll_text(app, mouse.kind == MouseEventKind::ScrollDown);
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// The review modal: its verdicts, buttons and summary answer; everything else is ignored.
+fn on_review(app: &mut App, mouse: MouseEvent, hit: Option<Action>) -> Vec<Cmd> {
+    match (mouse.kind, hit) {
+        (MouseEventKind::Down(MouseButton::Left), Some(Action::ReviewVerdict(v))) => {
+            super::review::set_verdict(app, v);
+            Vec::new()
+        }
+        (MouseEventKind::Down(MouseButton::Left), Some(Action::ReviewButton(go))) => {
+            super::review::press(app, go)
+        }
+        (MouseEventKind::Down(MouseButton::Left), Some(Action::DismissToast(id))) => {
+            update::run(app, Action::DismissToast(id))
+        }
+        (
+            MouseEventKind::Down(MouseButton::Left),
+            Some(Action::SummaryCursor {
+                x,
+                y,
+                first,
+                across,
+            }),
+        ) => {
+            super::review::place_cursor(app, mouse.column, mouse.row, (x, y, first, across));
+            Vec::new()
+        }
+        (
+            MouseEventKind::ScrollDown | MouseEventKind::ScrollUp,
+            Some(Action::SummaryCursor { .. }),
+        ) => {
+            super::review::scroll_text(app, mouse.kind == MouseEventKind::ScrollDown);
             Vec::new()
         }
         _ => Vec::new(),

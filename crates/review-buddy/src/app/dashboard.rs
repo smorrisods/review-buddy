@@ -530,6 +530,14 @@ fn chip_pressed(app: &mut App, chip: Chip) -> Vec<Cmd> {
         Chip::Diff => return super::diff::open(app),
         Chip::Approve => return super::diff::open_with_intent(app, Some(Intent::Approve)),
         Chip::Comment => return super::diff::open_with_intent(app, Some(Intent::Comment)),
+        Chip::RequestChanges
+            if app.selected_change().is_some_and(|c| {
+                app.state
+                    .supports(&c.id.source_id, FeatureAction::RequestChanges)
+            }) =>
+        {
+            return super::diff::open_with_intent(app, Some(Intent::RequestChanges));
+        }
         Chip::RequestChanges => {
             let source = app.selected_change().map(|c| c.id.source_id.clone());
             source
@@ -538,7 +546,7 @@ fn chip_pressed(app: &mut App, chip: Chip) -> Vec<Cmd> {
                         .explain_unsupported(&id, FeatureAction::RequestChanges)
                 })
                 .unwrap_or_else(|| {
-                    "Requesting changes isn't available yet. Open the diff with ⏎, then approve with a or comment with c."
+                    "Requesting changes isn't available yet. Open the diff with ⏎, then approve with a or post a review with R."
                         .to_string()
                 })
         }
@@ -838,6 +846,33 @@ mod tests {
         on_action(&mut app, crate::app::Action::Chip(Chip::Merge));
         assert!(app.status.as_ref().unwrap().notice.text.contains("Merging"));
         assert_eq!(app.screen, crate::app::Screen::Dashboard);
+    }
+
+    #[test]
+    fn x_leads_into_the_review_modal_unless_the_probe_says_no() {
+        let mut app = loaded(160, sample());
+        let cmds = update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Char('x'))));
+        assert!(matches!(cmds[0], Cmd::LoadDiff(_)));
+        assert_eq!(
+            app.diff.as_ref().unwrap().intent,
+            Some(Intent::RequestChanges)
+        );
+
+        let mut app = loaded(160, sample());
+        let source = app.selected_change().unwrap().id.source_id.clone();
+        let mut outcome = rb_core::ProbeOutcome::new(rb_core::Capabilities {
+            request_changes: false,
+            ..rb_core::Capabilities::all()
+        });
+        outcome.complete = true;
+        update(
+            &mut app,
+            Msg::Probed {
+                source,
+                outcome: Box::new(outcome),
+                at: rb_core::Timestamp(0),
+            },
+        );
         update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Char('x'))));
         assert!(app
             .status
@@ -845,7 +880,7 @@ mod tests {
             .unwrap()
             .notice
             .text
-            .contains("Requesting changes"));
+            .contains("request changes"));
         assert_eq!(app.screen, crate::app::Screen::Dashboard);
     }
 

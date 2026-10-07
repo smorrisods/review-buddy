@@ -20,6 +20,7 @@ pub mod first_run;
 pub mod help;
 mod hitmap;
 pub mod layout;
+pub mod review;
 pub mod settings;
 pub mod show;
 pub mod size;

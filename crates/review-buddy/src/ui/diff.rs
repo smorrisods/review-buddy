@@ -183,16 +183,26 @@ fn draw_review(frame: &mut Frame, app: &App, state: &DiffState, area: Rect) {
         }
     }
     if let Some(change) = app.state.changes.iter().find(|c| c.id == state.id) {
-        lines.push(text(format!("Your verdict: {}", verdict_text(change))));
+        lines.push(text(format!("Your review: {}", verdict_text(change))));
     }
-    if state.data.is_some() {
+    if let Some(modal) = &state.review {
+        lines.push(text(format!(
+            "Choosing: {}",
+            crate::app::review::verdict_label(modal.verdict).to_lowercase()
+        )));
+    } else if state.data.is_some() {
         lines.push(muted(app, "a approve · c comment"));
-        if app
+        let can_request = app
             .state
-            .supports(&state.id.source_id, FeatureAction::RequestChanges)
-        {
-            lines.push(muted(app, "x request changes"));
-        }
+            .supports(&state.id.source_id, FeatureAction::RequestChanges);
+        lines.push(muted(
+            app,
+            if can_request {
+                "x request changes · R review"
+            } else {
+                "R post a review"
+            },
+        ));
     }
     frame.render_widget(Paragraph::new(lines), inner);
 }
@@ -201,7 +211,7 @@ fn verdict_text(change: &ChangeSummary) -> &'static str {
     match change.my_review {
         MyReview::None => "not started",
         MyReview::Approved => "✓ approved",
-        MyReview::ChangesRequested => "✎ asked for changes",
+        MyReview::ChangesRequested => "✎ changes requested",
         MyReview::Commented => "✎ commented",
     }
 }

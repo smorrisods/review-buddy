@@ -28,6 +28,7 @@ pub mod queue;
 pub mod range;
 pub mod refresh;
 pub mod resize;
+pub mod review;
 pub mod settings;
 pub mod setup;
 pub mod show;
@@ -133,6 +134,17 @@ pub enum Action {
     /// Place the composer's cursor where the pointer is. `x` and `y` are the screen position of
     /// the text's top-left cell; `first` and `across` are the rows and columns scrolled off.
     ComposerCursor {
+        x: u16,
+        y: u16,
+        first: usize,
+        across: usize,
+    },
+    /// Pick a verdict in the review modal.
+    ReviewVerdict(Verdict),
+    /// Press the review modal's Cancel (`false`) or Submit (`true`) button.
+    ReviewButton(bool),
+    /// Put the review summary's caret where the pointer is; fields as for `ComposerCursor`.
+    SummaryCursor {
         x: u16,
         y: u16,
         first: usize,
@@ -538,6 +550,7 @@ impl App {
                 || s.composer
                     .as_ref()
                     .is_some_and(composer::Composer::is_dirty)
+                || s.review.as_ref().is_some_and(|r| !r.summary.is_blank())
         })
     }
 
