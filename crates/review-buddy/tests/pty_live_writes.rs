@@ -174,7 +174,7 @@ async fn adding_a_comment_and_approving_writes_through_the_stub_after_the_previe
     session.send("\r");
     std::thread::sleep(Duration::from_millis(300));
     session.send("a");
-    session.expect("Approve this change?");
+    session.expect("Submit your review");
     assert!(
         writes(&server).await.is_empty(),
         "nothing is written before the preview is confirmed"

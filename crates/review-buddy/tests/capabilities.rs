@@ -153,6 +153,7 @@ fn the_review_block_lists_only_available_verdicts_and_x_explains_in_the_diff() {
     assert_eq!(app.screen, Screen::Diff);
     let screen = render(&mut app);
     assert!(screen.contains("a approve · c comment"), "{screen}");
+    assert!(screen.contains("R post a review"), "{screen}");
     assert!(!screen.contains("x request changes"), "{screen}");
 
     press(&mut app, KeyCode::Char('x'));

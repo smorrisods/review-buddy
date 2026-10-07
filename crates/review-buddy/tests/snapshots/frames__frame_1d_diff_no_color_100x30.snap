@@ -27,11 +27,11 @@ expression: plain_dump(& mut app)
 │ Your review · pending ─────────││              │ menus I use stop at the end.                   ││
 │1 suggestion · 0 comments       ││              │ ada · 20h                                      ││
 │0 of 3 files viewed             ││              │ I went with wrapping so a held key never gets  ││
-│Your verdict: not started       ││              │ stuck. Happy to make it configurable if you'd  ││
+│Your review: not started        ││              │ stuck. Happy to make it configurable if you'd  ││
 │a approve · c comment           ││              │ rather.                                        ││
-│x request changes               ││              ╰────────────────────────────────────────────────╯│
+│x request changes · R review    ││              ╰────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy
 
 -- modifiers --
 0:1 B "review buddy"
@@ -169,7 +169,7 @@ expression: plain_dump(& mut app)
 26:33 D "│"
 26:34 B "│"
 26:99 B "│"
-27:0 D "│x request changes"
+27:0 D "│x request changes · R review"
 27:33 D "│"
 27:34 B "│"
 27:99 B "│"
@@ -189,11 +189,9 @@ expression: plain_dump(& mut app)
 29:42 D " comment"
 29:52 B "a"
 29:53 D " approve"
-29:63 B "o"
-29:64 D " open"
-29:71 B "y"
-29:72 D " copy"
-29:79 B "esc"
-29:82 D " back"
-29:89 B "?"
-29:90 D " help"
+29:63 B "R"
+29:64 D " submit a review"
+29:82 B "o"
+29:83 D " open"
+29:90 B "y"
+29:91 D " copy"

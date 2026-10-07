@@ -176,6 +176,7 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
             bind("Review", "r", "reply to the thread", None, false),
             bind("Review", "a", "approve", None, true),
             bind("Review", "x", "request changes", None, false),
+            bind("Review", "R", "submit a review", None, true),
             bind("Change", "o", "open", open, true),
             bind("Change", "y", "copy", copy, true),
             bind("General", "esc", "back", Some(Action::CloseDiff), true),

@@ -9,26 +9,26 @@ expression: text(& render(& mut a))
 │  · src/ui/mod.rs          +2 −0││    11   11   pub struct Menu {                                 │
 │                                ││    12   12       items: Vec<MenuItem>,                         │
 │                                ││         13 +     selected: usize,                              │
-│                                ││         14 +     open: bool,                                   │
-│                                ││    13   15   }                                                 │
-│                                ││    14   16                                                     │
-│                                ││    15   17   impl Menu {                                       │
-│                 ╭ Approve this change? ────────────────────────────────────────╮m>) -> Self {    │
-│                 │ Approve with 1 comment                                       │                 │
-│                 │ Verdict: approve                                             │                 │
-│                 │                                                              │                 │
-│                 │ • menus.rs line 51 · Fewer branches this way:                │                 │
-│                 │                                                              │                 │
-│                 │   Cancel    › Approve ‹   ⏎ choose · esc cancel              │ {               │
-│                 ╰──────────────────────────────────────────────────────────────╯{                │
-│                                ││         42 +             return;                               │
-│                                ││         43 +         }                                         │
-│                                ││         44 +         self.selected = (self.selected + 1) % sel…│
+│                ╭ Submit your review ────────────────────────────────────────────╮                │
+│                │ ( ) 1 Comment  (•) 2 Approve  ( ) 3 Request changes            │                │
+│                │                                                                │                │
+│                │ Approve with 1 comment                                         │                │
+│                │ Verdict: approve                                               │>) -> Self {    │
+│                │                                                                │                │
+│                │ Summary (optional)                                             │                │
+│                │ ▏                                                              │                │
+│                │ ▏                                                              │                │
+│                │ ▏                                                              │                │
+│                │                                                                │{               │
+│                │ • menus.rs line 51 · Fewer branches this way:                  │                │
+│                │                                                                │                │
+│                │   Cancel    › Approve ‹   ⏎ choose · esc cancel                │                │
+│                ╰────────────────────────────────────────────────────────────────╯cted + 1) % sel…│
 │ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
 │1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
 │0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
-│Your verdict: not started       ││              │ menus I use stop at the end.                   ││
-│a approve · c comment           ││              │ ada · 20h                                      ││
-│x request changes               ││              │ I went with wrapping so a held key never gets  ││
+│Your review: not started        ││              │ menus I use stop at the end.                   ││
+│Choosing: approve               ││              │ ada · 20h                                      ││
+│                                ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

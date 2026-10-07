@@ -27,8 +27,8 @@ expression: text(& render(& mut a))
 │ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
 │1 suggestion · 0 comments       ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
 │0 of 3 files viewed             │││ This could return early.                                     ││
-│Your verdict: not started       │││ Worth a guard?                                               ││
+│Your review: not started        │││ Worth a guard?                                               ││
 │a approve · c comment           │││                                                              ││
-│x request changes               ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
+│x request changes · R review    ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
  ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard

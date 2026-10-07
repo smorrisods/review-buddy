@@ -37,8 +37,8 @@ expression: shown
 │ Your review · pending ─────────││  1422 1422   let value_1422 = 1422;                                                                                        │
 │Nothing pending yet.            ││  1423 1423   let value_1423 = 1423;                                                                                        │
 │0 of 1 file viewed              ││  1424 1424   let value_1424 = 1424;                                                                                        │
-│Your verdict: not started       ││  1425 1425   let value_1425 = 1425;                                                                                        │
+│Your review: not started        ││  1425 1425   let value_1425 = 1425;                                                                                        │
 │a approve · c comment           ││  1426 1426   let value_1426 = 1426;                                                                                        │
-│x request changes               ││› 1427 1427   let value_1427 = 1427;                                                                                        │
+│x request changes · R review    ││› 1427 1427   let value_1427 = 1427;                                                                                        │
 ╰────────────────────────────────╯╰ hunk 1 of 1 · file 1 of 1 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

@@ -388,7 +388,7 @@ fn my_review_text(change: &ChangeSummary) -> &'static str {
     match change.my_review {
         MyReview::None => "not started",
         MyReview::Approved => "✓ approved",
-        MyReview::ChangesRequested => "✎ asked for changes",
+        MyReview::ChangesRequested => "✎ changes requested",
         MyReview::Commented => "✎ commented",
     }
 }

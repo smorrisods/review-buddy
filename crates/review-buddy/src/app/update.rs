@@ -357,7 +357,11 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         Action::CloseDiff | Action::DiffFile(_) | Action::DiffRow(_) | Action::DiffFocus(_) => {
             diff::on_action(app, action)
         }
-        Action::ComposerCursor { .. } | Action::Answer(_) => Vec::new(),
+        Action::ComposerCursor { .. }
+        | Action::Answer(_)
+        | Action::ReviewVerdict(_)
+        | Action::ReviewButton(_)
+        | Action::SummaryCursor { .. } => Vec::new(),
         Action::Setup(click) => setup::drive(app, crate::setup::Input::Click(click)),
         Action::OpenSettings => settings::open(app),
         Action::Settings(click) => settings::drive(app, crate::settings::Input::Click(click)),

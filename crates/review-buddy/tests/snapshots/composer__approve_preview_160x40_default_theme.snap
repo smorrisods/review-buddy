@@ -14,21 +14,21 @@ expression: text(& render(& mut a))
 │                                ││    14   16                                                                                                                 │
 │                                ││    15   17   impl Menu {                                                                                                   │
 │                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {                                                                │
-│                                ││              @@ -34,6 +36,24 @@ impl Menu {                                                                                │
-│                                ││    34   36       pub fn len(&self) -> usize {                                                                              │
-│                                ││    35   37           self.items.len()                                                                                      │
-│                                ││    36   38       }                                                                                                         │
-│                                ││         39 +╭ Approve this change? ────────────────────────────────────────╮                                               │
-│                                ││         40 +│ Approve with 1 comment                                       │                                               │
-│                                ││         41 +│ Verdict: approve                                             │                                               │
-│                                ││         42 +│                                                              │                                               │
-│                                ││         43 +│ • menus.rs line 51 · Fewer branches this way:                │                                               │
-│                                ││         44 +│                                                              │                                               │
-│                                ││             │   Cancel    › Approve ‹   ⏎ choose · esc cancel              │──────────────────────────────────────────────╮│
-│                                ││             ╰──────────────────────────────────────────────────────────────╯                                              ││
-│                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
-│                                ││              │ ada · 20h                                                                                                  ││
-│                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
+│                                ││            ╭ Submit your review ────────────────────────────────────────────╮                                              │
+│                                ││    34   36 │ ( ) 1 Comment  (•) 2 Approve  ( ) 3 Request changes            │                                              │
+│                                ││    35   37 │                                                                │                                              │
+│                                ││    36   38 │ Approve with 1 comment                                         │                                              │
+│                                ││         39 │ Verdict: approve                                               │                                              │
+│                                ││         40 │                                                                │                                              │
+│                                ││         41 │ Summary (optional)                                             │                                              │
+│                                ││         42 │ ▏                                                              │                                              │
+│                                ││         43 │ ▏                                                              │                                              │
+│                                ││         44 │ ▏                                                              │                                              │
+│                                ││            │                                                                │─────────────────────────────────────────────╮│
+│                                ││            │ • menus.rs line 51 · Fewer branches this way:                  │                                             ││
+│                                ││            │                                                                │p at the end.                                ││
+│                                ││            │   Cancel    › Approve ‹   ⏎ choose · esc cancel                │                                             ││
+│                                ││            ╰────────────────────────────────────────────────────────────────╯make it configurable if you'd rather.        ││
 │                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
@@ -37,8 +37,8 @@ expression: text(& render(& mut a))
 │ Your review · pending ─────────││         49 +             return;                                                                                           │
 │1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
 │0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
-│Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
-│a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
-│x request changes               ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+│Your review: not started        ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
+│Choosing: approve               ││              │ Fewer branches this way:                                                                                   ││
+│                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

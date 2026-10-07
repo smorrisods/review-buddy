@@ -4,28 +4,28 @@ expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
-│  · src/ui/menubar.rs      +8 −0││›   10   10      ╭ Keys · Diff ─────────────────────────────────────────╮                                                   │
-│  · src/ui/mod.rs          +2 −0││    11   11   pub│Move                                                  │                                                   │
-│                                ││    12   12      │  j/k          move                                   │                                                   │
-│                                ││         13 +    │  g/G          first / last line                      │                                                   │
-│                                ││         14 +    │  pgup/pgdn    page up / down                         │                                                   │
-│                                ││    13   15   }  │  n/p          hunk                                   │                                                   │
-│                                ││    14   16      │  ← →          file                                   │                                                   │
-│                                ││    15   17   imp│  ]/[          file                                   │                                                   │
-│                                ││    16   18      │  tab          pane                                   │                                                   │
-│                                ││              @@ │                                                      │                                                   │
-│                                ││    34   36      │Select                                                │                                                   │
-│                                ││    35   37      │  ⇧↑/⇧↓        select lines                           │                                                   │
-│                                ││    36   38      │  ⇧pgup/⇧pgdn  select a page                          │                                                   │
-│                                ││         39 +    │  V            select lines with j/k, again to end    │                                                   │
-│                                ││         40 +    │  esc          clear the selection                    │                                                   │
-│                                ││         41 +    │                                                      │                                                   │
-│                                ││         42 +    │Review                                                │                                                   │
-│                                ││         43 +    │  c            comment                                │                                                   │
-│                                ││         44 +    │  r            reply to the thread                    │n();                                               │
-│                                ││              ╭─ │  a            approve                                │──────────────────────────────────────────────────╮│
-│                                ││              │ j│  x            request changes                        │                                                  ││
+│› · src/ui/menus.rs       +22 −1││              @@ ╭ Keys · Diff ─────────────────────────────────────────╮                                                   │
+│  · src/ui/menubar.rs      +8 −0││›   10   10      │Move                                                  │                                                   │
+│  · src/ui/mod.rs          +2 −0││    11   11   pub│  j/k          move                                   │                                                   │
+│                                ││    12   12      │  g/G          first / last line                      │                                                   │
+│                                ││         13 +    │  pgup/pgdn    page up / down                         │                                                   │
+│                                ││         14 +    │  n/p          hunk                                   │                                                   │
+│                                ││    13   15   }  │  ← →          file                                   │                                                   │
+│                                ││    14   16      │  ]/[          file                                   │                                                   │
+│                                ││    15   17   imp│  tab          pane                                   │                                                   │
+│                                ││    16   18      │                                                      │                                                   │
+│                                ││              @@ │Select                                                │                                                   │
+│                                ││    34   36      │  ⇧↑/⇧↓        select lines                           │                                                   │
+│                                ││    35   37      │  ⇧pgup/⇧pgdn  select a page                          │                                                   │
+│                                ││    36   38      │  V            select lines with j/k, again to end    │                                                   │
+│                                ││         39 +    │  esc          clear the selection                    │                                                   │
+│                                ││         40 +    │                                                      │                                                   │
+│                                ││         41 +    │Review                                                │                                                   │
+│                                ││         42 +    │  c            comment                                │                                                   │
+│                                ││         43 +    │  r            reply to the thread                    │                                                   │
+│                                ││         44 +    │  a            approve                                │n();                                               │
+│                                ││              ╭─ │  x            request changes                        │──────────────────────────────────────────────────╮│
+│                                ││              │ j│  R            submit a review                        │                                                  ││
 │                                ││              │ S│                                                      │e stop at the end.                                ││
 │                                ││              │ a│Change                                                │                                                  ││
 │                                ││              │ I│  o            open                                   │y to make it configurable if you'd rather.        ││
@@ -37,8 +37,8 @@ expression: text(&render(&mut a))
 │ Your review · pending ─────────││         49 +    │  ?            help                                   │                                                   │
 │1 suggestion · 0 comments       ││         50 +    │  T            theme                                  │                                                   │
 │0 of 3 files viewed             ││         51 +    │  B            background: theme / yes / no           │_or(self.items.len() - 1);                         │
-│Your verdict: not started       ││              ╭─ │  ⌃Z           suspend                                │──────────────────────────────────────────────────╮│
+│Your review: not started        ││              ╭─ │  ⌃Z           suspend                                │──────────────────────────────────────────────────╮│
 │a approve · c comment           ││              │ F╰ esc close ───────────────────────────────────────────╯                                                  ││
-│x request changes               ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+│x request changes · R review    ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

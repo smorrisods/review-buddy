@@ -37,8 +37,8 @@ expression: screen
 │ Your review · pending ─────────││                                                                                                                            │
 │Nothing pending yet.            ││                                                                                                                            │
 │0 of 1 file viewed              ││                                                                                                                            │
-│Your verdict: not started       ││                                                                                                                            │
+│Your review: not started        ││                                                                                                                            │
 │a approve · c comment           ││                                                                                                                            │
-│                                ││                                                                                                                            │
+│R post a review                 ││                                                                                                                            │
 ╰────────────────────────────────╯╰ hunk 1 of 1 · file 1 of 1 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file      · GitLab 16.9 on gitlab.example.com doesn't support requesting changes (it needs 17.3 or newer). Approve or comment instead.

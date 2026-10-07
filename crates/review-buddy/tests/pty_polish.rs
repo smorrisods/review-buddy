@@ -128,7 +128,7 @@ fn sgr(button: u8, (x, y): (u16, u16), press: bool) -> Vec<u8> {
 #[test]
 fn a_on_the_dashboard_previews_the_approval_in_the_diff() {
     let mut s = start();
-    s.send(b"a", "Approve this change?", "a opens the approve preview");
+    s.send(b"a", "Submit your review", "a opens the review modal");
     s.send(b"\r", "Approved (demo)", "⏎ confirms");
     s.send(b"q", "Waiting on you", "q returns to the queue");
     s.quit();

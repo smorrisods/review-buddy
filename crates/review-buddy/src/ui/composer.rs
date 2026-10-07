@@ -29,6 +29,9 @@ pub fn draw(
     if let Some(confirm) = &state.confirm {
         draw_confirm(frame, app, confirm, body, hits);
     }
+    if let Some(modal) = &state.review {
+        super::review::draw(frame, app, state, modal, body, hits);
+    }
 }
 
 fn draw_composer(
@@ -114,7 +117,7 @@ fn draw_composer(
 }
 
 /// Cuts `text` so it fits `width` cells, with tabs shown as spaces.
-fn clip(text: &str, width: usize) -> String {
+pub(super) fn clip(text: &str, width: usize) -> String {
     let mut out = String::new();
     let mut used = 0;
     for c in text.chars() {
@@ -152,29 +155,6 @@ fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect, hit
             lines.push(Line::raw(""));
             for line in wrap(body, text_width).into_iter().take(4) {
                 lines.push(text(line));
-            }
-        }
-        ConfirmKind::Approve {
-            summary,
-            comments,
-            verdict: _,
-        } => {
-            lines.push(Line::styled(
-                summary.clone(),
-                style::fg(palette, Role::TextBright).add_modifier(Modifier::BOLD),
-            ));
-            lines.push(muted("Verdict: approve".into()));
-            if !comments.is_empty() {
-                lines.push(Line::raw(""));
-            }
-            for c in comments.iter().take(5) {
-                lines.push(text(format!(
-                    "• {}",
-                    truncate(c, text_width.saturating_sub(2))
-                )));
-            }
-            if comments.len() > 5 {
-                lines.push(muted(format!("  and {} more", comments.len() - 5)));
             }
         }
     }

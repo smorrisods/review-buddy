@@ -38,7 +38,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `⌃Z` | Suspend to the shell on macOS and Linux, on every screen. The terminal is restored first (main screen, cooked mode, mouse, paste and focus reporting off, cursor shown); `fg` re-enters, repaints everything and refreshes as if the window had just regained focus. Unsent composer text is kept. On Windows there is no job control: the footer says `Suspend isn't available on Windows. Use ⌃C or q to quit.` |
 | `esc` | Dismiss status messages |
 
-The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable. `a` and `c` (or their chips) open the diff for the selected change and start the approve preview or the comment composer there, with the cursor on the first changed line. `x` and `m` explain that they are planned for v0.3.
+The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable. `a`, `x` and `c` (or their chips) open the diff for the selected change and start the review modal (Approve or Request changes selected) or the comment composer there, with the cursor on the first changed line. Where the source can't request changes, `x` explains why in one line instead. `m` explains that merging is planned for v0.3.
 
 **Rotating with `P`.** The cycle is `auto` → `bottom` (list on top, details below) → `left` (list on the right, details left) → `top` (list on the bottom, details above) → `right` (list on the left, details right) → `auto`. A stop that looks the same as the layout showing now is skipped, and so is a fixed `right` that looks the same as the `auto` after it:
 
@@ -70,8 +70,9 @@ Open with `⏎` or `d` from the dashboard.
 | `V` | Start a line-wise selection, for terminals that don't report Shift+arrows: plain `↑` `↓` `j` `k` `PgUp` `PgDn` (and `g` `G` `n` `p`) extend the range until you press `V` again, which ends the mode and keeps the range, or `esc`, which clears it |
 | `c` | Comment on the cursor line, or on the selected range (`start_line` to `line`, on the side of the last line) after a drag, shift-click or keyboard selection; the selection clears once the comment is added |
 | `r` | Reply to the thread at the cursor |
-| `a` | Approve: opens a preview (`Approve with N comments`, the pending comments listed, the verdict) with **Cancel** and **Approve**. On success your pending comments are cleared and a toast says `Approved` (with `(demo)` under `--demo`); on failure they stay pending and the toast says what to do next |
-| `x` | Request changes. Not built yet: the footer says so and points to `a` and `c`. Where the forge can't do it at all, it says that instead |
+| `a` | Review modal with **Approve** selected (see [Review modal](#review-modal)) |
+| `x` | Review modal with **Request changes** selected. Where the source can't request changes the key stays on screen and says why in one line instead |
+| `R` | Review modal with **Comment** selected: submits the pending comments without approving |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
 | `T` / `B` / `?` | Cycle theme / cycle the background / help |
 | `esc` / `q` | Clear the selected range (and end `V` mode), then go back to the dashboard (`q` also asks first if there are unsent drafts) |
@@ -79,6 +80,28 @@ Open with `⏎` or `d` from the dashboard.
 A keyboard range is the same range a drag makes: the same highlight, the same `c` comment, and it stays inside one hunk (the extension stops at the hunk edge) and, for the comment, on one side. A plain move without Shift outside `V` mode clears the range, just as a click does.
 
 **Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
+
+## Review modal
+
+`a`, `x` and `R` open it over the diff, with Approve, Request changes or Comment selected. It previews exactly what will be sent (for example `Request changes with 2 comments`, from the same plan the forge call uses), lists the pending comments with their file and line, and has an optional **summary**, which becomes the review body whatever the verdict. Verdicts the source doesn't support are left out (GitLab shows Request changes only where the capability probe allows it).
+
+- **Request changes** needs a summary. **Comment** needs at least one pending comment or a summary. **Approve** goes with both empty. Until the verdict is valid the modal says what is missing and **Submit** does nothing.
+- **Cancel** is the default focus for Request changes (or the summary field while it is empty), so ⏎ never sends one by accident. Changing the verdict never moves focus onto Submit by itself, and nothing is sent until you press Submit.
+- Closing the modal keeps the pending comments and the summary; they are there next time. After a successful submit they clear, a toast says `Approved`, `Changes requested` or `Review posted` (with `(demo)` under `--demo`), and the Files pane and the queue row show `Your review: …`. On failure everything stays and the toast says what to do next.
+
+| Key | Action |
+|---|---|
+| `←` `→` / `h` `l` / `tab` `⇧tab` (verdict row) · `1` `2` `3` | Choose Comment, Approve or Request changes |
+| `↓` / `⏎` (verdict row) | Move to the summary |
+| Typing, `⇧⏎` `⌃J` for a new line (summary) | Edit the summary. `⏎` adds a line here and never submits |
+| `tab` / `↓` on the last line (summary) · `↑` on the first line · `⇧tab` | Move to the buttons · back to the verdict row |
+| `⌃⏎` or `⌃P` (summary or anywhere in the modal) | Submit |
+| `←` `→` / `tab` (buttons) | Switch between Cancel and Submit |
+| `⏎` (buttons) | Press the focused button |
+| `↑` / `e` (buttons) | Back to the summary |
+| `esc` / `n` | Cancel |
+
+**Mouse:** click a verdict, the summary (the caret goes under the pointer), Cancel or Submit. A click outside the modal is ignored.
 
 ## Composer
 
@@ -170,7 +193,7 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | `N hidden by your Show filters` (the queue's end note) | Opens the Show filters control |
 | Show filters (the checkboxes under the sources, or the control) | Tick or clear a filter or a project. The search line focuses the search, and the wheel scrolls the project list. A click outside the control closes it |
 | Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
-| Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; Approve and Comment open the diff and start there; Request changes and Merge explain they are planned for v0.3 |
+| Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; Approve, Request changes and Comment open the diff and start there (Request changes explains why when the source can't do it); Merge explains it is planned for v0.3 |
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
 | Diff: files | Click a file to open it |
 | Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from |
@@ -206,15 +229,14 @@ These are in the spec and not built yet. Pressing them does nothing, or says it 
 |---|---|---|
 | `⌃K` · `/` | v0.4 | Command palette · search all sources |
 | `L` · `J` | v0.4 | Cycle layout · toggle Jax |
-| `x` `m` on the dashboard | v0.3 | Request changes and merge |
+| `m` on the dashboard | v0.3 | Merge |
 | `m` | v0.3 | Merge, with a confirm that defaults to **No, not yet** |
-| `R` · `b` | v0.3 | Re-run failed CI · check out the branch |
+| `R` (dashboard) · `b` | v0.3 | Re-run failed CI · check out the branch (`R` already submits a review in the diff) |
 | `n` `p` (one at a time) | v0.4 | Skip / previous in the `queue` layout |
 | `v` · `w` | v0.3 | Unified ↔ side by side · toggle whitespace-only changes |
 | `⌃S` | v0.3 | Insert a suggestion block in the composer (on the dashboard `s` already opens Show filters, so a suggestion shortcut in the diff will need its own key) |
 | `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed |
 | `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
-| `x` in the diff | v0.3 | Request changes, with a required summary |
 
 The merge confirm modal (`← →` / `tab` switch between **No, not yet** and **Merge**, `⏎` confirms, `esc` cancels) arrives with merge.
 

@@ -27,8 +27,8 @@ expression: shown
 │ Your review · pending ─────────││                                                                │
 │Nothing pending yet.            ││                                                                │
 │0 of 2 files viewed             ││                                                                │
-│Your verdict: not started       ││                                                                │
+│Your review: not started        ││                                                                │
 │a approve · c comment           ││                                                                │
-│x request changes               ││                                                                │
+│x request changes · R review    ││                                                                │
 ╰────────────────────────────────╯╰ file 1 of 2 ───────────────────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

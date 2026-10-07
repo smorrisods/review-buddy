@@ -282,7 +282,7 @@ async fn a_comment_then_approve_goes_through_gitlab() {
 
     s.press(KeyCode::Char('a'));
     assert!(
-        s.app.diff.as_ref().unwrap().confirm.is_some(),
+        s.app.diff.as_ref().unwrap().review.is_some(),
         "the preview comes first"
     );
     let cmds = s.press(KeyCode::Enter);
@@ -310,6 +310,91 @@ async fn a_comment_then_approve_goes_through_gitlab() {
         .unwrap()
         .iter()
         .all(|r| r.headers.get("private-token").is_some_and(|v| v == TOKEN)));
+}
+
+#[tokio::test]
+async fn requesting_changes_publishes_with_the_requested_changes_state() {
+    let server = MockServer::start().await;
+    serve(&server).await;
+    let mut s = open_diff(&server).await;
+
+    let mut outcome = rb_core::ProbeOutcome::new(rb_core::Capabilities::all());
+    outcome.complete = true;
+    update(
+        &mut s.app,
+        Msg::Probed {
+            source: change_id().source_id,
+            outcome: Box::new(outcome),
+            at: rb_core::Timestamp(0),
+        },
+    );
+    s.press(KeyCode::Char('c'));
+    for c in "Split this up".chars() {
+        s.press(KeyCode::Char(c));
+    }
+    s.press(KeyCode::Enter);
+    s.press(KeyCode::Char('x'));
+    let modal = s.app.diff.as_ref().unwrap().review.as_ref();
+    assert_eq!(
+        modal.map(|m| m.verdict),
+        Some(rb_core::Verdict::RequestChanges),
+        "this instance can request changes"
+    );
+    for c in "Please rework the loop.".chars() {
+        s.press(KeyCode::Char(c));
+    }
+    let cmds = update(
+        &mut s.app,
+        Msg::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::CONTROL)),
+    );
+    assert!(matches!(cmds.as_slice(), [Cmd::SubmitReview { .. }]));
+    s.settle(cmds, |m| matches!(m, Msg::ReviewSubmitted { .. }))
+        .await;
+    assert_eq!(s.toast(), "Changes requested");
+    assert_eq!(s.draft_len(), 0);
+
+    let sent = writes(&server).await;
+    let paths: Vec<_> = sent
+        .iter()
+        .map(|w| w.0.rsplit('/').next().unwrap().to_string())
+        .collect();
+    assert_eq!(paths, ["draft_notes", "draft_notes", "bulk_publish"]);
+    assert_eq!(sent[1].1["note"], "Please rework the loop.");
+    assert_eq!(sent[2].1, json!({"reviewer_state": "requested_changes"}));
+}
+
+#[tokio::test]
+async fn a_probe_that_refuses_request_changes_hides_it_for_gitlab() {
+    let server = MockServer::start().await;
+    serve(&server).await;
+    let mut s = open_diff(&server).await;
+    let source = change_id().source_id;
+    let outcome = rb_core::ProbeOutcome::new(rb_core::Capabilities {
+        request_changes: false,
+        ..rb_core::Capabilities::all()
+    });
+    update(
+        &mut s.app,
+        Msg::Probed {
+            source,
+            outcome: Box::new(outcome),
+            at: rb_core::Timestamp(0),
+        },
+    );
+    s.press(KeyCode::Char('x'));
+    assert!(s.app.diff.as_ref().unwrap().review.is_none());
+    s.press(KeyCode::Char('R'));
+    let verdicts = &s
+        .app
+        .diff
+        .as_ref()
+        .unwrap()
+        .review
+        .as_ref()
+        .unwrap()
+        .verdicts;
+    assert!(!verdicts.contains(&rb_core::Verdict::RequestChanges));
+    assert!(writes(&server).await.is_empty());
 }
 
 #[tokio::test]

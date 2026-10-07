@@ -37,11 +37,11 @@ expression: plain_dump(& mut app)
 │ Your review · pending ─────────││         49 +             return;                                                                                           │
 │1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
 │0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
-│Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
+│Your review: not started        ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
 │a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
-│x request changes               ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
+│x request changes · R review    ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme
 
 -- modifiers --
 0:1 B "review buddy"
@@ -229,7 +229,7 @@ expression: plain_dump(& mut app)
 36:34 B "│"
 36:49 B "│"
 36:157 B " ││"
-37:0 D "│x request changes"
+37:0 D "│x request changes · R review"
 37:33 D "│"
 37:34 B "│"
 37:49 B "│ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);"
@@ -250,13 +250,15 @@ expression: plain_dump(& mut app)
 39:42 D " comment"
 39:52 B "a"
 39:53 D " approve"
-39:63 B "o"
-39:64 D " open"
-39:71 B "y"
-39:72 D " copy"
-39:79 B "esc"
-39:82 D " back"
-39:89 B "?"
-39:90 D " help"
-39:97 B "T"
-39:98 D " theme"
+39:63 B "R"
+39:64 D " submit a review"
+39:82 B "o"
+39:83 D " open"
+39:90 B "y"
+39:91 D " copy"
+39:98 B "esc"
+39:101 D " back"
+39:108 B "?"
+39:109 D " help"
+39:116 B "T"
+39:117 D " theme"

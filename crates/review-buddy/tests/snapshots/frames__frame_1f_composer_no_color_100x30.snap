@@ -27,9 +27,9 @@ expression: plain_dump(& mut app)
 │ Your review · pending ─────────││              ╰────────────────────────────────────────────────╯│
 │1 suggestion · 0 comments       ││╭ Comment · menus.rs line 51 ──────────────────────────────────╮│
 │0 of 3 files viewed             │││ Worth a guard here?                                          ││
-│Your verdict: not started       │││                                                              ││
+│Your review: not started        │││                                                              ││
 │a approve · c comment           │││                                                              ││
-│x request changes               ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
+│x request changes · R review    ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
  ⏎ add to review  ⌃⏎ post now  ⇧⏎ newline  esc discard
 
@@ -162,7 +162,7 @@ expression: plain_dump(& mut app)
 26:33 D "│"
 26:34 B "││"
 26:98 B "││"
-27:0 D "│x request changes"
+27:0 D "│x request changes · R review"
 27:33 D "│"
 27:34 B "│╰"
 27:36 BD " ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard"
