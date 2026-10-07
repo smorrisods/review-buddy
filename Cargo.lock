@@ -3011,6 +3011,7 @@ dependencies = [
  "rb-theme",
  "serde",
  "serde_json",
+ "signal-hook",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",

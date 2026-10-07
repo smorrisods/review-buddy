@@ -506,7 +506,7 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 let _ = tx.send(Msg::Settings(input));
             });
         }
-        Cmd::FinishSetup => {}
+        Cmd::FinishSetup | Cmd::Suspend => {}
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
             tokio::spawn(async move {
@@ -629,7 +629,9 @@ async fn event_loop(options: RunOptions) -> Result<()> {
         };
         if let Some(msg) = msg {
             for cmd in update(&mut app, msg) {
-                if matches!(cmd, Cmd::FinishSetup) {
+                if matches!(cmd, Cmd::Suspend) {
+                    suspend(&mut guard, &mut app, &tx, &backend, &platform)?;
+                } else if matches!(cmd, Cmd::FinishSetup) {
                     #[cfg(feature = "live")]
                     finish_setup(&options, &mut app, &mut backend, &tx, &platform);
                     #[cfg(not(feature = "live"))]
@@ -638,6 +640,28 @@ async fn event_loop(options: RunOptions) -> Result<()> {
                     execute(cmd, &tx, &backend, &platform);
                 }
             }
+        }
+    }
+    Ok(())
+}
+
+/// `⌃Z`: gives the terminal back, stops until the shell continues the process, then takes the
+/// terminal again, repaints everything and refreshes as if focus had just returned.
+fn suspend(
+    guard: &mut TerminalGuard,
+    app: &mut App,
+    tx: &UnboundedSender<Msg>,
+    backend: &Backend,
+    platform: &Platform,
+) -> Result<()> {
+    guard.suspend();
+    terminal::stop_process();
+    guard.resume()?;
+    let size = guard.terminal.size()?;
+    let msgs = [Msg::Resize(size.width, size.height), Msg::FocusGained];
+    for msg in msgs {
+        for cmd in update(app, msg) {
+            execute(cmd, tx, backend, platform);
         }
     }
     Ok(())
