@@ -196,6 +196,12 @@ impl Rows {
         self.hunk_starts.len()
     }
 
+    /// How many diff lines sit in rows `top..=bottom`, not counting headers and blocks.
+    pub fn lines_between(&self, top: usize, bottom: usize) -> usize {
+        self.line_rows.partition_point(|&r| r <= bottom)
+            - self.line_rows.partition_point(|&r| r < top)
+    }
+
     pub fn first_line(&self) -> Option<usize> {
         self.line_rows.first().copied()
     }

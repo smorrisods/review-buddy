@@ -31,4 +31,4 @@ expression: text(&render(&mut a))
 │a approve · c comment           ││              │ ada · 20h                                      ││
 │x request changes               ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

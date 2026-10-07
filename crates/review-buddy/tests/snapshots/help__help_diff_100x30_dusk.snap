@@ -3,32 +3,32 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
-╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
-│› · src/ui/menus.rs  ╭ Keys · Diff ─────────────────────────────────────────╮app::Action;         │
-│  · src/ui/menubar.rs│Move                                                  │                     │
-│  · src/ui/mod.rs    │  j/k        move                                     │                     │
-│                     │  g/G        first / last line                        │                     │
-│                     │  pgup/pgdn  page up / down                           │                     │
-│                     │  n/p        hunk                                     │                     │
-│                     │  ]/[        file                                     │                     │
-│                     │  tab        pane                                     │                     │
+╭ files 3 ────────────╭ Keys · Diff ─────────────────────────────────────────╮─────────────────────╮
+│› · src/ui/menus.rs  │Move                                                  │app::Action;         │
+│  · src/ui/menubar.rs│  j/k          move                                   │                     │
+│  · src/ui/mod.rs    │  g/G          first / last line                      │                     │
+│                     │  pgup/pgdn    page up / down                         │                     │
+│                     │  n/p          hunk                                   │                     │
+│                     │  ← →          file                                   │                     │
+│                     │  ]/[          file                                   │                     │
+│                     │  tab          pane                                   │                     │
 │                     │                                                      │                     │
-│                     │Review                                                │uItem>) -> Self {    │
-│                     │  c          comment                                  │{                    │
-│                     │  r          reply to the thread                      │e {                  │
-│                     │  a          approve                                  │                     │
-│                     │  x          request changes                          │                     │
+│                     │Select                                                │uItem>) -> Self {    │
+│                     │  ⇧↑/⇧↓        select lines                           │{                    │
+│                     │  ⇧pgup/⇧pgdn  select a page                          │e {                  │
+│                     │  V            select lines with j/k, again to end    │                     │
+│                     │  esc          clear the selection                    │                     │
 │                     │                                                      │                     │
-│                     │Change                                                │elf) {               │
-│                     │  o          open                                     │y() {                │
-│                     │  y          copy                                     │                     │
-│                     │                                                      │                     │
-│                     │General                                               │.selected + 1) % sel…│
-│ Your review · pendin│  esc        back                                     │────────────────────╮│
-│1 suggestion · 0 comm│  q          back to the queue                        │                    ││
-│0 of 3 files viewed  │  ?          help                                     │he first item? Most ││
-│Your verdict: not sta│  T          theme                                    │.                   ││
-│a approve · c comment│  B          background: theme / yes / no             │                    ││
-│x request changes    ╰ esc close ───────────────────────────────────────────╯eld key never gets  ││
-╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+│                     │Review                                                │elf) {               │
+│                     │  c            comment                                │y() {                │
+│                     │  r            reply to the thread                    │                     │
+│                     │  a            approve                                │                     │
+│                     │  x            request changes                        │.selected + 1) % sel…│
+│ Your review · pendin│                                                      │────────────────────╮│
+│1 suggestion · 0 comm│Change                                                │                    ││
+│0 of 3 files viewed  │  o            open                                   │he first item? Most ││
+│Your verdict: not sta│  y            copy                                   │.                   ││
+│a approve · c comment│                                                      │                    ││
+│x request changes    │General                                               │eld key never gets  ││
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 32 ▼ ───────────────╯─────────────────────╯
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

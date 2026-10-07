@@ -30,5 +30,5 @@ expression: text(&render(&mut a))
 │ • Menu::select_next │  s /  pick projects in show filters                  │                     │
 │ • Menu::activate ret│                                                      │                     │
 │ • The bar itself is │General                                               │                     │
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 31 ▼ ───────────────╯─────────────────────╯
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 32 ▼ ───────────────╯─────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

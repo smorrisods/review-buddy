@@ -35,6 +35,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `B` | Cycle the background: theme → yes → no, and remember it between runs (not on first run) |
 | `?` | Help overlay for the current screen (`esc` or `?` closes it) |
 | `q` / `⌃C` | Quit. If there are unsent comments, it asks you to quit again |
+| `⌃Z` | Suspend to the shell on macOS and Linux, on every screen. The terminal is restored first (main screen, cooked mode, mouse, paste and focus reporting off, cursor shown); `fg` re-enters, repaints everything and refreshes as if the window had just regained focus. Unsent composer text is kept. On Windows there is no job control: the footer says `Suspend isn't available on Windows. Use ⌃C or q to quit.` |
 | `esc` | Dismiss status messages |
 
 The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable. `a` and `c` (or their chips) open the diff for the selected change and start the approve preview or the comment composer there, with the cursor on the first changed line. `x` and `m` explain that they are planned for v0.3.
@@ -64,14 +65,18 @@ Open with `⏎` or `d` from the dashboard.
 | `PgUp` `PgDn` · `⌃U` `⌃D` | Move a page or half a page |
 | `⏎` | Files pane: focus the diff |
 | `n` `}` / `p` `{` | Next / previous hunk |
-| `]` / `[` | Next / previous file |
-| `c` | Comment on the cursor line, or on the selected range (`start_line` to `line`, on the side of the last line) after a drag or shift-click; the selection clears once the comment is added |
+| `→` / `←` · `]` / `[` | Next / previous file. The footer says `That's the last file.` or `That's the first file.` at the ends. While the composer or a confirmation is open, `←` and `→` keep their own meaning there |
+| `⇧↑` `⇧↓` · `⇧PgUp` `⇧PgDn` | Extend a range from the cursor by a line or a page. The first press anchors the range at the cursor line; the footer counts the lines (`3 lines selected`) |
+| `V` | Start a line-wise selection, for terminals that don't report Shift+arrows: plain `↑` `↓` `j` `k` `PgUp` `PgDn` (and `g` `G` `n` `p`) extend the range until you press `V` again, which ends the mode and keeps the range, or `esc`, which clears it |
+| `c` | Comment on the cursor line, or on the selected range (`start_line` to `line`, on the side of the last line) after a drag, shift-click or keyboard selection; the selection clears once the comment is added |
 | `r` | Reply to the thread at the cursor |
 | `a` | Approve: opens a preview (`Approve with N comments`, the pending comments listed, the verdict) with **Cancel** and **Approve**. On success your pending comments are cleared and a toast says `Approved` (with `(demo)` under `--demo`); on failure they stay pending and the toast says what to do next |
 | `x` | Request changes. Not built yet: the footer says so and points to `a` and `c`. Where the forge can't do it at all, it says that instead |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
 | `T` / `B` / `?` | Cycle theme / cycle the background / help |
-| `esc` / `q` | Clear the selected range, then go back to the dashboard (`q` also asks first if there are unsent drafts) |
+| `esc` / `q` | Clear the selected range (and end `V` mode), then go back to the dashboard (`q` also asks first if there are unsent drafts) |
+
+A keyboard range is the same range a drag makes: the same highlight, the same `c` comment, and it stays inside one hunk (the extension stops at the hunk edge) and, for the comment, on one side. A plain move without Shift outside `V` mode clears the range, just as a click does.
 
 **Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
 
@@ -207,7 +212,6 @@ These are in the spec and not built yet. Pressing them does nothing, or says it 
 | `n` `p` (one at a time) | v0.4 | Skip / previous in the `queue` layout |
 | `v` · `w` | v0.3 | Unified ↔ side by side · toggle whitespace-only changes |
 | `⌃S` | v0.3 | Insert a suggestion block in the composer (on the dashboard `s` already opens Show filters, so a suggestion shortcut in the diff will need its own key) |
-| `⇧↑↓` · `V` | v0.3 | Extend the range from the keyboard (drag and shift-click select a range today) |
 | `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed |
 | `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
 | `x` in the diff | v0.3 | Request changes, with a required summary |

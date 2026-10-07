@@ -5,40 +5,40 @@ expression: text(&render(&mut a))
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
-│  · src/ui/menubar.rs      +8 −0││›   10   10                                                                                                                 │
-│  · src/ui/mod.rs          +2 −0││    11   11   pub struct Menu {                                                                                             │
-│                                ││    12   12       items: Vec<MenuItem>,                                                                                     │
-│                                ││         13 +     selected: usize,                                                                                          │
-│                                ││         14 +    ╭ Keys · Diff ─────────────────────────────────────────╮                                                   │
-│                                ││    13   15   }  │Move                                                  │                                                   │
-│                                ││    14   16      │  j/k        move                                     │                                                   │
-│                                ││    15   17   imp│  g/G        first / last line                        │                                                   │
-│                                ││    16   18      │  pgup/pgdn  page up / down                           │                                                   │
-│                                ││              @@ │  n/p        hunk                                     │                                                   │
-│                                ││    34   36      │  ]/[        file                                     │                                                   │
-│                                ││    35   37      │  tab        pane                                     │                                                   │
-│                                ││    36   38      │                                                      │                                                   │
-│                                ││         39 +    │Review                                                │                                                   │
-│                                ││         40 +    │  c          comment                                  │                                                   │
-│                                ││         41 +    │  r          reply to the thread                      │                                                   │
-│                                ││         42 +    │  a          approve                                  │                                                   │
-│                                ││         43 +    │  x          request changes                          │                                                   │
-│                                ││         44 +    │                                                      │n();                                               │
-│                                ││              ╭─ │Change                                                │──────────────────────────────────────────────────╮│
-│                                ││              │ j│  o          open                                     │                                                  ││
-│                                ││              │ S│  y          copy                                     │e stop at the end.                                ││
-│                                ││              │ a│                                                      │                                                  ││
-│                                ││              │ I│General                                               │y to make it configurable if you'd rather.        ││
-│                                ││              ╰──│  esc        back                                     │──────────────────────────────────────────────────╯│
-│                                ││         45 +    │  q          back to the queue                        │                                                   │
-│                                ││         46 +    │  ?          help                                     │                                                   │
-│                                ││         47 +    │  T          theme                                    │                                                   │
-│                                ││         48 +    │  B          background: theme / yes / no             │                                                   │
-│ Your review · pending ─────────││         49 +    ╰ esc close ───────────────────────────────────────────╯                                                   │
-│1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
-│0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
-│Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
-│a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
+│  · src/ui/menubar.rs      +8 −0││›   10   10      ╭ Keys · Diff ─────────────────────────────────────────╮                                                   │
+│  · src/ui/mod.rs          +2 −0││    11   11   pub│Move                                                  │                                                   │
+│                                ││    12   12      │  j/k          move                                   │                                                   │
+│                                ││         13 +    │  g/G          first / last line                      │                                                   │
+│                                ││         14 +    │  pgup/pgdn    page up / down                         │                                                   │
+│                                ││    13   15   }  │  n/p          hunk                                   │                                                   │
+│                                ││    14   16      │  ← →          file                                   │                                                   │
+│                                ││    15   17   imp│  ]/[          file                                   │                                                   │
+│                                ││    16   18      │  tab          pane                                   │                                                   │
+│                                ││              @@ │                                                      │                                                   │
+│                                ││    34   36      │Select                                                │                                                   │
+│                                ││    35   37      │  ⇧↑/⇧↓        select lines                           │                                                   │
+│                                ││    36   38      │  ⇧pgup/⇧pgdn  select a page                          │                                                   │
+│                                ││         39 +    │  V            select lines with j/k, again to end    │                                                   │
+│                                ││         40 +    │  esc          clear the selection                    │                                                   │
+│                                ││         41 +    │                                                      │                                                   │
+│                                ││         42 +    │Review                                                │                                                   │
+│                                ││         43 +    │  c            comment                                │                                                   │
+│                                ││         44 +    │  r            reply to the thread                    │n();                                               │
+│                                ││              ╭─ │  a            approve                                │──────────────────────────────────────────────────╮│
+│                                ││              │ j│  x            request changes                        │                                                  ││
+│                                ││              │ S│                                                      │e stop at the end.                                ││
+│                                ││              │ a│Change                                                │                                                  ││
+│                                ││              │ I│  o            open                                   │y to make it configurable if you'd rather.        ││
+│                                ││              ╰──│  y            copy                                   │──────────────────────────────────────────────────╯│
+│                                ││         45 +    │                                                      │                                                   │
+│                                ││         46 +    │General                                               │                                                   │
+│                                ││         47 +    │  esc          back                                   │                                                   │
+│                                ││         48 +    │  q            back to the queue                      │                                                   │
+│ Your review · pending ─────────││         49 +    │  ?            help                                   │                                                   │
+│1 suggestion · 0 comments       ││         50 +    │  T            theme                                  │                                                   │
+│0 of 3 files viewed             ││         51 +    │  B            background: theme / yes / no           │_or(self.items.len() - 1);                         │
+│Your verdict: not started       ││              ╭─ │  ⌃Z           suspend                                │──────────────────────────────────────────────────╮│
+│a approve · c comment           ││              │ F╰ esc close ───────────────────────────────────────────╯                                                  ││
 │x request changes               ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help  T theme
