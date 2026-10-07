@@ -71,6 +71,10 @@ review-buddy config get <key>             one resolved value and the layer it ca
 review-buddy config list                  every resolved value with its origin
 review-buddy config reset-layout          forget the remembered panel layout (session.toml)
 
+review-buddy drafts list                  review drafts saved on this computer
+review-buddy drafts discard <selector>    throw one away (asks first; --yes without a terminal)
+review-buddy drafts clear                 remove every saved draft
+
 review-buddy theme list|check <id>|export <id>
 review-buddy doctor                       auth, scopes, rate limits, API versions and XDG paths
 review-buddy completion <shell>           bash, zsh, fish, elvish or powershell
@@ -287,6 +291,16 @@ Capabilities
 `config paths` lists the resolved directories and loaded files. `config get <key>` prints one effective value, for example `ui.theme`, and `config list` prints every one in a stable order (the sections of `config.example.toml`, then `keys.*`, then each source as `source.<name>.<field>`). On a TTY `get` adds `(from <layer>)`; piped, it prints the bare value so it's safe in `$(…)`. `config list` piped is `key<TAB>value<TAB>origin`. With `--json key,value,origin` both give the origin: the config file that last set the key, `default`, or the override (`$REVIEW_BUDDY_THEME`). Lists print as JSON and durations as `5m`. An unknown key exits `2` with the closest matches.
 
 `config paths` also lists the remembered layout file (`session.toml` in the state directory; `sessionFile` in `--json`, and a `session-file` row piped). `config reset-layout` removes that file, so the next run starts from `config.toml`. It asks first on a TTY (the default is No), needs `--yes` without one (exit `3` with nothing changed otherwise), says so and exits `0` when there is nothing to remove, and never touches `config.toml`. Under `--demo` it prints what it would remove and removes nothing. See `docs/configuration.md#remembered-layout`.
+
+### `drafts`
+
+Review drafts are your own unsent comments, summaries and chosen verdicts, saved under the state directory's `drafts/` folder while you review in the TUI (see `docs/configuration.md#review-drafts-on-disk`). These commands read and remove those files. They never contact a forge and never send anything, and they don't touch a pending review the forge itself holds.
+
+- `drafts list` prints one row per draft, newest first: source, change (`owner/repo#214`, `group/project!7`), comment count, when it was saved and the title. Piped it is tab-separated, without a header, as source, change, comments, saved (ISO 8601) and title; `--json` offers `source`, `forge`, `repo`, `number`, `ref`, `title`, `comments`, `summary`, `verdict`, `headSha` and `writtenAt` (`--json` with no fields lists them). With nothing saved it prints nothing and exits `0` (a note on stderr on a terminal). `--source` limits it to one source. Under `--demo` it lists the demo world's own pending comments and writes nothing.
+- `drafts discard <selector>` removes one draft. The selector is a URL, `owner/repo#214`, `source:owner/repo#214` or a bare number when only one draft has it (more than one is a usage error that names them). It previews what goes and asks first on a terminal, with **No** as the default; without a terminal it needs `--yes` and otherwise exits `3` with nothing changed. A selector that matches no draft exits `2`.
+- `drafts clear` removes every draft file, including drafts for changes that are no longer in any source and files that can't be read. It asks the same way. Nothing in the app prunes drafts by itself, so this is how to tidy up.
+
+Under `--demo`, `discard` and `clear` say what they would remove and remove nothing. `config paths` lists the drafts folder (`draftsDir` in `--json`, a `drafts-dir` row piped).
 
 ### `api` (later)
 

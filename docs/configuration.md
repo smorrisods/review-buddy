@@ -58,7 +58,7 @@ Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at,
 
 ## `[ui]`
 
-Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `remember_layout`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width` and `queue_height`.
+Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `remember_layout`, `drafts`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width` and `queue_height`.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -77,6 +77,7 @@ Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `re
 | `theme_background` | _none_ | A `[ui.theme_background]` table of theme id to `theme` · `yes` · `no`, for example `dusk = "yes"`. Beats `background` for that theme. Precedence, strongest first: the `B` key, `REVIEW_BUDDY_BACKGROUND`, this table, `background`, the theme's own default |
 | `mouse` | `true` | Click, drag-select, scroll. `false` leaves mouse capture off so the terminal handles the mouse. Demo mode never reads the config and always captures it |
 | `remember_layout` | `true` | Remember the panel layout between runs: where Detail sits (`P`), where Sources sit (`S`), whether Detail is open (`p`), the dragged sizes and the background mode (`B`), in `session.toml` in the state directory. `false` neither reads nor writes that file. See [Remembered layout](#remembered-layout) |
+| `drafts` | `"local"` | `local` · `off`. Where your unsent review comments are kept. `local` saves them (with the summary and chosen verdict) under the state directory's `drafts/` folder so they survive leaving the diff and restarting the app; `off` keeps them in memory for the session only and never writes to disk. Demo mode is always memory only. See [Review drafts](keybindings.md#review-drafts) |
 | `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale. Not applied yet |
 
 ### Remembered layout
@@ -95,6 +96,12 @@ background = "yes"         # theme | yes | no
 ```
 
 Precedence at launch, strongest first: a key you press this session, the `REVIEW_BUDDY_*` environment variable (`REVIEW_BUDDY_DETAIL_POSITION`, `REVIEW_BUDDY_BACKGROUND`), the remembered `session.toml`, `config.toml`, then the built-in default. Resetting a split with `=` forgets that size, so the next launch uses `ui.queue_width` or `ui.queue_height` again. `W` still writes sizes to `config.toml`. Set `ui.remember_layout = false` to turn remembering off, in which case the file is neither read nor written. `review-buddy config paths` lists the file and `review-buddy config reset-layout` removes it.
+
+### Review drafts on disk
+
+With `ui.drafts = "local"` (the default) the comments you add in the diff, your review summary and the verdict you chose are kept per change and saved to `$XDG_STATE_HOME/review-buddy/drafts/` (`%LOCALAPPDATA%\review-buddy\state\drafts\` on Windows). Each change has one JSON file named from a stable hash of the source id, repository and number, so no repository name or title shows in a directory listing. The file holds the comments (path, side, `line`, `start_line`, body), the summary, the verdict, the head commit the comments were written against, the change's title and when it was written. It is written atomically with mode `0600` in a `0700` folder, a moment (about half a second) after each change and once more on quit, and only when its content changed. It is deleted after a successful submit, when you discard the draft and when you delete its last comment. A file that is corrupt or from a version this one doesn't understand is ignored quietly. Drafts for changes that no longer appear in any source are kept until you discard them; `review-buddy drafts clear` removes them all. Tokens never go in these files.
+
+A **draft** is your own unsent text on this computer. It is not the pending review a forge may hold for you; that one stays on the forge (see [Review drafts](keybindings.md#review-drafts)). `ui.drafts = "off"` keeps drafts in memory for the session only: nothing is read from or written to the drafts folder. Demo mode is always memory only. `review-buddy config paths` lists the folder.
 
 ## `[review]`
 

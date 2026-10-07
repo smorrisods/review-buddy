@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 /// The file name of the remembered panel layout in the state directory.
 pub const SESSION_FILE: &str = "session.toml";
 
+/// The directory of saved review drafts inside the state directory.
+pub const DRAFTS_DIR: &str = "drafts";
+
 pub const APP_DIR: &str = "review-buddy";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,6 +103,11 @@ impl ResolvedPaths {
     /// The remembered panel layout, `session.toml` in the state directory.
     pub fn session_file(&self) -> PathBuf {
         self.state_dir.join(SESSION_FILE)
+    }
+
+    /// Saved review drafts, one file per change, in the state directory.
+    pub fn drafts_dir(&self) -> PathBuf {
+        self.state_dir.join(DRAFTS_DIR)
     }
 
     /// Where `instance.lock` lives: the runtime dir, else the state dir.

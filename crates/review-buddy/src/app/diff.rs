@@ -15,6 +15,7 @@ use super::diffview::{self, Inputs, Rows};
 use super::range::{self, RowRange};
 use super::review::{self, ReviewModal};
 use super::update::set_status;
+use super::{comments, drafts};
 use super::{Action, App, Cmd, Notice, NoticeKind, Screen};
 use crate::ui::layout;
 
@@ -39,6 +40,8 @@ pub struct DiffData {
     pub draft: ReviewDraft,
     /// What the forge behind this change can do.
     pub caps: Capabilities,
+    /// The forge can edit and delete your pending comments (`Provider::supports_pending_edit`).
+    pub edit_pending: bool,
 }
 
 impl DiffData {
@@ -56,7 +59,13 @@ impl DiffData {
             threads,
             draft,
             caps: Capabilities::all(),
+            edit_pending: false,
         }
+    }
+
+    pub fn with_pending_edit(mut self, yes: bool) -> Self {
+        self.edit_pending = yes;
+        self
     }
 
     pub fn with_capabilities(mut self, caps: Capabilities) -> Self {
@@ -76,6 +85,8 @@ pub enum Phase {
 pub enum DiffFocus {
     Files,
     Diff,
+    /// The list of pending comments under the files.
+    Review,
 }
 
 /// The syntax highlighter, created on first use because loading the grammars isn't free.
@@ -159,6 +170,17 @@ pub struct DiffState {
     pub submitting: bool,
     /// What to start once the patches arrive, when a dashboard key opened the diff.
     pub intent: Option<Intent>,
+    /// The verdict you last chose in the review modal, kept with the draft.
+    pub verdict: Option<Verdict>,
+    /// The change's head moved since the restored draft was written.
+    pub stale: bool,
+    /// Which pending comment on the cursor line `e` and `d` act on: `(cursor row, index)`.
+    pub pick: Option<(usize, usize)>,
+    /// The selected entry of the pending-comment list.
+    pub review_sel: usize,
+    /// The draft as it was when the diff opened (or you last chose to keep it), to tell whether
+    /// leaving needs to ask.
+    pub baseline: Option<(ReviewDraft, Option<Verdict>)>,
 }
 
 /// An action the dashboard asked the diff to start as soon as it is ready.
@@ -187,6 +209,11 @@ impl DiffState {
             review: None,
             submitting: false,
             intent: None,
+            verdict: None,
+            stale: false,
+            pick: None,
+            review_sel: 0,
+            baseline: None,
         }
     }
 
@@ -232,16 +259,57 @@ pub fn open_change(app: &mut App, id: &ChangeId) -> Vec<Cmd> {
     vec![Cmd::LoadDiff(id.clone())]
 }
 
-fn close(app: &mut App) {
-    app.diff = None;
-    app.screen = Screen::Dashboard;
-    app.mark_dirty();
+/// Leaves the diff, asking first when there are unsaved comments.
+fn close(app: &mut App) -> Vec<Cmd> {
+    drafts::leave(app)
+}
+
+/// The cursor's line, for putting it back later.
+pub(super) fn cursor_id(state: &DiffState) -> Option<LineId> {
+    state.view.rows.line_id(state.view.cursor)
+}
+
+pub(super) fn cursor_id_of(app: &App) -> Option<LineId> {
+    app.diff.as_ref().and_then(cursor_id)
+}
+
+/// Moves to the line a comment hangs from, in the file at `path`.
+pub(super) fn goto_anchor(app: &mut App, path: &str, side: rb_core::Side, line: u32) {
+    let id = app
+        .diff
+        .as_ref()
+        .and_then(|s| s.files().iter().find(|f| f.diff.path == path))
+        .and_then(|f| f.diff.parsed())
+        .and_then(|p| p.find_by_anchor(rb_diff::Anchor { side, line }));
+    if let Some(id) = id {
+        goto(app, path, id);
+    }
+}
+
+/// Moves to `line` of the file at `path`, when both exist.
+pub(super) fn goto(app: &mut App, path: &str, line: LineId) {
+    let Some(index) = app
+        .diff
+        .as_ref()
+        .and_then(|s| s.files().iter().position(|f| f.diff.path == path))
+    else {
+        return;
+    };
+    select_file(app, index);
+    let height = usize::from(viewport(app).code.height);
+    if let Some(state) = app.diff.as_mut() {
+        if let Some(row) = state.view.rows.row_of(line) {
+            state.view.cursor = row;
+            reveal_cursor(state, height);
+        }
+    }
+    settle(app);
 }
 
 /// The result of [`Cmd::LoadDiff`]. A result for a change the user has left is dropped.
-pub fn on_loaded(app: &mut App, id: &ChangeId, result: Result<Box<DiffData>, String>) {
+pub fn on_loaded(app: &mut App, id: &ChangeId, result: Result<Box<DiffData>, String>) -> Vec<Cmd> {
     let Some(state) = app.diff.as_mut().filter(|s| &s.id == id) else {
-        return;
+        return Vec::new();
     };
     match result {
         Ok(data) => {
@@ -253,8 +321,10 @@ pub fn on_loaded(app: &mut App, id: &ChangeId, result: Result<Box<DiffData>, Str
         Err(message) => state.phase = Phase::Failed(message),
     }
     rebuild(app, None);
+    let cmds = drafts::restore(app);
     start_intent(app);
     app.mark_dirty();
+    cmds
 }
 
 /// Starts what the dashboard asked for, with the cursor on the first changed line.
@@ -311,7 +381,8 @@ pub(super) fn refresh_threads(app: &mut App, id: &ChangeId, threads: &[rb_core::
 }
 
 pub(super) fn viewport(app: &App) -> layout::DiffLayout {
-    layout::diff_screen(layout::body(app.size))
+    let extra = app.diff.as_ref().map_or(0, comments::review_extra);
+    layout::diff_screen_with(layout::body(app.size), extra)
 }
 
 /// Rebuilds the rows and highlight for the current file, keeping the cursor on `keep` if it
@@ -332,6 +403,7 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
     state.range = None;
     state.drag = None;
     state.select = None;
+    let stale = state.stale;
     let Some(data) = state.data.as_ref() else {
         state.view = FileView::default();
         return;
@@ -347,6 +419,7 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
             drafts: &data.draft.comments,
             now,
             tab_width,
+            stale,
         },
         code.width,
     );
@@ -477,7 +550,7 @@ pub(super) fn reveal_cursor(state: &mut DiffState, height: usize) {
     view.scroll = diffview::reveal(view.scroll, top, bottom, height, view.rows.len());
 }
 
-fn select_file(app: &mut App, index: usize) {
+pub(super) fn select_file(app: &mut App, index: usize) {
     let height = usize::from(viewport(app).file_list.height);
     let Some(state) = app.diff.as_mut() else {
         return;
@@ -564,23 +637,28 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
                 state.select = None;
             }
         }
-        KeyCode::Esc | KeyCode::Char('q') => {
-            close(app);
-            return Vec::new();
-        }
-        KeyCode::Tab | KeyCode::BackTab => {
-            if let Some(state) = app.diff.as_mut() {
-                state.focus = match state.focus {
-                    DiffFocus::Files => DiffFocus::Diff,
-                    DiffFocus::Diff => DiffFocus::Files,
-                };
-            }
-        }
+        KeyCode::Esc | KeyCode::Char('q') => return close(app),
+        KeyCode::Tab | KeyCode::BackTab => cycle_focus(app, key.code == KeyCode::BackTab),
         KeyCode::Enter if focus == DiffFocus::Files => {
             if let Some(state) = app.diff.as_mut() {
                 state.focus = DiffFocus::Diff;
             }
         }
+        KeyCode::Enter if focus == DiffFocus::Review => {
+            let n = app.diff.as_ref().map_or(0, |s| s.review_sel);
+            return comments::jump_entry(app, n);
+        }
+        KeyCode::Enter if focus == DiffFocus::Diff => return comments::edit_at_cursor(app),
+        KeyCode::Char('e') if focus == DiffFocus::Review => return comments::edit_entry(app),
+        KeyCode::Char('d') | KeyCode::Delete if focus == DiffFocus::Review => {
+            return comments::delete_entry(app)
+        }
+        KeyCode::Char('e') if focus == DiffFocus::Diff => return comments::edit_at_cursor(app),
+        KeyCode::Char('d') | KeyCode::Delete if focus == DiffFocus::Diff => {
+            return comments::delete_at_cursor(app)
+        }
+        KeyCode::Char(',') if focus == DiffFocus::Diff => return comments::step_pick(app, false),
+        KeyCode::Char('.') if focus == DiffFocus::Diff => return comments::step_pick(app, true),
         KeyCode::Char('V') if focus == DiffFocus::Diff => toggle_select(app),
         KeyCode::Right | KeyCode::Char(']') => cmds = step_file(app, true),
         KeyCode::Left | KeyCode::Char('[') => cmds = step_file(app, false),
@@ -601,6 +679,24 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     settle(app);
     app.mark_dirty();
     cmds
+}
+
+/// Tab and ⇧Tab: Files, Diff, and the pending-comment list when there is one.
+fn cycle_focus(app: &mut App, back: bool) {
+    let Some(state) = app.diff.as_mut() else {
+        return;
+    };
+    let mut order = vec![DiffFocus::Files, DiffFocus::Diff];
+    if !comments::entries(state).is_empty() {
+        order.push(DiffFocus::Review);
+    }
+    let at = order.iter().position(|f| *f == state.focus).unwrap_or(0);
+    let next = if back {
+        (at + order.len() - 1) % order.len()
+    } else {
+        (at + 1) % order.len()
+    };
+    state.focus = order[next];
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -631,6 +727,16 @@ fn move_kind(code: KeyCode) -> Option<Move> {
 fn on_move(app: &mut App, focus: DiffFocus, kind: Move, shift: bool) -> Vec<Cmd> {
     if let (DiffFocus::Files, Move::Line(delta)) = (focus, kind) {
         return step_file(app, delta > 0);
+    }
+    if focus == DiffFocus::Review {
+        match kind {
+            Move::Line(delta) => comments::move_selection(app, delta),
+            Move::Jump(end) => {
+                comments::move_selection(app, if end { isize::MAX } else { isize::MIN })
+            }
+            _ => {}
+        }
+        return Vec::new();
     }
     let Some(state) = app.diff.as_ref() else {
         return Vec::new();
@@ -712,12 +818,13 @@ fn jump(app: &mut App, focus: DiffFocus, to_end: bool) {
                 .map_or(0, |s| s.files().len().saturating_sub(1));
             select_file(app, if to_end { last } else { 0 });
         }
+        DiffFocus::Review => {}
     }
 }
 
 pub fn on_action(app: &mut App, action: Action) -> Vec<Cmd> {
     match action {
-        Action::CloseDiff => close(app),
+        Action::CloseDiff => return close(app),
         Action::DiffFile(index) => {
             if let Some(state) = app.diff.as_mut() {
                 state.focus = DiffFocus::Files;
@@ -1121,6 +1228,12 @@ mod tests {
     fn tab_moves_focus_and_j_then_chooses_files() {
         let mut app = two_files();
         update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Tab)));
+        assert_eq!(
+            app.diff.as_ref().unwrap().focus,
+            DiffFocus::Review,
+            "a pending comment adds the list to the cycle"
+        );
+        update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Tab)));
         assert_eq!(app.diff.as_ref().unwrap().focus, DiffFocus::Files);
         press(&mut app, 'j');
         assert_eq!(app.diff.as_ref().unwrap().file, 1);
@@ -1140,6 +1253,7 @@ mod tests {
         press(&mut app, 'q');
         assert_eq!(app.screen, Screen::Dashboard);
         assert!(!app.should_quit());
+        app.drafts.discard(&id());
         press(&mut app, 'q');
         assert!(app.should_quit());
     }

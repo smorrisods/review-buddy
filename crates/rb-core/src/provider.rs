@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    ChangeDetail, ChangeId, ChangeSummary, Check, Comment, Etag, FilePatch, ForgeKind, MergeOpts,
-    MergeOutcome, Page, Result, ReviewDraft, Scope, Thread, ThreadId, User, Verdict,
+    ChangeDetail, ChangeId, ChangeSummary, Check, Comment, CommentId, Error, Etag, FilePatch,
+    ForgeKind, MergeOpts, MergeOutcome, Page, Result, ReviewDraft, Scope, Thread, ThreadId, User,
+    Verdict,
 };
 
 /// A forge (GitHub or GitLab). UI code never branches on forge; it asks `capabilities()`.
@@ -26,6 +27,24 @@ pub trait Provider: Send + Sync {
     ) -> Result<()>;
     async fn reply(&self, thread: &ThreadId, body: &str) -> Result<Comment>;
     async fn resolve(&self, thread: &ThreadId, resolved: bool) -> Result<()>;
+    /// Whether [`update_comment`](Self::update_comment) and
+    /// [`delete_comment`](Self::delete_comment) work against this forge. Hidden in the UI when not.
+    fn supports_pending_edit(&self) -> bool {
+        false
+    }
+    /// Rewrites the text of one of your pending comments on the forge.
+    async fn update_comment(
+        &self,
+        _thread: &ThreadId,
+        _comment: &CommentId,
+        _body: &str,
+    ) -> Result<()> {
+        Err(Error::Unsupported("editing pending comments".to_string()))
+    }
+    /// Removes one of your pending comments from the forge.
+    async fn delete_comment(&self, _thread: &ThreadId, _comment: &CommentId) -> Result<()> {
+        Err(Error::Unsupported("deleting pending comments".to_string()))
+    }
     async fn merge(&self, id: &ChangeId, opts: &MergeOpts) -> Result<MergeOutcome>;
     async fn rerun_failed(&self, id: &ChangeId) -> Result<()>;
     fn checkout_refspec(&self, id: &ChangeId) -> String;

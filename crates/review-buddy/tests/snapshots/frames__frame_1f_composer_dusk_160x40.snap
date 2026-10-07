@@ -33,11 +33,11 @@ expression: text(& render(& mut app))
 │                                ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
 │                                ││              │ Fewer branches this way:                                                                                   ││
 │                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
-│                                ││              │ +         self.selected = (self.selected + self.items.len() - 1) % self.items.len();                       ││
-│ Your review · pending ─────────││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
-│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 51 ──────────────────────────────────────────────────────────────────────────────────────────────╮│
-│0 of 3 files viewed             │││ Worth a guard here?                                                                                                      ││
-│Your review: not started        │││                                                                                                                          ││
+│ Your review · pending ─────────││              │ +         self.selected = (self.selected + self.items.len() - 1) % self.items.len();                       ││
+│1 suggestion · 0 comments       ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│0 of 3 files viewed             ││╭ Comment · menus.rs line 51 ──────────────────────────────────────────────────────────────────────────────────────────────╮│
+│Your review: not started        │││ Worth a guard here?                                                                                                      ││
+│  menus.rs:51 Fewer branches th…│││                                                                                                                          ││
 │a approve · c comment           │││                                                                                                                          ││
 │x request changes · R review    ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────────────────────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯

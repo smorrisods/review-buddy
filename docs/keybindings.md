@@ -21,6 +21,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `⏎` on the Noise row | Expand or collapse the bot updates |
 | `⏎` on a `+N more` row | Show the rest of that bucket, past `triage.bucket_limit`. `⏎` again on the `show fewer` row collapses it |
 | `,` | Open Settings → Sources (see [Settings](#settings)) |
+| `D` | Open the **Pending reviews** list: every change you have a saved draft for (see [Review drafts](#review-drafts)). A `✎ 3` marker on a queue row says the same thing. The footer adds `D pending` while there are drafts |
 | `s` | Open the Show filters control: `reviewing`, `assigned`, `authored`, `drafts` and `noise`. Changes apply to the queue at once and last for the session |
 | `p` | Close or reopen the Detail pane (`ui.detail`). Closed, the Queue takes the full width and the footer adds `p show detail`. Selection and `⏎` are unchanged. Remembered between runs |
 | `S` | Cycle where the Sources sit: `auto` (pane at 130 columns or more, tabs below), `left` (always the pane) and `top` (always the tab strip). Remembered between runs (`ui.sources`) |
@@ -59,23 +60,26 @@ Open with `⏎` or `d` from the dashboard.
 
 | Key | Action |
 |---|---|
-| `tab` / `⇧tab` | Switch focus between Files and Diff |
+| `tab` / `⇧tab` | Switch focus between Files, Diff and (when there are pending comments) the pending-comment list under the files |
 | `↑↓` / `j` `k` | Files pane: choose a file · Diff pane: move the line cursor |
 | `g` `G` / `home` `end` | First / last line (Files pane: first / last file) |
 | `PgUp` `PgDn` · `⌃U` `⌃D` | Move a page or half a page |
-| `⏎` | Files pane: focus the diff |
+| `⏎` | Files pane: focus the diff · Diff pane, on a line with a pending comment: edit it · pending-comment list: jump to the comment |
 | `n` `}` / `p` `{` | Next / previous hunk |
 | `→` / `←` · `]` / `[` | Next / previous file. The footer says `That's the last file.` or `That's the first file.` at the ends. While the composer or a confirmation is open, `←` and `→` keep their own meaning there |
 | `⇧↑` `⇧↓` · `⇧PgUp` `⇧PgDn` | Extend a range from the cursor by a line or a page. The first press anchors the range at the cursor line; the footer counts the lines (`3 lines selected`) |
 | `V` | Start a line-wise selection, for terminals that don't report Shift+arrows: plain `↑` `↓` `j` `k` `PgUp` `PgDn` (and `g` `G` `n` `p`) extend the range until you press `V` again, which ends the mode and keeps the range, or `esc`, which clears it |
 | `c` | Comment on the cursor line, or on the selected range (`start_line` to `line`, on the side of the last line) after a drag, shift-click or keyboard selection; the selection clears once the comment is added |
 | `r` | Reply to the thread on the cursor line. When the line has one, the footer shows `r reply` and the thread block's bottom border carries a clickable `r reply` hint. The cursor never rests on the thread block itself (`j`/`k` step over it), so `⏎` isn't a reply key |
+| `e` | Edit the pending comment on the cursor line (see [Editing pending comments](#editing-pending-comments)) |
+| `d` / `del` | Delete it, after a confirm that defaults to **No** |
+| `,` / `.` | Previous / next pending comment on the cursor line, when it has several (`Comment 2 of 3 on this line`) |
 | `a` | Review modal with **Approve** selected (see [Review modal](#review-modal)) |
 | `x` | Review modal with **Request changes** selected. Where the source can't request changes the key stays on screen and says why in one line instead |
 | `R` | Review modal with **Comment** selected: submits the pending comments without approving |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
 | `T` / `B` / `?` | Cycle theme / cycle the background / help |
-| `esc` / `q` | Clear the selected range (and end `V` mode), then go back to the dashboard (`q` also asks first if there are unsent drafts) |
+| `esc` / `q` | Clear the selected range (and end `V` mode), then go back to the dashboard. If you added or changed comments since you opened the change it asks `Keep these 3 comments as a draft?` first (see [Review drafts](#review-drafts)) |
 
 A keyboard range is the same range a drag makes: the same highlight, the same `c` comment, and it stays inside one hunk (the extension stops at the hunk edge) and, for the comment, on one side. A plain move without Shift outside `V` mode clears the range, just as a click does.
 
@@ -125,11 +129,46 @@ Docked at the bottom of the diff. It opens with `c` on the cursor line, or with 
 | paste | Bracketed paste inserts the text as typed |
 | `esc` | Close. If you've typed anything it asks first, and the answer defaults to **No, keep editing** |
 
-Drafts live in memory for now; they are not saved between sessions, and quitting asks first if any are unsent. `⌃⏎` and `⇧⏎` need a terminal that reports those modifiers (kitty, WezTerm, foot, Ghostty and recent iTerm2 do); `⌥⏎`, `⌃J` and `⌃P` work everywhere.
+Comments you add are kept as a draft per change and saved between sessions (see [Review drafts](#review-drafts)). `⌃⏎` and `⇧⏎` need a terminal that reports those modifiers (kitty, WezTerm, foot, Ghostty and recent iTerm2 do); `⌥⏎`, `⌃J` and `⌃P` work everywhere.
+
+## Review drafts
+
+Everything you write in a review (the comments you add with `c`, the summary and the verdict you chose in the review modal) belongs to the **change**, not to the screen. It stays when you leave the diff and when you quit, and comes back when you open the change again, with the cursor on the file and line you left it on.
+
+**A local draft is not a pending review on the forge.** The draft is your own unsent text, kept on this computer; the forge doesn't know about it until you submit the review. GitHub and GitLab can also hold a *pending review* of their own (started on the web, or left behind by a submit that stopped part way). Those show up in the diff as threads marked `◌ pending`, exactly as before, and are edited through the forge (see below). Submitting sends the local draft; it never touches the forge's pending threads except to publish them with it.
+
+- **Leaving a diff** (`esc`, `q`, or the mouse) asks `Keep these 3 comments as a draft?` when you added or changed comments since you opened the change. **Keep** (the default, so `⏎` is safe) saves and leaves, **Discard** throws them away, **Cancel** stays. `k`, `d` and `c` pick them directly, `tab` and `←` `→` move between the buttons, and `esc` is Cancel. With nothing new it just leaves.
+- **Quitting** saves drafts instead of discarding them, so there's nothing to confirm. Text still open in the composer is saved as a comment. With `ui.drafts = "off"` (or under `--demo`) drafts live in memory only, and quitting warns first.
+- **Autosave** writes the draft under `$XDG_STATE_HOME/review-buddy/drafts/`, one file per change, a moment after each change. Submitting a review, discarding a draft or deleting its last comment removes the file. See [configuration](configuration.md#review-drafts-on-disk).
+- **Restoring** says `Draft restored · 3 comments`. If the change's head moved since you wrote the draft the comments are kept and marked `code changed`, with `Code changed since you wrote this` in the Files pane. A comment whose line is no longer in the patch stays in the review block marked `outdated` (and in the pending-comment list); pick it in the list and choose **Add to summary** (it goes into your review summary as a general comment, quoting where it was), **Discard**, or **Leave it**. Nothing is dropped silently.
+
+### Pending reviews
+
+`D` on the dashboard lists every change with a draft: source, `repo#number`, title, comment count (`✎ 3`), age, `outdated` when the head moved, and `not in queue` for a change no source lists any more (kept until you discard it). Queue rows with a draft show the same `✎ 3` marker.
+
+| Key | Action |
+|---|---|
+| `↑↓` / `j` `k` · `g` `G` | Move |
+| `⏎` | Open the change's diff with the draft restored |
+| `x` / `del` | Discard that draft, after a confirm that defaults to **No, keep it** |
+| `esc` / `q` / `D` | Close |
+
+**Mouse:** click a row to select it, click it again to open it. Click outside the list to close it. `review-buddy drafts list`, `drafts discard` and `drafts clear` do the same from the shell (see [the CLI](cli.md#review-buddy-drafts)). The existing `drafts` Show filter means *draft pull requests* (authored as draft), not your pending comments.
+
+### Editing pending comments
+
+With the cursor on a line that has a pending comment (one of yours from a draft, one restored from disk, or a pending one on the forge):
+
+- `e`, or `⏎` on the line, reopens it in the composer with its text and its anchor (a range stays a range). `⏎` saves it in place, in the same position and order. `esc` closes, and asks first only if you changed the text. The title says `Edit comment · a.rs lines 3–5`.
+- `d` or `del` deletes it after a confirm that names what goes (`a.rs lines 3–5 · “first words”`) and defaults to **No, keep it**.
+- When a line has several pending comments `,` and `.` step between them (`Comment 2 of 3 on this line`, the picked one is marked `▸`), and `e` and `d` act on that one. (`n` and `p` stay on hunks.)
+- The Files pane's **Your review** block lists each pending comment as `file:line first words`. `tab` focuses the list, `↑↓` choose, `⏎` jumps to it, `e` and `d` edit and delete it. Clicking an entry jumps to it.
+- The summary and verdict are edited in the review modal (`a`, `x`, `R`) and are kept with the draft.
+- A **pending comment on the forge** (started on the web) can be edited and deleted too, where the forge allows it (GitHub through `updatePullRequestReviewComment` and `deletePullRequestReviewComment`, GitLab through the draft notes). Because that changes the forge, editing asks `Update this pending comment?` and deleting asks `Delete this pending comment on the forge?`, and a failure says what to do next and leaves your text where it was. Nothing is published until you submit the review. Where the forge can't do it, those comments aren't offered for editing.
 
 ## Preview and discard confirms
 
-The same two-button modal is used for approving, posting now, and discarding a draft.
+The same two-button modal is used for approving, posting now, discarding a draft, deleting a pending comment and updating one on the forge (the default is **No** for the destructive ones). Leaving a diff with new comments, and a comment whose line is gone, use a three-button version whose first button is the safe default.
 
 | Key | Action |
 |---|---|
@@ -204,6 +243,8 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from |
 | Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. `c` comments on the range |
 | Diff: shift-click | Extends the range from the cursor (or the range's anchor) to the line clicked |
+| Pending reviews list | Click a row to select it, click again to open it. The confirm's buttons answer it. A click outside closes the list |
+| Diff: Your review list | Click a pending comment to jump to it |
 | Composer text | Click to place the caret. The wheel moves the caret a line. Clicks outside the composer are ignored and never discard the draft |
 | Preview and discard confirms | Click **Cancel** or the confirm button. Clicks outside are ignored |
 | Toast | Click to dismiss |

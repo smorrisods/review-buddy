@@ -6,6 +6,7 @@ pub mod cmd;
 pub mod config;
 #[cfg(feature = "demo")]
 pub mod demo;
+pub mod drafts;
 pub mod load;
 #[cfg(feature = "live")]
 pub mod providers;

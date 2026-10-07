@@ -1,6 +1,6 @@
 use rb_core::{
-    ChangeId, DraftComment, Error, ForgeKind, Provider, ReviewDraft, Side, SourceId, ThreadId,
-    Verdict,
+    ChangeId, CommentId, DraftComment, Error, ForgeKind, Provider, ReviewDraft, Side, SourceId,
+    ThreadId, Verdict,
 };
 use rb_github::{GithubClient, GithubProvider};
 use rb_platform::Secret;
@@ -351,6 +351,57 @@ async fn reply_posts_on_the_thread_node_id() {
         .await
         .unwrap_err();
     assert!(e.to_string().contains("empty"));
+}
+
+#[tokio::test]
+async fn pending_comments_can_be_edited_and_deleted() {
+    let server = MockServer::start().await;
+    mount(
+        &server,
+        "updatePullRequestReviewComment(",
+        gql(
+            json!({"updatePullRequestReviewComment": {"pullRequestReviewComment": {
+                "id": "PRRC_4", "body": "better"
+            }}}),
+        ),
+    )
+    .await;
+    mount(
+        &server,
+        "deletePullRequestReviewComment(",
+        gql(json!({"deletePullRequestReviewComment": {"pullRequestReview": {"id": "PRR_1"}}})),
+    )
+    .await;
+    let p = provider(&server);
+    assert!(p.supports_pending_edit());
+    let thread = ThreadId::new("PRRT_5");
+    let comment = CommentId::new("PRRC_4");
+    p.update_comment(&thread, &comment, "better").await.unwrap();
+    p.delete_comment(&thread, &comment).await.unwrap();
+    let all = bodies(&server).await;
+    assert_eq!(
+        all[0]["variables"]["input"],
+        json!({"pullRequestReviewCommentId": "PRRC_4", "body": "better"})
+    );
+    assert_eq!(all[1]["variables"]["input"], json!({"id": "PRRC_4"}));
+    let e = p.update_comment(&thread, &comment, "  ").await.unwrap_err();
+    assert!(e.to_string().contains("empty"));
+}
+
+#[tokio::test]
+async fn editing_a_pending_comment_reports_calm_errors() {
+    let server = MockServer::start().await;
+    mount(
+        &server,
+        "updatePullRequestReviewComment(",
+        gql_err("NOT_FOUND", "Could not resolve to a node"),
+    )
+    .await;
+    let e = provider(&server)
+        .update_comment(&ThreadId::new("T"), &CommentId::new("gone"), "x")
+        .await
+        .unwrap_err();
+    assert!(matches!(e, Error::NotFound(_)), "{e:?}");
 }
 
 #[tokio::test]

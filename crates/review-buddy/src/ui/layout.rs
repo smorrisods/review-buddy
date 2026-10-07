@@ -519,10 +519,20 @@ pub struct DiffLayout {
 }
 
 pub fn diff_screen(body: Rect) -> DiffLayout {
+    diff_screen_with(body, 0)
+}
+
+/// The most rows the review block grows by for the pending-comment list and its notes.
+pub const REVIEW_EXTRA_MAX: u16 = 6;
+
+/// Like [`diff_screen`], with the review block `extra` rows taller (never more than half the
+/// Files pane).
+pub fn diff_screen_with(body: Rect, extra: u16) -> DiffLayout {
     let [files, diff] =
         Layout::horizontal([Constraint::Length(FILES_WIDTH), Constraint::Min(0)]).areas(body);
     let inside = inner(files);
-    let review_height = REVIEW_HEIGHT.min(inside.height);
+    let extra = extra.min(REVIEW_EXTRA_MAX).min(inside.height / 2);
+    let review_height = (REVIEW_HEIGHT + extra).min(inside.height);
     let [file_list, review] =
         Layout::vertical([Constraint::Min(0), Constraint::Length(review_height)]).areas(inside);
     DiffLayout {

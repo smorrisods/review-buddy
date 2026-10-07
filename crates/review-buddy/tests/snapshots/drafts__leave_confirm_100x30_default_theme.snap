@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/drafts.rs
+expression: text(& render(& mut a))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
+│  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
+│  · src/ui/mod.rs          +2 −0││              ╭─ pending comment · line 10 ────────────────────╮│
+│                                ││              │ This could return early.                       ││
+│                                ││              ╰────────────────────────────────────────────────╯│
+│                                ││    11   11   pub struct Menu {                                 │
+│                                ││    12   12       items: Vec<MenuItem>,                         │
+│                                ││         13 +     selected: usize,                              │
+│                                ││         14 +     open: bool,                                   │
+│                 ╭ Keep these 2 comments as a draft? ───────────────────────────╮                 │
+│                 │ Nothing has been sent to the forge.                          │                 │
+│                 │ A kept draft lasts this session only; it isn't saved to disk │                 │
+│                 │ Discard throws these comments away.                          │m>) -> Self {    │
+│                 │                                                              │                 │
+│                 │ › Keep ‹    Discard      Cancel                              │                 │
+│                 ╰──────────────────────────────────────────────────────────────╯                 │
+│                                ││    36   38       }                                             │
+│                                ││         39 +                                                   │
+│ Your review · pending ─────────││         40 +     pub fn select_next(&mut self) {               │
+│1 suggestion · 1 comment        ││         41 +         if self.items.is_empty() {                │
+│0 of 3 files viewed             ││         42 +             return;                               │
+│Your review: not started        ││         43 +         }                                         │
+│  menus.rs:51 Fewer branches th…││         44 +         self.selected = (self.selected + 1) % sel…│
+│  menus.rs:10 This could return…││              ╭─ thread · line 44 ─────────────────────────────╮│
+│a approve · c comment           ││              │ jo · 1d                                        ││
+│x request changes · R review    ││              │ Should this wrap round to the first item? Most ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
+ j/k move  n/p hunk         · Added to your pending review. 2 comments waiting. Press a to approve.

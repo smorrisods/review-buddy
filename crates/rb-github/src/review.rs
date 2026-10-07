@@ -175,6 +175,22 @@ mutation($input: AddPullRequestReviewThreadReplyInput!) {
 }
 ";
 
+const UPDATE_COMMENT: &str = r"
+mutation($input: UpdatePullRequestReviewCommentInput!) {
+  updatePullRequestReviewComment(input: $input) {
+    pullRequestReviewComment { id body }
+  }
+}
+";
+
+const DELETE_COMMENT: &str = r"
+mutation($input: DeletePullRequestReviewCommentInput!) {
+  deletePullRequestReviewComment(input: $input) {
+    pullRequestReview { id }
+  }
+}
+";
+
 const RESOLVE: &str = r"
 mutation($input: ResolveReviewThreadInput!) {
   resolveReviewThread(input: $input) { thread { id isResolved } }
@@ -476,6 +492,38 @@ pub(crate) async fn reply(client: &GithubClient, thread: &ThreadId, body: &str) 
         created_at: parse_rfc3339(&c.created_at).unwrap_or(Timestamp(0)),
         pending: c.state.as_deref() == Some("PENDING"),
     })
+}
+
+/// Rewrites one of your pending review comments.
+pub(crate) async fn update_comment(
+    client: &GithubClient,
+    comment: &CommentId,
+    body: &str,
+) -> Result<()> {
+    if body.trim().is_empty() {
+        return Err(invalid("The comment is empty. Write something first"));
+    }
+    let data = mutate(
+        client,
+        UPDATE_COMMENT,
+        json!({ "pullRequestReviewCommentId": comment.as_str(), "body": body }),
+    )
+    .await?;
+    data["updatePullRequestReviewComment"]["pullRequestReviewComment"]["id"]
+        .as_str()
+        .map(|_| ())
+        .ok_or_else(|| Error::Api("GitHub didn't confirm the edit. Refresh to check".to_string()))
+}
+
+/// Removes one of your pending review comments.
+pub(crate) async fn delete_comment(client: &GithubClient, comment: &CommentId) -> Result<()> {
+    let data = mutate(client, DELETE_COMMENT, json!({ "id": comment.as_str() })).await?;
+    if data["deletePullRequestReviewComment"].is_null() {
+        return Err(Error::Api(
+            "GitHub didn't confirm the delete. Refresh to check".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 pub(crate) async fn resolve(

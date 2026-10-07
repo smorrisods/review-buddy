@@ -195,6 +195,11 @@ fn tabs_double_click_wheel_and_drag_work_through_sgr_mouse_reports() {
     );
     std::thread::sleep(Duration::from_millis(300));
     s.send(b"\x1b", "Waiting on you", "a second esc leaves the diff");
+    s.send(
+        b"q",
+        "aren't saved",
+        "q warns that demo drafts aren't saved",
+    );
     s.send(b"q", "\x1b[?1000l", "quitting releases the mouse");
     let deadline = Instant::now() + LIMIT;
     while child.try_wait().unwrap().is_none() {

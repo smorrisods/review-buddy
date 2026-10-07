@@ -191,6 +191,7 @@ fn the_overlay_lists_every_footer_hint() {
 #[test]
 fn q_goes_back_in_the_diff_and_quits_on_the_dashboard() {
     let mut a = diff("liminal-hq", 160, 40);
+    a.diff.as_mut().unwrap().data.as_mut().unwrap().draft = rb_core::ReviewDraft::default();
     press(&mut a, KeyCode::Char('q'));
     assert_eq!(a.screen, Screen::Dashboard);
     assert!(!a.should_quit());
@@ -217,7 +218,7 @@ fn quitting_with_unsent_drafts_asks_first() {
     let ctrl_c = || Msg::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL));
     update(&mut a, ctrl_c());
     assert!(!a.should_quit());
-    assert!(status(&a).contains("unsent"));
+    assert!(status(&a).contains("aren't saved"));
     update(&mut a, ctrl_c());
     assert!(a.should_quit());
 }

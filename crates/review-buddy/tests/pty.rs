@@ -316,6 +316,10 @@ fn demo_diff_opens_navigates_and_returns_to_the_dashboard() {
     std::thread::sleep(Duration::from_millis(200));
     writer.write_all(b"q").unwrap();
     writer.flush().unwrap();
+    // The demo's seeded draft isn't saved, so the first quit asks again.
+    std::thread::sleep(Duration::from_millis(300));
+    let _ = writer.write_all(b"q");
+    let _ = writer.flush();
     let deadline = Instant::now() + limit;
     let status = loop {
         if let Some(status) = child.try_wait().unwrap() {

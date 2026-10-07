@@ -39,6 +39,11 @@ pub enum Target {
     Line(Anchor),
     /// A reply on an existing thread.
     Reply { thread: ThreadId, place: String },
+    /// A pending comment being edited in place.
+    Edit {
+        which: super::comments::CommentRef,
+        place: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,6 +76,7 @@ impl Composer {
         let (what, place) = match &self.target {
             Target::Line(anchor) => ("Comment", anchor.place()),
             Target::Reply { place, .. } => ("Reply", place.clone()),
+            Target::Edit { place, .. } => ("Edit comment", place.clone()),
         };
         if suggestion {
             format!("{what} · {place} · with suggestion")
@@ -86,25 +92,57 @@ pub enum ConfirmKind {
     Discard,
     /// Send one comment or reply now.
     PostNow { summary: String, body: String },
+    /// Leaving the diff with comments that aren't saved yet.
+    Leave { count: usize, summary_only: bool },
+    /// Remove one pending comment.
+    DeleteComment {
+        which: super::comments::CommentRef,
+        what: String,
+        remote: bool,
+    },
+    /// Save an edit to a pending comment that lives on the forge.
+    SaveRemote { what: String },
+    /// A draft comment whose line is no longer in the diff.
+    Outdated { index: usize, what: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Confirm {
     pub kind: ConfirmKind,
-    /// The confirming button has focus. Discarding starts on the safe choice instead.
+    /// The confirming button has focus. Discarding and deleting start on the safe choice instead.
     pub yes: bool,
+    /// The focused button of a three-way confirm.
+    pub focus: usize,
 }
 
 impl Confirm {
-    fn new(kind: ConfirmKind) -> Self {
-        let yes = !matches!(kind, ConfirmKind::Discard);
-        Self { kind, yes }
+    pub(super) fn new(kind: ConfirmKind) -> Self {
+        let yes = matches!(
+            kind,
+            ConfirmKind::PostNow { .. } | ConfirmKind::SaveRemote { .. }
+        );
+        Self {
+            kind,
+            yes,
+            focus: 0,
+        }
     }
 
-    pub fn title(&self) -> &'static str {
-        match self.kind {
-            ConfirmKind::Discard => "Discard this comment?",
-            ConfirmKind::PostNow { .. } => "Post this comment now?",
+    pub fn title(&self) -> String {
+        match &self.kind {
+            ConfirmKind::Discard => "Discard this comment?".into(),
+            ConfirmKind::PostNow { .. } => "Post this comment now?".into(),
+            ConfirmKind::Leave {
+                summary_only: true, ..
+            } => "Keep your summary as a draft?".into(),
+            ConfirmKind::Leave { count: 1, .. } => "Keep this comment as a draft?".into(),
+            ConfirmKind::Leave { count, .. } => format!("Keep these {count} comments as a draft?"),
+            ConfirmKind::DeleteComment { remote: true, .. } => {
+                "Delete this pending comment on the forge?".into()
+            }
+            ConfirmKind::DeleteComment { .. } => "Delete this pending comment?".into(),
+            ConfirmKind::SaveRemote { .. } => "Update this pending comment?".into(),
+            ConfirmKind::Outdated { .. } => "This comment's line is gone".into(),
         }
     }
 
@@ -113,6 +151,18 @@ impl Confirm {
         match self.kind {
             ConfirmKind::Discard => ("No, keep editing", "Discard"),
             ConfirmKind::PostNow { .. } => ("Cancel", "Post now"),
+            ConfirmKind::DeleteComment { .. } => ("No, keep it", "Delete"),
+            ConfirmKind::SaveRemote { .. } => ("Cancel", "Update"),
+            ConfirmKind::Leave { .. } | ConfirmKind::Outdated { .. } => ("", ""),
+        }
+    }
+
+    /// The three buttons of a three-way confirm, in order, with the default first.
+    pub fn choices(&self) -> Option<[&'static str; 3]> {
+        match self.kind {
+            ConfirmKind::Leave { .. } => Some(["Keep", "Discard", "Cancel"]),
+            ConfirmKind::Outdated { .. } => Some(["Add to summary", "Discard", "Leave it"]),
+            _ => None,
         }
     }
 }
@@ -237,7 +287,7 @@ pub fn open_reply(app: &mut App) -> Vec<Cmd> {
     open(app, Composer::new(target, ""))
 }
 
-fn open(app: &mut App, composer: Composer) -> Vec<Cmd> {
+pub(super) fn open(app: &mut App, composer: Composer) -> Vec<Cmd> {
     if let Some(s) = state(app) {
         s.composer = Some(composer);
     }
@@ -272,7 +322,7 @@ pub fn comment_line(c: &DraftComment) -> String {
     format!("{} · {first}", anchor.place())
 }
 
-fn set_confirm(app: &mut App, confirm: Confirm) -> Vec<Cmd> {
+pub(super) fn set_confirm(app: &mut App, confirm: Confirm) -> Vec<Cmd> {
     if let Some(s) = state(app) {
         s.confirm = Some(confirm);
     }
@@ -301,6 +351,9 @@ fn on_confirm_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     let Some(confirm) = app.diff.as_mut().and_then(|s| s.confirm.as_mut()) else {
         return Vec::new();
     };
+    if confirm.choices().is_some() {
+        return on_choice_key(app, key);
+    }
     match key.code {
         KeyCode::Esc | KeyCode::Char('n' | 'N') => return answer(app, false),
         KeyCode::Char('y' | 'Y') => return answer(app, true),
@@ -319,6 +372,56 @@ fn on_confirm_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     Vec::new()
 }
 
+/// Keys on a three-way confirm: the first button is the default and `esc` picks the last.
+fn on_choice_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
+    let Some(confirm) = app.diff.as_mut().and_then(|s| s.confirm.as_mut()) else {
+        return Vec::new();
+    };
+    let leaving = matches!(confirm.kind, ConfirmKind::Leave { .. });
+    let pick = match key.code {
+        KeyCode::Esc | KeyCode::Char('c' | 'C' | 'n' | 'N') => 2,
+        KeyCode::Enter => confirm.focus,
+        KeyCode::Char('k' | 'K') if leaving => 0,
+        KeyCode::Char('g' | 'G') if !leaving => 0,
+        KeyCode::Char('d' | 'D') => 1,
+        KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
+            confirm.focus = (confirm.focus + 1) % 3;
+            app.mark_dirty();
+            return Vec::new();
+        }
+        KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
+            confirm.focus = (confirm.focus + 2) % 3;
+            app.mark_dirty();
+            return Vec::new();
+        }
+        _ => return Vec::new(),
+    };
+    choose(app, pick)
+}
+
+/// Picks the nth button of a three-way confirm.
+pub(super) fn choose(app: &mut App, pick: usize) -> Vec<Cmd> {
+    let Some(confirm) = state(app).and_then(|s| s.confirm.take()) else {
+        return Vec::new();
+    };
+    app.mark_dirty();
+    match confirm.kind {
+        ConfirmKind::Leave { .. } => match pick {
+            0 => {
+                super::drafts::keep_and_close(app);
+                Vec::new()
+            }
+            1 => {
+                super::drafts::discard_and_close(app);
+                Vec::new()
+            }
+            _ => Vec::new(),
+        },
+        ConfirmKind::Outdated { index, .. } => super::comments::outdated_choice(app, index, pick),
+        _ => Vec::new(),
+    }
+}
+
 pub(super) fn answer(app: &mut App, yes: bool) -> Vec<Cmd> {
     let Some(confirm) = state(app).and_then(|s| s.confirm.take()) else {
         return Vec::new();
@@ -335,6 +438,9 @@ pub(super) fn answer(app: &mut App, yes: bool) -> Vec<Cmd> {
             Vec::new()
         }
         ConfirmKind::PostNow { .. } => send_composer(app),
+        ConfirmKind::DeleteComment { which, .. } => super::comments::delete_confirmed(app, &which),
+        ConfirmKind::SaveRemote { .. } => super::comments::send_edit(app),
+        ConfirmKind::Leave { .. } | ConfirmKind::Outdated { .. } => Vec::new(),
     }
 }
 
@@ -485,6 +591,16 @@ fn composer_body(app: &App) -> Option<String> {
 
 /// `⏎`: a comment joins the pending review; a reply goes straight to the thread.
 fn submit(app: &mut App) -> Vec<Cmd> {
+    let editing = matches!(
+        app.diff
+            .as_ref()
+            .and_then(|s| s.composer.as_ref())
+            .map(|c| &c.target),
+        Some(Target::Edit { .. })
+    );
+    if editing {
+        return super::comments::save_edit(app);
+    }
     let is_reply = matches!(
         app.diff
             .as_ref()
@@ -535,12 +651,21 @@ fn add_to_review(app: &mut App) -> Vec<Cmd> {
 fn composer_anchor(app: &App) -> Option<Anchor> {
     match &app.diff.as_ref()?.composer.as_ref()?.target {
         Target::Line(anchor) => Some(anchor.clone()),
-        Target::Reply { .. } => None,
+        Target::Reply { .. } | Target::Edit { .. } => None,
     }
 }
 
 /// `⌃⏎`: a preview first, unless `confirm_post_now` is off.
 fn post_now(app: &mut App) -> Vec<Cmd> {
+    if matches!(
+        app.diff
+            .as_ref()
+            .and_then(|s| s.composer.as_ref())
+            .map(|c| &c.target),
+        Some(Target::Edit { .. })
+    ) {
+        return super::comments::save_edit(app);
+    }
     let Some(body) = composer_body(app) else {
         return info(app, "Write something first, or press esc to close.");
     };
@@ -582,6 +707,7 @@ fn send_composer(app: &mut App) -> Vec<Cmd> {
         return Vec::new();
     };
     let cmd = match &composer.target {
+        Target::Edit { .. } => return Vec::new(),
         Target::Reply { thread, .. } => Cmd::Reply {
             id,
             thread: thread.clone(),
@@ -612,7 +738,7 @@ fn send_composer(app: &mut App) -> Vec<Cmd> {
     vec![cmd]
 }
 
-fn demo_suffix(demo: bool) -> &'static str {
+pub(super) fn demo_suffix(demo: bool) -> &'static str {
     if demo {
         " (demo)"
     } else {
@@ -620,7 +746,7 @@ fn demo_suffix(demo: bool) -> &'static str {
     }
 }
 
-fn failure(what: &str, err: &str, next: &str) -> Notice {
+pub(super) fn failure(what: &str, err: &str, next: &str) -> Notice {
     Notice::new(NoticeKind::Warning, format!("{what}: {err}. {next}"))
 }
 
@@ -714,6 +840,8 @@ fn finish_submit(app: &mut App, reviewing: bool) {
     if let Some(s) = state(app) {
         if reviewing {
             s.review = None;
+            s.verdict = None;
+            s.stale = false;
             if let Some(data) = s.data.as_mut() {
                 data.draft = ReviewDraft::default();
             }
@@ -1803,7 +1931,7 @@ mod tests {
         type_text(&mut a, "half a thought");
         with(&mut a, KeyCode::Char('c'), KeyModifiers::CONTROL);
         assert!(!a.should_quit());
-        assert!(status(&a).contains("unsent review comments"));
+        assert!(status(&a).contains("drafts aren't saved"));
         with(&mut a, KeyCode::Char('c'), KeyModifiers::CONTROL);
         assert!(a.should_quit());
     }

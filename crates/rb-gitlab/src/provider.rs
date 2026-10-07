@@ -89,6 +89,23 @@ impl Provider for GitlabProvider {
         review::resolve(&self.client, thread, resolved).await
     }
 
+    fn supports_pending_edit(&self) -> bool {
+        true
+    }
+
+    async fn update_comment(
+        &self,
+        thread: &ThreadId,
+        _comment: &rb_core::CommentId,
+        body: &str,
+    ) -> Result<()> {
+        review::update_draft(&self.client, thread, body).await
+    }
+
+    async fn delete_comment(&self, thread: &ThreadId, _comment: &rb_core::CommentId) -> Result<()> {
+        review::delete_draft(&self.client, thread).await
+    }
+
     async fn merge(&self, _id: &ChangeId, _opts: &MergeOpts) -> Result<MergeOutcome> {
         not_yet("merging")
     }

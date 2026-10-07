@@ -24,7 +24,7 @@ pub fn draw(frame: &mut Frame, app: &App, body: ratatui::layout::Rect, hits: &mu
     let Some(state) = app.diff_state() else {
         return;
     };
-    let l = layout::diff_screen(body);
+    let l = layout::diff_screen_with(body, crate::app::comments::review_extra(state));
     hits.push(l.files, Action::DiffFocus(DiffFocus::Files));
     hits.push(l.diff, Action::DiffFocus(DiffFocus::Diff));
     draw_files(frame, app, state, &l, hits);
@@ -139,18 +139,26 @@ fn draw_files(
         frame.render_widget(Paragraph::new(Line::from(spans)).style(base), rect);
         hits.push(rect, Action::DiffFile(index));
     }
-    draw_review(frame, app, state, l.review);
+    draw_review(frame, app, state, l.review, hits);
 }
 
 /// The Your review block: pending comments, files viewed, and where your verdict stands.
-fn draw_review(frame: &mut Frame, app: &App, state: &DiffState, area: Rect) {
+fn draw_review(frame: &mut Frame, app: &App, state: &DiffState, area: Rect, hits: &mut HitMap) {
     let palette = &app.palette;
+    let focused = state.focus == DiffFocus::Review;
     let block = Block::default()
         .borders(Borders::TOP)
-        .border_style(style::fg(palette, Role::Line))
+        .border_style(style::fg(
+            palette,
+            if focused { Role::Accent } else { Role::Line },
+        ))
         .title(Line::styled(
             " Your review · pending ",
-            style::fg(palette, Role::TextSecondary),
+            if focused {
+                style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD)
+            } else {
+                style::fg(palette, Role::TextSecondary)
+            },
         ));
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -185,6 +193,16 @@ fn draw_review(frame: &mut Frame, app: &App, state: &DiffState, area: Rect) {
     if let Some(change) = app.state.changes.iter().find(|c| c.id == state.id) {
         lines.push(text(format!("Your review: {}", verdict_text(change))));
     }
+    if let (Some(verdict), None) = (state.verdict, &state.review) {
+        lines.push(text(format!(
+            "Draft verdict: {}",
+            crate::app::review::verdict_label(verdict).to_lowercase()
+        )));
+    }
+    if state.stale {
+        lines.push(muted(app, "Code changed since you wrote this"));
+    }
+    list_pending(app, state, inner, &mut lines, hits);
     if let Some(modal) = &state.review {
         lines.push(text(format!(
             "Choosing: {}",
@@ -205,6 +223,56 @@ fn draw_review(frame: &mut Frame, app: &App, state: &DiffState, area: Rect) {
         ));
     }
     frame.render_widget(Paragraph::new(lines), inner);
+}
+
+/// One row per pending comment (the window around the selection), clickable.
+fn list_pending(
+    app: &App,
+    state: &DiffState,
+    inner: Rect,
+    lines: &mut Vec<Line<'static>>,
+    hits: &mut HitMap,
+) {
+    use crate::app::comments::{entries, LIST_ROWS};
+    let palette = &app.palette;
+    let all = entries(state);
+    if all.is_empty() {
+        return;
+    }
+    let selected = state.review_sel.min(all.len() - 1);
+    let start = selected
+        .saturating_sub(LIST_ROWS - 1)
+        .min(all.len().saturating_sub(LIST_ROWS));
+    let width = usize::from(inner.width);
+    for (n, entry) in all.iter().enumerate().skip(start).take(LIST_ROWS) {
+        let at = state.focus == DiffFocus::Review && n == selected;
+        let mut label = entry.label();
+        if entry.outdated {
+            label.push_str(" · outdated");
+        }
+        let text = format!("{} {}", if at { "▸" } else { " " }, label);
+        let y = inner.y + lines.len() as u16;
+        if y < inner.bottom() {
+            hits.push(
+                Rect::new(inner.x, y, inner.width, 1),
+                Action::JumpComment(n),
+            );
+        }
+        let role = if entry.outdated {
+            Role::Muted
+        } else {
+            Role::Accent
+        };
+        let line = Line::styled(
+            super::chrome::truncate(&text, width),
+            style::fg(palette, role),
+        );
+        lines.push(if at {
+            line.style(style::bg(palette, Role::Selection))
+        } else {
+            line
+        });
+    }
 }
 
 fn verdict_text(change: &ChangeSummary) -> &'static str {
@@ -368,7 +436,16 @@ fn row_line(app: &App, state: &DiffState, index: usize, width: usize) -> (Line<'
             diff_line(app, state, id, line, (at_cursor, in_range), width)
         }
         Some(Row::Block { block, line }) => match view.rows.block(block) {
-            Some(b) => (block_line(app, b, line as usize, width), Style::default()),
+            Some(b) => (
+                block_line(
+                    app,
+                    b,
+                    line as usize,
+                    width,
+                    line == 0 && crate::app::comments::picked_block(state) == Some(block),
+                ),
+                Style::default(),
+            ),
             None => (Line::raw(""), Style::default()),
         },
         None => (Line::raw(""), Style::default()),
@@ -441,6 +518,7 @@ fn block_line(
     block: &crate::app::diffview::Block,
     line: usize,
     width: usize,
+    picked: bool,
 ) -> Line<'static> {
     let palette = &app.palette;
     let gutter = usize::from(GUTTER);
@@ -454,7 +532,11 @@ fn block_line(
     let mut spans = vec![Span::raw(" ".repeat(gutter))];
     let last = block.height() - 1;
     if line == 0 {
-        let head = format!("╭─ {} ", truncate(&block.title, total.saturating_sub(6)));
+        let mark = if picked { "▸ " } else { "" };
+        let head = format!(
+            "╭─ {mark}{} ",
+            truncate(&block.title, total.saturating_sub(6 + mark.len()))
+        );
         let fill = total.saturating_sub(cells(&head) + 1);
         spans.push(Span::styled(head, border.add_modifier(Modifier::BOLD)));
         spans.push(Span::styled(format!("{}╮", "─".repeat(fill)), border));

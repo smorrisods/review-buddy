@@ -33,11 +33,11 @@ expression: plain_dump(& mut app)
 │                                ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
 │                                ││              │ Fewer branches this way:                                                                                   ││
 │                                ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
-│                                ││              │ +         self.selected = (self.selected + self.items.len() - 1) % self.items.len();                       ││
-│ Your review · pending ─────────││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
-│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 51 ──────────────────────────────────────────────────────────────────────────────────────────────╮│
-│0 of 3 files viewed             │││ Worth a guard here?                                                                                                      ││
-│Your review: not started        │││                                                                                                                          ││
+│ Your review · pending ─────────││              │ +         self.selected = (self.selected + self.items.len() - 1) % self.items.len();                       ││
+│1 suggestion · 0 comments       ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│0 of 3 files viewed             ││╭ Comment · menus.rs line 51 ──────────────────────────────────────────────────────────────────────────────────────────────╮│
+│Your review: not started        │││ Worth a guard here?                                                                                                      ││
+│  menus.rs:51 Fewer branches th…│││                                                                                                                          ││
 │a approve · c comment           │││                                                                                                                          ││
 │x request changes · R review    ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────────────────────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -202,12 +202,12 @@ expression: plain_dump(& mut app)
 30:34 B "│"
 30:49 B "│ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);"
 30:157 B " ││"
-31:0 D "│"
-31:33 D "│"
+31:0 D "│ Your review · pending ─────────│"
 31:34 B "│"
 31:49 B "│"
 31:157 B " ││"
-32:0 D "│ Your review · pending ─────────│"
+32:0 D "│"
+32:33 D "│"
 32:34 B "│"
 32:49 B "╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│"
 33:0 D "│"
@@ -219,6 +219,7 @@ expression: plain_dump(& mut app)
 34:56 R ""
 34:158 B "││"
 35:0 D "│"
+35:1 B "  menus.rs:51 Fewer branches th…"
 35:33 D "│"
 35:34 B "││"
 35:158 B "││"

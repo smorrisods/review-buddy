@@ -429,6 +429,62 @@ impl Provider for DemoProvider {
         Ok(())
     }
 
+    fn supports_pending_edit(&self) -> bool {
+        true
+    }
+
+    async fn update_comment(
+        &self,
+        thread: &ThreadId,
+        comment: &CommentId,
+        body: &str,
+    ) -> Result<()> {
+        if body.trim().is_empty() {
+            return Err(Error::Api("a comment can't be empty".into()));
+        }
+        let mut state = self.lock();
+        let kind = self.kind;
+        let found = state
+            .changes
+            .iter_mut()
+            .filter(|c| c.id().kind == kind)
+            .find_map(|c| {
+                let id = c.id().clone();
+                c.threads
+                    .iter_mut()
+                    .find(|t| &t.id == thread)
+                    .and_then(|t| t.comments.iter_mut().find(|m| &m.id == comment))
+                    .map(|m| (id, m))
+            })
+            .ok_or_else(|| Error::NotFound(comment.to_string()))?;
+        found.1.body = body.to_string();
+        let id = found.0;
+        state.confirm(format!("Edited a pending comment on {id}"));
+        Ok(())
+    }
+
+    async fn delete_comment(&self, thread: &ThreadId, comment: &CommentId) -> Result<()> {
+        let mut state = self.lock();
+        let kind = self.kind;
+        let change = state
+            .changes
+            .iter_mut()
+            .filter(|c| c.id().kind == kind)
+            .find(|c| {
+                c.threads
+                    .iter()
+                    .any(|t| &t.id == thread && t.comments.iter().any(|m| &m.id == comment))
+            })
+            .ok_or_else(|| Error::NotFound(comment.to_string()))?;
+        let id = change.id().clone();
+        if let Some(t) = change.threads.iter_mut().find(|t| &t.id == thread) {
+            t.comments.retain(|m| &m.id != comment);
+        }
+        change.threads.retain(|t| !t.comments.is_empty());
+        state.confirm(format!("Deleted a pending comment on {id}"));
+        Ok(())
+    }
+
     async fn merge(&self, id: &ChangeId, opts: &MergeOpts) -> Result<MergeOutcome> {
         let mut state = self.lock();
         self.own(&state, id)?;
@@ -731,6 +787,40 @@ mod tests {
         assert!(!gh.threads(&id).await.unwrap()[0].resolved);
         assert!(w.confirmations().iter().all(|c| c.ends_with(" (demo)")));
         assert_eq!(w.confirmations().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn pending_comments_can_be_edited_and_deleted_in_memory() {
+        let w = world();
+        let gh = w.provider(ForgeKind::GitHub);
+        assert!(gh.supports_pending_edit());
+        let id = find(&w, 214).await.id;
+        let thread = gh.threads(&id).await.unwrap().remove(0);
+        let first = thread.comments[0].id.clone();
+        gh.update_comment(&thread.id, &first, "Reworded.")
+            .await
+            .unwrap();
+        let after = gh.threads(&id).await.unwrap().remove(0);
+        assert_eq!(after.comments[0].body, "Reworded.");
+        assert!(matches!(
+            gh.update_comment(&thread.id, &first, "  ").await,
+            Err(Error::Api(_))
+        ));
+        assert!(matches!(
+            gh.update_comment(&thread.id, &CommentId::new("nope"), "x")
+                .await,
+            Err(Error::NotFound(_))
+        ));
+
+        for comment in &thread.comments {
+            gh.delete_comment(&thread.id, &comment.id).await.unwrap();
+        }
+        let left = gh.threads(&id).await.unwrap();
+        assert!(
+            left.iter().all(|t| t.id != thread.id),
+            "an emptied thread goes"
+        );
+        assert!(w.confirmations().iter().all(|c| c.ends_with(" (demo)")));
     }
 
     #[tokio::test]

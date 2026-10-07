@@ -19,6 +19,9 @@ pub(super) fn on_mouse(app: &mut App, mouse: MouseEvent) -> Vec<Cmd> {
     if app.help {
         return on_help(app, mouse, shift);
     }
+    if app.pending.is_some() && app.screen == Screen::Dashboard {
+        return on_pending(app, mouse, shift);
+    }
     if app.show.open {
         return on_show(app, mouse, shift);
     }
@@ -134,6 +137,24 @@ fn on_show(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
     }
 }
 
+/// The Pending reviews list answers its own rows and buttons; a click elsewhere closes it.
+fn on_pending(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
+    if shift || !matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
+        return Vec::new();
+    }
+    let confirming = app.pending.as_ref().is_some_and(|p| p.confirm.is_some());
+    match app.hits.at(mouse.column, mouse.row).cloned() {
+        Some(Action::Answer(yes)) if confirming => super::pending::answer(app, yes),
+        Some(Action::PendingRow(n)) if !confirming => super::pending::click(app, n),
+        Some(Action::DismissToast(id)) => update::run(app, Action::DismissToast(id)),
+        _ if confirming => Vec::new(),
+        _ => {
+            super::pending::close(app);
+            Vec::new()
+        }
+    }
+}
+
 fn scroll_help(app: &mut App, down: bool) {
     let max = help::max_scroll(app);
     app.help_scroll = if down {
@@ -159,6 +180,9 @@ fn on_overlay(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
     match (mouse.kind, hit) {
         (MouseEventKind::Down(MouseButton::Left), Some(Action::Answer(yes))) if confirming => {
             composer::answer(app, yes)
+        }
+        (MouseEventKind::Down(MouseButton::Left), Some(Action::Choose(n))) if confirming => {
+            composer::choose(app, n)
         }
         (MouseEventKind::Down(MouseButton::Left), Some(Action::DismissToast(id))) => {
             update::run(app, Action::DismissToast(id))

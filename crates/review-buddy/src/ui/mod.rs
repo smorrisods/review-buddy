@@ -20,6 +20,7 @@ pub mod first_run;
 pub mod help;
 mod hitmap;
 pub mod layout;
+pub mod pending;
 pub mod review;
 pub mod settings;
 pub mod show;
@@ -58,6 +59,9 @@ pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
     chrome::draw_toasts(frame, app, body.inner(Margin::new(2, 1)), &mut hits);
     if app.show.open && app.screen == Screen::Dashboard {
         show::draw(frame, app, body, &mut hits);
+    }
+    if let (Some(list), Screen::Dashboard) = (&app.pending, app.screen) {
+        pending::draw(frame, app, list, body, &mut hits);
     }
     if app.help {
         help::draw(frame, app, body);

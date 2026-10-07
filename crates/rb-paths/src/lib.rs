@@ -11,7 +11,7 @@ mod resolve;
 pub use config::{ConfigFile, ConfigLayers, ConfigOrigin};
 pub use env::{Env, MapEnv, Os, SystemEnv};
 pub use fs::{ensure_private_dir, write_private_file};
-pub use resolve::{PathsError, ResolvedPaths, APP_DIR, SESSION_FILE};
+pub use resolve::{PathsError, ResolvedPaths, APP_DIR, DRAFTS_DIR, SESSION_FILE};
 
 use std::fmt;
 use std::path::PathBuf;
@@ -80,6 +80,9 @@ impl fmt::Display for PathsReport {
         };
         writeln!(f, "  [{status}] {}", session.display())?;
         writeln!(f)?;
+        writeln!(f, "Saved review drafts")?;
+        writeln!(f, "  {}", p.drafts_dir().display())?;
+        writeln!(f)?;
         write!(f, "Settings are written to {}", self.write_target.display())
     }
 }
@@ -93,6 +96,18 @@ mod tests {
 
     fn env(home: &str) -> MapEnv {
         MapEnv::new(home)
+    }
+
+    #[test]
+    fn drafts_live_under_the_state_directory_and_the_report_lists_them() {
+        let report = PathsReport::build(&env("/home/a"), None).unwrap();
+        assert_eq!(
+            report.paths.drafts_dir(),
+            PathBuf::from("/home/a/.local/state/review-buddy/drafts")
+        );
+        let text = report.to_string();
+        assert!(text.contains("Saved review drafts"), "{text}");
+        assert!(text.contains("/home/a/.local/state/review-buddy/drafts"));
     }
 
     #[test]

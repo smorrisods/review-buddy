@@ -231,6 +231,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
             super::show::open(app);
             Vec::new()
         }
+        KeyCode::Char('D') => super::pending::open(app),
         KeyCode::Char('S') => cycle_sources(app),
         KeyCode::Char('p') => toggle_detail(app),
         KeyCode::Char('P') => cycle_position(app),

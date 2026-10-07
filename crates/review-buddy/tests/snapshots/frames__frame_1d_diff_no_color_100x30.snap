@@ -23,11 +23,11 @@ expression: plain_dump(& mut app)
 │                                ││›        44 +         self.selected = (self.selected + 1) % sel…│
 │                                ││              ╭─ thread · line 44 ─────────────────────────────╮│
 │                                ││              │ jo · 1d                                        ││
-│                                ││              │ Should this wrap round to the first item? Most ││
-│ Your review · pending ─────────││              │ menus I use stop at the end.                   ││
-│1 suggestion · 0 comments       ││              │ ada · 20h                                      ││
-│0 of 3 files viewed             ││              │ I went with wrapping so a held key never gets  ││
-│Your review: not started        ││              │ stuck. Happy to make it configurable if you'd  ││
+│ Your review · pending ─────────││              │ Should this wrap round to the first item? Most ││
+│1 suggestion · 0 comments       ││              │ menus I use stop at the end.                   ││
+│0 of 3 files viewed             ││              │ ada · 20h                                      ││
+│Your review: not started        ││              │ I went with wrapping so a held key never gets  ││
+│  menus.rs:51 Fewer branches th…││              │ stuck. Happy to make it configurable if you'd  ││
 │a approve · c comment           ││              │ rather.                                        ││
 │x request changes · R review    ││              ╰────────────────────────────────────── r reply ─╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
@@ -145,11 +145,11 @@ expression: plain_dump(& mut app)
 20:34 B "│"
 20:51 B "jo · 1d"
 20:99 B "│"
-21:0 D "│"
-21:33 D "│"
+21:0 D "│ Your review · pending ─────────│"
 21:34 B "│"
 21:99 B "│"
-22:0 D "│ Your review · pending ─────────│"
+22:0 D "│"
+22:33 D "│"
 22:34 B "│"
 22:99 B "│"
 23:0 D "│"
@@ -162,6 +162,7 @@ expression: plain_dump(& mut app)
 24:34 B "│"
 24:99 B "│"
 25:0 D "│"
+25:1 B "  menus.rs:51 Fewer branches th…"
 25:33 D "│"
 25:34 B "│"
 25:99 B "│"
