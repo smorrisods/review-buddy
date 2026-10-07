@@ -108,6 +108,7 @@ impl Settings {
             layout: crate::ui::layout::Options {
                 sources: config.ui.sources,
                 detail: config.ui.detail,
+                position: config.ui.detail_position,
             },
             write_target: None,
         }

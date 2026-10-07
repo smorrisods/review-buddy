@@ -3,7 +3,7 @@
 
 use ratatui::layout::{Constraint, Layout, Rect};
 
-use crate::config::{DetailMode, SourcesLayout};
+use crate::config::{DetailMode, DetailPosition, SourcesLayout};
 
 pub const SOURCES_WIDTH: u16 = 26;
 pub const QUEUE_WIDTH: u16 = 48;
@@ -14,11 +14,38 @@ pub const COLLAPSE_BELOW: u16 = 130;
 /// the freed width once the terminal is wide enough to have shown the pane.
 pub const QUEUE_WIDTH_TOP: u16 = 60;
 
-/// The dashboard's layout choices: `ui.sources` and `ui.detail`, as changed during a session.
+/// Side by side needs a Queue (48) and a useful Detail (50); `auto` also wants the whole
+/// terminal at least this wide, so a narrow terminal stacks the panes instead.
+pub const DETAIL_WIDTH_MIN: u16 = 50;
+pub const SIDE_BY_SIDE_MIN: u16 = 110;
+/// Stacked: the Queue gets this share of the height (percent), and never fewer rows than
+/// [`QUEUE_ROWS_MIN`]; the Detail gets the rest, down to [`DETAIL_ROWS_MIN`] when there is room.
+pub const QUEUE_SHARE: u16 = 55;
+pub const QUEUE_ROWS_MIN: u16 = 8;
+pub const DETAIL_ROWS_MIN: u16 = 6;
+
+/// Where the Detail pane actually sits once `auto` has been resolved.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Place {
+    Right,
+    Left,
+    Top,
+    Bottom,
+}
+
+impl Place {
+    pub fn stacked(self) -> bool {
+        matches!(self, Self::Top | Self::Bottom)
+    }
+}
+
+/// The dashboard's layout choices: `ui.sources`, `ui.detail` and `ui.detail_position`, as
+/// changed during a session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Options {
     pub sources: SourcesLayout,
     pub detail: DetailMode,
+    pub position: DetailPosition,
 }
 
 impl Default for Options {
@@ -26,6 +53,7 @@ impl Default for Options {
         Self {
             sources: SourcesLayout::Auto,
             detail: DetailMode::Auto,
+            position: DetailPosition::Auto,
         }
     }
 }
@@ -50,6 +78,40 @@ impl Options {
             DetailMode::Closed
         } else {
             DetailMode::Open
+        }
+    }
+
+    /// Where Detail sits for a body this wide: the setting, or for `auto` right when the pair
+    /// has room side by side and bottom otherwise.
+    pub fn place(self, width: u16) -> Place {
+        match self.position {
+            DetailPosition::Right => Place::Right,
+            DetailPosition::Left => Place::Left,
+            DetailPosition::Top => Place::Top,
+            DetailPosition::Bottom => Place::Bottom,
+            DetailPosition::Auto => {
+                let pair = if self.collapsed(width) {
+                    width
+                } else {
+                    width.saturating_sub(SOURCES_WIDTH)
+                };
+                if width >= SIDE_BY_SIDE_MIN && pair >= QUEUE_WIDTH + DETAIL_WIDTH_MIN {
+                    Place::Right
+                } else {
+                    Place::Bottom
+                }
+            }
+        }
+    }
+
+    /// `P`: auto, right, left, top, then bottom.
+    pub fn next_position(self) -> DetailPosition {
+        match self.position {
+            DetailPosition::Auto => DetailPosition::Right,
+            DetailPosition::Right => DetailPosition::Left,
+            DetailPosition::Left => DetailPosition::Top,
+            DetailPosition::Top => DetailPosition::Bottom,
+            DetailPosition::Bottom => DetailPosition::Auto,
         }
     }
 
@@ -98,14 +160,40 @@ pub fn dashboard(body: Rect, options: Options) -> DashboardLayout {
         let detail = Rect::new(rest.right(), rest.y, 0, rest.height);
         (rest, detail)
     } else {
-        let width = if wide_top {
-            QUEUE_WIDTH_TOP
+        let place = options.place(body.width);
+        if place.stacked() {
+            let h = rest.height;
+            let queue_h = (h * QUEUE_SHARE / 100)
+                .max(QUEUE_ROWS_MIN)
+                .min(h.saturating_sub(DETAIL_ROWS_MIN))
+                .max(QUEUE_ROWS_MIN.min(h));
+            let detail_h = h - queue_h;
+            if place == Place::Top {
+                let [detail, queue] =
+                    Layout::vertical([Constraint::Length(detail_h), Constraint::Min(0)])
+                        .areas(rest);
+                (queue, detail)
+            } else {
+                let [queue, detail] =
+                    Layout::vertical([Constraint::Length(queue_h), Constraint::Min(0)]).areas(rest);
+                (queue, detail)
+            }
         } else {
-            QUEUE_WIDTH
-        };
-        let [queue, detail] =
-            Layout::horizontal([Constraint::Length(width), Constraint::Min(0)]).areas(rest);
-        (queue, detail)
+            let width = if wide_top {
+                QUEUE_WIDTH_TOP
+            } else {
+                QUEUE_WIDTH
+            };
+            if place == Place::Left {
+                let [detail, queue] =
+                    Layout::horizontal([Constraint::Min(0), Constraint::Length(width)]).areas(rest);
+                (queue, detail)
+            } else {
+                let [queue, detail] =
+                    Layout::horizontal([Constraint::Length(width), Constraint::Min(0)]).areas(rest);
+                (queue, detail)
+            }
+        }
     };
     DashboardLayout {
         strip,
@@ -238,7 +326,11 @@ mod tests {
     }
 
     fn opts(sources: SourcesLayout, detail: DetailMode) -> Options {
-        Options { sources, detail }
+        Options {
+            sources,
+            detail,
+            position: DetailPosition::Right,
+        }
     }
 
     fn fills(l: &DashboardLayout, width: u16) {
@@ -301,6 +393,173 @@ mod tests {
         assert_eq!(
             opts(SourcesLayout::Top, DetailMode::Auto).next_sources(),
             SourcesLayout::Auto
+        );
+    }
+}
+
+#[cfg(test)]
+mod position_tests {
+    use super::*;
+
+    fn opts(position: DetailPosition) -> Options {
+        Options {
+            position,
+            ..Options::default()
+        }
+    }
+
+    fn body_of(w: u16, h: u16) -> Rect {
+        body((w, h + 2))
+    }
+
+    #[test]
+    fn auto_is_right_from_110_columns_and_bottom_below() {
+        for w in 40..=200 {
+            let place = Options::default().place(w);
+            let side = w >= 110;
+            assert_eq!(place == Place::Right, side, "width {w}");
+            if !side {
+                assert_eq!(place, Place::Bottom, "width {w}");
+            }
+        }
+    }
+
+    #[test]
+    fn auto_needs_room_for_both_panes_beside_a_sources_pane() {
+        let left = Options {
+            sources: SourcesLayout::Left,
+            ..Options::default()
+        };
+        assert_eq!(left.place(120), Place::Bottom);
+        assert_eq!(left.place(124), Place::Right);
+        assert_eq!(left.place(160), Place::Right);
+    }
+
+    #[test]
+    fn explicit_positions_ignore_width() {
+        for (p, want) in [
+            (DetailPosition::Right, Place::Right),
+            (DetailPosition::Left, Place::Left),
+            (DetailPosition::Top, Place::Top),
+            (DetailPosition::Bottom, Place::Bottom),
+        ] {
+            for w in [60, 100, 160, 250] {
+                assert_eq!(opts(p).place(w), want);
+            }
+        }
+    }
+
+    #[test]
+    fn right_keeps_queue_48_and_detail_the_rest() {
+        let l = dashboard(body_of(120, 30), opts(DetailPosition::Right));
+        assert_eq!((l.queue.x, l.queue.width), (0, QUEUE_WIDTH));
+        assert_eq!((l.detail.x, l.detail.width), (48, 72));
+    }
+
+    #[test]
+    fn left_puts_detail_first() {
+        let l = dashboard(body_of(120, 30), opts(DetailPosition::Left));
+        assert_eq!((l.detail.x, l.detail.width), (0, 72));
+        assert_eq!((l.queue.x, l.queue.width), (72, QUEUE_WIDTH));
+    }
+
+    #[test]
+    fn stacked_splits_the_height_for_many_sizes() {
+        for h in [10u16, 14, 20, 28, 38, 60] {
+            for w in [80u16, 100, 160] {
+                let area = body_of(w, h);
+                let rest_h = if Options::default().collapsed(w) {
+                    h - 1
+                } else {
+                    h
+                };
+                for p in [DetailPosition::Top, DetailPosition::Bottom] {
+                    let l = dashboard(area, opts(p));
+                    assert_eq!(l.queue.height + l.detail.height, rest_h, "{w}x{h}");
+                    assert!(l.queue.height >= QUEUE_ROWS_MIN.min(rest_h), "{w}x{h}");
+                    assert_eq!(l.queue.width, l.detail.width);
+                    assert_eq!(l.queue.x, l.detail.x);
+                    if p == DetailPosition::Top {
+                        assert_eq!(l.detail.bottom(), l.queue.y);
+                    } else {
+                        assert_eq!(l.queue.bottom(), l.detail.y);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn stacked_queue_is_about_55_percent() {
+        let l = dashboard(body_of(100, 40), opts(DetailPosition::Bottom));
+        assert_eq!(l.queue.height, 21);
+        assert_eq!(l.detail.height, 18);
+    }
+
+    #[test]
+    fn stacked_with_a_sources_pane_sits_right_of_it() {
+        let o = Options {
+            sources: SourcesLayout::Left,
+            position: DetailPosition::Top,
+            ..Options::default()
+        };
+        let l = dashboard(body_of(160, 40), o);
+        let s = l.sources.unwrap();
+        assert_eq!((s.x, s.width), (0, SOURCES_WIDTH));
+        assert_eq!(l.queue.x, SOURCES_WIDTH);
+        assert_eq!(l.detail.x, SOURCES_WIDTH);
+        assert!(l.detail.y < l.queue.y);
+    }
+
+    #[test]
+    fn stacked_with_the_strip_keeps_the_strip_on_top() {
+        let o = Options {
+            sources: SourcesLayout::Top,
+            position: DetailPosition::Bottom,
+            ..Options::default()
+        };
+        let l = dashboard(body_of(100, 30), o);
+        assert_eq!(l.strip.unwrap().height, 1);
+        assert_eq!(l.queue.y, 2);
+    }
+
+    #[test]
+    fn closed_detail_gives_the_queue_everything_in_every_position() {
+        for p in [
+            DetailPosition::Auto,
+            DetailPosition::Right,
+            DetailPosition::Left,
+            DetailPosition::Top,
+            DetailPosition::Bottom,
+        ] {
+            let o = Options {
+                position: p,
+                detail: DetailMode::Closed,
+                ..Options::default()
+            };
+            let l = dashboard(body_of(100, 30), o);
+            assert_eq!(l.queue, Rect::new(0, 2, 100, 29));
+            assert_eq!(l.detail.width, 0);
+        }
+    }
+
+    #[test]
+    fn the_cycle_visits_every_position_and_returns() {
+        let mut o = Options::default();
+        let mut seen = Vec::new();
+        for _ in 0..5 {
+            o.position = o.next_position();
+            seen.push(o.position);
+        }
+        assert_eq!(
+            seen,
+            [
+                DetailPosition::Right,
+                DetailPosition::Left,
+                DetailPosition::Top,
+                DetailPosition::Bottom,
+                DetailPosition::Auto
+            ]
         );
     }
 }

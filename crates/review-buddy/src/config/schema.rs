@@ -39,6 +39,7 @@ macro_rules! choice {
 choice!(Layout { Panes = "panes", Split = "split", Queue = "queue" });
 choice!(SourcesLayout { Auto = "auto", Left = "left", Top = "top" });
 choice!(DetailMode { Auto = "auto", Open = "open", Closed = "closed" });
+choice!(DetailPosition { Auto = "auto", Right = "right", Left = "left", Top = "top", Bottom = "bottom" });
 choice!(ColourDepth { Auto = "auto", Truecolor = "truecolor", Colour256 = "256", Colour16 = "16" });
 choice!(Background { Theme = "theme", Yes = "yes", No = "no" });
 choice!(MergeMethod { Merge = "merge", Squash = "squash", Rebase = "rebase" });
@@ -53,6 +54,7 @@ pub struct UiConfig {
     pub layout: Layout,
     pub sources: SourcesLayout,
     pub detail: DetailMode,
+    pub detail_position: DetailPosition,
     pub jax: bool,
     pub reduced_motion: bool,
     pub unicode: bool,
@@ -71,6 +73,7 @@ impl Default for UiConfig {
             layout: Layout::Panes,
             sources: SourcesLayout::Auto,
             detail: DetailMode::Auto,
+            detail_position: DetailPosition::Auto,
             jax: true,
             reduced_motion: false,
             unicode: true,

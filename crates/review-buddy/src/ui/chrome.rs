@@ -59,9 +59,15 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
     let background = Some(Action::CycleBackground);
     match screen {
         Screen::Dashboard => vec![
-            bind("Move", "j/k", "move in the focused pane", None, false),
+            bind(
+                "Move",
+                "j/k",
+                "move in the focused pane (PgUp/PgDn: detail)",
+                None,
+                false,
+            ),
             bind("Move", "g/G", "first / last row", None, false),
-            bind("Move", "tab", "next pane", None, false),
+            bind("Move", "tab", "next pane, in screen order", None, false),
             bind("Move", "h/l", "previous / next pane", None, false),
             bind("Move", "1-9", "switch source", None, false),
             bind("Move", "[/]", "previous / next detail tab", None, false),
@@ -81,6 +87,13 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
                 "S",
                 "sources: auto / left / top",
                 Some(Action::CycleSources),
+                false,
+            ),
+            bind(
+                "View",
+                "P",
+                "detail: auto / right / left / top / bottom",
+                Some(Action::CyclePosition),
                 false,
             ),
             bind(

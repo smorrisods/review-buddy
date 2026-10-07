@@ -292,6 +292,7 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         Action::Settings(click) => settings::drive(app, crate::settings::Input::Click(click)),
         Action::ToggleDetail => dashboard::toggle_detail(app),
         Action::CycleSources => dashboard::cycle_sources(app),
+        Action::CyclePosition => dashboard::cycle_position(app),
         other => dashboard::on_action(app, other),
     }
 }

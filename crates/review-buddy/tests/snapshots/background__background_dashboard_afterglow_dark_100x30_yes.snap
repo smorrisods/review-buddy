@@ -2,5 +2,5 @@
 source: crates/review-buddy/tests/background.rs
 expression: "pinned(\"afterglow-dark\", (100, 30), BackgroundMode :: Yes)"
 ---
-Rgb(15, 14, 26): 2887
-Rgb(39, 34, 62): 113
+Rgb(15, 14, 26): 2783
+Rgb(39, 34, 62): 217

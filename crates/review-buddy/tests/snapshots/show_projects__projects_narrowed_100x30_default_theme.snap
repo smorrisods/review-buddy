@@ -4,31 +4,31 @@ expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 19 changes                                          Liminal HQ
   1 ● All 15   2 ●╭ Show ────────────────────────────────────────────────────────╮ 1
-╭ queue ──────────│                                                              │────────────── ⟩ ╮
-│  Waiting on you │  [x] reviewing  changes waiting on your review               │en menus         │
-│▌ ◐ Add a menu ba│  [x] assigned   changes assigned to you                      │                 │
+╭ queue ──────────│                                                              │─────────────────╮
+│  Waiting on you │  [x] reviewing  changes waiting on your review               │                 │
+│▌ ◐ Add a menu ba│  [x] assigned   changes assigned to you                      │              2h │
 │▌ GH review-buddy│  [x] authored   changes you opened                           │                 │
-│  ◐ Update eslint│  [ ] drafts     drafts, yours and others                     │                 │
-│  GH eslint-confi│  [ ] noise      bot updates, mixed into the buckets          │Comment  ⏎ Diff  │
-│  ◐ Update icons │                                                              │                 │
-│  GH icons#907 · │  Projects  12 of 16 projects shown                           │ Conversation 3  │
-│  ◐ Update ontari│  / type to find a project                                    │──────────────── │
-│  GH ontario-desi│  liminal-hq                        13 projects · 15 changes  │d a Menu type    │
-│  ◐ Update releas│▌ [x] liminal-hq/review-buddy                              3  │                 │
+│  ◐ Update eslint│  [ ] drafts     drafts, yours and others                     │              2h │
+│  GH eslint-confi│  [ ] noise      bot updates, mixed into the buckets          │                 │
+│  ◐ Update icons │                                                              │              2h │
+│  GH icons#907 · │  Projects  12 of 16 projects shown                           │                 │
+│  ◐ Update ontari│  / type to find a project                                    │              2h │
+│  GH ontario-desi│  liminal-hq                        13 projects · 15 changes  │                 │
+│  ◐ Update releas│▌ [x] liminal-hq/review-buddy                              3  │              2h │
 │  GH release-tool│  [x] ongov/eslint-config                                  1  │                 │
-│  ◐ Update status│  [x] ongov/icons                                          1  │lect_prev move   │
-│  GH status-page#│  [ ] ongov/legacy-forms                                   1  │                 │
-│  ◐ Update storyb│  [ ] ongov/legacy-portal                                  1  │ion for the      │
-│  GH storybook#90│  [ ] ongov/legacy-search                                  1  │                 │
-│  ◐ Update tokens│  [x] ongov/ontario-design-system                          1  │, so it picks up │
-│  GH tokens#906 ·│  [ ] ongov/ontario-design-system-legacy-docs              1  │                 │
-│  ◐ Update web-co│  [x] ongov/release-tools                                  1  │                 │
-│  GH web-componen│  [x] ongov/status-page                                    1  │                 │
-│  ● Raise muted t│  [x] ongov/storybook                                      1  │                 │
-│  GH review-buddy│  [x] ongov/tokens                                         1  │                 │
+│  ◐ Update status│  [x] ongov/icons                                          1  │              2h │
+╰─────────────────│  [ ] ongov/legacy-forms                                   1  │─────────────────╯
+╭ liminal-hq/revie│  [ ] ongov/legacy-portal                                  1  │────────────── ▼ ╮
+│ Add a menu bar a│  [ ] ongov/legacy-search                                  1  │                 │
+│ ada wants ada/me│  [x] ongov/ontario-design-system                          1  │                 │
+│ +32 −1 · 3 files│  [ ] ongov/ontario-design-system-legacy-docs              1  │                 │
+│ a Approve  x Req│  [x] ongov/release-tools                                  1  │                 │
+│  Overview   File│  [x] ongov/status-page                                    1  │                 │
+│ ────────────────│  [x] ongov/storybook                                      1  │──────────────── │
+│ Adds a menu bar │  [x] ongov/tokens                                         1  │                 │
 │                 │                                                              │                 │
-│  Worth a look · │  4 hidden by your Show filters: 4 by project.                │                 │
-│  ✕ Cache pipelin│  space toggle · / find · a all · n none · esc close          │                 │
-│  GL flow!1182 · │  Changes last for this session only.                         │ncelled          │
+│ • Menu::select_n│  4 hidden by your Show filters: 4 by project.                │                 │
+│ • Menu::activate│  space toggle · / find · a all · n none · esc close          │                 │
+│ • The bar itself│  Changes last for this session only.                         │                 │
 ╰─────────────────╰──────────────────────────────────────────────────────────────╯─────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

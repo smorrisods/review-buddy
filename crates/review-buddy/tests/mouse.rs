@@ -242,7 +242,7 @@ fn the_wheel_scrolls_the_pane_under_the_pointer_not_the_focused_one() {
     render(&mut d);
     d.dashboard.focus = Pane::Queue;
     let before = d.dashboard.queue_scroll;
-    wheel(&mut d, (80, 15), true);
+    wheel(&mut d, (80, 22), true);
     assert_eq!(
         d.dashboard.queue_scroll, before,
         "the detail pane is under the pointer"

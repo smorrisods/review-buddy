@@ -4,33 +4,33 @@ expression: plain_dump(& mut app)
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
   1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
-╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ────────────────── ⟩ ╮
-│  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus         │
-│▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                       │
-│▌ GH review-buddy#214 · ada · review requested││ +32 −1 · 3 files · opened 3d ago                 │
-│  ● Raise muted text contrast in the ligh… 5h ││                                                  │
-│  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  │
-│                                              ││                                                  │
-│  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3  │
-│  ✕ Cache pipeline status lookups          7h ││ ──────────────────────────────────────────────── │
-│  GL flow!1182 · priya · you're mentioned     ││ Adds a menu bar along the top and a Menu type    │
-│  ● Tidy zsh startup                       1d ││ that tracks the selected item.                   │
-│  GH dotfiles#31 · smorris · yours            ││                                                  │
-│                                              ││ • Menu::select_next and Menu::select_prev move   │
-│  Can wait · 1                                ││ the highlight                                    │
-│  · Clarify the install steps              3d ││ • Menu::activate returns the action for the      │
-│  GL notes!12 · kai · approved by you         ││ highlighted item                                 │
-│                                              ││ • The bar itself is a plain Line, so it picks up │
-│  ▸ Noise · 2 bot updates · ⏎ to expand       ││ …                                                │
-│                                              ││                                                  │
-│  ── That's everything.                       ││ Reviewers                                        │
-│  7 in this view.                             ││ ◌ smorris requested                              │
-│                                              ││ ✎ jo commented                                   │
-│                                              ││                                                  │
-│                                              ││ Checks                                           │
-│                                              ││ ● 2 passing  ◐ 1 running                         │
-│                                              ││ ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled          │
-╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────╯
+╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
+│  Waiting on you · 2                                                                              │
+│▌ ◐ Add a menu bar and keyboard-driven menus                                                   2h │
+│▌ GH review-buddy#214 · ada · review requested                                                    │
+│  ● Raise muted text contrast in the light theme                                               5h │
+│  GH review-buddy#209 · jo · approved by you                                                      │
+│                                                                                                  │
+│  Worth a look · 2                                                                                │
+│  ✕ Cache pipeline status lookups                                                              7h │
+│  GL flow!1182 · priya · you're mentioned                                                         │
+│  ● Tidy zsh startup                                                                           1d │
+│  GH dotfiles#31 · smorris · yours                                                                │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭ liminal-hq/review-buddy#214 ────────────────────────────────────────────────────────────────── ▼ ╮
+│ Add a menu bar and keyboard-driven menus                                                         │
+│ ada wants ada/menus → main                                                                       │
+│ +32 −1 · 3 files · opened 3d ago                                                                 │
+│ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                                         │
+│  Overview   Files 3   Checks 6   Conversation 3                                                  │
+│ ──────────────────────────────────────────────────────────────────────────────────────────────── │
+│ Adds a menu bar along the top and a Menu type that tracks the selected item.                     │
+│                                                                                                  │
+│ • Menu::select_next and Menu::select_prev move the highlight                                     │
+│ • Menu::activate returns the action for the highlighted item                                     │
+│ • The bar itself is a plain Line, so it picks up the active theme                                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
 
 -- modifiers --
@@ -46,164 +46,96 @@ expression: plain_dump(& mut app)
 1:51 D "● platform 2"
 1:65 BD " 5"
 1:68 D "● gitlab.com 1"
-2:0 B "╭ queue ───────────────────────────────────────╮"
-2:48 D "╭ liminal-hq/review-buddy#214 ────────────────── ⟩ ╮"
+2:0 B "╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮"
 3:0 B "│"
 3:3 B "Waiting on you"
 3:17 D " · 2"
-3:47 B "│"
-3:48 D "│"
-3:50 B "Add a menu bar and keyboard-driven menus"
-3:99 D "│"
+3:99 B "│"
 4:0 B "│"
 4:1 BR "▌"
 4:3 R "◐"
-4:5 BR "Add a menu bar and keyboard-driven me…"
-4:43 R ""
-4:44 DR "2h"
-4:47 B "│"
-4:48 D "│"
-4:53 D " wants"
-4:69 D " →"
-4:99 D "│"
+4:5 BR "Add a menu bar and keyboard-driven menus"
+4:45 R ""
+4:96 DR "2h"
+4:99 B "│"
 5:0 B "│"
 5:1 BR "▌"
 5:3 R "GH review-buddy#214"
 5:22 DR " ·"
 5:25 R "ada"
 5:28 DR " · review requested"
-5:47 B "│"
-5:48 D "│"
-5:54 B "−1"
-5:56 D " · 3 files · opened 3d ago"
-5:99 D "│"
+5:47 R ""
+5:99 B "│"
 6:0 B "│"
-6:44 D "5h"
-6:47 B "│"
-6:48 D "│"
-6:99 D "│"
+6:96 D "5h"
+6:99 B "│"
 7:0 B "│"
 7:22 D " ·"
 7:27 D " · approved by you"
-7:47 B "│"
-7:48 D "│"
-7:50 B "a"
-7:61 B "x"
-7:80 B "c"
-7:91 B "⏎"
-7:99 D "│"
+7:99 B "│"
 8:0 B "│"
-8:47 B "│"
-8:48 D "│"
-8:99 D "│"
+8:99 B "│"
 9:0 B "│"
 9:3 B "Worth a look"
 9:15 D " · 2"
-9:47 B "│"
-9:48 D "│"
-9:50 BR " Overview"
-9:61 D " Files 3"
-9:71 D " Checks 6"
-9:82 D " Conversation 3"
-9:99 D "│"
+9:99 B "│"
 10:0 B "│"
 10:3 B "✕"
-10:44 D "7h"
-10:47 B "│"
-10:48 D "│"
-10:50 D "────────────────────────────────────────────────"
-10:99 D "│"
+10:96 D "7h"
+10:99 B "│"
 11:0 B "│"
 11:15 D " ·"
 11:23 D " · you're mentioned"
-11:47 B "│"
-11:48 D "│"
-11:99 D "│"
+11:99 B "│"
 12:0 B "│"
-12:44 D "1d"
-12:47 B "│"
-12:48 D "│"
-12:99 D "│"
+12:96 D "1d"
+12:99 B "│"
 13:0 B "│"
 13:17 D " ·"
 13:27 D " · yours"
-13:47 B "│"
-13:48 D "│"
-13:99 D "│"
+13:99 B "│"
 14:0 B "│"
-14:47 B "│"
-14:48 D "│"
-14:99 D "│"
-15:0 B "│"
-15:3 B "Can wait"
-15:11 D " · 1"
-15:47 B "│"
-15:48 D "│"
-15:99 D "│"
-16:0 B "│"
-16:3 D "·"
-16:44 D "3d"
-16:47 B "│"
-16:48 D "│"
-16:99 D "│"
-17:0 B "│"
-17:14 D " ·"
-17:20 D " · approved by you"
-17:47 B "│"
-17:48 D "│"
+14:99 B "│"
+15:0 B "╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
+16:0 D "╭ liminal-hq/review-buddy#214 ────────────────────────────────────────────────────────────────── ▼ ╮"
+17:0 D "│"
+17:2 B "Add a menu bar and keyboard-driven menus"
 17:99 D "│"
-18:0 B "│"
-18:47 B "│"
-18:48 D "│"
+18:0 D "│"
+18:5 D " wants"
+18:21 D " →"
 18:99 D "│"
-19:0 B "│"
-19:3 D "▸ Noise · 2 bot updates · ⏎ to expand"
-19:47 B "│"
-19:48 D "│"
-19:50 D "…"
+19:0 D "│"
+19:6 B "−1"
+19:8 D " · 3 files · opened 3d ago"
 19:99 D "│"
-20:0 B "│"
-20:47 B "│"
-20:48 D "│"
+20:0 D "│"
+20:2 B "a"
+20:13 B "x"
+20:32 B "c"
+20:43 B "⏎"
+20:51 B "m"
 20:99 D "│"
-21:0 B "│"
-21:3 D "── That's everything."
-21:47 B "│"
-21:48 D "│"
-21:50 BD "Reviewers"
+21:0 D "│"
+21:2 BR " Overview"
+21:13 D " Files 3"
+21:23 D " Checks 6"
+21:34 D " Conversation 3"
 21:99 D "│"
-22:0 B "│"
-22:3 D "7 in this view."
-22:47 B "│"
-22:48 D "│"
-22:50 D "◌"
-22:59 D " requested"
+22:0 D "│"
+22:2 D "────────────────────────────────────────────────────────────────────────────────────────────────"
 22:99 D "│"
-23:0 B "│"
-23:47 B "│"
-23:48 D "│"
-23:54 D " commented"
+23:0 D "│"
 23:99 D "│"
-24:0 B "│"
-24:47 B "│"
-24:48 D "│"
+24:0 D "│"
 24:99 D "│"
-25:0 B "│"
-25:47 B "│"
-25:48 D "│"
-25:50 BD "Checks"
+25:0 D "│"
 25:99 D "│"
-26:0 B "│"
-26:47 B "│"
-26:48 D "│"
+26:0 D "│"
 26:99 D "│"
-27:0 B "│"
-27:47 B "│"
-27:48 D "│"
-27:50 D "○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled"
+27:0 D "│"
 27:99 D "│"
-28:0 B "╰──────────────────────────────────────────────╯"
-28:48 D "╰──────────────────────────────────────────────────╯"
+28:0 D "╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
 29:1 B "⏎"
 29:2 D " diff"
 29:9 B "o"
