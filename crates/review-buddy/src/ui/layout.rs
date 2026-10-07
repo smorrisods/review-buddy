@@ -192,13 +192,20 @@ impl Options {
         }
     }
 
-    /// `P`: auto, right, left, top, then bottom.
-    pub fn next_position(self) -> DetailPosition {
+    /// `P`: rotates the Detail pane counter-clockwise around the Queue: right, top, left,
+    /// bottom, then `auto`, then right again. From `auto` the first press rotates from the
+    /// place `auto` resolves to at this `width`, so Detail visibly moves one step.
+    pub fn next_position(self, width: u16) -> DetailPosition {
         match self.position {
-            DetailPosition::Auto => DetailPosition::Right,
-            DetailPosition::Right => DetailPosition::Left,
-            DetailPosition::Left => DetailPosition::Top,
-            DetailPosition::Top => DetailPosition::Bottom,
+            DetailPosition::Auto => match self.place(width) {
+                Place::Right => DetailPosition::Top,
+                Place::Top => DetailPosition::Left,
+                Place::Left => DetailPosition::Bottom,
+                Place::Bottom => DetailPosition::Right,
+            },
+            DetailPosition::Right => DetailPosition::Top,
+            DetailPosition::Top => DetailPosition::Left,
+            DetailPosition::Left => DetailPosition::Bottom,
             DetailPosition::Bottom => DetailPosition::Auto,
         }
     }
@@ -786,23 +793,66 @@ mod position_tests {
     }
 
     #[test]
-    fn the_cycle_visits_every_position_and_returns() {
-        let mut o = Options::default();
+    fn the_rotation_is_counter_clockwise_and_returns_through_auto() {
+        let mut o = Options {
+            position: DetailPosition::Right,
+            ..Options::default()
+        };
         let mut seen = Vec::new();
         for _ in 0..5 {
-            o.position = o.next_position();
+            o.position = o.next_position(160);
             seen.push(o.position);
         }
         assert_eq!(
             seen,
             [
-                DetailPosition::Right,
-                DetailPosition::Left,
                 DetailPosition::Top,
+                DetailPosition::Left,
                 DetailPosition::Bottom,
-                DetailPosition::Auto
-            ]
+                DetailPosition::Auto,
+                DetailPosition::Top
+            ],
+            "auto already looks like right here, so it goes straight on to top"
         );
+        o.position = DetailPosition::Auto;
+        assert_eq!(o.next_position(100), DetailPosition::Right);
+    }
+
+    #[test]
+    fn every_explicit_start_has_one_successor() {
+        use DetailPosition::*;
+        for (from, to) in [(Right, Top), (Top, Left), (Left, Bottom), (Bottom, Auto)] {
+            let o = Options {
+                position: from,
+                ..Options::default()
+            };
+            for width in [60, 100, 160] {
+                assert_eq!(o.next_position(width), to, "{from:?} at {width}");
+            }
+        }
+    }
+
+    #[test]
+    fn auto_rotates_from_the_place_it_resolves_to() {
+        use DetailPosition::*;
+        let auto = Options::default();
+        for (width, resolves, next) in [
+            (80, Place::Bottom, Right),
+            (100, Place::Bottom, Right),
+            (109, Place::Bottom, Right),
+            (110, Place::Right, Top),
+            (160, Place::Right, Top),
+            (200, Place::Right, Top),
+        ] {
+            assert_eq!(auto.place(width), resolves, "width {width}");
+            assert_eq!(auto.next_position(width), next, "width {width}");
+        }
+        let top = Options {
+            sources: SourcesLayout::Top,
+            ..Options::default()
+        };
+        assert_eq!(top.place(110), Place::Right);
+        assert_eq!(top.next_position(110), Top);
     }
 
     #[test]

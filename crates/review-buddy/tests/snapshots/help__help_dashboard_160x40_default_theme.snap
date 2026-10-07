@@ -23,7 +23,7 @@ expression: text(&render(&mut a))
 │  [ ] noise             ││  ▸ Noise · 2 bot updates│View                                                  │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
 │                        ││                         │  p    close / reopen the detail pane                 │                                                   │
 │                        ││  ── That's everything.  │  S    sources: auto / left / top                     │                                                   │
-│                        ││  7 in this view.        │  P    detail: auto / right / left / top / bottom     │                                                   │
+│                        ││  7 in this view.        │  P    rotate the detail pane counter-clockwise       │                                                   │
 │                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│oin. Is the intermediate Vec doing anything for    │
 │                        ││                         │  =    reset that split to automatic                  │                                                   │
 │                        ││                         │  W    save pane sizes to config                      │                                                   │
