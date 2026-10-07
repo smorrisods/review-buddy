@@ -3324,6 +3324,7 @@ dependencies = [
  "rb-paths",
  "rb-platform",
  "rb-store",
+ "rb-term",
  "rb-theme",
  "reqwest",
  "rustix 1.1.5",

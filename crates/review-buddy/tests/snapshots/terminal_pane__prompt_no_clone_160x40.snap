@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/terminal_pane.rs
+expression: text(&render(&mut app))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
+│▌ ● All               7 ││  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus                                           │
+│    every source        ││▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                                                         │
+│  ● liminal-hq        3 ││▌ GH review-buddy#214 · ada · review requested││ +32 −1 · 3 files · opened 3d ago                                                   │
+│    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
+│  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                                              ││                                                                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups          7h ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ Adds a menu bar along the top and a Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ● Tidy zsh startup                       1d ││                                                                                    │
+│                        ││  GH dotfiles#31 · smorris · yours            ││ • Menu::select_next and Menu::select_prev move the highlight                       │
+│  Show  s to change     ││                                              ││ • Menu::activate returns the action for the highlighted item                       │
+│  [x] reviewing         ││  Can wait · 1╭ Open a terminal for liminal-hq/review-buddy#214 ───────────────────────────╮ks up the active theme                  │
+│  [x] assigned          ││  · Clarify th│ Review Buddy didn't find a local clone of acme/widgets. Start it from      │                                        │
+│  [x] authored          ││  GL notes!12 │ inside a clone, or list one under [ui.terminal.checkouts] in your config.  │ecks                                    │
+│  [ ] drafts            ││              │ Starting in the current directory still works.                             │2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 │                                                                            │1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││              │ The current directory starts the terminal where Review Buddy was started,  │                                        │
+│                        ││  ── That's ev│ with the same environment variables, and creates nothing.                  │                                        │
+│                        ││  7 in this vi│                                                                            │                                        │
+│                        ││              │ › No, cancel ‹    Use the current directory                                │ intermediate Vec doing anything for    │
+│                        ││              │ ⏎ choose · ←→ switch · esc cancel                                          │                                        │
+│                        ││              ╰────────────────────────────────────────────────────────────────────────────╯                                        │
+│                        ││                                              ││ Your review  not started                                                           │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ←→ choose  ⏎ confirm  esc cancel

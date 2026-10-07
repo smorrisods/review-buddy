@@ -32,7 +32,7 @@ pub mod widget;
 
 pub use emulator::{ColorScheme, Emulator, Event, KittyFlags, Modes, MouseMode, Output};
 pub use focus::{Chord, ChordError, EscapeAction, EscapeState};
-pub use keys::{encode_key, KeyContext};
+pub use keys::{encode_key, host_supports_kitty, KeyContext};
 pub use mouse::{encode_mouse, Wheel};
 pub use pane::{Pane, PaneKind};
 pub use pty::{default_shell, host_cleanup, Pty, PtyEvent, SpawnError, SpawnSpec};

@@ -28,6 +28,17 @@ drafts = "local"            # local = keep unsent review comments across restart
 # dusk = "yes"
 # afterglow-light = "no"
 
+# The terminal pane: t opens a shell (or an assistant tool) next to the change.
+# [ui.terminal]
+# command = []              # program and arguments; empty runs $SHELL (%COMSPEC% on Windows). e.g. ["claude"]
+# escape = "ctrl-\\"        # press this, then esc, to give the keyboard back to the app (esc esc also works)
+# position = "auto"         # auto | right | left | top | bottom (ctrl-\\ then p cycles it)
+# size = "40%"              # columns or rows, or a percentage; auto when unset
+# scrollback = 10000
+# start = "ask"             # ask | worktree | current
+# [ui.terminal.checkouts]   # local clones to make worktrees from, by repository
+# "owner/name" = "~/src/name"
+
 [review]
 merge_method = "squash"     # merge | squash | rebase
 confirm_merge = true        # always defaults to "No, not yet"

@@ -139,6 +139,8 @@ pub fn restore() {
     }
     let mut stdout = io::stdout();
     release_keys(&mut stdout);
+    // ConPTY can leave win32-input-mode on after a pane child dies badly; this is empty elsewhere.
+    let _ = io::Write::write_all(&mut stdout, rb_term::host_cleanup());
     let _ = execute!(
         stdout,
         Show,

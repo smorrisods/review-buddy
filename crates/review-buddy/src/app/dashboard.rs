@@ -199,7 +199,7 @@ fn selection_of(app: &App, item: Item) -> Option<Selected> {
 }
 
 pub fn queue_view_height(app: &App) -> u16 {
-    let l = layout::dashboard(layout::body(app.size), app.layout);
+    let l = layout::dashboard(crate::app::terminal::app_body(app), app.layout);
     layout::inner(l.queue).height
 }
 

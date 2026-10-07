@@ -74,6 +74,15 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     put("ui.remember_layout", json!(ui.remember_layout));
     put("ui.drafts", json!(ui.drafts.as_str()));
     put("ui.date_locale", json!(ui.date_locale));
+    put("ui.terminal.command", json!(ui.terminal.command));
+    put("ui.terminal.escape", json!(ui.terminal.escape));
+    put("ui.terminal.position", json!(ui.terminal.position.as_str()));
+    put("ui.terminal.size", size(ui.terminal.size));
+    put("ui.terminal.scrollback", json!(ui.terminal.scrollback));
+    put("ui.terminal.start", json!(ui.terminal.start.as_str()));
+    for (repo, dir) in &ui.terminal.checkouts {
+        put(&format!("ui.terminal.checkouts.{repo}"), json!(dir));
+    }
     put("review.merge_method", json!(review.merge_method.as_str()));
     put("review.confirm_merge", json!(review.confirm_merge));
     put("review.confirm_post_now", json!(review.confirm_post_now));

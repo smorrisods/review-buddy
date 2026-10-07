@@ -382,7 +382,7 @@ pub(super) fn refresh_threads(app: &mut App, id: &ChangeId, threads: &[rb_core::
 
 pub(super) fn viewport(app: &App) -> layout::DiffLayout {
     let extra = app.diff.as_ref().map_or(0, comments::review_extra);
-    layout::diff_screen_with(layout::body(app.size), extra)
+    layout::diff_screen_with(crate::app::terminal::app_body(app), extra)
 }
 
 /// Rebuilds the rows and highlight for the current file, keeping the cursor on `keep` if it

@@ -15,6 +15,9 @@ use crate::ui::help;
 const DOUBLE_CLICK_TICKS: u64 = 2;
 
 pub(super) fn on_mouse(app: &mut App, mouse: MouseEvent) -> Vec<Cmd> {
+    if let Some(cmds) = super::terminal::on_mouse(app, mouse) {
+        return cmds;
+    }
     let shift = mouse.modifiers.contains(KeyModifiers::SHIFT);
     if app.help {
         return on_help(app, mouse, shift);

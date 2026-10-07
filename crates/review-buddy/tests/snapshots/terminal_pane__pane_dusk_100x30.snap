@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/terminal_pane.rs
+expression: "frame(theme, (w, h))"
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
+  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
+╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
+│  Waiting on you · 2                                                                              │
+│▌ ◐ Add a menu bar and keyboard-driven menus                                                   2h │
+│▌ GH review-buddy#214 · ada · review requested                                                    │
+│  ● Raise muted text contrast in the light theme                                               5h │
+│  GH review-buddy#209 · jo · approved by you                                                      │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭ liminal-hq/review-buddy#214 ────────────────────────────────────────────────────────────────── ▼ ╮
+│ Add a menu bar and keyboard-driven menus                                                         │
+│ ada wants ada/menus → main                                                                       │
+│ +32 −1 · 3 files · opened 3d ago                                                                 │
+│ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                                         │
+│  Overview   Files 3   Checks 6   Conversation 3                                                  │
+│ ──────────────────────────────────────────────────────────────────────────────────────────────── │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+┏ terminal (focused) · liminal-hq/review-buddy#214 · demo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃## review/214-head...origin/main                                                                  ┃
+┃ M src/lib.rs                                                                                     ┃
+┃demo:~/review/review-buddy$ echo $RB_REPO#$RB_NUMBER                                              ┃
+┃liminal-hq/review-buddy#214                                                                       ┃
+┃demo:~/review/review-buddy$ git log                                                               ┃
+┃e3b0c44 Tighten the retry loop                                                                    ┃
+┃9f2a7d1 Add a test for the empty case                                                             ┃
+┃41c6b02 Start on the retry changes                                                                ┃
+┃demo:~/review/review-buddy$                                                                       ┃
+┗ ⌃\ then esc: back to the app ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+ esc esc back to the app  chord esc also leaves (the chord is on the border)

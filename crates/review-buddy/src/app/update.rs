@@ -2,8 +2,9 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use rb_theme::BackgroundMode;
 
 use super::{
-    composer, dashboard, diff, links, live, mouse, settings, setup, Action, App, AppState, Cmd,
-    Entry, Msg, Notice, NoticeKind, Screen, Snapshot, SourceProbe, MAX_TOASTS, NOTICE_TTL,
+    composer, dashboard, diff, links, live, mouse, settings, setup, terminal, Action, App,
+    AppState, Cmd, Entry, Msg, Notice, NoticeKind, Screen, Snapshot, SourceProbe, MAX_TOASTS,
+    NOTICE_TTL,
 };
 
 /// Applies one message and returns the effects to run. Does no I/O.
@@ -13,6 +14,7 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     cmds.extend(super::images::ensure(app));
     cmds.extend(remember_layout(app));
     cmds.extend(super::drafts::sync(app));
+    cmds.extend(terminal::after(app));
     cmds
 }
 
@@ -76,6 +78,10 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
         Msg::FocusLost => {
             app.focused = false;
             Vec::new()
+        }
+        Msg::Term(msg) => terminal::on_msg(app, msg),
+        Msg::Paste(text) if terminal::on_paste_wanted(app) => {
+            terminal::on_paste(app, &text).unwrap_or_default()
         }
         Msg::Paste(text) if app.screen == Screen::FirstRun => setup::on_paste(app, text),
         Msg::Paste(text) if app.screen == Screen::Settings => settings::on_paste(app, text),
@@ -221,6 +227,9 @@ pub(super) fn scroll(app: &mut App, column: u16, row: u16, down: bool) -> Vec<Cm
 }
 
 fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
+    if let Some(cmds) = terminal::on_key(app, key) {
+        return cmds;
+    }
     if key.kind == KeyEventKind::Release {
         return Vec::new();
     }
@@ -281,6 +290,11 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char('?') if !ctrl && !alt => run(app, Action::ToggleHelp),
         KeyCode::Char(',') if !ctrl && !alt && app.screen == Screen::Dashboard => {
             run(app, Action::OpenSettings)
+        }
+        KeyCode::Char('t')
+            if !ctrl && !alt && matches!(app.screen, Screen::Dashboard | Screen::Diff) =>
+        {
+            terminal::toggle(app)
         }
         KeyCode::Char('o') if !ctrl && !alt => run(app, Action::Open),
         KeyCode::Char('y') if !ctrl && !alt => run(app, Action::Copy),
@@ -398,6 +412,7 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         | Action::ReviewButton(_)
         | Action::SummaryCursor { .. } => Vec::new(),
         Action::Setup(click) => setup::drive(app, crate::setup::Input::Click(click)),
+        Action::Terminal(action) => terminal::run(app, action),
         Action::OpenSettings => settings::open(app),
         Action::Settings(click) => settings::drive(app, crate::settings::Input::Click(click)),
         Action::ToggleDetail => dashboard::toggle_detail(app),

@@ -11,6 +11,7 @@ use rb_theme::Role;
 use unicode_width::UnicodeWidthStr;
 
 use super::{style, HitMap};
+use crate::app::terminal::TermAction;
 use crate::app::{refresh, Action, App, Chip, Entry, NoticeKind, Screen};
 
 fn width(s: &str) -> u16 {
@@ -144,6 +145,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
             bind("View", "=", "reset that split to automatic", None, false),
             bind("View", "W", "save pane sizes to config", None, false),
             bind(
+                "View",
+                "t",
+                "terminal pane: open, or focus it",
+                Some(Action::Terminal(TermAction::Toggle)),
+                false,
+            ),
+            bind(
                 "Change",
                 "s /",
                 "pick projects in show filters",
@@ -214,6 +222,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
             bind("Review", "R", "submit a review", None, true),
             bind("Change", "o", "open", open, true),
             bind("Change", "y", "copy", copy, true),
+            bind(
+                "View",
+                "t",
+                "terminal pane: open, or focus it",
+                Some(Action::Terminal(TermAction::Toggle)),
+                false,
+            ),
             bind("General", "esc", "back", Some(Action::CloseDiff), true),
             bind(
                 "General",
@@ -422,7 +437,11 @@ const STATUS_GAP: u16 = 2;
 
 pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     let palette = &app.palette;
-    let hints = if let Some(composer) = app.diff_state().and_then(|s| s.composer.as_ref()) {
+    let hints = if app.term.prompt.is_some() {
+        super::terminal::prompt_hints()
+    } else if app.term.has_keys(app.screen) {
+        super::terminal::focus_hints()
+    } else if let Some(composer) = app.diff_state().and_then(|s| s.composer.as_ref()) {
         composer_hints(matches!(
             composer.target,
             crate::app::composer::Target::Edit { .. }

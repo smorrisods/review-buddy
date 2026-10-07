@@ -29,6 +29,9 @@ pub struct SessionLayout {
     pub queue_height: Option<Size>,
     pub sources_width: Option<Size>,
     pub background: Option<BackgroundMode>,
+    /// Where the terminal pane sits and how big it is.
+    pub terminal_position: Option<DetailPosition>,
+    pub terminal_size: Option<Size>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -102,6 +105,20 @@ impl Session {
                 queue_height: size(table, "queue_height"),
                 sources_width: size(table, "sources_width"),
                 background: text(table, "background").and_then(|v| v.parse().ok()),
+                terminal_position: text(table, "terminal_position").and_then(|v| {
+                    pick(
+                        &[
+                            DetailPosition::Auto,
+                            DetailPosition::Right,
+                            DetailPosition::Left,
+                            DetailPosition::Top,
+                            DetailPosition::Bottom,
+                        ],
+                        v,
+                        DetailPosition::as_str,
+                    )
+                }),
+                terminal_size: size(table, "terminal_size"),
             },
         }
     }
@@ -126,6 +143,11 @@ impl Session {
         put("queue_height", l.queue_height.map(size_value));
         put("sources_width", l.sources_width.map(size_value));
         put("background", l.background.and_then(|v| name(v.key())));
+        put(
+            "terminal_position",
+            l.terminal_position.and_then(|v| name(v.as_str())),
+        );
+        put("terminal_size", l.terminal_size.map(size_value));
         let mut root = Table::new();
         root.insert("layout".to_string(), Value::Table(table));
         format!(
@@ -166,6 +188,8 @@ pub fn save(path: &Path, session: &Session) -> io::Result<()> {
 pub struct Snapshot {
     pub options: Options,
     pub background: Option<BackgroundMode>,
+    /// The terminal pane's placement and size.
+    pub terminal: (DetailPosition, Option<Size>),
 }
 
 /// Remembers what changed and decides when to write it. Pure: the runtime does the writing.
@@ -226,6 +250,12 @@ impl Tracker {
         if a.options.split.sources_width != b.options.split.sources_width {
             l.sources_width = b.options.split.sources_width;
         }
+        if a.terminal.0 != b.terminal.0 {
+            l.terminal_position = Some(b.terminal.0);
+        }
+        if a.terminal.1 != b.terminal.1 {
+            l.terminal_size = b.terminal.1;
+        }
         if a.background != b.background && b.background.is_some() {
             l.background = b.background;
         }
@@ -262,6 +292,7 @@ mod tests {
         Snapshot {
             options: Options::default(),
             background: None,
+            terminal: (DetailPosition::Auto, None),
         }
     }
 
@@ -279,6 +310,8 @@ mod tests {
                 queue_height: Some(Size::Percent(60)),
                 sources_width: Some(Size::Cells(30)),
                 background: Some(BackgroundMode::Yes),
+                terminal_position: Some(DetailPosition::Bottom),
+                terminal_size: Some(Size::Percent(35)),
             },
         }
     }
@@ -396,6 +429,23 @@ mod tests {
         }
         assert_eq!(t.due(), None);
         assert_eq!(t.observe(now, true), Step::Nothing);
+    }
+
+    #[test]
+    fn the_terminal_placement_is_remembered_and_a_reset_forgets_the_size() {
+        let mut t = tracker();
+        let mut now = snap();
+        now.terminal = (DetailPosition::Left, Some(Size::Cells(50)));
+        assert_eq!(t.observe(now, false), Step::Schedule);
+        let saved = t.due().unwrap();
+        assert_eq!(saved.layout.terminal_position, Some(DetailPosition::Left));
+        assert_eq!(saved.layout.terminal_size, Some(Size::Cells(50)));
+        let mut later = now;
+        later.terminal.1 = None;
+        t.observe(later, false);
+        let saved = t.due().unwrap();
+        assert_eq!(saved.layout.terminal_size, None);
+        assert_eq!(saved.layout.terminal_position, Some(DetailPosition::Left));
     }
 
     #[test]

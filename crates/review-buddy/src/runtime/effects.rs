@@ -19,6 +19,7 @@ pub struct Platform {
     ctx: ClipboardContext,
     setup: Option<Arc<crate::setup::Services>>,
     settings: Option<Arc<crate::settings::Services>>,
+    pane: Arc<super::pane::PaneHost>,
 }
 
 impl Platform {
@@ -33,7 +34,13 @@ impl Platform {
             ctx,
             setup: None,
             settings: None,
+            pane: Arc::default(),
         }
+    }
+
+    /// The terminal pane's PTY and worktree effects.
+    pub fn pane(&self) -> &super::pane::PaneHost {
+        &self.pane
     }
 
     /// Gives first run what it needs to detect hosts, test tokens and write the config.
@@ -83,6 +90,29 @@ impl Platform {
         };
         match copy(text, &self.ctx, &mut *tty, self.runner.as_ref()) {
             Ok(_) => Notice::new(NoticeKind::Success, format!("Copied {text}")),
+            Err(err) => Notice::new(NoticeKind::Warning, copy_failure(&err)),
+        }
+    }
+}
+
+impl Platform {
+    /// Copies text a terminal child asked for (OSC 52) through the same clipboard path as `y`.
+    /// The notice names the size, never the text, which may be a secret.
+    pub fn copy_from_pane(&self, text: &str) -> Notice {
+        let Ok(mut tty) = self.tty.lock() else {
+            return Notice::new(
+                NoticeKind::Warning,
+                copy_failure(&PlatformError::ClipboardUnavailable),
+            );
+        };
+        match copy(text, &self.ctx, &mut *tty, self.runner.as_ref()) {
+            Ok(_) => Notice::new(
+                NoticeKind::Success,
+                format!(
+                    "Copied {} characters from the terminal.",
+                    text.chars().count()
+                ),
+            ),
             Err(err) => Notice::new(NoticeKind::Warning, copy_failure(&err)),
         }
     }
@@ -218,6 +248,21 @@ mod tests {
         let written = String::from_utf8(tty.lock().unwrap().clone()).unwrap();
         assert!(written.starts_with("\x1b]52;c;"));
         assert!(runner.calls.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn text_a_child_copies_goes_through_osc52_and_the_notice_never_shows_it() {
+        let runner = Arc::new(Fake::default());
+        let tty = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let p = platform(&runner, tty.clone());
+        let notice = p.copy_from_pane("hunter2-secret");
+        assert_eq!(notice.kind, NoticeKind::Success);
+        assert_eq!(notice.text, "Copied 14 characters from the terminal.");
+        assert!(!notice.text.contains("hunter2"));
+        let written = String::from_utf8(tty.lock().unwrap().clone()).unwrap();
+        assert!(written.starts_with("\x1b]52;c;"));
+        let p = platform(&Arc::new(Fake::default()), Arc::new(Mutex::new(Broken)));
+        assert_eq!(p.copy_from_pane("x").kind, NoticeKind::Warning);
     }
 
     #[test]

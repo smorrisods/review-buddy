@@ -12,6 +12,7 @@ use crate::app::{update, App, AppConfig, Cmd, Msg, Notice, NoticeKind};
 use crate::ui;
 
 mod effects;
+pub mod pane;
 mod terminal;
 
 pub use effects::Platform;
@@ -70,6 +71,13 @@ pub struct Settings {
     pub write_target: Option<std::path::PathBuf>,
     /// The folder drafts are saved in and what it held at launch. `None` keeps them in memory.
     pub drafts: Option<(std::path::PathBuf, Vec<crate::drafts::StoredDraft>)>,
+    /// `[ui.terminal]`, and where its worktrees go.
+    pub terminal: crate::app::terminal::TerminalSettings,
+    /// Where the terminal pane sits and how big it is: the config, then the remembered layout.
+    pub terminal_place: (
+        crate::config::DetailPosition,
+        Option<crate::ui::layout::Size>,
+    ),
 }
 
 fn background_mode(choice: crate::config::Background) -> rb_theme::BackgroundMode {
@@ -86,6 +94,12 @@ pub fn background_from_env() -> Option<rb_theme::BackgroundMode> {
 }
 
 impl Settings {
+    /// Lets the terminal pane make its worktrees under `root`.
+    pub fn with_worktrees_root(mut self, root: std::path::PathBuf) -> Self {
+        self.terminal.worktrees_root = Some(root);
+        self
+    }
+
     /// Lets the Show control save the project choice to the config's write target.
     pub fn with_write_target(mut self, path: std::path::PathBuf) -> Self {
         self.write_target = Some(path);
@@ -125,6 +139,8 @@ impl Settings {
             o.split.queue_width = l.queue_width.or(o.split.queue_width);
             o.split.queue_height = l.queue_height.or(o.split.queue_height);
             o.split.sources_width = l.sources_width.or(o.split.sources_width);
+            self.terminal_place.0 = l.terminal_position.unwrap_or(self.terminal_place.0);
+            self.terminal_place.1 = l.terminal_size.or(self.terminal_place.1);
             if let (Some(mode), false) = (l.background, env_background) {
                 self.background = mode;
                 self.per_theme_background.clear();
@@ -167,6 +183,8 @@ impl Settings {
             session: None,
             write_target: None,
             drafts: None,
+            terminal: crate::app::terminal::TerminalSettings::from_config(&config.ui.terminal),
+            terminal_place: (config.ui.terminal.position, config.ui.terminal.size),
         }
     }
 
@@ -189,6 +207,8 @@ impl Settings {
             .per_theme
             .clone_from(&self.per_theme_background);
         app.rebuild_palette();
+        app.term.settings = self.terminal.clone();
+        (app.term.position, app.term.size) = self.terminal_place;
         app.session = self.session.as_ref().map(|(path, loaded)| {
             crate::session::Tracker::new(
                 path.clone(),
@@ -630,6 +650,12 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 let _ = tx.send(Msg::Settings(input));
             });
         }
+        Cmd::Term(term) => {
+            let demo = backend.is_demo();
+            platform
+                .pane()
+                .execute(term, tx, demo, |text| platform.copy_from_pane(text));
+        }
         Cmd::FinishSetup | Cmd::Suspend => {}
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
@@ -667,6 +693,7 @@ async fn event_loop(options: RunOptions) -> Result<()> {
         Some(settings) => settings.app_config(base),
         None => base,
     });
+    app.kitty_keys = rb_term::host_supports_kitty(&|k| std::env::var(k).ok());
     app.background.env = background_from_env();
     if let Some(settings) = &options.settings {
         settings.apply(&mut app);

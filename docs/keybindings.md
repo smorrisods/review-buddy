@@ -33,6 +33,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. While an image is selected (`i`), they open or copy that image's address instead. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
 | `i` | Select the next image in the description, scrolling it into view: its caption gains `▸` and `(open with o)`. After the last, none is selected. Works with images off too, so `o` can still open one. See [Images in descriptions](SPEC.md#images-in-descriptions) |
+| `t` | Open the terminal pane next to the change, or focus it if it is open (also in the Diff). See [Terminal pane](#terminal-pane) |
 | `T` | Cycle theme |
 | `B` | Cycle the background: theme → yes → no, and remember it between runs (not on first run) |
 | `?` | Help overlay for the current screen (`esc` or `?` closes it) |
@@ -85,6 +86,43 @@ Open with `⏎` or `d` from the dashboard. A header row above the panes names th
 A keyboard range is the same range a drag makes: the same highlight, the same `c` comment, and it stays inside one hunk (the extension stops at the hunk edge) and, for the comment, on one side. A plain move without Shift outside `V` mode clears the range, just as a click does.
 
 **Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
+
+## Terminal pane
+
+`t` opens a terminal beside the selected change (or the change whose diff is open): a shell, or whatever `ui.terminal.command` runs, for `claude`, `opencode`, `lazygit`, `vim` and the like. It lives in a box on the Dashboard and Diff screens; the app keeps the rest of the screen.
+
+**Starting.** Under `--demo` the pane opens at once and replays a scripted shell (`help`, `ls`, `git log`, `env` and a few more are answered; nothing is started, read or written). Otherwise Review Buddy looks for a local clone of the change's repository (the directory it was started in, then `ui.terminal.checkouts`) and shows a preview before anything is created:
+
+| Key | Action |
+|---|---|
+| `←` `→` / `tab` / `h` `l` | Move between **No, cancel** (the default), **Create the worktree** and **Use the current directory** |
+| `⏎` | Choose the highlighted button |
+| `y` / `w` | Create the worktree now (only when a clone was found) |
+| `c` | Use the current directory |
+| `n` / `esc` / `q` | Cancel; nothing is created |
+
+There is one pane at a time. It stays with the change it was opened for (its title says which) until you close it, so `t` on another change focuses the same pane; close it with the chord then `x` to start one for the new change.
+
+The worktree is a separate, detached checkout of the change's head under `worktrees/` in the state directory; your own working copy is untouched, and Review Buddy never deletes it (the preview shows the `git worktree remove` command). The child gets `RB_SOURCE`, `RB_REPO`, `RB_NUMBER` and `RB_URL` either way.
+
+**While the pane has focus** (its border is thick and its title says `focused`), every key goes to the child, including `⌃C`, `⌃Z`, `q` and `esc`. The pane's bottom border and the footer say how to get out.
+
+| Key | Action |
+|---|---|
+| chord, then `esc` | Return focus to the app. The chord is `⌃\` unless `ui.terminal.escape` says otherwise |
+| `esc` `esc` | The same, where a terminal or multiplexer swallows the chord. The first `esc` still reaches the child |
+| chord, then `t` | Hide the pane. The child keeps running; `t` brings it back |
+| chord, then `x` | Close the pane and stop the child. A running child is only stopped on the second request, and the footer says so |
+| chord, then `p` | Move the pane: auto → bottom → left → top → right. Remembered |
+| chord, then `>` `<` / `=` | Grow or shrink it by two columns or rows / back to automatic. Remembered |
+| chord twice | Send the chord's own key to the child |
+| paste | Sent to the child, bracketed if it asked for that |
+
+A half-typed chord is forgotten after about two seconds. When the child exits the pane keeps its last screen and a line saying so; any key closes it, and `t` starts a fresh one. If the window gets too small for both, the pane steps aside (the child keeps running) and `t` brings it back at a larger size.
+
+**Keys the child sees.** Keys are encoded the way a terminal would: application cursor keys when it asked for them, and the kitty keyboard protocol only when the child switched it on and your terminal can tell the keys apart (kitty, WezTerm, Ghostty, foot, Alacritty and recent iTerm2; detected from the environment or the first key only that protocol can produce). Without it, `⏎` and `⇧⏎` both send a carriage return, as they do on a Windows console.
+
+**Mouse.** Clicking the pane focuses it; clicking the app gives focus back. When the child turns mouse reporting on, clicks, drags and the wheel go to it. **Shift always belongs to your terminal**: a Shift-click or Shift-drag is never sent to the child, so your terminal's own selection works. When the child isn't listening, the wheel scrolls the pane's history (the title says `↑ N lines back`; typing snaps back to the bottom), or sends arrow keys on the alternate screen, as `less` expects. Press and drag the seam to resize; double-click it to go back to automatic.
 
 ## Review modal
 
@@ -239,6 +277,7 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | Show filters (the checkboxes under the sources, or the control) | Tick or clear a filter or a project. The search line focuses the search, and the wheel scrolls the project list. A click outside the control closes it |
 | Tabs (Overview, Files, Checks, Conversation) | Switch the detail view |
 | Action chips (Approve, Request changes, Comment, Diff) | Diff opens it; Approve, Request changes and Comment open the diff and start there (Request changes explains why when the source can't do it); Merge explains it is planned for v0.3 |
+| Terminal pane | Click to focus it. With mouse reporting on in the child, clicks, drags and the wheel go to it; otherwise the wheel scrolls its history. Shift is never sent to the child. Drag its seam to resize, double-click to reset |
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
 | Diff: files | Click a file to open it |
 | Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from |

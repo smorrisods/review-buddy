@@ -58,7 +58,7 @@ Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at,
 
 ## `[ui]`
 
-Applied: `theme`, `colour_depth`, `images`, `background`, `theme_background`, `mouse`, `remember_layout`, `drafts`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width` and `queue_height`.
+Applied: `theme`, `colour_depth`, `images`, `background`, `theme_background`, `mouse`, `remember_layout`, `drafts`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width`, `queue_height` and the `[ui.terminal]` table (below).
 
 | Key | Default | Notes |
 |---|---|---|
@@ -93,9 +93,38 @@ Pictures in a description are fetched when the change is selected, from the addr
 - **Cache.** Bytes are kept in `images/` under the cache directory, in files named by a hash of the address (mode `0600`, directory `0700`), at most 100 MB with the least recently used removed first. A copy under 7 days old is used without asking the server; an older one is used only if the server can't be reached, so cached images still show offline. A private repository's images stay in this cache until it is trimmed or deleted: it is safe to delete `images/` at any time. Demo mode never reads or writes it.
 - **Terminal support.** Sixel, kitty and iTerm2 are used only when the terminal says it supports them in answer to a query at startup (about 0.4 seconds of waiting at most; a terminal that doesn't answer is treated as having no graphics). `REVIEW_BUDDY_IMAGES=halfblocks` skips the query. Over `ssh` or inside `tmux`, graphics may not pass through, in which case use `halfblocks` or `off`.
 
+### `[ui.terminal]`
+
+The terminal pane that `t` opens next to the change (see [keybindings](keybindings.md#terminal-pane)). Every key is optional. None of them is read in `--demo`, which opens a scripted pane that starts nothing.
+
+```toml
+[ui.terminal]
+command = []            # program and arguments; empty runs $SHELL (%COMSPEC% on Windows). e.g. ["claude"] or ["opencode"]
+escape = "ctrl-\\"      # the chord that starts leaving the pane; then esc returns to the app
+position = "auto"       # auto | right | left | top | bottom
+size = "40%"            # columns or rows, or a percentage; unset is automatic
+scrollback = 10000      # lines of history for scrolling back (100 to 200000)
+start = "ask"           # ask | worktree | current
+
+[ui.terminal.checkouts] # local clones to make worktrees from, by repository
+"acme/widgets" = "~/src/widgets"
+```
+
+| Key | Default | Notes |
+|---|---|---|
+| `command` | `[]` | The program and its arguments. Empty runs `$SHELL` (`/bin/sh` if unset; `%COMSPEC%` or `cmd.exe` on Windows). It runs in a pseudo-terminal with `TERM=xterm-256color` and `COLORTERM=truecolor`, plus `RB_SOURCE` (the source's id), `RB_REPO`, `RB_NUMBER` and `RB_URL` for the change the pane was opened for. The host terminal's own markers (`KITTY_WINDOW_ID`, `ITERM_SESSION_ID`, `WEZTERM_PANE` and similar) are removed, because the pane doesn't provide what they promise |
+| `escape` | `"ctrl-\\"` | The chord you press, then `esc`, to give the keyboard back to the app. Written like `ctrl-]`, `alt-x` or `ctrl-alt-space`; it must include `ctrl` or `alt` (or be a function key such as `f12`) so it can never swallow ordinary typing. A value that doesn't parse falls back to the default and the footer says so. `esc esc` (two presses in quick succession) always works too, for terminals and multiplexers that swallow the chord; the first `esc` still reaches the child, so editors keep working |
+| `position` | `"auto"` | Where the pane sits. `auto` puts it beside the app at 150 columns or more and below it otherwise. A side placement needs 94 columns and a stacked one 20 rows; when there is no room the pane steps aside (it keeps running) and the footer says so. The chord then `p` cycles it, and it is remembered between runs |
+| `size` | automatic | Columns (beside) or rows (stacked), or a percentage; automatic is 40 percent. The app keeps at least 70 columns or 14 rows, and the pane never goes below 24 columns or 6 rows. Drag the seam, or press the chord then `<` or `>`; a double-click on the seam or the chord then `=` goes back to automatic. Remembered between runs |
+| `scrollback` | `10000` | Lines of history kept for the scrollback viewport |
+| `start` | `"ask"` | `ask` shows a preview with a managed worktree and the current directory as the choices, and **No** is the default. `worktree` offers only the worktree. `current` starts in the directory Review Buddy was started in without asking, since nothing is created |
+| `checkouts` | _none_ | Local clones to fetch into, by `owner/name` (GitLab project path). The directory Review Buddy was started in is tried first. `~` is expanded. Without a clone the prompt says so and offers the current directory |
+
+**Managed worktrees.** After you confirm, Review Buddy runs `git fetch <remote> <ref>` in your clone (`pull/N/head` on GitHub, `merge-requests/N/head` on GitLab) and `git worktree add --detach <path> FETCH_HEAD`. The path is `worktrees/<source>/<owner>__<repo>/<number>` in the state directory (`$XDG_STATE_HOME/review-buddy/` on Unix). Your own working copy is left alone. If the worktree is already there it is reused as it is, with nothing fetched. Review Buddy never removes a worktree on its own: the preview ends with the exact command to do it yourself, `git -C <your clone> worktree remove <path>`. Nothing is written in `--demo`.
+
 ### Remembered layout
 
-Review Buddy keeps the choices you make with `P`, `S`, `p`, `B` and by dragging or nudging the panes in `$XDG_STATE_HOME/review-buddy/session.toml` (`%LOCALAPPDATA%\review-buddy\state\` on Windows), and picks them up at the next launch. Only what you changed is stored, so a setting you never touched keeps following `config.toml`. The file is written in the background shortly after a change (about half a second) and once more on quit, and only when its content changed. It is created with mode `0600` in the private state directory, written atomically, and never touched in `--demo`. A file that is empty, corrupt or has unknown keys is ignored quietly, and each key that does parse is still used.
+Review Buddy keeps the choices you make with `P`, `S`, `p`, `B`, the terminal pane's placement and size, and by dragging or nudging the panes in `$XDG_STATE_HOME/review-buddy/session.toml` (`%LOCALAPPDATA%\review-buddy\state\` on Windows), and picks them up at the next launch. Only what you changed is stored, so a setting you never touched keeps following `config.toml`. The file is written in the background shortly after a change (about half a second) and once more on quit, and only when its content changed. It is created with mode `0600` in the private state directory, written atomically, and never touched in `--demo`. A file that is empty, corrupt or has unknown keys is ignored quietly, and each key that does parse is still used.
 
 ```toml
 [layout]
@@ -106,6 +135,8 @@ queue_width = 52           # columns, or a percentage like "60%"
 queue_height = "55%"
 sources_width = 30
 background = "yes"         # theme | yes | no
+terminal_position = "right"  # the terminal pane: auto | right | left | top | bottom
+terminal_size = "40%"
 ```
 
 Precedence at launch, strongest first: a key you press this session, the `REVIEW_BUDDY_*` environment variable (`REVIEW_BUDDY_DETAIL_POSITION`, `REVIEW_BUDDY_BACKGROUND`), the remembered `session.toml`, `config.toml`, then the built-in default. Resetting a split with `=` forgets that size, so the next launch uses `ui.queue_width` or `ui.queue_height` again. `W` still writes sizes to `config.toml`. Set `ui.remember_layout = false` to turn remembering off, in which case the file is neither read nor written. `review-buddy config paths` lists the file and `review-buddy config reset-layout` removes it.

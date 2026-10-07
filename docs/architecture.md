@@ -16,6 +16,7 @@ review-buddy/
 │  ├─ rb-store/               SQLite cache (rusqlite): changes, ETags and saved capability probes (`probes`); drafts and the offline queue are planned
 │  ├─ rb-theme/               built-in themes, role resolution, colour-depth quantisation
 │  ├─ rb-diff/                patch parsing, hunk model, side-by-side pairing, syntect bridge
+│  ├─ rb-term/                the terminal pane: emulator boundary over alacritty_terminal, PTY over portable-pty, key and mouse encoders, focus chord, scripted demo pane, worktree planning, optional ratatui widget (no forge crates)
 │  └─ review-buddy/           the binary: app state, event loop, ratatui widgets, and cmd/ (the gh-style command line)
 ├─ themes/                    built-in theme TOML (embedded with include_str!)
 └─ docs/
@@ -29,9 +30,9 @@ review-buddy/
 
 The `review-buddy` crate is a library (`src/lib.rs`) with a thin `main.rs`, so integration tests and later features can reach the code. `cli.rs` is shared with `build.rs` through `include!`. The modules:
 
-- `app/`: the `App` state, `Msg`, `Cmd`, `Action` and the pure `update`, split by concern (`dashboard`, `diff`, `diffview`, `composer`, `editor`, `queue`, `range`, `mouse`, `live`, `links`, `failure`, `refresh`, `show`, `settings`, `setup`).
-- `ui/`: `draw(frame, &App) -> HitMap`: the top bar and footer hints (`chrome`, which also holds the key registry the footer and the help overlay share), the three-pane dashboard and detail pane, the diff and composer, the Show filters control (`show`), Settings (`settings`), first run (`first_run`), the help overlay, the `HitMap`, layout and size helpers, and `ui::style`, the adapter from `rb-theme`'s framework-neutral colours onto ratatui. A terminal below 100×30 shows a "make me a little wider" notice.
-- `runtime/`: the terminal modes (alternate screen, mouse, bracketed paste, focus events, restored on drop and from a panic hook), the tokio loop that selects over crossterm's `EventStream`, a tick and the `Cmd` results channel (redrawing only when the app is dirty, at most about 30 times a second), and `effects` that run `Cmd`s.
+- `app/`: the `App` state, `Msg`, `Cmd`, `Action` and the pure `update`, split by concern (`dashboard`, `diff`, `diffview`, `composer`, `editor`, `queue`, `range`, `mouse`, `live`, `links`, `failure`, `refresh`, `show`, `settings`, `setup`, `terminal`).
+- `ui/`: `draw(frame, &App) -> HitMap` (including `terminal`, the pane's box, its seam geometry and the start prompt): the top bar and footer hints (`chrome`, which also holds the key registry the footer and the help overlay share), the three-pane dashboard and detail pane, the diff and composer, the Show filters control (`show`), Settings (`settings`), first run (`first_run`), the help overlay, the `HitMap`, layout and size helpers, and `ui::style`, the adapter from `rb-theme`'s framework-neutral colours onto ratatui. A terminal below 100×30 shows a "make me a little wider" notice.
+- `runtime/`: `pane` runs the terminal pane's effects (the PTY, finding a clone, creating a worktree); the terminal modes (alternate screen, mouse, bracketed paste, focus events, restored on drop and from a panic hook), the tokio loop that selects over crossterm's `EventStream`, a tick and the `Cmd` results channel (redrawing only when the app is dirty, at most about 30 times a second), and `effects` that run `Cmd`s.
 - `cmd/`: the `gh`-style command line, one module per command (`queue`, `pr_list`, `pr_view`, `pr_diff`, `pr_checks`, `auth*`, `source*`, `config*`, `theme`, `doctor`, `completion`, `open`, `probe`) plus shared plumbing (`context`, `selector`, `output`, `prompt`, `error` for exit codes, `git`, `markdown`, and `stub` for declared-but-unbuilt commands).
 - `config/`: the layered `config.toml` (`schema`, `sources`, `edit`, `error`).
 - `setup/`: first run as a pure state machine (`flow`) with its effects (`effects`: detection, token checks, the config write), host and account detection (`detect`), the rendered config (`write`, `source`) and the line-based `plain` mode behind `--setup --plain`.
@@ -39,6 +40,23 @@ The `review-buddy` crate is a library (`src/lib.rs`) with a thin `main.rs`, so i
 - `providers/`: the live backend (`live`) that builds one `Provider` per source, the refresh engine (`refresh`: per-source state, ETag short-circuit, backoff, per-host concurrency caps and rate-limit pauses) and the capability probe (`probe`: run once per source per session and cached for 24 hours), with cached rows painted first.
 - `images/`: pictures in descriptions. `extract` finds Markdown and `<img>` images and splits the text around them; `hosts` decides which hosts are a source's own and where its token may go; `fetch` is the limited fetcher (manual redirects, size and pixel caps, magic-byte sniffing) and decoder; `cache` is the hashed, size-bounded disk cache; `layout` is the sizing maths; `detect` asks the terminal what it can draw, once, with a deadline; `state` holds each address's progress and the encoded pictures. `app/images.rs` asks for pictures once a description loads (`Cmd::FetchImage`, answered by `Msg::ImageLoaded`) and handles `i`; `ui/detail.rs` reserves rows for each picture and draws it, clipped, after the text.
 - `demo/`: the offline fixtures, the `DemoProvider`, the frozen clock and the throwaway environment behind `--demo`.
+
+## Terminal pane
+
+`t` opens a terminal next to the change, so `claude`, `opencode`, `lazygit`, `vim` or a plain shell can run beside the diff. It follows the same Elm shape as everything else, with the system on the far side of a `Cmd`/`Msg` boundary:
+
+```text
+keys, paste, mouse ──▶ update ──▶ Cmd::Term(Write | Resize | Spawn | Plan | CreateWorktree | Close | Copy)
+                         ▲                                   │
+                         └── Msg::Term(Output | Exited | Planned | WorktreeReady | SpawnFailed) ◀── runtime/pane.rs
+```
+
+- **`rb-term` holds the logic.** `Emulator` is the only code that names `alacritty_terminal` (pinned with `=0.26.0`, because its API shifts between releases): bytes in, a `Screen` snapshot and a few `Event`s out, with the child's queries (device attributes, status and size reports, colour queries, the kitty keyboard query) answered as bytes to write back. `Pty` wraps `portable-pty` (ConPTY on Windows) and calls back with output and exit from helper threads. `Pane` is an emulator plus, in demo mode, a `Script`. `encode_key`, `encode_mouse` and `encode_paste` are pure tables. `Chord` and `EscapeState` are the pure focus model. `worktree` plans a checkout and previews it before anything runs. The ratatui `TerminalWidget` is behind the `widget` feature and is the only module that touches ratatui.
+- **The `App` owns the emulator, the runtime owns the PTY.** Output arrives as `Msg::Term(Output)` and is fed to the emulator inside `update` (parsing, no I/O); whatever the child expects back leaves as `Cmd::Term(Write)`. Each child has a generation number, so a closed pane's last bytes are ignored. Keys while the pane has focus are encoded and sent as `Write`, with the child's own modes applied (application cursor keys, bracketed paste, mouse reporting, the kitty keyboard flags).
+- **Keys.** The kitty encoding is used only when the child switched it on and the host reported that it can tell the keys apart (`App::kitty_keys`, set from the environment at launch or the first key only that protocol can produce); otherwise the legacy encoding is used. Enter and Shift-Enter both send a carriage return in the legacy encoding, which is also what a Windows console delivers.
+- **Placement** reuses the dashboard's `DetailPosition` values and `Size`, and the pane is a dock around the body of the Dashboard and Diff screens: `app::terminal::app_body` is the body less the pane, so the screens' own layout, hit-testing and viewport maths shrink with it. The seam is draggable like the others, and the placement and size are remembered in `session.toml`.
+- **Demo mode** opens a scripted, in-process pane. Nothing in the demo path reaches the runtime, and the runtime ignores every terminal effect when the backend is demo as a second line of defence.
+- **Not supported.** Images in the pane (sixel, kitty graphics, iTerm2) are dropped. OSC 52 reads are never answered; writes go to the clipboard through `rb-platform`. Focus-in and focus-out reports are not forwarded to the child yet.
 
 ## Provider trait
 

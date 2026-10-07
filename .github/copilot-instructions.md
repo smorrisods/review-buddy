@@ -4,7 +4,7 @@
 
 ## Architecture
 
-Cargo workspace (see `docs/architecture.md`): `rb-core` (domain, triage, `Provider` trait, no I/O), `rb-github`, `rb-gitlab`, `rb-paths` (XDG), `rb-platform` (browser, clipboard, keyring), `rb-store` (SQLite cache, drafts, queue), `rb-theme`, `rb-diff`, and the `review-buddy` binary. App logic is a pure `update(&mut App, Msg) -> Vec<Cmd>`. `crates/review-buddy/src/cli.rs` is shared by `main.rs` and `build.rs` (man page via `clap_mangen`).
+Cargo workspace (see `docs/architecture.md`): `rb-core` (domain, triage, `Provider` trait, no I/O), `rb-github`, `rb-gitlab`, `rb-paths` (XDG), `rb-platform` (browser, clipboard, keyring), `rb-store` (SQLite cache, drafts, queue), `rb-theme`, `rb-diff`, `rb-term` (terminal pane: emulator, PTY, encoders; no forge crates), and the `review-buddy` binary. App logic is a pure `update(&mut App, Msg) -> Vec<Cmd>`. `crates/review-buddy/src/cli.rs` is shared by `main.rs` and `build.rs` (man page via `clap_mangen`).
 
 ## What to keep true
 

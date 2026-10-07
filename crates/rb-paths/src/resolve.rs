@@ -8,6 +8,9 @@ pub const SESSION_FILE: &str = "session.toml";
 /// The directory of saved review drafts inside the state directory.
 pub const DRAFTS_DIR: &str = "drafts";
 
+/// The folder in the state directory that holds the terminal pane's managed worktrees.
+pub const WORKTREES_DIR: &str = "worktrees";
+
 pub const APP_DIR: &str = "review-buddy";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,6 +111,11 @@ impl ResolvedPaths {
     /// Saved review drafts, one file per change, in the state directory.
     pub fn drafts_dir(&self) -> PathBuf {
         self.state_dir.join(DRAFTS_DIR)
+    }
+
+    /// Where the terminal pane's managed worktrees go: `worktrees` in the state directory.
+    pub fn worktrees_dir(&self) -> PathBuf {
+        self.state_dir.join(WORKTREES_DIR)
     }
 
     /// Where `instance.lock` lives: the runtime dir, else the state dir.

@@ -119,8 +119,15 @@ impl Pty {
             .map_err(|e| fail("no pseudo-terminal", &e))?;
         let mut cmd = CommandBuilder::new(&spec.program);
         cmd.args(&spec.args);
-        if let Some(dir) = &spec.cwd {
-            cmd.cwd(dir);
+        // portable-pty starts in the home directory unless told otherwise; "no directory" here
+        // means where Review Buddy was started.
+        match &spec.cwd {
+            Some(dir) => cmd.cwd(dir),
+            None => {
+                if let Ok(dir) = std::env::current_dir() {
+                    cmd.cwd(dir);
+                }
+            }
         }
         for var in HOST_ONLY_VARS {
             cmd.env_remove(var);
