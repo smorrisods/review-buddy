@@ -21,7 +21,7 @@ expression: text(&render(&mut a))
 │                     │                                                      │                     │
 │                     │Review                                                │elf) {               │
 │                     │  c            comment                                │y() {                │
-│                     │  r            reply to the thread                    │                     │
+│                     │  r            reply to the thread on this line       │                     │
 │                     │  a            approve                                │                     │
 │                     │  x            request changes                        │.selected + 1) % sel…│
 │ Your review · pendin│  R            submit a review                        │────────────────────╮│

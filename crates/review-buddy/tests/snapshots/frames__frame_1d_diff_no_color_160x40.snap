@@ -29,7 +29,7 @@ expression: plain_dump(& mut app)
 │                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
 │                                ││              │ ada · 20h                                                                                                  ││
 │                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
-│                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
 │                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │
@@ -41,7 +41,7 @@ expression: plain_dump(& mut app)
 │a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
 │x request changes · R review    ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme
+ j/k move  n/p hunk  ← → file  tab pane  c comment  r reply  a approve  R submit a review  o open  y copy  esc back  ? help  T theme
 
 -- modifiers --
 0:1 B "review buddy"
@@ -185,6 +185,7 @@ expression: plain_dump(& mut app)
 27:0 D "│"
 27:33 D "│"
 27:34 B "│"
+27:148 D " r reply"
 27:159 B "│"
 28:0 D "│"
 28:33 D "│"
@@ -248,17 +249,19 @@ expression: plain_dump(& mut app)
 39:34 D " pane"
 39:41 B "c"
 39:42 D " comment"
-39:52 B "a"
-39:53 D " approve"
-39:63 B "R"
-39:64 D " submit a review"
-39:82 B "o"
-39:83 D " open"
-39:90 B "y"
-39:91 D " copy"
-39:98 B "esc"
-39:101 D " back"
-39:108 B "?"
-39:109 D " help"
-39:116 B "T"
-39:117 D " theme"
+39:52 B "r"
+39:53 D " reply"
+39:61 B "a"
+39:62 D " approve"
+39:72 B "R"
+39:73 D " submit a review"
+39:91 B "o"
+39:92 D " open"
+39:99 B "y"
+39:100 D " copy"
+39:107 B "esc"
+39:110 D " back"
+39:117 B "?"
+39:118 D " help"
+39:125 B "T"
+39:126 D " theme"

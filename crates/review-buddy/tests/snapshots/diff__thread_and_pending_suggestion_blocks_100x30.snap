@@ -17,7 +17,7 @@ expression: shown
 │                                ││              │ I went with wrapping so a held key never gets  ││
 │                                ││              │ stuck. Happy to make it configurable if you'd  ││
 │                                ││              │ rather.                                        ││
-│                                ││              ╰────────────────────────────────────────────────╯│
+│                                ││              ╰────────────────────────────────────── r reply ─╯│
 │                                ││         45 +     }                                             │
 │                                ││         46 +                                                   │
 │                                ││         47 +     pub fn select_prev(&mut self) {               │

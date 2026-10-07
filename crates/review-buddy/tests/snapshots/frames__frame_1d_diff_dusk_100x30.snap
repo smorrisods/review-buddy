@@ -29,6 +29,6 @@ expression: text(& render(& mut app))
 │0 of 3 files viewed             ││              │ I went with wrapping so a held key never gets  ││
 │Your review: not started        ││              │ stuck. Happy to make it configurable if you'd  ││
 │a approve · c comment           ││              │ rather.                                        ││
-│x request changes · R review    ││              ╰────────────────────────────────────────────────╯│
+│x request changes · R review    ││              ╰────────────────────────────────────── r reply ─╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy
+ j/k move  n/p hunk  ← → file  tab pane  c comment  r reply  a approve  R submit a review  o open

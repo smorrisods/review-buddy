@@ -357,6 +357,10 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         Action::CloseDiff | Action::DiffFile(_) | Action::DiffRow(_) | Action::DiffFocus(_) => {
             diff::on_action(app, action)
         }
+        Action::ReplyAt(row) => {
+            diff::on_action(app, Action::DiffRow(row));
+            composer::open_reply(app)
+        }
         Action::ComposerCursor { .. }
         | Action::Answer(_)
         | Action::ReviewVerdict(_)

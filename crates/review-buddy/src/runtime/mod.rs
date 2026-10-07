@@ -550,6 +550,7 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     app.rebuild_palette();
 
     app.demo = backend.is_demo();
+    app.kitty_keys = terminal::keys_enhanced();
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Msg>();
     let mut events = EventStream::new();

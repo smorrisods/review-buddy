@@ -29,7 +29,7 @@ expression: text(&render(&mut a))
 │                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
 │                                ││              │ ada · 20h                                                                                                  ││
 │                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
-│                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯│
+│                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
 │                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │

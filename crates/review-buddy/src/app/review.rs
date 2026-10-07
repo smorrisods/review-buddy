@@ -26,6 +26,10 @@ pub struct ReviewModal {
     pub verdicts: Vec<Verdict>,
     pub summary: Editor,
     pub focus: ReviewFocus,
+    /// Why the last submit failed, shown under the buttons until the next keypress.
+    pub error: Option<String>,
+    /// The button a mouse press is holding: `false` is Cancel, `true` is Submit.
+    pub armed: Option<bool>,
 }
 
 pub fn verdict_label(verdict: Verdict) -> &'static str {
@@ -42,6 +46,18 @@ pub fn submit_label(verdict: Verdict) -> &'static str {
         Verdict::Comment => "Post review",
         Verdict::Approve => "Approve",
         Verdict::RequestChanges => "Request changes",
+    }
+}
+
+/// The line under the buttons: the keys that work from `focus`, honest about whether this
+/// terminal can send `⌃⏎`.
+pub fn key_hint(focus: ReviewFocus, kitty_keys: bool) -> &'static str {
+    match (focus, kitty_keys) {
+        (ReviewFocus::Summary, true) => "⌃⏎ or ⌃P submits · tab → buttons · esc cancels",
+        (ReviewFocus::Summary, false) => "tab then ⏎ submits · ⌃P submits now · esc cancels",
+        (ReviewFocus::Submit, _) => "⏎ submits · tab → cancel · esc cancels",
+        (ReviewFocus::Cancel, _) => "⏎ cancels · tab → verdict · ⌃P submits · esc cancels",
+        (ReviewFocus::Verdict, _) => "← → choose · tab → summary · ⌃P submits · esc cancels",
     }
 }
 
@@ -80,6 +96,8 @@ impl ReviewModal {
             verdicts,
             summary,
             focus,
+            error: None,
+            armed: None,
         }
     }
 
@@ -205,9 +223,14 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     let Some(focus) = modal(app).map(|m| m.focus) else {
         return Vec::new();
     };
+    if let Some(m) = modal(app) {
+        if m.error.take().is_some() {
+            app.mark_dirty();
+        }
+    }
     match key.code {
         KeyCode::Esc => return close(app),
-        KeyCode::Enter if ctrl => return submit(app),
+        KeyCode::Enter if ctrl || alt => return submit(app),
         KeyCode::Char('p') if ctrl => return submit(app),
         _ => {}
     }
@@ -272,8 +295,10 @@ fn verdict_key(app: &mut App, key: KeyEvent, modified: bool) -> bool {
         return false;
     }
     match key.code {
-        KeyCode::Left | KeyCode::Char('h') | KeyCode::BackTab => cycle(app, false),
-        KeyCode::Right | KeyCode::Char('l') | KeyCode::Tab => cycle(app, true),
+        KeyCode::Left | KeyCode::Char('h') => cycle(app, false),
+        KeyCode::Right | KeyCode::Char('l') => cycle(app, true),
+        KeyCode::Tab => focus(app, ReviewFocus::Summary),
+        KeyCode::BackTab => focus(app, ReviewFocus::Cancel),
         KeyCode::Char(c @ '1'..='3') => pick_number(app, c),
         KeyCode::Down | KeyCode::Enter | KeyCode::Char('j') => focus(app, ReviewFocus::Summary),
         _ => return false,
@@ -291,11 +316,23 @@ fn button_key(app: &mut App, key: KeyEvent, at: ReviewFocus) -> Vec<Cmd> {
             };
         }
         KeyCode::Char('n' | 'N') => return close(app),
-        KeyCode::Left
-        | KeyCode::Right
-        | KeyCode::Tab
-        | KeyCode::BackTab
-        | KeyCode::Char('h' | 'l') => {
+        KeyCode::Tab => {
+            let next = if at == ReviewFocus::Submit {
+                ReviewFocus::Cancel
+            } else {
+                ReviewFocus::Verdict
+            };
+            focus(app, next);
+        }
+        KeyCode::BackTab => {
+            let prev = if at == ReviewFocus::Submit {
+                ReviewFocus::Summary
+            } else {
+                ReviewFocus::Submit
+            };
+            focus(app, prev);
+        }
+        KeyCode::Left | KeyCode::Right | KeyCode::Char('h' | 'l') => {
             let other = if at == ReviewFocus::Submit {
                 ReviewFocus::Cancel
             } else {
@@ -326,7 +363,7 @@ fn summary_key(app: &mut App, key: KeyEvent, ctrl: bool, alt: bool) -> bool {
     let (row, _) = m.summary.cursor();
     let e = &mut m.summary;
     match key.code {
-        KeyCode::Tab => m.focus = ReviewFocus::Cancel,
+        KeyCode::Tab => m.focus = ReviewFocus::Submit,
         KeyCode::BackTab => m.focus = ReviewFocus::Verdict,
         KeyCode::Up if row == 0 && !word => m.focus = ReviewFocus::Verdict,
         KeyCode::Down if row == last && !word => m.focus = ReviewFocus::Cancel,
@@ -383,10 +420,31 @@ pub fn close(app: &mut App) -> Vec<Cmd> {
     Vec::new()
 }
 
+/// A mouse press on a button arms it; releasing on the same button fires it.
+pub fn arm(app: &mut App, submit_button: bool) {
+    if let Some(m) = modal(app) {
+        m.armed = Some(submit_button);
+    }
+}
+
+/// A release over `over` (a button, or nothing). It fires the armed button when it is the
+/// same one, and also when nothing was armed, for terminals that only report the release.
+pub fn release(app: &mut App, over: Option<bool>) -> Vec<Cmd> {
+    let armed = modal(app).and_then(|m| m.armed.take());
+    match (armed, over) {
+        (Some(a), Some(b)) if a == b => press(app, b),
+        (None, Some(b)) => press(app, b),
+        _ => Vec::new(),
+    }
+}
+
 /// A click on a button: Cancel closes, Submit sends.
 pub fn press(app: &mut App, submit_button: bool) -> Vec<Cmd> {
     if app.diff.as_ref().is_some_and(|s| s.submitting) {
         return Vec::new();
+    }
+    if let Some(m) = modal(app) {
+        m.error = None;
     }
     if submit_button {
         submit(app)
@@ -446,4 +504,14 @@ fn submit(app: &mut App) -> Vec<Cmd> {
     }
     app.mark_dirty();
     vec![Cmd::SubmitReview { id, draft, verdict }]
+}
+
+/// Keeps the modal open after a failed submit: focus on Submit and the reason under the buttons.
+pub fn show_failure(app: &mut App, message: String) {
+    if let Some(m) = modal(app) {
+        m.error = Some(message);
+        m.focus = ReviewFocus::Submit;
+        m.armed = None;
+    }
+    app.mark_dirty();
 }

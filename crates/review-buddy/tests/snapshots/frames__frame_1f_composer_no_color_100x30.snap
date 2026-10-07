@@ -12,7 +12,7 @@ expression: plain_dump(& mut app)
 │                                ││              │ I went with wrapping so a held key never gets  ││
 │                                ││              │ stuck. Happy to make it configurable if you'd  ││
 │                                ││              │ rather.                                        ││
-│                                ││              ╰────────────────────────────────────────────────╯│
+│                                ││              ╰────────────────────────────────────── r reply ─╯│
 │                                ││         45 +     }                                             │
 │                                ││         46 +                                                   │
 │                                ││         47 +     pub fn select_prev(&mut self) {               │
@@ -87,6 +87,7 @@ expression: plain_dump(& mut app)
 10:0 D "│"
 10:33 D "│"
 10:34 B "│"
+10:88 D " r reply"
 10:99 B "│"
 11:0 D "│"
 11:33 D "│"

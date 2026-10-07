@@ -22,14 +22,14 @@ expression: text(&render(&mut a))
 │                                ││         40 +    │                                                      │                                                   │
 │                                ││         41 +    │Review                                                │                                                   │
 │                                ││         42 +    │  c            comment                                │                                                   │
-│                                ││         43 +    │  r            reply to the thread                    │                                                   │
+│                                ││         43 +    │  r            reply to the thread on this line       │                                                   │
 │                                ││         44 +    │  a            approve                                │n();                                               │
 │                                ││              ╭─ │  x            request changes                        │──────────────────────────────────────────────────╮│
 │                                ││              │ j│  R            submit a review                        │                                                  ││
 │                                ││              │ S│                                                      │e stop at the end.                                ││
 │                                ││              │ a│Change                                                │                                                  ││
 │                                ││              │ I│  o            open                                   │y to make it configurable if you'd rather.        ││
-│                                ││              ╰──│  y            copy                                   │──────────────────────────────────────────────────╯│
+│                                ││              ╰──│  y            copy                                   │──────────────────────────────────────── r reply ─╯│
 │                                ││         45 +    │                                                      │                                                   │
 │                                ││         46 +    │General                                               │                                                   │
 │                                ││         47 +    │  esc          back                                   │                                                   │

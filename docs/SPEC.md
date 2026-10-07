@@ -177,6 +177,8 @@ There is one composer for comments and suggestions, docked over the bottom of th
 - `c` opens it empty. `s` opens it with a suggestion block already in.
 - **`⌃S` inserts a ` ```suggestion ` block** prefilled with the selected lines (added and context lines; deleted lines left out), so you edit the replacement in place. You can insert it at any point in a draft.
 - `⏎` adds to your pending review. `⌃⏎` posts at once as a standalone comment. `⇧⏎` inserts a newline. `esc` discards; it asks first if the draft is longer than one line.
+- `r` replies to the thread on the cursor line; the footer and the thread block's bottom border show `r reply` when there is one.
+- In the review modal, `tab` reaches Submit, `⌃P` and `⌥⏎` submit from anywhere, `⌃⏎` is advertised only where the terminal reports it, and a failed submit shows its reason inside the modal. See `docs/keybindings.md`.
 - `⌃E` opens the draft in `$EDITOR`.
 - Drafts autosave to `$XDG_STATE_HOME/review-buddy/drafts/<host>/<owner>/<repo>/<num>.md` (default `~/.local/state/…`) and come back when you return to the change.
 
