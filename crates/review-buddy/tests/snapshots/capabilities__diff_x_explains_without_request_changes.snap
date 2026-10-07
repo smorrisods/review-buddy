@@ -41,4 +41,4 @@ expression: screen
 │a approve · c comment           ││                                                                                                                            │
 │                                ││                                                                                                                            │
 ╰────────────────────────────────╯╰ hunk 1 of 1 · file 1 of 1 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file      · GitLab 16.9 on gitlab.example.com doesn't support requesting changes (it needs 17.3 or newer). Approve or comment instead.
+ j/k move  n/p hunk  ← → file      · GitLab 16.9 on gitlab.example.com doesn't support requesting changes (it needs 17.3 or newer). Approve or comment instead.

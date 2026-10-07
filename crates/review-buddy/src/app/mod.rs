@@ -281,6 +281,8 @@ pub enum Cmd {
     Settings(crate::settings::Effect),
     /// The config was written: rebuild the sources from it and load the queue.
     FinishSetup,
+    /// Hand the terminal back and stop the process until the shell continues it (`⌃Z`).
+    Suspend,
     /// Open a web address in the browser.
     OpenUrl(String),
     /// Put text on the clipboard.

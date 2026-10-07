@@ -31,7 +31,7 @@ expression: plain_dump(& mut app)
 │a approve · c comment           ││              │ rather.                                        ││
 │x request changes               ││              ╰────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
 
 -- modifiers --
 0:1 B "review buddy"
@@ -181,7 +181,7 @@ expression: plain_dump(& mut app)
 29:4 D " move"
 29:11 B "n/p"
 29:14 D " hunk"
-29:21 B "]/["
+29:21 B "← →"
 29:24 D " file"
 29:31 B "tab"
 29:34 D " pane"

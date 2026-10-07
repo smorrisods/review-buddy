@@ -37,8 +37,8 @@ expression: text(&render(&mut a))
 │                        ││                         │  T    theme                                          │                                                   │
 │                        ││                         │  B    background: theme / yes / no                   │                                                   │
 │                        ││                         │  q    quit                                           │                                                   │
+│                        ││                         │  ⌃Z   suspend (not on Windows)                       │                                                   │
 │                        ││                         ╰ esc close ───────────────────────────────────────────╯                                                   │
-│                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

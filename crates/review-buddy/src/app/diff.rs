@@ -13,7 +13,8 @@ use rb_diff::{
 use super::composer::{self, Composer, Confirm};
 use super::diffview::{self, Inputs, Rows};
 use super::range::{self, RowRange};
-use super::{Action, App, Cmd, Screen};
+use super::update::set_status;
+use super::{Action, App, Cmd, Notice, NoticeKind, Screen};
 use crate::ui::layout;
 
 const WHEEL_ROWS: usize = 3;
@@ -145,6 +146,8 @@ pub struct DiffState {
     pub range: Option<RowRange>,
     /// The row a drag began on, while the button is held.
     pub drag: Option<usize>,
+    /// The row a line-wise selection (`V`) started on, while that mode is on.
+    pub select: Option<usize>,
     /// The docked composer, while one is open.
     pub composer: Option<Composer>,
     /// A preview or discard confirmation, shown over everything else.
@@ -174,6 +177,7 @@ impl DiffState {
             view: FileView::default(),
             range: None,
             drag: None,
+            select: None,
             composer: None,
             confirm: None,
             submitting: false,
@@ -321,6 +325,7 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
     };
     state.range = None;
     state.drag = None;
+    state.select = None;
     let Some(data) = state.data.as_ref() else {
         state.view = FileView::default();
         return;
@@ -485,12 +490,23 @@ fn select_file(app: &mut App, index: usize) {
     rebuild(app, None);
 }
 
-fn step_file(app: &mut App, forward: bool) {
+fn step_file(app: &mut App, forward: bool) -> Vec<Cmd> {
     let Some(state) = &app.diff else {
-        return;
+        return Vec::new();
     };
-    if let Some(next) = rb_diff::adjacent_file(state.file, state.files().len(), forward) {
-        select_file(app, next);
+    match rb_diff::adjacent_file(state.file, state.files().len(), forward) {
+        Some(next) => {
+            select_file(app, next);
+            Vec::new()
+        }
+        None => {
+            let text = if forward {
+                "That's the last file."
+            } else {
+                "That's the first file."
+            };
+            set_status(app, Notice::new(NoticeKind::Info, text))
+        }
     }
 }
 
@@ -525,13 +541,21 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         return Vec::new();
     };
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+    let shift = key.modifiers.contains(KeyModifiers::SHIFT);
+    let mut cmds = Vec::new();
     match key.code {
         KeyCode::Char('d') if ctrl => page(app, true, 2),
         KeyCode::Char('u') if ctrl => page(app, false, 2),
         _ if ctrl || key.modifiers.contains(KeyModifiers::ALT) => return Vec::new(),
-        KeyCode::Esc if app.diff.as_ref().is_some_and(|s| s.range.is_some()) => {
+        KeyCode::Esc
+            if app
+                .diff
+                .as_ref()
+                .is_some_and(|s| s.range.is_some() || s.select.is_some()) =>
+        {
             if let Some(state) = app.diff.as_mut() {
                 state.range = None;
+                state.select = None;
             }
         }
         KeyCode::Esc | KeyCode::Char('q') => {
@@ -551,31 +575,117 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
                 state.focus = DiffFocus::Diff;
             }
         }
-        KeyCode::Down | KeyCode::Char('j') => step(app, focus, 1),
-        KeyCode::Up | KeyCode::Char('k') => step(app, focus, -1),
-        KeyCode::PageDown => page(app, true, 1),
-        KeyCode::PageUp => page(app, false, 1),
-        KeyCode::Char('g') | KeyCode::Home => jump(app, focus, false),
-        KeyCode::Char('G') | KeyCode::End => jump(app, focus, true),
-        KeyCode::Char('n' | '}') => move_cursor(app, |rows, c| rows.next_hunk(c)),
-        KeyCode::Char('p' | '{') => move_cursor(app, |rows, c| rows.prev_hunk(c)),
-        KeyCode::Char(']') => step_file(app, true),
-        KeyCode::Char('[') => step_file(app, false),
-        KeyCode::Char('c') => return composer::open_comment(app),
+        KeyCode::Char('V') if focus == DiffFocus::Diff => toggle_select(app),
+        KeyCode::Right | KeyCode::Char(']') => cmds = step_file(app, true),
+        KeyCode::Left | KeyCode::Char('[') => cmds = step_file(app, false),
+        KeyCode::Char('c') => {
+            let cmds = composer::open_comment(app);
+            end_select(app);
+            return cmds;
+        }
         KeyCode::Char('r') => return composer::open_reply(app),
         KeyCode::Char('a') => return composer::open_approve(app),
         KeyCode::Char('x') => return composer::request_changes(app),
-        _ => return Vec::new(),
+        code => match move_kind(code) {
+            Some(kind) => cmds = on_move(app, focus, kind, shift),
+            None => return Vec::new(),
+        },
     }
     settle(app);
     app.mark_dirty();
+    cmds
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Move {
+    Line(isize),
+    Page(bool),
+    Jump(bool),
+    Hunk(bool),
+}
+
+fn move_kind(code: KeyCode) -> Option<Move> {
+    Some(match code {
+        KeyCode::Down | KeyCode::Char('j') => Move::Line(1),
+        KeyCode::Up | KeyCode::Char('k') => Move::Line(-1),
+        KeyCode::PageDown => Move::Page(true),
+        KeyCode::PageUp => Move::Page(false),
+        KeyCode::Char('g') | KeyCode::Home => Move::Jump(false),
+        KeyCode::Char('G') | KeyCode::End => Move::Jump(true),
+        KeyCode::Char('n' | '}') => Move::Hunk(true),
+        KeyCode::Char('p' | '{') => Move::Hunk(false),
+        _ => return None,
+    })
+}
+
+/// Moves the cursor. In the diff pane the move extends the range when Shift is held with an
+/// arrow or page key, or while a `V` selection is on; any other move drops the range, as a
+/// click does.
+fn on_move(app: &mut App, focus: DiffFocus, kind: Move, shift: bool) -> Vec<Cmd> {
+    if let (DiffFocus::Files, Move::Line(delta)) = (focus, kind) {
+        return step_file(app, delta > 0);
+    }
+    let Some(state) = app.diff.as_ref() else {
+        return Vec::new();
+    };
+    let shifted = shift && matches!(kind, Move::Line(_) | Move::Page(_));
+    let extending = shifted || state.select.is_some();
+    let anchor = state
+        .select
+        .or(state.range.map(|r| r.anchor))
+        .unwrap_or(state.view.cursor);
+    match kind {
+        Move::Line(delta) => move_cursor(app, |rows, c| Some(rows.step(c, delta))),
+        Move::Page(forward) => page(app, forward, 1),
+        Move::Jump(end) => jump(app, focus, end),
+        Move::Hunk(forward) => move_cursor(app, |rows, c| {
+            if forward {
+                rows.next_hunk(c)
+            } else {
+                rows.prev_hunk(c)
+            }
+        }),
+    }
+    if let Some(state) = app.diff.as_mut() {
+        if extending {
+            clamp_to_hunk(state, anchor);
+            state.range = RowRange::between(anchor, state.view.cursor);
+        } else {
+            state.range = None;
+        }
+    }
     Vec::new()
 }
 
-fn step(app: &mut App, focus: DiffFocus, delta: isize) {
-    match focus {
-        DiffFocus::Diff => move_cursor(app, |rows, c| Some(rows.step(c, delta))),
-        DiffFocus::Files => step_file(app, delta > 0),
+/// Pulls the cursor back toward `anchor` until both sit in one hunk: a range never spans two.
+fn clamp_to_hunk(state: &mut DiffState, anchor: usize) {
+    let rows = &state.view.rows;
+    let Some(hunk) = rows.line_id(anchor).map(|id| id.hunk) else {
+        return;
+    };
+    let mut head = state.view.cursor;
+    while rows.line_id(head).is_some_and(|id| id.hunk != hunk) {
+        let next = rows.step(head, if head > anchor { -1 } else { 1 });
+        if next == head {
+            break;
+        }
+        head = next;
+    }
+    state.view.cursor = head;
+}
+
+fn toggle_select(app: &mut App) {
+    let Some(state) = app.diff.as_mut() else {
+        return;
+    };
+    if state.select.take().is_none() {
+        state.select = Some(state.range.map_or(state.view.cursor, |r| r.anchor));
+    }
+}
+
+fn end_select(app: &mut App) {
+    if let Some(state) = app.diff.as_mut() {
+        state.select = None;
     }
 }
 
@@ -611,6 +721,7 @@ pub fn on_action(app: &mut App, action: Action) -> Vec<Cmd> {
             if let Some(state) = app.diff.as_mut() {
                 state.focus = DiffFocus::Diff;
                 state.range = None;
+                state.select = None;
             }
             move_cursor(app, |rows, _| rows.nearest_line(row));
         }
@@ -1115,5 +1226,167 @@ mod tests {
             app.diff.as_ref().unwrap().view.highlight,
             Highlight::Whole(_)
         ));
+    }
+
+    fn tap(app: &mut App, code: KeyCode, modifiers: KeyModifiers) -> Vec<Cmd> {
+        update(app, Msg::Key(KeyEvent::new(code, modifiers)))
+    }
+
+    fn range(app: &App) -> Option<(usize, usize)> {
+        app.diff.as_ref().unwrap().range.map(RowRange::bounds)
+    }
+
+    #[test]
+    fn shift_down_anchors_at_the_cursor_and_extends() {
+        let mut app = two_files();
+        let start = cursor(&app);
+        tap(&mut app, KeyCode::Down, KeyModifiers::SHIFT);
+        assert_eq!(range(&app), Some((start, cursor(&app))));
+        tap(&mut app, KeyCode::Down, KeyModifiers::SHIFT);
+        let (top, bottom) = range(&app).unwrap();
+        assert_eq!(top, start, "the anchor stays put");
+        assert_eq!(bottom, cursor(&app));
+        assert_eq!(app.diff.as_ref().unwrap().range.unwrap().anchor, start);
+    }
+
+    #[test]
+    fn shift_up_extends_upward_and_shrinking_back_to_the_anchor_clears_it() {
+        let mut app = two_files();
+        press(&mut app, 'j');
+        press(&mut app, 'j');
+        let start = cursor(&app);
+        tap(&mut app, KeyCode::Up, KeyModifiers::SHIFT);
+        let (top, bottom) = range(&app).unwrap();
+        assert_eq!((top, bottom), (cursor(&app), start));
+        tap(&mut app, KeyCode::Down, KeyModifiers::SHIFT);
+        assert_eq!(range(&app), None, "one line is just the cursor");
+    }
+
+    #[test]
+    fn a_plain_move_clears_the_range_like_a_click_does() {
+        let mut app = two_files();
+        tap(&mut app, KeyCode::Down, KeyModifiers::SHIFT);
+        assert!(range(&app).is_some());
+        press(&mut app, 'j');
+        assert_eq!(range(&app), None);
+    }
+
+    #[test]
+    fn shift_page_extends_by_a_page_and_stays_in_one_hunk() {
+        let mut app = two_files();
+        tap(&mut app, KeyCode::PageDown, KeyModifiers::SHIFT);
+        let s = app.diff.as_ref().unwrap();
+        let (top, bottom) = s.range.unwrap().bounds();
+        let first = s.view.rows.line_id(top).unwrap().hunk;
+        let last = s.view.rows.line_id(bottom).unwrap().hunk;
+        assert_eq!(first, last, "the range stops at the end of the hunk");
+        assert_eq!(bottom, s.view.cursor);
+    }
+
+    #[test]
+    fn a_range_does_not_cross_into_the_next_hunk() {
+        let mut app = two_files();
+        for _ in 0..20 {
+            tap(&mut app, KeyCode::Down, KeyModifiers::SHIFT);
+        }
+        let s = app.diff.as_ref().unwrap();
+        let (top, bottom) = s.range.unwrap().bounds();
+        assert_eq!(s.view.rows.line_id(top).unwrap().hunk, 0);
+        assert_eq!(s.view.rows.line_id(bottom).unwrap().hunk, 0);
+    }
+
+    #[test]
+    fn v_starts_a_selection_that_plain_moves_extend_until_v_or_esc() {
+        let mut app = two_files();
+        let start = cursor(&app);
+        press(&mut app, 'V');
+        assert_eq!(
+            range(&app),
+            None,
+            "nothing is selected until the cursor moves"
+        );
+        press(&mut app, 'j');
+        press(&mut app, 'j');
+        assert_eq!(range(&app), Some((start, cursor(&app))));
+        press(&mut app, 'k');
+        assert_eq!(range(&app).map(|r| r.0), Some(start));
+        press(&mut app, 'V');
+        let kept = range(&app);
+        assert!(kept.is_some(), "ending the mode keeps the range for c");
+        press(&mut app, 'j');
+        assert_eq!(range(&app), None, "a plain move after that clears it");
+
+        press(&mut app, 'V');
+        press(&mut app, 'j');
+        assert!(range(&app).is_some());
+        tap(&mut app, KeyCode::Esc, KeyModifiers::NONE);
+        assert_eq!(range(&app), None);
+        assert_eq!(app.diff.as_ref().unwrap().select, None);
+        assert_eq!(
+            app.screen,
+            Screen::Diff,
+            "esc cleared first and didn't leave"
+        );
+    }
+
+    #[test]
+    fn a_keyboard_range_comments_on_the_whole_range() {
+        let mut app = two_files();
+        press(&mut app, 'V');
+        press(&mut app, 'j');
+        press(&mut app, 'j');
+        press(&mut app, 'c');
+        let s = app.diff.as_ref().unwrap();
+        let composer = s.composer.as_ref().expect("the composer opens");
+        let composer::Target::Line(anchor) = &composer.target else {
+            panic!("a line target");
+        };
+        assert!(anchor.start_line.is_some());
+        assert_eq!(s.select, None, "the mode ends when the composer opens");
+    }
+
+    #[test]
+    fn right_and_left_flip_files_and_say_so_at_the_ends() {
+        let mut app = two_files();
+        let status = |app: &App| app.status.as_ref().map(|e| e.notice.text.clone());
+        tap(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        assert_eq!(status(&app).as_deref(), Some("That's the first file."));
+        tap(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert_eq!(app.diff.as_ref().unwrap().file, 1);
+        tap(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert_eq!(app.diff.as_ref().unwrap().file, 2);
+        tap(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert_eq!(status(&app).as_deref(), Some("That's the last file."));
+        tap(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        assert_eq!(app.diff.as_ref().unwrap().file, 1);
+        press(&mut app, '[');
+        assert_eq!(app.diff.as_ref().unwrap().file, 0);
+    }
+
+    #[test]
+    fn arrows_belong_to_the_composer_while_it_is_open() {
+        let mut app = two_files();
+        press(&mut app, 'c');
+        assert!(app.diff.as_ref().unwrap().composer.is_some());
+        tap(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        tap(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        assert_eq!(app.diff.as_ref().unwrap().file, 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ctrl_z_asks_the_runtime_to_suspend_on_every_screen() {
+        let mut app = two_files();
+        let cmds = tap(&mut app, KeyCode::Char('z'), KeyModifiers::CONTROL);
+        assert!(matches!(cmds.as_slice(), [Cmd::Suspend]));
+        press(&mut app, 'c');
+        press(&mut app, 'h');
+        let cmds = tap(&mut app, KeyCode::Char('z'), KeyModifiers::CONTROL);
+        assert!(matches!(cmds.as_slice(), [Cmd::Suspend]));
+        let composer = app.diff.as_ref().unwrap().composer.as_ref().unwrap();
+        assert_eq!(composer.editor.text(), "h", "unsent text is kept");
+        app.help = true;
+        let cmds = tap(&mut app, KeyCode::Char('z'), KeyModifiers::CONTROL);
+        assert!(matches!(cmds.as_slice(), [Cmd::Suspend]));
     }
 }

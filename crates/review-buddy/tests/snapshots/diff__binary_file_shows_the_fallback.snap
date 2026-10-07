@@ -31,4 +31,4 @@ expression: shown
 │a approve · c comment           ││                                                                │
 │x request changes               ││                                                                │
 ╰────────────────────────────────╯╰ file 1 of 2 ───────────────────────────────────────────────────╯
- j/k move  n/p hunk  ]/[ file  tab pane  c comment  a approve  o open  y copy  esc back  ? help
+ j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  o open  y copy  esc back  ? help

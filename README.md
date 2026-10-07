@@ -145,7 +145,9 @@ smorris
 | `,` | Dashboard | Settings → Sources |
 | `r` | Dashboard | Refresh now |
 | `n` `p` | Diff | Next / previous hunk |
-| `]` `[` | Diff | Next / previous file |
+| `→` `←` or `]` `[` | Diff | Next / previous file |
+| `⇧↑` `⇧↓` or `V` then `j` `k` | Diff | Select a range of lines (`c` comments on it, `esc` clears) |
+| `⌃Z` | Everywhere (macOS, Linux) | Suspend to the shell |
 | `tab` | Diff | Switch between files and diff |
 | `c` / `r` | Diff | Comment on the line / reply to the thread |
 | `a` | Diff | Approve, after a preview |

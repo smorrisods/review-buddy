@@ -22,6 +22,7 @@ pub struct Pty {
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
     parser: Arc<Mutex<vt100::Parser>>,
+    raw: Arc<Mutex<Vec<u8>>>,
 }
 
 /// A command with a cleared environment and the variables every pty test sets: a colour terminal and a sandboxed home with
@@ -60,12 +61,15 @@ impl Pty {
         let writer = pair.master.take_writer().unwrap();
         let parser = Arc::new(Mutex::new(vt100::Parser::new(rows, cols, 0)));
         let feed = Arc::clone(&parser);
+        let raw = Arc::new(Mutex::new(Vec::new()));
+        let record = Arc::clone(&raw);
         std::thread::spawn(move || {
             let mut buf = [0u8; 4096];
             while let Ok(n) = reader.read(&mut buf) {
                 if n == 0 {
                     break;
                 }
+                record.lock().unwrap().extend_from_slice(&buf[..n]);
                 feed.lock().unwrap().process(&buf[..n]);
             }
         });
@@ -74,6 +78,36 @@ impl Pty {
             master: pair.master,
             writer,
             parser,
+            raw,
+        }
+    }
+
+    pub fn pid(&self) -> u32 {
+        self.child.process_id().expect("the child has a pid")
+    }
+
+    /// Forgets the raw output so far, so a later `raw_contains` only sees what comes next.
+    pub fn clear_raw(&self) {
+        self.raw.lock().unwrap().clear();
+    }
+
+    /// Whether the raw bytes written since the last `clear_raw` contain `needle`.
+    pub fn raw_contains(&self, needle: &[u8]) -> bool {
+        let raw = self.raw.lock().unwrap();
+        !needle.is_empty() && raw.windows(needle.len()).any(|w| w == needle)
+    }
+
+    /// Polls until the raw output contains `needle`.
+    pub fn wait_for_raw(&self, needle: &[u8], limit: Duration) -> bool {
+        let deadline = Instant::now() + limit;
+        loop {
+            if self.raw_contains(needle) {
+                return true;
+            }
+            if Instant::now() >= deadline {
+                return false;
+            }
+            std::thread::sleep(POLL);
         }
     }
 

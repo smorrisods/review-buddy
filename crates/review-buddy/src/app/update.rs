@@ -207,6 +207,9 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     }
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
     let alt = key.modifiers.contains(KeyModifiers::ALT);
+    if ctrl && !alt && key.code == KeyCode::Char('z') {
+        return suspend(app);
+    }
     let quits = match key.code {
         KeyCode::Char('c') => ctrl,
         KeyCode::Char('q') => !ctrl && app.screen == Screen::Dashboard && !app.help,
@@ -273,6 +276,18 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
             Screen::FirstRun | Screen::Settings => Vec::new(),
         },
     }
+}
+
+#[cfg(unix)]
+fn suspend(app: &mut App) -> Vec<Cmd> {
+    app.quit_armed = false;
+    vec![Cmd::Suspend]
+}
+
+#[cfg(not(unix))]
+fn suspend(app: &mut App) -> Vec<Cmd> {
+    let text = "Suspend isn't available on Windows. Use ⌃C or q to quit.";
+    set_status(app, Notice::new(NoticeKind::Info, text))
 }
 
 pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {

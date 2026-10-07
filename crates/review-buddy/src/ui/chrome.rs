@@ -52,6 +52,20 @@ fn bind(
 
 /// Every key that works on `screen`, in the order the help overlay lists them.
 pub fn registry(screen: Screen) -> Vec<Binding> {
+    let mut bindings = screen_bindings(screen);
+    // Listed on every platform so the help overlay reads the same everywhere; on Windows the key
+    // only shows a status saying it isn't available.
+    bindings.push(bind(
+        "General",
+        "⌃Z",
+        "suspend (not on Windows)",
+        None,
+        false,
+    ));
+    bindings
+}
+
+fn screen_bindings(screen: Screen) -> Vec<Binding> {
     let open = Some(Action::Open);
     let copy = Some(Action::Copy);
     let help = Some(Action::ToggleHelp);
@@ -135,8 +149,19 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind("Move", "g/G", "first / last line", None, false),
             bind("Move", "pgup/pgdn", "page up / down", None, false),
             bind("Move", "n/p", "hunk", None, true),
-            bind("Move", "]/[", "file", None, true),
+            bind("Move", "← →", "file", None, true),
+            bind("Move", "]/[", "file", None, false),
             bind("Move", "tab", "pane", None, true),
+            bind("Select", "⇧↑/⇧↓", "select lines", None, false),
+            bind("Select", "⇧pgup/⇧pgdn", "select a page", None, false),
+            bind(
+                "Select",
+                "V",
+                "select lines with j/k, again to end",
+                None,
+                false,
+            ),
+            bind("Select", "esc", "clear the selection", None, false),
             bind("Review", "c", "comment", None, true),
             bind("Review", "r", "reply to the thread", None, false),
             bind("Review", "a", "approve", None, true),
@@ -380,6 +405,17 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
         (truncate(&text, room), role)
     };
     let mut status = app.status.as_ref().map(status_text).map(|(t, r)| fit(t, r));
+    if status.is_none() {
+        status = app
+            .diff_state()
+            .filter(|_| app.screen == Screen::Diff)
+            .and_then(|s| s.range.map(|r| (s, r)))
+            .map(|(s, r)| {
+                let (top, bottom) = r.bounds();
+                let n = s.view.rows.lines_between(top, bottom);
+                fit(format!("{n} lines selected"), Role::Muted)
+            });
+    }
     if status.is_none() {
         // The passive timestamp gives way to the hints: it only shows when none of them is cut.
         status = app
