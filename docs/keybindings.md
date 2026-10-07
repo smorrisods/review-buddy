@@ -12,7 +12,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 |---|---|
 | `↑↓` / `j` `k` | Move in the focused pane |
 | `g` `G` / `home` `end` | Jump to the first / last row in the focused pane |
-| `tab` / `⇧tab` | Next / previous pane |
+| `tab` / `⇧tab` | Next / previous pane, in the order they appear: left to right side by side, top to bottom when the Detail is stacked. `h` / `l` and `← →` do the same; `j` / `k` always move inside the focused pane |
 | `h` `l` | Previous / next pane |
 | `← →` | Previous / next detail tab when the detail pane is focused, otherwise previous / next pane |
 | `[` `]` | Previous / next detail tab (Overview, Files, Checks, Conversation) |
@@ -24,6 +24,8 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `s` | Open the Show filters control: `reviewing`, `assigned`, `authored`, `drafts` and `noise`. Changes apply to the queue at once and last for the session |
 | `p` | Close or reopen the Detail pane (`ui.detail`). Closed, the Queue takes the full width and the footer adds `p show detail`. Selection and `⏎` are unchanged. Lasts for the session |
 | `S` | Cycle where the Sources sit: `auto` (pane at 130 columns or more, tabs below), `left` (always the pane) and `top` (always the tab strip). Lasts for the session (`ui.sources`) |
+| `P` | Cycle where the Detail pane sits: `auto` (right when the terminal is at least 110 columns wide and the Queue and Detail have 98 between them, otherwise below the Queue), `right`, `left`, `top` and `bottom`. Stacked, the Queue gets about 55 percent of the height (at least 8 rows) and Detail the rest, and Detail drops to a compact header so the action chips and tabs stay in view. Lasts for the session (`ui.detail_position`, `REVIEW_BUDDY_DETAIL_POSITION`) |
+| `PgUp` / `PgDn` | Scroll the Detail pane when it has focus (so does `j` / `k`, the wheel and `g` / `G`) |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
 | `T` | Cycle theme |

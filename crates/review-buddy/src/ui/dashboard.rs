@@ -56,15 +56,34 @@ pub fn draw(frame: &mut Frame, app: &App, body: Rect, hits: &mut HitMap) {
             .map_or_else(|| "detail".to_string(), |c| c.id.short_ref());
         pane(frame, app, l.detail, &title, Pane::Detail);
         detail::draw(frame, app, l.detail, hits);
-        affordance(frame, app, l.detail, CLOSE_DETAIL, hits);
+        let place = app.layout.place(body.width);
+        affordance(frame, app, l.detail, close_marker(place), hits);
     } else {
-        affordance(frame, app, l.queue, REOPEN_DETAIL, hits);
+        let place = app.layout.place(body.width);
+        affordance(frame, app, l.queue, reopen_marker(place), hits);
     }
     hits.set_panes(panes);
 }
 
-const CLOSE_DETAIL: &str = " ⟩ ";
-const REOPEN_DETAIL: &str = " ⟨ detail ";
+/// The arrow points to where Detail goes when it closes.
+fn close_marker(place: layout::Place) -> &'static str {
+    match place {
+        layout::Place::Right => " ⟩ ",
+        layout::Place::Left => " ⟨ ",
+        layout::Place::Top => " ▲ ",
+        layout::Place::Bottom => " ▼ ",
+    }
+}
+
+/// The arrow points to where Detail comes back from.
+fn reopen_marker(place: layout::Place) -> &'static str {
+    match place {
+        layout::Place::Right => " ⟨ detail ",
+        layout::Place::Left => " ⟩ detail ",
+        layout::Place::Top => " ▼ detail ",
+        layout::Place::Bottom => " ▲ detail ",
+    }
+}
 
 /// A clickable marker on a pane's top border, near its right corner, that toggles Detail.
 fn affordance(frame: &mut Frame, app: &App, area: Rect, text: &'static str, hits: &mut HitMap) {

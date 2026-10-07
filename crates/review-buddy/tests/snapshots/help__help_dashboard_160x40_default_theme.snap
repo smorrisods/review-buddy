@@ -8,9 +8,9 @@ expression: text(&render(&mut a))
 │    every source        ││▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                                                         │
 │  ● liminal-hq        3 ││▌ GH review-buddy#214 · a╭ Keys · Queue ────────────────────────────────────────╮                                                   │
 │    github.com          ││  ● Raise muted text cont│Move                                                  │                                                   │
-│  ● smorris           1 ││  GH review-buddy#209 · j│  j/k  move in the focused pane                       │Comment  ⏎ Diff  m Merge                           │
+│  ● smorris           1 ││  GH review-buddy#209 · j│  j/k  move in the focused pane (PgUp/PgDn: detail)   │Comment  ⏎ Diff  m Merge                           │
 │    github.com          ││                         │  g/G  first / last row                               │                                                   │
-│  ● platform          2 ││  Worth a look · 2       │  tab  next pane                                      │ Conversation 3                                    │
+│  ● platform          2 ││  Worth a look · 2       │  tab  next pane, in screen order                     │ Conversation 3                                    │
 │    gitlab.platform.ex… ││  ✕ Cache pipeline status│  h/l  previous / next pane                           │────────────────────────────────────────────────── │
 │  ● gitlab.com        1 ││  GL flow!1182 · priya · │  1-9  switch source                                  │d a Menu type that tracks the selected item.       │
 │    gitlab.com          ││  ● Tidy zsh startup     │  [/]  previous / next detail tab                     │                                                   │
@@ -24,7 +24,8 @@ expression: text(&render(&mut a))
 │                        ││                         │View                                                  │                                                   │
 │                        ││  ── That's everything.  │  p    close / reopen the detail pane                 │                                                   │
 │                        ││  7 in this view.        │  S    sources: auto / left / top                     │                                                   │
-│                        ││                         │                                                      │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │  P    detail: auto / right / left / top / bottom     │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │                                                      │                                                   │
 │                        ││                         │Change                                                │                                                   │
 │                        ││                         │  s /  pick projects in show filters                  │                                                   │
 │                        ││                         │                                                      │                                                   │
@@ -37,7 +38,6 @@ expression: text(&render(&mut a))
 │                        ││                         │                                                      │                                                   │
 │                        ││                         │esc or ? to close                                     │                                                   │
 │                        ││                         ╰──────────────────────────────────────────────────────╯                                                   │
-│                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯

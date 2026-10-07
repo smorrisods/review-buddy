@@ -52,7 +52,11 @@ fn click(app: &mut App, column: u16, row: u16) {
 }
 
 fn options(sources: SourcesLayout, detail: DetailMode) -> Options {
-    Options { sources, detail }
+    Options {
+        sources,
+        detail,
+        ..Options::default()
+    }
 }
 
 macro_rules! frames {
@@ -156,12 +160,12 @@ fn the_border_markers_toggle_the_detail_pane() {
 
 #[test]
 fn a_closed_detail_pane_gives_rows_the_full_width() {
-    let mut open = app("liminal-hq", (107, 30), Options::default());
-    let mut closed = app(
-        "liminal-hq",
-        (107, 30),
-        options(SourcesLayout::Auto, DetailMode::Closed),
-    );
+    let side = |detail| Options {
+        position: review_buddy::config::DetailPosition::Right,
+        ..options(SourcesLayout::Auto, detail)
+    };
+    let mut open = app("liminal-hq", (107, 30), side(DetailMode::Auto));
+    let mut closed = app("liminal-hq", (107, 30), side(DetailMode::Closed));
     let long = |s: &str| s.lines().filter(|l| l.contains('…')).count();
     assert!(long(&text(&render(&mut closed))) < long(&text(&render(&mut open))));
 }

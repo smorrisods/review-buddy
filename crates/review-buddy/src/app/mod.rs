@@ -97,6 +97,8 @@ pub enum Action {
     ToggleDetail,
     /// Cycle where the Sources sit: auto, left, top.
     CycleSources,
+    /// Cycle where Detail sits: auto, right, left, top, bottom.
+    CyclePosition,
     /// Open the current change (or its diff page) in the browser.
     Open,
     /// Copy the current change's URL.

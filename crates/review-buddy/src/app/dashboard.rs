@@ -173,9 +173,15 @@ pub fn focus_order(width: u16, options: layout::Options) -> Vec<Pane> {
     if !options.collapsed(width) {
         order.push(Pane::Sources);
     }
-    order.push(Pane::Queue);
-    if options.detail_open() {
-        order.push(Pane::Detail);
+    if !options.detail_open() {
+        order.push(Pane::Queue);
+    } else if matches!(
+        options.place(width),
+        layout::Place::Left | layout::Place::Top
+    ) {
+        order.extend([Pane::Detail, Pane::Queue]);
+    } else {
+        order.extend([Pane::Queue, Pane::Detail]);
     }
     order
 }
@@ -227,6 +233,9 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
         }
         KeyCode::Char('S') => cycle_sources(app),
         KeyCode::Char('p') => toggle_detail(app),
+        KeyCode::Char('P') => cycle_position(app),
+        KeyCode::PageDown if focus == Pane::Detail => page_detail(app, true),
+        KeyCode::PageUp if focus == Pane::Detail => page_detail(app, false),
         KeyCode::Char('a') if has_change => chip_pressed(app, Chip::Approve),
         KeyCode::Char('c') if has_change => chip_pressed(app, Chip::Comment),
         KeyCode::Char('x') if has_change => chip_pressed(app, Chip::RequestChanges),
@@ -382,6 +391,27 @@ pub fn cycle_sources(app: &mut App) -> Vec<Cmd> {
     app.mark_dirty();
     let text = format!("Sources: {}", app.layout.sources.as_str());
     super::update::set_status(app, Notice::new(NoticeKind::Info, text))
+}
+
+pub fn cycle_position(app: &mut App) -> Vec<Cmd> {
+    app.layout.position = app.layout.next_position();
+    on_resize(app);
+    ensure_visible(app);
+    app.mark_dirty();
+    let text = format!("Detail position: {}", app.layout.position.as_str());
+    super::update::set_status(app, Notice::new(NoticeKind::Info, text))
+}
+
+fn page_detail(app: &mut App, down: bool) -> Vec<Cmd> {
+    let page = app.size.1.saturating_sub(2) / 3;
+    let max = detail::max_scroll(app);
+    let s = &mut app.dashboard.detail_scroll;
+    *s = if down {
+        s.saturating_add(page.max(1)).min(max)
+    } else {
+        s.saturating_sub(page.max(1))
+    };
+    Vec::new()
 }
 
 fn cycle_focus(app: &mut App, step: isize) -> Vec<Cmd> {

@@ -4,7 +4,7 @@
 
 | Applied | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.sources`, `ui.detail`, `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.sources`, `ui.detail`, `ui.detail_position` (and `REVIEW_BUDDY_DETAIL_POSITION`), `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
 
 ## File locations (XDG Base Directory)
 
@@ -58,7 +58,7 @@ Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at,
 
 ## `[ui]`
 
-Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `reduced_motion`, `sources` and `detail`.
+Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `reduced_motion`, `sources`, `detail` and `detail_position`.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -66,6 +66,7 @@ Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `re
 | `layout` | `"panes"` | `panes` · `split` · `queue`. Only `panes` exists today |
 | `sources` | `"auto"` | `auto` · `left` · `top`. Where the Sources sit. `auto` shows the pane at 130 columns or more and the tab strip below; `left` always shows the pane; `top` always shows the strip, which frees 26 columns for the Queue and Detail. `S` cycles it for the session |
 | `detail` | `"auto"` | `auto` · `open` · `closed`. `closed` starts with the Detail pane closed, so the Queue uses the full width; `auto` and `open` show it. `p` toggles it for the session. Neither key is saved to the file |
+| `detail_position` | `"auto"` | `auto` · `right` · `left` · `top` · `bottom`. Where the Detail pane sits relative to the Queue. `auto` puts it on the right when the terminal is at least 110 columns wide and the Queue (48) and Detail (50) fit side by side, otherwise below the Queue. `left` swaps the two panes; `top` and `bottom` stack them, giving the Queue about 55 percent of the height and at least 8 rows. The env var `REVIEW_BUDDY_DETAIL_POSITION` sets it for one run, and `P` cycles it for the session. Not saved to the file from the key |
 | `jax` | `true` | Jax is not drawn yet |
 | `reduced_motion` | `false` | Swaps the refresh spinner for a still glyph; will also freeze Jax and disable blinking cursors. The env var `REVIEW_BUDDY_REDUCED_MOTION` sets it |
 | `unicode` | `true` | `false` = ASCII glyphs and plain borders. Not applied yet |

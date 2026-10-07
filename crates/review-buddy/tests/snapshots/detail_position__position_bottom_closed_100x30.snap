@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/detail_position.rs
+expression: text(& render(& mut app))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
+╭ queue ───────────────────────────────────────────────────────────────────────────────── ▲ detail ╮
+│  Waiting on you · 2                                                                              │
+│▌ ◐ Add a menu bar and keyboard-driven menus                                                   2h │
+│▌ GH review-buddy#214 · ada · review requested                                                    │
+│  ● Raise muted text contrast in the light theme                                               5h │
+│  GH review-buddy#209 · jo · approved by you                                                      │
+│                                                                                                  │
+│  Worth a look · 2                                                                                │
+│  ✕ Cache pipeline status lookups                                                              7h │
+│  GL flow!1182 · priya · you're mentioned                                                         │
+│  ● Tidy zsh startup                                                                           1d │
+│  GH dotfiles#31 · smorris · yours                                                                │
+│                                                                                                  │
+│  Can wait · 1                                                                                    │
+│  · Clarify the install steps                                                                  3d │
+│  GL notes!12 · kai · approved by you                                                             │
+│                                                                                                  │
+│  ▸ Noise · 2 bot updates · ⏎ to expand                                                           │
+│                                                                                                  │
+│  ── That's everything.                                                                           │
+│  7 in this view.                                                                                 │
+│                                                                                                  │
+│                                                                                                  │
+│                                                                                                  │
+│                                                                                                  │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  p show detail  ? help  T theme  q quit

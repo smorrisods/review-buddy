@@ -89,11 +89,30 @@ fn apply_env(config: &mut Config, env: &dyn Env) {
     if let Some(theme) = env.var("REVIEW_BUDDY_THEME").filter(|v| !v.is_empty()) {
         config.ui.theme = theme;
     }
+    if let Some(position) = env
+        .var("REVIEW_BUDDY_DETAIL_POSITION")
+        .and_then(|v| parse_position(&v))
+    {
+        config.ui.detail_position = position;
+    }
     if let Some(v) = env.var("REVIEW_BUDDY_REDUCED_MOTION") {
         if matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes") {
             config.ui.reduced_motion = true;
         }
     }
+}
+
+/// Reads `REVIEW_BUDDY_DETAIL_POSITION`; an unknown value is ignored, like the other env settings.
+pub fn parse_position(value: &str) -> Option<DetailPosition> {
+    [
+        DetailPosition::Auto,
+        DetailPosition::Right,
+        DetailPosition::Left,
+        DetailPosition::Top,
+        DetailPosition::Bottom,
+    ]
+    .into_iter()
+    .find(|p| p.as_str() == value.trim().to_ascii_lowercase())
 }
 
 impl Config {
@@ -257,6 +276,34 @@ mod tests {
         let d = load(&[("/c.toml", "")]).unwrap();
         assert_eq!(d.config.ui.sources, SourcesLayout::Auto);
         assert_eq!(d.config.ui.detail, DetailMode::Auto);
+    }
+
+    #[test]
+    fn detail_position_parses_defaults_and_reads_the_env() {
+        let l = load(&[("/c.toml", "[ui]\ndetail_position = \"left\"\n")]).unwrap();
+        assert_eq!(l.config.ui.detail_position, DetailPosition::Left);
+        let d = load(&[("/c.toml", "")]).unwrap();
+        assert_eq!(d.config.ui.detail_position, DetailPosition::Auto);
+        let inputs = vec![(PathBuf::from("/c.toml"), String::new())];
+        let e = env().with_var("REVIEW_BUDDY_DETAIL_POSITION", "Bottom");
+        let l = LoadedConfig::from_texts(&inputs, &e).unwrap();
+        assert_eq!(l.config.ui.detail_position, DetailPosition::Bottom);
+        let e = env().with_var("REVIEW_BUDDY_DETAIL_POSITION", "sideways");
+        let l = LoadedConfig::from_texts(&inputs, &e).unwrap();
+        assert_eq!(l.config.ui.detail_position, DetailPosition::Auto);
+    }
+
+    #[test]
+    fn a_bad_detail_position_names_the_file_line_and_choices() {
+        let e = load(&[(
+            "/c/config.toml",
+            "[ui]\njax = true\ndetail_position = \"middle\"\n",
+        )])
+        .unwrap_err();
+        assert_eq!(e.line(), Some(3));
+        let msg = e.to_string();
+        assert!(msg.starts_with("/c/config.toml:3:"), "{msg}");
+        assert!(msg.contains("bottom") && msg.contains("auto"), "{msg}");
     }
 
     #[test]

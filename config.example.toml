@@ -9,6 +9,7 @@ theme = "liminal-hq"        # liminal-hq | afterglow-dark | afterglow-light | an
 layout = "panes"            # panes | split | queue   (L cycles)
 sources = "auto"            # auto | left | top  (S cycles for the session; auto = pane at 130+ columns)
 detail = "auto"             # auto | open | closed  (p toggles for the session)
+detail_position = "auto"    # auto | right | left | top | bottom  (P cycles for the session; REVIEW_BUDDY_DETAIL_POSITION for one run; auto = right at 110+ columns, else below the Queue)
 jax = true                  # J toggles
 reduced_motion = false
 unicode = true

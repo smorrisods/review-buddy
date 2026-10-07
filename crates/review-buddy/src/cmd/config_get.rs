@@ -50,6 +50,7 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     put("ui.layout", json!(ui.layout.as_str()));
     put("ui.sources", json!(ui.sources.as_str()));
     put("ui.detail", json!(ui.detail.as_str()));
+    put("ui.detail_position", json!(ui.detail_position.as_str()));
     put("ui.jax", json!(ui.jax));
     put("ui.reduced_motion", json!(ui.reduced_motion));
     put("ui.unicode", json!(ui.unicode));
@@ -155,6 +156,10 @@ fn origin_of(key: &str, files: &[(PathBuf, toml::Table)], env: &dyn Env) -> Stri
             .var("REVIEW_BUDDY_BACKGROUND")
             .filter(|v| v.parse::<rb_theme::BackgroundMode>().is_ok())
             .map(|_| "$REVIEW_BUDDY_BACKGROUND"),
+        "ui.detail_position" => env
+            .var("REVIEW_BUDDY_DETAIL_POSITION")
+            .filter(|v| crate::config::parse_position(v).is_some())
+            .map(|_| "$REVIEW_BUDDY_DETAIL_POSITION"),
         "ui.reduced_motion" => env
             .var("REVIEW_BUDDY_REDUCED_MOTION")
             .filter(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
@@ -411,6 +416,17 @@ mod tests {
         assert_eq!(
             origin_of("ui.background", &[], &env),
             "$REVIEW_BUDDY_BACKGROUND"
+        );
+    }
+
+    #[test]
+    fn detail_position_is_listed_with_the_env_origin() {
+        let all: std::collections::HashMap<_, _> = values(&Config::default()).into_iter().collect();
+        assert_eq!(all["ui.detail_position"], json!("auto"));
+        let env = env().with_var("REVIEW_BUDDY_DETAIL_POSITION", "left");
+        assert_eq!(
+            origin_of("ui.detail_position", &[], &env),
+            "$REVIEW_BUDDY_DETAIL_POSITION"
         );
     }
 

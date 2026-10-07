@@ -26,18 +26,35 @@ fn content_rect(app: &App) -> Rect {
     layout::detail_content(layout::dashboard(layout::body(app.size), app.layout).detail)
 }
 
-fn title_lines(change: &ChangeSummary, width: usize) -> Vec<String> {
+/// A short pane (Detail stacked under or over the Queue) drops the title to one line and
+/// the two blank rows, so the chips and tabs stay on screen with room for the body.
+const COMPACT_BELOW: u16 = 14;
+
+fn compact(height: u16) -> bool {
+    height < COMPACT_BELOW
+}
+
+fn title_lines(change: &ChangeSummary, width: usize, max_lines: usize) -> Vec<String> {
     let mut lines = wrap(&change.title, width);
-    if lines.len() > MAX_TITLE_LINES {
-        lines.truncate(MAX_TITLE_LINES);
-        let last = lines[MAX_TITLE_LINES - 1].clone();
-        lines[MAX_TITLE_LINES - 1] = truncate(&format!("{last}…"), width);
+    if lines.len() > max_lines {
+        lines.truncate(max_lines);
+        let last = lines[max_lines - 1].clone();
+        lines[max_lines - 1] = truncate(&format!("{last}…"), width);
     }
     lines
 }
 
-fn header_height(title: &[String]) -> u16 {
-    title.len().max(1) as u16 + FIXED_ROWS
+fn max_title_lines(height: u16) -> usize {
+    if compact(height) {
+        1
+    } else {
+        MAX_TITLE_LINES
+    }
+}
+
+fn header_height(title: &[String], height: u16) -> u16 {
+    let gaps = if compact(height) { 2 } else { 0 };
+    title.len().max(1) as u16 + FIXED_ROWS - gaps
 }
 
 /// How far the tab content can scroll.
@@ -46,7 +63,12 @@ pub fn max_scroll(app: &App) -> u16 {
         return 0;
     };
     let area = content_rect(app);
-    let header = header_height(&title_lines(change, usize::from(area.width)));
+    let title = title_lines(
+        change,
+        usize::from(area.width),
+        max_title_lines(area.height),
+    );
+    let header = header_height(&title, area.height);
     let view = area.height.saturating_sub(header);
     let body = body_lines(app, change, area.width).len();
     u16::try_from(body).unwrap_or(u16::MAX).saturating_sub(view)
@@ -74,7 +96,8 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     };
     let now = app.state.now.unwrap_or(rb_core::Timestamp(0));
     let width = usize::from(content.width);
-    let title = title_lines(change, width);
+    let short = compact(content.height);
+    let title = title_lines(change, width, max_title_lines(content.height));
     let mut y = content.y;
 
     let mut lines: Vec<(Line<'static>, u16)> = Vec::new();
@@ -121,39 +144,49 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
         1,
     ));
     for (line, _) in lines {
-        frame.render_widget(
-            Paragraph::new(line),
-            Rect::new(content.x, y, content.width, 1),
-        );
+        if y < content.bottom() {
+            frame.render_widget(
+                Paragraph::new(line),
+                Rect::new(content.x, y, content.width, 1),
+            );
+        }
         y += 1;
     }
-    y += 1;
+    if !short {
+        y += 1;
+    }
 
-    draw_strip(
-        frame,
-        content.x,
-        y,
-        content.width,
-        chips(app, change),
-        "  ",
-        hits,
-    );
-    y += 2;
-    draw_strip(
-        frame,
-        content.x,
-        y,
-        content.width,
-        tabs(app, change),
-        " ",
-        hits,
-    );
+    if y < content.bottom() {
+        draw_strip(
+            frame,
+            content.x,
+            y,
+            content.width,
+            chips(app, change),
+            "  ",
+            hits,
+        );
+    }
+    y += if short { 1 } else { 2 };
+    if y < content.bottom() {
+        draw_strip(
+            frame,
+            content.x,
+            y,
+            content.width,
+            tabs(app, change),
+            " ",
+            hits,
+        );
+    }
     y += 1;
     let rule = "─".repeat(width);
-    frame.render_widget(
-        Paragraph::new(Line::styled(rule, style::fg(palette, Role::Line))),
-        Rect::new(content.x, y, content.width, 1),
-    );
+    if y < content.bottom() {
+        frame.render_widget(
+            Paragraph::new(Line::styled(rule, style::fg(palette, Role::Line))),
+            Rect::new(content.x, y, content.width, 1),
+        );
+    }
     y += 1;
 
     let body = body_lines(app, change, content.width);
