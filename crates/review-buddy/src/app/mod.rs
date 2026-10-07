@@ -27,6 +27,7 @@ pub mod projects;
 pub mod queue;
 pub mod range;
 pub mod refresh;
+pub mod resize;
 pub mod settings;
 pub mod setup;
 pub mod show;
@@ -260,6 +261,13 @@ pub enum Cmd {
         target: std::path::PathBuf,
         sources: Vec<(String, Vec<String>)>,
     },
+    /// Write `ui.queue_width` and `ui.queue_height` into the config file at `target`; a size
+    /// that is automatic (`None`) removes its key.
+    SaveLayoutSizes {
+        target: std::path::PathBuf,
+        queue_width: Option<crate::ui::layout::Size>,
+        queue_height: Option<crate::ui::layout::Size>,
+    },
     /// Run one first-run effect (detection, a token check, the config write).
     Setup(crate::setup::Effect),
     /// Run one Settings effect (read the config, test a token, write a change).
@@ -429,6 +437,10 @@ pub struct App {
     pub reduced_motion: bool,
     /// Where Sources and Detail sit (`ui.sources`, `ui.detail`), as changed this session.
     pub layout: crate::ui::layout::Options,
+    /// The seam being dragged with the mouse.
+    pub drag: Option<resize::Drag>,
+    /// The last press on a seam, for spotting a double-click: which seam and the tick.
+    pub(crate) last_seam: Option<(crate::ui::layout::SeamKind, u64)>,
     quit_armed: bool,
     pub(crate) syntax: Syntax,
     pub(crate) ticks: u64,
@@ -471,6 +483,8 @@ impl App {
             tab_width: diffview::TAB_WIDTH,
             reduced_motion: false,
             layout: crate::ui::layout::Options::default(),
+            drag: None,
+            last_seam: None,
             quit_armed: false,
             syntax: Syntax::default(),
             ticks: 0,

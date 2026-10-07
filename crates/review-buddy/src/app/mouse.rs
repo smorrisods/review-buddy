@@ -8,7 +8,7 @@
 
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::{composer, dashboard, diff, settings, show, update, Action, App, Cmd, Screen};
+use super::{composer, dashboard, diff, resize, settings, show, update, Action, App, Cmd, Screen};
 use crate::ui::help;
 
 /// Two clicks on the same row this many ticks apart (a tick is 250 ms) make a double-click.
@@ -30,10 +30,15 @@ pub(super) fn on_mouse(app: &mut App, mouse: MouseEvent) -> Vec<Cmd> {
     }
     match mouse.kind {
         MouseEventKind::Down(MouseButton::Left) => press(app, mouse, shift),
+        MouseEventKind::Drag(MouseButton::Left) if !shift && app.drag.is_some() => {
+            resize::drag(app, mouse.column, mouse.row);
+            Vec::new()
+        }
         MouseEventKind::Drag(MouseButton::Left) if !shift && app.screen == Screen::Diff => {
             diff::on_drag(app, mouse.row);
             Vec::new()
         }
+        MouseEventKind::Up(MouseButton::Left) if app.drag.is_some() => resize::release(app),
         MouseEventKind::Up(MouseButton::Left) => {
             diff::on_release(app);
             Vec::new()
@@ -53,6 +58,12 @@ fn press(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
             }
             _ => Vec::new(),
         };
+    }
+    if hit.is_none() {
+        let double = resize::is_double(app, mouse.column, mouse.row, DOUBLE_CLICK_TICKS);
+        if let Some(cmds) = resize::press(app, mouse.column, mouse.row, double) {
+            return cmds;
+        }
     }
     match hit {
         Some(Action::DiffRow(row)) if app.screen == Screen::Diff => {

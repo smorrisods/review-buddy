@@ -25,6 +25,9 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `p` | Close or reopen the Detail pane (`ui.detail`). Closed, the Queue takes the full width and the footer adds `p show detail`. Selection and `⏎` are unchanged. Lasts for the session |
 | `S` | Cycle where the Sources sit: `auto` (pane at 130 columns or more, tabs below), `left` (always the pane) and `top` (always the tab strip). Lasts for the session (`ui.sources`) |
 | `P` | Cycle where the Detail pane sits: `auto` (right when the terminal is at least 110 columns wide and the Queue and Detail have 98 between them, otherwise below the Queue), `right`, `left`, `top` and `bottom`. Stacked, the Queue gets about 55 percent of the height (at least 8 rows) and Detail the rest, and Detail drops to a compact header so the action chips and tabs stay in view. Lasts for the session (`ui.detail_position`, `REVIEW_BUDDY_DETAIL_POSITION`) |
+| `<` / `>` | Shrink or grow the focused pane by 2 columns (or rows, when stacked): the Queue/Detail split for those panes, or the Sources width when Sources is focused (or when Detail is closed). Lasts for the session; `[` and `]` stay on the Detail tabs |
+| `=` | Reset the split next to the focused pane to its automatic size |
+| `W` | Save the current Queue width and height to `ui.queue_width` and `ui.queue_height` in the config file. Needs a config file to write to; under `--demo` nothing is written |
 | `PgUp` / `PgDn` | Scroll the Detail pane when it has focus (so does `j` / `k`, the wheel and `g` / `G`) |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
@@ -140,6 +143,7 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 
 | Where | What it does |
 |---|---|
+| Seam between Queue and Detail, or at the Sources pane's edge (the two border columns or rows next to it) | Press and drag to resize; the seam shows in the accent colour and the footer shows the size (`queue 52 columns`). Double-click resets it to automatic. Only a press that starts on the seam resizes; Shift-drag stays the terminal's |
 | Top bar theme name | Cycles the theme (`T`) |
 | Footer hints | Run the hint's action |
 | Sources rows, or the source tabs when Sources is collapsed | Show that source. Tab names are shortened to share the width (the active one stays whole while it can, long names lose their middle, counts always show). When the tabs still overflow they scroll to keep the active one in view, and `‹` / `›` step to the previous or next source |

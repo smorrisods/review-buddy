@@ -97,6 +97,15 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
                 false,
             ),
             bind(
+                "View",
+                "< >",
+                "shrink / grow the focused pane (or drag a seam)",
+                None,
+                false,
+            ),
+            bind("View", "=", "reset that split to automatic", None, false),
+            bind("View", "W", "save pane sizes to config", None, false),
+            bind(
                 "Change",
                 "s /",
                 "pick projects in show filters",

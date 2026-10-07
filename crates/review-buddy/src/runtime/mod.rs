@@ -109,6 +109,11 @@ impl Settings {
                 sources: config.ui.sources,
                 detail: config.ui.detail,
                 position: config.ui.detail_position,
+                split: crate::ui::layout::Split {
+                    queue_width: config.ui.queue_width,
+                    queue_height: config.ui.queue_height,
+                    sources_width: None,
+                },
             },
             write_target: None,
         }
@@ -225,6 +230,24 @@ fn save_hidden_projects(target: &std::path::Path, sources: &[(String, Vec<String
         Err(err) => Notice::new(
             NoticeKind::Warning,
             format!("Couldn't save the project choice: {err}"),
+        ),
+    }
+}
+
+/// Writes the pane sizes and says what happened.
+fn save_layout_sizes(
+    target: &std::path::Path,
+    queue_width: Option<crate::ui::layout::Size>,
+    queue_height: Option<crate::ui::layout::Size>,
+) -> Notice {
+    match crate::settings::edit::save_layout_sizes(target, queue_width, queue_height) {
+        Ok(()) => Notice::new(
+            NoticeKind::Success,
+            format!("Saved your pane sizes to {}.", target.display()),
+        ),
+        Err(err) => Notice::new(
+            NoticeKind::Warning,
+            format!("Couldn't save the pane sizes: {err}"),
         ),
     }
 }
@@ -398,6 +421,20 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
             let tx = tx.clone();
             tokio::task::spawn_blocking(move || {
                 let _ = tx.send(Msg::Notify(save_hidden_projects(&target, &sources)));
+            });
+        }
+        Cmd::SaveLayoutSizes {
+            target,
+            queue_width,
+            queue_height,
+        } => {
+            let tx = tx.clone();
+            tokio::task::spawn_blocking(move || {
+                let _ = tx.send(Msg::Notify(save_layout_sizes(
+                    &target,
+                    queue_width,
+                    queue_height,
+                )));
             });
         }
         Cmd::Setup(effect) => {

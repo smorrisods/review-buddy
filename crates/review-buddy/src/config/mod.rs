@@ -307,6 +307,34 @@ mod tests {
     }
 
     #[test]
+    fn queue_sizes_parse_as_columns_or_percentages() {
+        use crate::ui::layout::Size;
+        let l = load(&[(
+            "/c.toml",
+            "[ui]\nqueue_width = 52\nqueue_height = \"40%\"\n",
+        )])
+        .unwrap();
+        assert_eq!(l.config.ui.queue_width, Some(Size::Cells(52)));
+        assert_eq!(l.config.ui.queue_height, Some(Size::Percent(40)));
+        assert_eq!(load(&[]).unwrap().config.ui.queue_width, None);
+    }
+
+    #[test]
+    fn bad_queue_sizes_name_the_file_and_line() {
+        for (text, line) in [
+            ("[ui]\njax = true\nqueue_width = \"wide\"\n", 3),
+            ("[ui]\nqueue_width = 0\n", 2),
+            ("[ui]\nqueue_height = \"150%\"\n", 2),
+            ("[ui]\nqueue_height = true\n", 2),
+        ] {
+            let e = load(&[("/c/config.toml", text)]).unwrap_err();
+            assert_eq!(e.line(), Some(line), "{text}");
+            let msg = e.to_string();
+            assert!(msg.starts_with(&format!("/c/config.toml:{line}:")), "{msg}");
+        }
+    }
+
+    #[test]
     fn bad_layout_values_name_the_file_line_and_choices() {
         let e = load(&[(
             "/c/config.toml",
