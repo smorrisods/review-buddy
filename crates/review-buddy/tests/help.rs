@@ -55,6 +55,8 @@ fn press(app: &mut App, code: KeyCode) -> Vec<Cmd> {
 }
 
 fn render(app: &mut App) -> Buffer {
+    // The snapshots describe the Unix overlay, which lists `⌃Z suspend`; Windows doesn't.
+    review_buddy::ui::chrome::set_suspend_listed(true);
     let (w, h) = app.size;
     let mut terminal = Terminal::new(TestBackend::new(w, h)).unwrap();
     let mut hits = HitMap::default();
