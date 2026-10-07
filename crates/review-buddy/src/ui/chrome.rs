@@ -374,6 +374,9 @@ fn wordmark_spans(app: &App) -> Vec<Span<'static>> {
         .collect()
 }
 
+/// Blank columns kept between the last key hint and the right-aligned status.
+const STATUS_GAP: u16 = 2;
+
 pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     let palette = &app.palette;
     let hints = if app.diff_state().is_some_and(|s| s.composer.is_some()) {
@@ -433,11 +436,15 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
             .last_refreshed
             .map(|at| fit(format!("refreshed {}", refresh::hhmm(at)), Role::Muted))
             .filter(|(t, _)| {
-                let room = area.width.saturating_sub(2 + width(t));
+                let room = area.width.saturating_sub(2 + width(t) + STATUS_GAP);
                 place_hints(&hints, room).len() == hints.len()
             });
     }
-    let status_w = status.as_ref().map_or(0, |(t, _)| width(t) + 1);
+    // The status is right-aligned; keep `STATUS_GAP` blank columns between it and the last hint
+    // so the two never read as one word.
+    let status_w = status
+        .as_ref()
+        .map_or(0, |(t, _)| width(t) + 1 + STATUS_GAP);
     let hint_room = area.width.saturating_sub(1 + status_w);
 
     let mut spans = vec![Span::raw(" ")];
@@ -563,6 +570,67 @@ mod tests {
         assert!(keys(&flow).contains(&"← → buttons".to_string()));
         flow.token_open = true;
         assert!(!keys(&flow).iter().any(|k| k.starts_with('⌫')));
+    }
+
+    #[test]
+    fn the_footer_keeps_a_gap_before_the_status_and_never_cuts_a_hint() {
+        use crate::app::{AppConfig, Screen};
+        use ratatui::{backend::TestBackend, Terminal};
+        use rb_theme::ColourDepth;
+        for screen in [Screen::Dashboard, Screen::Diff, Screen::Settings] {
+            for width in 60..=200u16 {
+                let mut app = App::new(AppConfig {
+                    theme_id: "liminal-hq".into(),
+                    depth: ColourDepth::TrueColour,
+                    no_color: true,
+                    size: (width, 30),
+                });
+                app.screen = screen;
+                app.state.last_refreshed = Some(rb_core::Timestamp(1_790_000_000));
+                let mut terminal = Terminal::new(TestBackend::new(width, 1)).unwrap();
+                terminal
+                    .draw(|f| {
+                        let mut hits = HitMap::default();
+                        draw_footer(f, &app, f.area(), &mut hits);
+                    })
+                    .unwrap();
+                let row: String = terminal
+                    .backend()
+                    .buffer()
+                    .content()
+                    .iter()
+                    .map(|c| c.symbol())
+                    .collect();
+                if let Some(at) = row.find("refreshed ") {
+                    let before = &row[..at];
+                    assert!(
+                        before.ends_with("  "),
+                        "{screen:?} at {width}: fewer than two blank columns before the status: {row:?}"
+                    );
+                }
+                // No hint label is cut mid-word: every word in the row is a whole word of some
+                // hint or the status.
+                let known: Vec<String> = hints_for(screen)
+                    .iter()
+                    .flat_map(|h| {
+                        h.key
+                            .split_whitespace()
+                            .chain(h.label.split_whitespace())
+                            .map(str::to_string)
+                            .collect::<Vec<_>>()
+                    })
+                    .chain(["refreshed".to_string()])
+                    .collect();
+                for word in row.split_whitespace() {
+                    let is_time =
+                        word.contains(':') && word.chars().all(|c| c.is_ascii_digit() || c == ':');
+                    assert!(
+                        known.iter().any(|k| k == word) || is_time,
+                        "{screen:?} at {width}: {word:?} is not a whole hint word: {row:?}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
