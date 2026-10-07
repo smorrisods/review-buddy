@@ -33,6 +33,7 @@ pub fn command(home: &Path) -> CommandBuilder {
     cmd.env("PATH", "/usr/bin:/bin");
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
+    cmd.env("REVIEW_BUDDY_KITTY_KEYS", "0");
     cmd.env("HOME", home);
     for var in [
         "XDG_CONFIG_HOME",
