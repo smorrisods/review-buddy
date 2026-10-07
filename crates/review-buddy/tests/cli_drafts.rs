@@ -72,6 +72,7 @@ fn list_with_nothing_saved_prints_nothing_and_succeeds() {
         .stdout(predicate::str::is_empty());
 }
 
+#[cfg(feature = "demo")]
 #[test]
 fn demo_lists_the_demo_worlds_comments_without_touching_disk() {
     let s = Sandbox::new();
@@ -116,6 +117,7 @@ fn clear_needs_yes_then_removes_everything_and_demo_removes_nothing() {
     save(&s, 7);
     save(&s, 8);
     s.cmd().args(["drafts", "clear"]).assert().code(3);
+    #[cfg(feature = "demo")]
     s.cmd()
         .args(["--demo", "drafts", "clear", "--yes"])
         .assert()
