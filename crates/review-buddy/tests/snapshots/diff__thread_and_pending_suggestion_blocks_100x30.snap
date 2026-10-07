@@ -23,11 +23,11 @@ expression: shown
 │                                ││         47 +     pub fn select_prev(&mut self) {               │
 │                                ││         48 +         if self.items.is_empty() {                │
 │                                ││         49 +             return;                               │
-│                                ││         50 +         }                                         │
-│ Your review · pending ─────────││›        51 +         self.selected = self.selected.checked_sub…│
-│1 suggestion · 0 comments       ││              ╭─ pending suggestion · line 51 ─────────────────╮│
-│0 of 3 files viewed             ││              │ Fewer branches this way:                       ││
-│Your review: not started        ││              │ -         self.selected = self.selected.check… ││
+│ Your review · pending ─────────││         50 +         }                                         │
+│1 suggestion · 0 comments       ││›        51 +         self.selected = self.selected.checked_sub…│
+│0 of 3 files viewed             ││              ╭─ pending suggestion · line 51 ─────────────────╮│
+│Your review: not started        ││              │ Fewer branches this way:                       ││
+│  menus.rs:51 Fewer branches th…││              │ -         self.selected = self.selected.check… ││
 │a approve · c comment           ││              │ +         self.selected = (self.selected + se… ││
 │x request changes · R review    ││              ╰────────────────────────────────────────────────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯

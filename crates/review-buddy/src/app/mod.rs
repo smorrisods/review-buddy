@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
 use rb_core::{
-    ChangeId, ChangeSummary, Check, Comment, FeatureAction, ProbeOutcome, ReviewDraft, Source,
-    SourceId, Thread, ThreadId, Timestamp, Verdict,
+    ChangeId, ChangeSummary, Check, Comment, CommentId, FeatureAction, ProbeOutcome, ReviewDraft,
+    Source, SourceId, Thread, ThreadId, Timestamp, Verdict,
 };
 use rb_theme::{
     BackgroundMode, BackgroundSettings, ColourDepth, Palette, Theme, BUILTIN_IDS, DEFAULT_THEME_ID,
@@ -14,15 +14,18 @@ use rb_theme::{
 
 use crate::ui::HitMap;
 
+pub mod comments;
 pub mod composer;
 mod dashboard;
 mod diff;
 pub mod diffview;
+pub mod drafts;
 pub mod editor;
 pub mod failure;
 pub mod links;
 mod live;
 mod mouse;
+pub mod pending;
 pub mod projects;
 pub mod queue;
 pub mod range;
@@ -125,6 +128,14 @@ pub enum Action {
     Chip(Chip),
     /// Leave the diff for the dashboard.
     CloseDiff,
+    /// Pick the nth button of a three-way confirmation.
+    Choose(usize),
+    /// Open the Pending reviews list.
+    OpenPending,
+    /// Select the nth row of the Pending reviews list.
+    PendingRow(usize),
+    /// Jump to the nth pending comment listed in the Files pane.
+    JumpComment(usize),
     /// Choose the nth file of the diff.
     DiffFile(usize),
     /// Put the diff cursor at the nth row, or the nearest line to it.
@@ -171,6 +182,8 @@ pub enum Msg {
     Tick,
     /// The debounce after a layout change passed: write the remembered layout.
     SaveSessionDue,
+    /// The debounce after a draft change passed: write the changed drafts.
+    SaveDraftsDue,
     FocusGained,
     FocusLost,
     Paste(String),
@@ -225,6 +238,23 @@ pub enum Msg {
         result: Result<(), String>,
         demo: bool,
     },
+    /// The answer to a [`Cmd::EditComment`].
+    CommentEdited {
+        id: ChangeId,
+        thread: ThreadId,
+        comment: CommentId,
+        body: String,
+        result: Result<(), String>,
+        demo: bool,
+    },
+    /// The answer to a [`Cmd::DeleteComment`].
+    CommentDeleted {
+        id: ChangeId,
+        thread: ThreadId,
+        comment: CommentId,
+        result: Result<(), String>,
+        demo: bool,
+    },
     /// The result of a first-run [`Cmd::Setup`] effect.
     Setup(crate::setup::Input),
     /// What a source can do, from its capability probe. `at` is when the instance was asked.
@@ -271,6 +301,24 @@ pub enum Cmd {
         id: ChangeId,
         thread: ThreadId,
         body: String,
+    },
+    /// Rewrite one of your pending comments on the forge.
+    EditComment {
+        id: ChangeId,
+        thread: ThreadId,
+        comment: CommentId,
+        body: String,
+    },
+    /// Remove one of your pending comments from the forge.
+    DeleteComment {
+        id: ChangeId,
+        thread: ThreadId,
+        comment: CommentId,
+    },
+    /// Write changed drafts into `dir`; `None` removes that change's file.
+    SaveDrafts {
+        dir: std::path::PathBuf,
+        writes: Vec<(ChangeId, Option<crate::drafts::StoredDraft>)>,
     },
     /// Write each source's `hide_repos` into the config file at `target`.
     SaveHiddenProjects {
@@ -435,6 +483,11 @@ pub struct App {
     pub state: AppState,
     pub dashboard: Dashboard,
     pub diff: Option<DiffState>,
+    /// Your unsent review comments per change: kept when you leave a diff, saved to disk
+    /// unless they are memory only.
+    pub drafts: drafts::Drafts,
+    /// The Pending reviews list, while it is on screen.
+    pub pending: Option<pending::PendingList>,
     /// The first-run flow, while it is on screen.
     pub setup: Option<crate::setup::Flow>,
     /// Settings, while it is on screen.
@@ -498,6 +551,8 @@ impl App {
             state: AppState::default(),
             dashboard: Dashboard::default(),
             diff: None,
+            drafts: drafts::Drafts::default(),
+            pending: None,
             setup: None,
             settings: None,
             demo: false,
@@ -550,13 +605,14 @@ impl App {
 
     /// Whether quitting would lose review text that hasn't been sent.
     pub fn has_unsent_drafts(&self) -> bool {
-        self.diff.as_ref().is_some_and(|s| {
-            s.data.as_ref().is_some_and(|d| !d.draft.is_empty())
-                || s.composer
-                    .as_ref()
-                    .is_some_and(composer::Composer::is_dirty)
-                || s.review.as_ref().is_some_and(|r| !r.summary.is_blank())
-        })
+        !self.drafts.is_empty()
+            || self.diff.as_ref().is_some_and(|s| {
+                s.data.as_ref().is_some_and(|d| !d.draft.is_empty())
+                    || s.composer
+                        .as_ref()
+                        .is_some_and(composer::Composer::is_dirty)
+                    || s.review.as_ref().is_some_and(|r| !r.summary.is_blank())
+            })
     }
 
     /// Switches to a built-in theme by id; unknown ids are ignored.

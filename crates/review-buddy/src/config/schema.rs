@@ -62,6 +62,7 @@ choice!(Background { Theme = "theme", Yes = "yes", No = "no" });
 choice!(MergeMethod { Merge = "merge", Squash = "squash", Rebase = "rebase" });
 choice!(DiffView { Unified = "unified", SideBySide = "side-by-side" });
 choice!(CloneIfMissing { Ask = "ask", Always = "always", Never = "never" });
+choice!(DraftStorage { Local = "local", Off = "off" });
 choice!(ShowFilter { Reviewing = "reviewing", Assigned = "assigned", Authored = "authored", Drafts = "drafts", Noise = "noise" });
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -88,6 +89,9 @@ pub struct UiConfig {
     pub mouse: bool,
     /// Remember the panel layout between runs in the state directory's `session.toml`.
     pub remember_layout: bool,
+    /// Where unsent review comments are kept: `local` saves them to the state directory,
+    /// `off` keeps them in memory only.
+    pub drafts: DraftStorage,
     pub date_locale: String,
 }
 
@@ -109,6 +113,7 @@ impl Default for UiConfig {
             theme_background: BTreeMap::new(),
             mouse: true,
             remember_layout: true,
+            drafts: DraftStorage::Local,
             date_locale: "en-CA".into(),
         }
     }

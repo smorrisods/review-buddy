@@ -50,11 +50,23 @@ pub struct BlockLine {
     pub text: String,
 }
 
+/// Where a block's text comes from, so a pending comment can be found again to edit or delete.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Origin {
+    /// Not something you can edit here.
+    None,
+    /// The nth comment of your local draft.
+    Draft(usize),
+    /// The nth thread of the change, which holds a pending comment of yours on the forge.
+    Thread(usize),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Block {
     pub kind: BlockKind,
     pub title: String,
     pub lines: Vec<BlockLine>,
+    pub origin: Origin,
 }
 
 impl Block {
@@ -71,6 +83,8 @@ pub struct Inputs<'a> {
     pub drafts: &'a [DraftComment],
     pub now: Timestamp,
     pub tab_width: u8,
+    /// The change's head moved since the draft was written.
+    pub stale: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -111,10 +125,11 @@ impl Rows {
             }
         };
 
-        for thread in inputs
+        for (index, thread) in inputs
             .threads
             .iter()
-            .filter(|t| t.path.as_deref() == Some(file.path.as_str()))
+            .enumerate()
+            .filter(|(_, t)| t.path.as_deref() == Some(file.path.as_str()))
         {
             let at = thread
                 .line
@@ -125,20 +140,31 @@ impl Rows {
                     })
                 })
                 .filter(|_| !thread.outdated);
-            let block = thread_block(thread, inputs.now, text_width);
+            let mut block = thread_block(thread, inputs.now, text_width);
+            if thread.comments.iter().any(|c| c.pending) {
+                block.origin = Origin::Thread(index);
+            }
             place(block, at, &mut blocks);
         }
-        for draft in inputs.drafts.iter().filter(|d| d.path == file.path) {
+        for (index, draft) in inputs
+            .drafts
+            .iter()
+            .enumerate()
+            .filter(|(_, d)| d.path == file.path)
+        {
             let at = patch.find_by_anchor(Anchor {
                 side: draft.side,
                 line: draft.line,
             });
             let originals = original_lines(file, draft);
-            place(
-                draft_block(draft, originals, text_width, inputs.tab_width),
-                at,
-                &mut blocks,
-            );
+            let mut block = draft_block(draft, originals, text_width, inputs.tab_width);
+            if at.is_none() {
+                block.title.push_str(" · outdated");
+            } else if inputs.stale {
+                block.title.push_str(" · code changed");
+            }
+            block.origin = Origin::Draft(index);
+            place(block, at, &mut blocks);
         }
 
         let mut rows = Vec::new();
@@ -190,6 +216,25 @@ impl Rows {
 
     pub fn line_count(&self) -> usize {
         self.line_rows.len()
+    }
+
+    /// The editable blocks that hang from the line at `row`, in the order they're drawn.
+    pub fn attached(&self, row: usize) -> Vec<(u32, Origin)> {
+        let mut found = Vec::new();
+        let mut at = row + 1;
+        while let Some(Row::Block { block, line }) = self.rows.get(at).copied() {
+            if line == 0 {
+                if let Some(b) = self
+                    .blocks
+                    .get(block as usize)
+                    .filter(|b| b.origin != Origin::None)
+                {
+                    found.push((block, b.origin));
+                }
+            }
+            at += 1;
+        }
+        found
     }
 
     pub fn hunk_count(&self) -> usize {
@@ -358,6 +403,7 @@ fn thread_block(thread: &Thread, now: Timestamp, width: usize) -> Block {
         },
         title,
         lines,
+        origin: Origin::None,
     }
 }
 
@@ -389,6 +435,7 @@ fn draft_block(draft: &DraftComment, originals: Vec<String>, width: usize, tab_w
         kind: BlockKind::Pending { suggestion },
         title: format!("pending {what} · {place}"),
         lines,
+        origin: Origin::None,
     }
 }
 
@@ -526,6 +573,7 @@ pub(crate) mod tests {
                 drafts,
                 now: Timestamp(7_200),
                 tab_width: TAB_WIDTH,
+                stale: false,
             },
             width,
         )
@@ -704,6 +752,7 @@ pub(crate) mod tests {
                 drafts: &[],
                 now: Timestamp(0),
                 tab_width: TAB_WIDTH,
+                stale: false,
             },
             100,
         );
@@ -744,6 +793,7 @@ pub(crate) mod tests {
                 drafts: &[],
                 now: Timestamp(0),
                 tab_width: TAB_WIDTH,
+                stale: false,
             },
             120,
         );

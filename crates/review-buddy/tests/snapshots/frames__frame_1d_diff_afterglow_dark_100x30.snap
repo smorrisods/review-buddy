@@ -23,11 +23,11 @@ expression: text(& render(& mut app))
 │                                ││›        44 +         self.selected = (self.selected + 1) % sel…│
 │                                ││              ╭─ thread · line 44 ─────────────────────────────╮│
 │                                ││              │ jo · 1d                                        ││
-│                                ││              │ Should this wrap round to the first item? Most ││
-│ Your review · pending ─────────││              │ menus I use stop at the end.                   ││
-│1 suggestion · 0 comments       ││              │ ada · 20h                                      ││
-│0 of 3 files viewed             ││              │ I went with wrapping so a held key never gets  ││
-│Your review: not started        ││              │ stuck. Happy to make it configurable if you'd  ││
+│ Your review · pending ─────────││              │ Should this wrap round to the first item? Most ││
+│1 suggestion · 0 comments       ││              │ menus I use stop at the end.                   ││
+│0 of 3 files viewed             ││              │ ada · 20h                                      ││
+│Your review: not started        ││              │ I went with wrapping so a held key never gets  ││
+│  menus.rs:51 Fewer branches th…││              │ stuck. Happy to make it configurable if you'd  ││
 │a approve · c comment           ││              │ rather.                                        ││
 │x request changes · R review    ││              ╰────────────────────────────────────── r reply ─╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯

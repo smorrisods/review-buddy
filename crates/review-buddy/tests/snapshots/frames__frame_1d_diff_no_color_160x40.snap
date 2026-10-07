@@ -33,11 +33,11 @@ expression: plain_dump(& mut app)
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
 │                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │
-│                                ││         48 +         if self.items.is_empty() {                                                                            │
-│ Your review · pending ─────────││         49 +             return;                                                                                           │
-│1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
-│0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
-│Your review: not started        ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
+│ Your review · pending ─────────││         48 +         if self.items.is_empty() {                                                                            │
+│1 suggestion · 0 comments       ││         49 +             return;                                                                                           │
+│0 of 3 files viewed             ││         50 +         }                                                                                                     │
+│Your review: not started        ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
+│  menus.rs:51 Fewer branches th…││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
 │a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││
 │x request changes · R review    ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -202,12 +202,12 @@ expression: plain_dump(& mut app)
 30:34 B "│"
 30:37 D "       47"
 30:159 B "│"
-31:0 D "│"
-31:33 D "│"
+31:0 D "│ Your review · pending ─────────│"
 31:34 B "│"
 31:37 D "       48"
 31:159 B "│"
-32:0 D "│ Your review · pending ─────────│"
+32:0 D "│"
+32:33 D "│"
 32:34 B "│"
 32:37 D "       49"
 32:159 B "│"
@@ -222,6 +222,7 @@ expression: plain_dump(& mut app)
 34:37 D "       51"
 34:159 B "│"
 35:0 D "│"
+35:1 B "  menus.rs:51 Fewer branches th…"
 35:33 D "│"
 35:34 B "│"
 35:49 B "╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│"

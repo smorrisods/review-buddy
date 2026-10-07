@@ -100,6 +100,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
             bind("Change", "y", "copy", copy, true),
             bind("Change", "s", "show filters", Some(Action::OpenShow), true),
             bind(
+                "Change",
+                "D",
+                "pending reviews: your saved drafts",
+                Some(Action::OpenPending),
+                false,
+            ),
+            bind(
                 "View",
                 "p",
                 "close / reopen the detail pane",
@@ -177,6 +184,21 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 "Review",
                 "r",
                 "reply to the thread on this line",
+                None,
+                false,
+            ),
+            bind(
+                "Review",
+                "e / ⏎",
+                "edit the pending comment on this line",
+                None,
+                false,
+            ),
+            bind("Review", "d / del", "delete it (asks first)", None, false),
+            bind(
+                "Review",
+                ", / .",
+                "previous / next comment on this line",
                 None,
                 false,
             ),
@@ -281,12 +303,19 @@ pub fn first_run_hints(flow: &crate::setup::Flow) -> Vec<Hint> {
 }
 
 /// The footer while a composer is open.
-pub fn composer_hints() -> Vec<Hint> {
+pub fn composer_hints(editing: bool) -> Vec<Hint> {
     let hint = |key, label| Hint {
         key,
         label,
         action: None,
     };
+    if editing {
+        return vec![
+            hint("⏎", "save"),
+            hint("⇧⏎", "newline"),
+            hint("esc", "cancel"),
+        ];
+    }
     vec![
         hint("⏎", "add to review"),
         hint("⌃⏎", "post now"),
@@ -386,8 +415,11 @@ const STATUS_GAP: u16 = 2;
 
 pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     let palette = &app.palette;
-    let hints = if app.diff_state().is_some_and(|s| s.composer.is_some()) {
-        composer_hints()
+    let hints = if let Some(composer) = app.diff_state().and_then(|s| s.composer.as_ref()) {
+        composer_hints(matches!(
+            composer.target,
+            crate::app::composer::Target::Edit { .. }
+        ))
     } else if let Some(hints) = app
         .settings
         .as_ref()
@@ -416,6 +448,20 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
                     key: "r",
                     label: "reply",
                     action: Some(Action::ReplyAt(row)),
+                },
+            );
+        }
+        if app.screen == Screen::Dashboard && !app.drafts.is_empty() {
+            let at = hints
+                .iter()
+                .position(|h| h.key == "?")
+                .unwrap_or(hints.len());
+            hints.insert(
+                at,
+                Hint {
+                    key: "D",
+                    label: "pending",
+                    action: Some(Action::OpenPending),
                 },
             );
         }

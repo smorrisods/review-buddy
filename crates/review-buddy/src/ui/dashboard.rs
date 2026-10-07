@@ -742,17 +742,26 @@ fn row_lines(
             } else {
                 style::fg(palette, Role::Text)
             };
-            let room = width.saturating_sub(2 + 2 + cells(&parts.age) + 2);
+            let drafted = app.drafts.count(&change.id);
+            let marker = (drafted > 0).then(|| format!("✎ {drafted}"));
+            let marker_w = marker.as_ref().map_or(0, |m| cells(m) + 2);
+            let room = width.saturating_sub(2 + 2 + cells(&parts.age) + 2 + marker_w);
+            let mut right = Vec::new();
+            if let Some(m) = marker {
+                right.push(Span::styled(m, style::fg(palette, Role::Accent)));
+                right.push(Span::raw("  "));
+            }
+            right.push(Span::styled(
+                format!("{} ", parts.age),
+                style::fg(palette, Role::Muted),
+            ));
             let first = justify(
                 vec![
                     lead(selected),
                     Span::styled(format!("{glyph} "), style::fg(palette, glyph_role)),
                     Span::styled(truncate(&parts.title, room), title_style),
                 ],
-                vec![Span::styled(
-                    format!("{} ", parts.age),
-                    style::fg(palette, Role::Muted),
-                )],
+                right,
                 width,
             );
             let forge_style = style::tag_fg(

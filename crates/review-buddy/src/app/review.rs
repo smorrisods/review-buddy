@@ -412,6 +412,7 @@ pub fn close(app: &mut App) -> Vec<Cmd> {
         return Vec::new();
     }
     if let Some(m) = s.review.take() {
+        s.verdict = Some(m.verdict);
         if let Some(data) = s.data.as_mut() {
             data.draft.body = m.summary.text().trim().to_string();
         }

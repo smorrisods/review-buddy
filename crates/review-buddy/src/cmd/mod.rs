@@ -20,6 +20,7 @@ mod config;
 mod config_get;
 mod config_reset;
 mod doctor;
+mod drafts;
 pub(crate) mod host;
 mod markdown;
 mod open;
@@ -38,7 +39,9 @@ mod theme;
 
 use std::process::ExitCode;
 
-use crate::cli::{AuthAction, Cli, Command, ConfigAction, PrAction, SourceAction, ThemeAction};
+use crate::cli::{
+    AuthAction, Cli, Command, ConfigAction, DraftsAction, PrAction, SourceAction, ThemeAction,
+};
 use context::{Context, Terminal};
 use error::{CmdError, Exit};
 
@@ -142,6 +145,15 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
         Command::Config {
             action: ConfigAction::ResetLayout,
         } => config_reset::run(&ctx),
+        Command::Drafts {
+            action: DraftsAction::List,
+        } => drafts::list(&ctx),
+        Command::Drafts {
+            action: DraftsAction::Discard { selector },
+        } => drafts::discard(&ctx, &selector),
+        Command::Drafts {
+            action: DraftsAction::Clear,
+        } => drafts::clear(&ctx),
         Command::Source {
             action: SourceAction::List,
         } => source::list(&ctx),

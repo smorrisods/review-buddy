@@ -22,12 +22,12 @@ expression: text(& render(& mut a))
 │                │                                                                │{               │
 │                │ • menus.rs line 51 · Fewer branches this way:                  │                │
 │                │                                                                │                │
-│                │   Cancel    › Approve ‹                                        │                │
-│                │ ⏎ submits · tab → cancel · esc cancels                         │cted + 1) % sel…│
-│ Your review · p╰────────────────────────────────────────────────────────────────╯───────────────╮│
-│1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
-│0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
-│Your review: not started        ││              │ menus I use stop at the end.                   ││
+│                │   Cancel    › Approve ‹   ⏎ choose · esc cancel                │                │
+│ Your review · p╰────────────────────────────────────────────────────────────────╯cted + 1) % sel…│
+│1 suggestion · 0 comments       ││              ╭─ thread · line 44 ─────────────────────────────╮│
+│0 of 3 files viewed             ││              │ jo · 1d                                        ││
+│Your review: not started        ││              │ Should this wrap round to the first item? Most ││
+│  menus.rs:51 Fewer branches th…││              │ menus I use stop at the end.                   ││
 │Choosing: approve               ││              │ ada · 20h                                      ││
 │                                ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯

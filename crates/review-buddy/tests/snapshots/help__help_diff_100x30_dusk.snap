@@ -21,14 +21,14 @@ expression: text(&render(&mut a))
 │                     │                                                      │                     │
 │                     │Review                                                │elf) {               │
 │                     │  c            comment                                │y() {                │
-│                     │  r            reply to the thread on this line       │                     │
-│                     │  a            approve                                │                     │
-│                     │  x            request changes                        │.selected + 1) % sel…│
-│ Your review · pendin│  R            submit a review                        │────────────────────╮│
-│1 suggestion · 0 comm│                                                      │                    ││
-│0 of 3 files viewed  │Change                                                │he first item? Most ││
-│Your review: not star│  o            open                                   │.                   ││
-│a approve · c comment│  y            copy                                   │                    ││
-│x request changes · R│                                                      │eld key never gets  ││
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 33 ▼ ───────────────╯─────────────────────╯
+│                     │  r            reply to the thread                    │                     │
+│                     │  e / ⏎        edit the pending comment on this line  │                     │
+│ Your review · pendin│  d / del      delete it (asks first)                 │.selected + 1) % sel…│
+│1 suggestion · 0 comm│  , / .        previous / next comment on this line   │────────────────────╮│
+│0 of 3 files viewed  │  a            approve                                │                    ││
+│Your review: not star│  x            request changes                        │he first item? Most ││
+│  menus.rs:51 Fewer b│  R            submit a review                        │.                   ││
+│a approve · c comment│                                                      │                    ││
+│x request changes · R│Change                                                │eld key never gets  ││
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 36 ▼ ───────────────╯─────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

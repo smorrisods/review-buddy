@@ -1,6 +1,6 @@
 use rb_core::{
-    ChangeId, DraftComment, Error, ForgeKind, Provider, ReviewDraft, Side, SourceId, ThreadId,
-    Verdict,
+    ChangeId, CommentId, DraftComment, Error, ForgeKind, Provider, ReviewDraft, Side, SourceId,
+    ThreadId, Verdict,
 };
 use rb_gitlab::{GitlabClient, GitlabProvider};
 use rb_platform::Secret;
@@ -553,6 +553,34 @@ async fn reply_and_resolve_use_the_discussion_endpoints_on_a_self_hosted_base() 
         p.resolve(&ThreadId::new("PRRT_node"), true).await,
         Err(Error::NotFound(_))
     ));
+}
+
+#[tokio::test]
+async fn draft_notes_are_edited_and_deleted_in_place() {
+    let server = MockServer::start().await;
+    let note = format!("{MR}/draft_notes/9");
+    mount(&server, "PUT", &note, json_ok(200, json!({"id": 9}))).await;
+    mount(&server, "DELETE", &note, ResponseTemplate::new(204)).await;
+    let p = provider(&server, "");
+    assert!(p.supports_pending_edit());
+    let thread = ThreadId::new("platform/flow!11!draft:9");
+    let comment = CommentId::new("draft:9");
+    p.update_comment(&thread, &comment, "better").await.unwrap();
+    p.delete_comment(&thread, &comment).await.unwrap();
+    let sent = writes(&server).await;
+    assert_eq!(sent[0].2, json!({"note": "better"}));
+    assert_eq!(sent.len(), 2);
+
+    let published = ThreadId::new("platform/flow!11!abc");
+    assert!(matches!(
+        p.update_comment(&published, &comment, "x").await,
+        Err(Error::Conflict(_))
+    ));
+    assert!(matches!(
+        p.delete_comment(&published, &comment).await,
+        Err(Error::Conflict(_))
+    ));
+    assert!(p.update_comment(&thread, &comment, " ").await.is_err());
 }
 
 #[tokio::test]

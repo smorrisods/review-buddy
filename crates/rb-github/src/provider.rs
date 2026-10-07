@@ -88,6 +88,23 @@ impl Provider for GithubProvider {
         review::resolve(&self.client, thread, resolved).await
     }
 
+    fn supports_pending_edit(&self) -> bool {
+        true
+    }
+
+    async fn update_comment(
+        &self,
+        _thread: &ThreadId,
+        comment: &rb_core::CommentId,
+        body: &str,
+    ) -> Result<()> {
+        review::update_comment(&self.client, comment, body).await
+    }
+
+    async fn delete_comment(&self, _thread: &ThreadId, comment: &rb_core::CommentId) -> Result<()> {
+        review::delete_comment(&self.client, comment).await
+    }
+
     async fn merge(&self, _id: &ChangeId, _opts: &MergeOpts) -> Result<MergeOutcome> {
         not_yet("merging")
     }

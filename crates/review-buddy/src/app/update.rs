@@ -11,6 +11,7 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     let mut cmds = apply(app, msg);
     cmds.extend(live::ensure_info(app));
     cmds.extend(remember_layout(app));
+    cmds.extend(super::drafts::sync(app));
     cmds
 }
 
@@ -62,6 +63,7 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             })
             .into_iter()
             .collect(),
+        Msg::SaveDraftsDue => super::drafts::on_save_due(app),
         Msg::FocusGained => {
             app.focused = true;
             app.mark_dirty();
@@ -129,16 +131,28 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
         Msg::RefreshDue => live::on_refresh_due(app),
         Msg::RefreshSkipped => live::on_refresh_skipped(app),
         Msg::InfoLoaded { id, result } => live::on_info_loaded(app, id, result),
-        Msg::DiffLoaded { id, result } => {
-            diff::on_loaded(app, &id, result);
-            Vec::new()
-        }
+        Msg::DiffLoaded { id, result } => diff::on_loaded(app, &id, result),
         Msg::ReviewSubmitted {
             id,
             verdict,
             result,
             demo,
         } => composer::on_submitted(app, &id, verdict, result, demo),
+        Msg::CommentEdited {
+            id,
+            thread,
+            comment,
+            body,
+            result,
+            demo,
+        } => super::comments::on_edited(app, &id, &thread, &comment, &body, result, demo),
+        Msg::CommentDeleted {
+            id,
+            thread,
+            comment,
+            result,
+            demo,
+        } => super::comments::on_deleted(app, &id, &thread, &comment, result, demo),
         Msg::ReplyPosted {
             id,
             thread,
@@ -234,6 +248,13 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     if app.screen == Screen::FirstRun && !quits {
         return setup::on_key(app, key);
     }
+    if app.pending.is_some() && app.screen == Screen::Dashboard {
+        return match key.code {
+            KeyCode::Char('c') if ctrl => run(app, Action::Quit),
+            _ if ctrl || alt => Vec::new(),
+            _ => super::pending::on_key(app, key),
+        };
+    }
     if app.show.open && app.screen == Screen::Dashboard {
         return match key.code {
             KeyCode::Char('c') if ctrl => run(app, Action::Quit),
@@ -293,9 +314,9 @@ fn suspend(app: &mut App) -> Vec<Cmd> {
 pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
     match action {
         Action::Quit => {
-            if app.has_unsent_drafts() && !app.quit_armed {
+            if app.has_unsent_drafts() && !app.drafts.persists() && !app.quit_armed {
                 app.quit_armed = true;
-                let text = "You have unsent review comments. Quit again to leave without sending, or press esc to keep reviewing.";
+                let text = "Your drafts aren't saved in this mode. Quit again to leave without them, or press esc to keep reviewing.";
                 return set_status(app, Notice::new(NoticeKind::Warning, text));
             }
             app.quit = true;
@@ -361,6 +382,11 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
             diff::on_action(app, Action::DiffRow(row));
             composer::open_reply(app)
         }
+        Action::OpenPending => super::pending::open(app),
+        Action::PendingRow(n) => super::pending::click(app, n),
+        Action::Choose(n) => super::composer::choose(app, n),
+        Action::JumpComment(n) => super::comments::jump_entry(app, n),
+        Action::Answer(yes) if app.pending.is_some() => super::pending::answer(app, yes),
         Action::ComposerCursor { .. }
         | Action::Answer(_)
         | Action::ReviewVerdict(_)

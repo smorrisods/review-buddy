@@ -552,6 +552,53 @@ pub(crate) async fn reply(client: &GitlabClient, thread: &ThreadId, body: &str) 
     Ok(comment(&note))
 }
 
+/// The draft note a pending thread stands for, as `(merge request path, note id)`.
+fn draft_note(thread: &ThreadId) -> Result<(String, String)> {
+    let (base, discussion) = split_thread_id(thread)?;
+    match discussion.strip_prefix("draft:") {
+        Some(note) if !note.is_empty() => Ok((base, note.to_string())),
+        _ => Err(Error::Conflict(
+            "that comment is already published, so it can't be edited here. Open it on GitLab"
+                .to_string(),
+        )),
+    }
+}
+
+/// Rewrites one of your draft notes.
+pub(crate) async fn update_draft(
+    client: &GitlabClient,
+    thread: &ThreadId,
+    body: &str,
+) -> Result<()> {
+    if body.trim().is_empty() {
+        return Err(invalid("The comment is empty. Write something first"));
+    }
+    let (base, note) = draft_note(thread)?;
+    client
+        .write_json(
+            Method::PUT,
+            &format!("{base}/draft_notes/{note}"),
+            &json!({ "note": body }),
+        )
+        .await
+        .map(|_| ())
+        .map_err(write_error)
+}
+
+/// Removes one of your draft notes.
+pub(crate) async fn delete_draft(client: &GitlabClient, thread: &ThreadId) -> Result<()> {
+    let (base, note) = draft_note(thread)?;
+    client
+        .write_json(
+            Method::DELETE,
+            &format!("{base}/draft_notes/{note}"),
+            &json!({}),
+        )
+        .await
+        .map(|_| ())
+        .map_err(write_error)
+}
+
 pub(crate) async fn resolve(
     client: &GitlabClient,
     thread: &ThreadId,

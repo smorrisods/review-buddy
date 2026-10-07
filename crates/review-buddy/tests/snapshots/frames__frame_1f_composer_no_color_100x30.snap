@@ -23,11 +23,11 @@ expression: plain_dump(& mut app)
 │                                ││              ╭─ pending suggestion · line 51 ─────────────────╮│
 │                                ││              │ Fewer branches this way:                       ││
 │                                ││              │ -         self.selected = self.selected.check… ││
-│                                ││              │ +         self.selected = (self.selected + se… ││
-│ Your review · pending ─────────││              ╰────────────────────────────────────────────────╯│
-│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 51 ──────────────────────────────────╮│
-│0 of 3 files viewed             │││ Worth a guard here?                                          ││
-│Your review: not started        │││                                                              ││
+│ Your review · pending ─────────││              │ +         self.selected = (self.selected + se… ││
+│1 suggestion · 0 comments       ││              ╰────────────────────────────────────────────────╯│
+│0 of 3 files viewed             ││╭ Comment · menus.rs line 51 ──────────────────────────────────╮│
+│Your review: not started        │││ Worth a guard here?                                          ││
+│  menus.rs:51 Fewer branches th…│││                                                              ││
 │a approve · c comment           │││                                                              ││
 │x request changes · R review    ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
 ╰────────────────────────────────╯╰ hunk 2 of 3 · file 1 of 3 ─────────────────────────────────────╯
@@ -139,12 +139,12 @@ expression: plain_dump(& mut app)
 20:33 D "│"
 20:34 B "│"
 20:49 B "│ -         self.selected = self.selected.check… ││"
-21:0 D "│"
-21:33 D "│"
+21:0 D "│ Your review · pending ─────────│"
 21:34 B "│"
 21:49 B "│"
 21:97 B " ││"
-22:0 D "│ Your review · pending ─────────│"
+22:0 D "│"
+22:33 D "│"
 22:34 B "│"
 22:49 B "╰────────────────────────────────────────────────╯│"
 23:0 D "│"
@@ -156,6 +156,7 @@ expression: plain_dump(& mut app)
 24:56 R ""
 24:98 B "││"
 25:0 D "│"
+25:1 B "  menus.rs:51 Fewer branches th…"
 25:33 D "│"
 25:34 B "││"
 25:98 B "││"

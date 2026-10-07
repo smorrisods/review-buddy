@@ -13,6 +13,7 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
         | Command::Queue(_)
         | Command::Auth { .. }
         | Command::Source { .. }
+        | Command::Drafts { .. }
         | Command::Open { .. }
         | Command::Doctor
         | Command::Completion { .. } => return None,

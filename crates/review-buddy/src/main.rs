@@ -136,8 +136,11 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
 /// `ui.remember_layout` is off.
 #[cfg(feature = "live")]
 fn launch_settings(ctx: &cmd::context::Context) -> runtime::Settings {
-    let settings = runtime::Settings::from_config(&ctx.config)
+    let mut settings = runtime::Settings::from_config(&ctx.config)
         .with_write_target(ctx.paths.write_target.clone());
+    if ctx.config.ui.drafts == review_buddy::config::DraftStorage::Local {
+        settings = settings.with_drafts(ctx.paths.paths.drafts_dir());
+    }
     if !ctx.config.ui.remember_layout {
         return settings;
     }

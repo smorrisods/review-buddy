@@ -168,6 +168,11 @@ pub enum Command {
         #[command(subcommand)]
         action: ConfigAction,
     },
+    /// Review drafts saved on this computer
+    Drafts {
+        #[command(subcommand)]
+        action: DraftsAction,
+    },
     /// Explain triage decisions
     Triage {
         #[command(subcommand)]
@@ -390,6 +395,19 @@ pub enum ConfigAction {
     List,
     /// Forget the remembered panel layout (session.toml)
     ResetLayout,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum DraftsAction {
+    /// Every saved draft: source, change, comment count, when it was saved and the title
+    List,
+    /// Throw away the saved draft for one change (asks first; --yes without a terminal)
+    Discard {
+        /// A URL, owner/repo#number, source:owner/repo#number, or a number when only one draft has it
+        selector: String,
+    },
+    /// Remove every saved draft, including ones for changes no longer in any source
+    Clear,
 }
 
 #[derive(Subcommand, Debug)]

@@ -66,6 +66,8 @@ pub struct Settings {
     pub session: Option<(std::path::PathBuf, Option<crate::session::Session>)>,
     /// Where `w` in the Show control writes `hide_repos`; `None` when there's nowhere to write.
     pub write_target: Option<std::path::PathBuf>,
+    /// The folder drafts are saved in and what it held at launch. `None` keeps them in memory.
+    pub drafts: Option<(std::path::PathBuf, Vec<crate::drafts::StoredDraft>)>,
 }
 
 fn background_mode(choice: crate::config::Background) -> rb_theme::BackgroundMode {
@@ -85,6 +87,13 @@ impl Settings {
     /// Lets the Show control save the project choice to the config's write target.
     pub fn with_write_target(mut self, path: std::path::PathBuf) -> Self {
         self.write_target = Some(path);
+        self
+    }
+
+    /// Saves review drafts in `dir`, starting from what it already holds.
+    pub fn with_drafts(mut self, dir: std::path::PathBuf) -> Self {
+        let loaded = crate::drafts::load_all(&dir);
+        self.drafts = Some((dir, loaded));
         self
     }
 
@@ -154,6 +163,7 @@ impl Settings {
             },
             session: None,
             write_target: None,
+            drafts: None,
         }
     }
 
@@ -183,6 +193,12 @@ impl Settings {
                 app.session_snapshot(),
             )
         });
+        app.drafts = match &self.drafts {
+            Some((dir, loaded)) => {
+                crate::app::drafts::Drafts::new(Some(dir.clone()), loaded.clone())
+            }
+            None => crate::app::drafts::Drafts::default(),
+        };
         app.state.queue_settings = self.queue.clone();
         app.project_save.clone_from(&self.write_target);
     }
@@ -462,6 +478,93 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
             #[cfg(feature = "live")]
             Backend::Live(live) => live.reply(id, thread, body, tx),
         },
+        Cmd::EditComment {
+            id,
+            thread,
+            comment,
+            body,
+        } => match backend {
+            Backend::None => {
+                let _ = tx.send(Msg::CommentEdited {
+                    id,
+                    thread,
+                    comment,
+                    body,
+                    result: Err("No source is connected".to_string()),
+                    demo: false,
+                });
+            }
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                use rb_core::Provider;
+                let provider = world.provider(id.kind);
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let result = provider
+                        .update_comment(&thread, &comment, &body)
+                        .await
+                        .map_err(|err| err.to_string());
+                    let _ = tx.send(Msg::CommentEdited {
+                        id,
+                        thread,
+                        comment,
+                        body,
+                        result,
+                        demo: true,
+                    });
+                });
+            }
+            #[cfg(feature = "live")]
+            Backend::Live(live) => live.edit_comment(id, thread, comment, body, tx),
+        },
+        Cmd::DeleteComment {
+            id,
+            thread,
+            comment,
+        } => match backend {
+            Backend::None => {
+                let _ = tx.send(Msg::CommentDeleted {
+                    id,
+                    thread,
+                    comment,
+                    result: Err("No source is connected".to_string()),
+                    demo: false,
+                });
+            }
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                use rb_core::Provider;
+                let provider = world.provider(id.kind);
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let result = provider
+                        .delete_comment(&thread, &comment)
+                        .await
+                        .map_err(|err| err.to_string());
+                    let _ = tx.send(Msg::CommentDeleted {
+                        id,
+                        thread,
+                        comment,
+                        result,
+                        demo: true,
+                    });
+                });
+            }
+            #[cfg(feature = "live")]
+            Backend::Live(live) => live.delete_comment(id, thread, comment, tx),
+        },
+        Cmd::SaveDrafts { dir, writes } => {
+            let now = crate::load::now().0;
+            for (id, draft) in writes {
+                let _ = match draft {
+                    Some(mut draft) => {
+                        draft.written_at = now;
+                        crate::drafts::save(&dir, &draft)
+                    }
+                    None => crate::drafts::remove(&dir, &id),
+                };
+            }
+        }
         Cmd::SaveHiddenProjects { target, sources } => {
             let tx = tx.clone();
             tokio::task::spawn_blocking(move || {

@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use rb_core::{
-    Capabilities, ChangeId, ChangeSummary, Error, Etag, ProbeOutcome, Provider, ReviewDraft, Scope,
-    Source, SourceId, ThreadId, Timestamp, Verdict,
+    Capabilities, ChangeId, ChangeSummary, CommentId, Error, Etag, ProbeOutcome, Provider,
+    ReviewDraft, Scope, Source, SourceId, ThreadId, Timestamp, Verdict,
 };
 use rb_store::Store;
 use tokio::sync::mpsc::UnboundedSender;
@@ -544,6 +544,64 @@ impl Live {
             let _ = tx.send(Msg::ReplyPosted {
                 id,
                 thread,
+                result,
+                demo: false,
+            });
+        });
+    }
+
+    /// Rewrites one of your pending comments on `id`.
+    pub fn edit_comment(
+        self: &Arc<Self>,
+        id: ChangeId,
+        thread: ThreadId,
+        comment: CommentId,
+        body: String,
+        tx: &UnboundedSender<Msg>,
+    ) {
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let result = match live.write_provider(&id).await {
+                Ok(provider) => provider
+                    .update_comment(&thread, &comment, &body)
+                    .await
+                    .map_err(|e| e.to_string()),
+                Err(message) => Err(message),
+            };
+            let _ = tx.send(Msg::CommentEdited {
+                id,
+                thread,
+                comment,
+                body,
+                result,
+                demo: false,
+            });
+        });
+    }
+
+    /// Removes one of your pending comments on `id`.
+    pub fn delete_comment(
+        self: &Arc<Self>,
+        id: ChangeId,
+        thread: ThreadId,
+        comment: CommentId,
+        tx: &UnboundedSender<Msg>,
+    ) {
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let result = match live.write_provider(&id).await {
+                Ok(provider) => provider
+                    .delete_comment(&thread, &comment)
+                    .await
+                    .map_err(|e| e.to_string()),
+                Err(message) => Err(message),
+            };
+            let _ = tx.send(Msg::CommentDeleted {
+                id,
+                thread,
+                comment,
                 result,
                 demo: false,
             });

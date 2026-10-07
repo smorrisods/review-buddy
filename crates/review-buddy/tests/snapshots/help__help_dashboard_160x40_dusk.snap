@@ -4,21 +4,21 @@ expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
 ╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
-│▌ ● All               7 ││  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus                                           │
-│    every source        ││▌ ◐ Add a menu bar and ke╭ Keys · Queue ────────────────────────────────────────╮                                                   │
-│  ● liminal-hq        3 ││▌ GH review-buddy#214 · a│Move                                                  │                                                   │
-│    github.com          ││  ● Raise muted text cont│  j/k  move in the focused pane (PgUp/PgDn: detail)   │                                                   │
-│  ● smorris           1 ││  GH review-buddy#209 · j│  g/G  first / last row                               │Comment  ⏎ Diff  m Merge                           │
-│    github.com          ││                         │  tab  next pane, in screen order                     │                                                   │
-│  ● platform          2 ││  Worth a look · 2       │  h/l  previous / next pane                           │ Conversation 3                                    │
-│    gitlab.platform.ex… ││  ✕ Cache pipeline status│  1-9  switch source                                  │────────────────────────────────────────────────── │
-│  ● gitlab.com        1 ││  GL flow!1182 · priya · │  [/]  previous / next detail tab                     │d a Menu type that tracks the selected item.       │
-│    gitlab.com          ││  ● Tidy zsh startup     │                                                      │                                                   │
-│                        ││  GH dotfiles#31 · smorri│Change                                                │lect_prev move the highlight                       │
-│  Show  s to change     ││                         │  ⏎    diff                                           │ion for the highlighted item                       │
-│  [x] reviewing         ││  Can wait · 1           │  o    open                                           │, so it picks up the active theme                  │
-│  [x] assigned          ││  · Clarify the install s│  y    copy                                           │                                                   │
-│  [x] authored          ││  GL notes!12 · kai · app│  s    show filters                                   │         Checks                                    │
+│▌ ● All               7 ││  Waiting on you · 2     ╭ Keys · Queue ────────────────────────────────────────╮en menus                                           │
+│    every source        ││▌ ◐ Add a menu bar and ke│Move                                                  │                                                   │
+│  ● liminal-hq        3 ││▌ GH review-buddy#214 · a│  j/k  move in the focused pane (PgUp/PgDn: detail)   │                                                   │
+│    github.com          ││  ● Raise muted text cont│  g/G  first / last row                               │                                                   │
+│  ● smorris           1 ││  GH review-buddy#209 · j│  tab  next pane, in screen order                     │Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                         │  h/l  previous / next pane                           │                                                   │
+│  ● platform          2 ││  Worth a look · 2       │  1-9  switch source                                  │ Conversation 3                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status│  [/]  previous / next detail tab                     │────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · │                                                      │d a Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ● Tidy zsh startup     │Change                                                │                                                   │
+│                        ││  GH dotfiles#31 · smorri│  ⏎    diff                                           │lect_prev move the highlight                       │
+│  Show  s to change     ││                         │  o    open                                           │ion for the highlighted item                       │
+│  [x] reviewing         ││  Can wait · 1           │  y    copy                                           │, so it picks up the active theme                  │
+│  [x] assigned          ││  · Clarify the install s│  s    show filters                                   │                                                   │
+│  [x] authored          ││  GL notes!12 · kai · app│  D    pending reviews: your saved drafts             │         Checks                                    │
 │  [ ] drafts            ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
 │  [ ] noise             ││  ▸ Noise · 2 bot updates│View                                                  │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
 │                        ││                         │  p    close / reopen the detail pane                 │                                                   │

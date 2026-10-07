@@ -23,11 +23,11 @@ expression: text(&render(&mut a))
 │                                ││         41 +         if self.items.is_empty() {                │
 │                                ││         42 +             return;                               │
 │                                ││         43 +         }                                         │
-│                                ││         44 +         self.selected = (self.selected + 1) % sel…│
-│ Your review · pending ─────────││              ╭─ thread · line 44 ─────────────────────────────╮│
-│1 suggestion · 0 comments       ││              │ jo · 1d                                        ││
-│0 of 3 files viewed             ││              │ Should this wrap round to the first item? Most ││
-│Your review: not started        ││              │ menus I use stop at the end.                   ││
+│ Your review · pending ─────────││         44 +         self.selected = (self.selected + 1) % sel…│
+│1 suggestion · 0 comments       ││              ╭─ thread · line 44 ─────────────────────────────╮│
+│0 of 3 files viewed             ││              │ jo · 1d                                        ││
+│Your review: not started        ││              │ Should this wrap round to the first item? Most ││
+│  menus.rs:51 Fewer branches th…││              │ menus I use stop at the end.                   ││
 │a approve · c comment           ││              │ ada · 20h                                      ││
 │x request changes · R review    ││              │ I went with wrapping so a held key never gets  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯

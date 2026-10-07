@@ -12,7 +12,7 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use super::text::wrap;
 use super::{chrome::truncate, layout, style, HitMap};
-use crate::app::composer::{Composer, Confirm, ConfirmKind};
+use crate::app::composer::{Composer, Confirm, ConfirmKind, Target};
 use crate::app::{Action, App, DiffState};
 
 pub fn draw(
@@ -46,7 +46,10 @@ fn draw_composer(
     let hint = if composer.sending {
         " sending… "
     } else {
-        " ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard "
+        match composer.target {
+            Target::Edit { .. } => " ⏎ save · ⇧⏎ newline · esc cancel ",
+            _ => " ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ",
+        }
     };
     let block = Block::default()
         .borders(Borders::ALL)
@@ -144,6 +147,48 @@ fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect, hit
         ConfirmKind::Discard => {
             lines.push(text("Your unsent text will be lost.".into()));
         }
+        ConfirmKind::Leave { summary_only, .. } => {
+            lines.push(text("Nothing has been sent to the forge.".into()));
+            lines.push(muted(if app.drafts.persists() {
+                "A kept draft is saved on this computer and waits for you.".into()
+            } else {
+                "A kept draft lasts this session only; it isn't saved to disk.".into()
+            }));
+            if *summary_only {
+                lines.push(muted("Discard throws your summary away.".into()));
+            } else {
+                lines.push(muted("Discard throws these comments away.".into()));
+            }
+        }
+        ConfirmKind::DeleteComment { what, remote, .. } => {
+            for line in wrap(what, text_width).into_iter().take(3) {
+                lines.push(text(line));
+            }
+            lines.push(Line::raw(""));
+            lines.push(muted(if *remote {
+                "It is removed from your pending review on the forge.".into()
+            } else {
+                "It is removed from your pending review.".into()
+            }));
+        }
+        ConfirmKind::SaveRemote { what } => {
+            for line in wrap(what, text_width).into_iter().take(3) {
+                lines.push(text(line));
+            }
+            lines.push(Line::raw(""));
+            lines.push(muted(
+                "It changes your pending comment on the forge. Nothing is published until you submit.".into(),
+            ));
+        }
+        ConfirmKind::Outdated { what, .. } => {
+            for line in wrap(what, text_width).into_iter().take(3) {
+                lines.push(text(line));
+            }
+            lines.push(Line::raw(""));
+            lines.push(muted(
+                "The code changed and this line is gone. Add it to your summary to post it as a general comment.".into(),
+            ));
+        }
         ConfirmKind::PostNow { summary, body } => {
             lines.push(Line::styled(
                 summary.clone(),
@@ -182,8 +227,19 @@ fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect, hit
     frame.render_widget(Clear, rect);
     frame.render_widget(Paragraph::new(lines).block(block), rect);
 
-    let (safe, go) = confirm.buttons();
     let row = rect.y + 1 + (button_row as u16);
+    if let Some(labels) = confirm.choices() {
+        let mut x = rect.x + 2;
+        for (i, label) in labels.iter().enumerate() {
+            let w = (UnicodeWidthStr::width(*label) + 4) as u16;
+            if row < rect.bottom().saturating_sub(1) {
+                hits.push(Rect::new(x, row, w, 1), Action::Choose(i));
+            }
+            x += w + 2;
+        }
+        return;
+    }
+    let (safe, go) = confirm.buttons();
     let safe_w = (UnicodeWidthStr::width(safe) + 4) as u16;
     let go_w = (UnicodeWidthStr::width(go) + 4) as u16;
     let x = rect.x + 2;
@@ -196,10 +252,32 @@ fn draw_confirm(frame: &mut Frame, app: &App, confirm: &Confirm, body: Rect, hit
     }
 }
 
+fn choice_button(app: &App, label: &str, focused: bool) -> Span<'static> {
+    let palette = &app.palette;
+    if focused {
+        Span::styled(
+            format!("› {label} ‹"),
+            style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD | Modifier::REVERSED),
+        )
+    } else {
+        Span::styled(format!("  {label}  "), style::fg(palette, Role::Muted))
+    }
+}
+
 /// `[ Cancel ]  [ Approve ]`, with `›` and bold marking the focused one so colour isn't the
 /// only signal.
 fn buttons(app: &App, confirm: &Confirm) -> Line<'static> {
     let palette = &app.palette;
+    if let Some(labels) = confirm.choices() {
+        let mut spans = Vec::new();
+        for (i, label) in labels.iter().enumerate() {
+            if i > 0 {
+                spans.push(Span::raw("  "));
+            }
+            spans.push(choice_button(app, label, confirm.focus == i));
+        }
+        return Line::from(spans);
+    }
     let (safe, go) = confirm.buttons();
     let button = |label: &str, focused: bool| {
         if focused {
