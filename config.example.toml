@@ -14,6 +14,7 @@ queue_width = 48            # columns, or a percentage like "60%" (side by side;
 queue_height = "55%"        # columns/rows as above, for when Detail is above or below the Queue
 jax = true                  # J toggles
 reduced_motion = false
+images = "auto"            # auto | off | halfblocks | forge-only  (pictures in descriptions; forge-only fetches only from your forge's own hosts; REVIEW_BUDDY_IMAGES for one run)
 unicode = true
 colour_depth = "auto"       # auto | truecolor | 256 | 16
 background = "theme"        # theme | yes | no  (B cycles for the session; REVIEW_BUDDY_BACKGROUND for one run)

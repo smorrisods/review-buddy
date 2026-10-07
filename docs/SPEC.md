@@ -23,6 +23,7 @@ This spec describes the whole product. Nothing has been tagged yet. **The first 
 | §9 Jax | No | v0.4 |
 | §10 Theming | Built-ins, `T`, `ui.theme`, colour depth, `NO_COLOR`, the painted background (`ui.background`, `[ui.theme_background]`, `[theme] paint_background`, `REVIEW_BUDDY_BACKGROUND`, `B`) | User theme files, hot reload (v0.4) |
 | §11 Performance | Cached rows paint first; refresh engine: launch, `r`, `refresh.interval` and focus, per-source state, per-host concurrency cap, ETag/not-modified, backoff with jitter, rate-limit pause | Lazy huge diffs |
+| §4.2a Images | Images in a description (`![alt](url)`, reference-style, and `<img>` tags with `width` and `height`) drawn inline in the Overview in sixel, kitty or iTerm2 where the terminal answers the capability query, else in halfblocks on a truecolour terminal, else a one-line note; `i` selects the next image and `o` / `y` open or copy it; `ui.images` and `REVIEW_BUDDY_IMAGES`; a disk cache; demo pictures | Images in Conversation comments (the latest comment shows a note), a larger view, animated GIFs (first frame only), SVG |
 | §12 Accessibility | Glyphs plus colour, `NO_COLOR`, `ui.reduced_motion` (a still glyph for the refresh spinner) | `--no-unicode`, and reduced motion for Jax and cursors (nothing else animates yet) |
 | §13 Platforms | All release targets built by the `Release` workflow | |
 
@@ -125,10 +126,22 @@ The layout is a user setting (`ui.layout`), and `L` cycles it at runtime. All th
 
 Detail tab contents:
 
-- **Overview**: description (rendered markdown → styled text), Reviewers (`✓` approved, `◌` requested, `✎` commented or requested changes) and Checks side by side, the latest comment, and your review state.
+- **Overview**: description (rendered markdown → styled text, with its images drawn in place where the terminal can, see [Images in descriptions](#images-in-descriptions)), Reviewers (`✓` approved, `◌` requested, `✎` commented or requested changes) and Checks side by side, the latest comment, and your review state.
 - **Files**: changed files with `+/−` counts. `↑↓` picks, `⏎` opens that file in the diff.
 - **Checks**: every check run or pipeline job with duration. `R` re-runs failed jobs, `o` opens the logs in the browser.
 - **Conversation**: general and line comments in time order, each with its location (`menus.rs:43`). `c` replies, `⏎` jumps to the line in the diff.
+
+##### Images in descriptions
+
+The Overview draws the pictures a description refers to where they sit in the text, so the screenshot that explains a change is in front of you without leaving the terminal.
+
+- **What counts.** Markdown images (`![alt](url)`, including reference-style `![alt][ref]`), and HTML `<img src alt width height>` tags, also inside links. GitHub `user-attachments` addresses are ordinary images. A relative address resolves against the change's page. Only `http` and `https` addresses are fetched; the first eight images of a description are drawn and a note counts the rest.
+- **How they are drawn.** At startup Review Buddy asks the terminal once (with a short deadline) what it can do. Sixel, kitty and iTerm2 are used as the terminal reports them; Windows Terminal supports sixel and is detected the same way. Without a graphics protocol, a truecolour terminal gets halfblocks; any other terminal, `NO_COLOR`, `ui.images = "off"` and a terminal that doesn't answer on a colour-poor setup get a one-line note instead: `▣ image: alt text – can't be drawn in this terminal`. The word `image` and the alt text carry the meaning, never colour alone.
+- **Size and scrolling.** An image keeps its aspect ratio and is never drawn larger than its natural size (or the `width` and `height` the tag asks for), at most 60 percent of the pane wide and 14 rows tall. It scrolls with the text, and a picture that is partly scrolled off is clipped row by row on every protocol.
+- **Selecting.** `i` selects the next image (and then none after the last), scrolling it into view and marking its caption with `▸` and `(open with o)`. While one is selected, `o` opens it and `y` copies its address instead of the change's.
+- **Fetching.** Images load in the background with a note while they do. Each is limited to 10 MB, 8192 pixels on a side and 40 million pixels, 20 seconds and four redirects, and is recognised by its first bytes: PNG, JPEG, GIF (first frame) and WebP. SVG is never drawn.
+- **Privacy.** The source's token goes only to that source's own web and API hosts, over https, and is dropped on any redirect that leaves them. Other hosts are fetched anonymously, and `ui.images = "forge-only"` refuses them. See [Images](configuration.md#images) for what a remote image can tell its host.
+- **Cache.** Fetched bytes are kept under the cache directory (100 MB at most, least recently used first), so reopening a change doesn't fetch again and cached images show offline. Demo mode draws its own generated pictures and never touches the network or the real cache.
 
 #### 1b · List + diff (`split`)
 

@@ -16,7 +16,7 @@ Review Buddy follows the [XDG Base Directory spec](https://specifications.freede
 | System config | `$XDG_CONFIG_DIRS` | `/etc/xdg` | `…/review-buddy/` | Admin or distro defaults, same layout. Read-only |
 | Data | `$XDG_DATA_HOME` | `~/.local/share` | `…/review-buddy/` | `themes/` installed by theme packs or `review-buddy theme install` |
 | System data | `$XDG_DATA_DIRS` | `/usr/local/share:/usr/share` | `…/review-buddy/` | `themes/` shipped by distro packages |
-| Cache | `$XDG_CACHE_HOME` | `~/.cache` | `…/review-buddy/` | `cache.sqlite` (summaries, details, ETags, capability probes). Safe to delete at any time |
+| Cache | `$XDG_CACHE_HOME` | `~/.cache` | `…/review-buddy/` | `cache.sqlite` (summaries, details, ETags, capability probes) and `images/` (fetched description pictures, at most 100 MB). Safe to delete at any time |
 | State | `$XDG_STATE_HOME` | `~/.local/state` | `…/review-buddy/` | `session.toml` (the remembered panel layout, see [Remembered layout](#remembered-layout)). Planned: `drafts/`, `queue.jsonl` (offline actions), `logs/` |
 | Runtime | `$XDG_RUNTIME_DIR` | none (falls back to the state dir) | `…/review-buddy/` | Planned: `instance.lock` so two copies don't refresh the same cache at once. Not used yet |
 
@@ -58,7 +58,7 @@ Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at,
 
 ## `[ui]`
 
-Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `remember_layout`, `drafts`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width` and `queue_height`.
+Applied: `theme`, `colour_depth`, `images`, `background`, `theme_background`, `mouse`, `remember_layout`, `drafts`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width` and `queue_height`.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -71,6 +71,7 @@ Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `re
 | `queue_height` | automatic | The same for the Queue's height when Detail is above or below it: rows (`14`) or a percentage of the height (`"50%"`). At least 6 rows each. Without it the Queue gets about 55 percent and at least 8 rows |
 | `jax` | `true` | Jax is not drawn yet |
 | `reduced_motion` | `false` | Swaps the refresh spinner for a still glyph; will also freeze Jax and disable blinking cursors. The env var `REVIEW_BUDDY_REDUCED_MOTION` sets it |
+| `images` | `"auto"` | `auto` · `off` · `halfblocks` · `forge-only`. Pictures in change descriptions. `auto` draws them with the best protocol the terminal reports (sixel, kitty, iTerm2), else halfblocks on a truecolour terminal, else a note; `off` shows notes only and fetches nothing; `halfblocks` skips the terminal query and always uses halfblocks; `forge-only` is `auto` that fetches only from the source's own hosts. The env var `REVIEW_BUDDY_IMAGES` takes the same values for one run. `NO_COLOR` always means notes. See [Images](#images) |
 | `unicode` | `true` | `false` = ASCII glyphs and plain borders. Not applied yet |
 | `colour_depth` | `"auto"` | `auto` · `truecolor` · `256` · `16` |
 | `background` | `"theme"` | `theme` · `yes` · `no`. Whether the frame paints a background: `theme` follows the theme (Afterglow paints, Liminal HQ and Dusk don't), `yes` always paints, `no` never does. `NO_COLOR` never paints, and 16 colours paint only with `yes`. `B` cycles it for the session and `REVIEW_BUDDY_BACKGROUND` overrides it for one run. See [theming](theming.md#background) |
@@ -79,6 +80,18 @@ Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `re
 | `remember_layout` | `true` | Remember the panel layout between runs: where Detail sits (`P`), where Sources sit (`S`), whether Detail is open (`p`), the dragged sizes and the background mode (`B`), in `session.toml` in the state directory. `false` neither reads nor writes that file. See [Remembered layout](#remembered-layout) |
 | `drafts` | `"local"` | `local` · `off`. Where your unsent review comments are kept. `local` saves them (with the summary and chosen verdict) under the state directory's `drafts/` folder so they survive leaving the diff and restarting the app; `off` keeps them in memory for the session only and never writes to disk. Demo mode is always memory only. See [Review drafts](keybindings.md#review-drafts) |
 | `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale. Not applied yet |
+
+### Images
+
+Pictures in a description are fetched when the change is selected, from the address the author wrote. That has consequences worth knowing.
+
+- **A remote image tells its host who is looking.** Fetching `https://tracker.example/pixel.png` shows that host your IP address and when you opened the change, the same as opening the page in a browser would. Third-party images are fetched anonymously (no token, no cookies, no referrer). If that bothers you, set `ui.images = "forge-only"` to fetch only from your forge's own hosts, or `"off"` to fetch nothing. Under `forge-only` an image on another host is not requested at all, and its note says why.
+- **What counts as the forge's own.** For github.com: `github.com`, `api.github.com` and anything under `githubusercontent.com` (user-images, private-user-images, objects, camo). For GitHub Enterprise: the host, its `api.` host, anything under the host and the host of `api_url`. For GitLab: the source's host and the host of `api_url`. Anything else is a third party.
+- **Where the token goes.** The source's token is sent only to its web and API hosts (`github.com` and `api.github.com`, or the configured host and `api_url` host), only over https, and never to the content hosts, whose addresses are signed. Every redirect is checked again: the token is dropped as soon as a redirect leaves those hosts, and `forge-only` refuses a redirect to another host. Tokens, signed addresses and query strings are never logged or shown; failure notes name a host only. Private repositories need a source that can read the attachment, and GitHub may still refuse a token for a `user-attachments` address, in which case the note says your sign-in can't see it and `o` opens it in the browser.
+- **Addresses that point at this machine or a private network** (`localhost`, `127.0.0.1`, `10.x`, `192.168.x`, `169.254.x`) are never fetched for a third party. A host name that resolves to a private address is not caught.
+- **Limits.** 10 MB per image, 8192 pixels on a side, 40 million pixels, 20 seconds, four redirects. The type is decided by the first bytes, never by the file name or `Content-Type`; PNG, JPEG, GIF (first frame) and WebP are drawn, SVG and everything else get a note.
+- **Cache.** Bytes are kept in `images/` under the cache directory, in files named by a hash of the address (mode `0600`, directory `0700`), at most 100 MB with the least recently used removed first. A copy under 7 days old is used without asking the server; an older one is used only if the server can't be reached, so cached images still show offline. A private repository's images stay in this cache until it is trimmed or deleted: it is safe to delete `images/` at any time. Demo mode never reads or writes it.
+- **Terminal support.** Sixel, kitty and iTerm2 are used only when the terminal says it supports them in answer to a query at startup (about 0.4 seconds of waiting at most; a terminal that doesn't answer is treated as having no graphics). `REVIEW_BUDDY_IMAGES=halfblocks` skips the query. Over `ssh` or inside `tmux`, graphics may not pass through, in which case use `halfblocks` or `off`.
 
 ### Remembered layout
 
@@ -249,6 +262,7 @@ Parsed but not applied yet. See `keybindings.md`.
 | `REVIEW_BUDDY_THEME` | Overrides `ui.theme` for this run |
 | `REVIEW_BUDDY_BACKGROUND` | `theme`, `yes` or `no` for this run: whether the frame paints a background. Beats the remembered layout, `ui.background` and `[ui.theme_background]`; `B` beats it. Other values are ignored |
 | `REVIEW_BUDDY_COLOUR_DEPTH` | Forces the colour depth for this run: `truecolor`, `256` or `16` (overrides detection; `ui.colour_depth` in `config.toml` does the same persistently) |
+| `REVIEW_BUDDY_IMAGES` | `auto`, `off`, `halfblocks` or `forge-only` for this run: how pictures in descriptions are drawn and fetched. Beats `ui.images`; other values are ignored |
 | `REVIEW_BUDDY_REDUCED_MOTION=1` | Same as `ui.reduced_motion = true` (only the refresh spinner animates today) |
 | `GITHUB_TOKEN`, `GITLAB_TOKEN` | Used only by sources with `auth = "env:…"` |
 | `NO_COLOR` | Honoured: roles collapse to bold, dim and reverse. On the command line, output is uncoloured |
