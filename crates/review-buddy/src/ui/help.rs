@@ -32,12 +32,22 @@ pub fn rows(screen: Screen) -> Vec<Binding> {
     registry(screen)
 }
 
-/// How far the overlay can scroll when the body is too short to show every row.
-pub fn max_scroll(app: &App) -> u16 {
+/// How many content rows the overlay shows at once.
+fn visible_rows(app: &App) -> u16 {
     let area = layout::body(app.size);
     let total = content(app).len() as u16;
-    let shown = (total + 2).min(area.height).saturating_sub(2);
-    total.saturating_sub(shown)
+    (total + 2).min(area.height).saturating_sub(2)
+}
+
+/// How far the overlay can scroll when the body is too short to show every row.
+pub fn max_scroll(app: &App) -> u16 {
+    let total = content(app).len() as u16;
+    total.saturating_sub(visible_rows(app))
+}
+
+/// How many rows `PgUp`/`PgDn` move: a page, keeping one row of context.
+pub fn page(app: &App) -> u16 {
+    visible_rows(app).saturating_sub(1).max(1)
 }
 
 fn content(app: &App) -> Vec<Line<'static>> {
@@ -73,21 +83,40 @@ fn content(app: &App) -> Vec<Line<'static>> {
             Span::styled(binding.hint.label, style::fg(palette, Role::Muted)),
         ]));
     }
-    lines.push(Line::raw(""));
-    lines.push(Line::from(vec![
-        Span::styled(
-            "esc",
-            style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(" or ", style::fg(palette, Role::Muted)),
-        Span::styled(
-            "?",
-            style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(" to close", style::fg(palette, Role::Muted)),
-    ]));
-
     lines
+}
+
+/// The border's bottom title: how to close it, always visible, plus the scroll keys and position
+/// when the rows don't all fit.
+fn footer(app: &App) -> Line<'static> {
+    let palette = &app.palette;
+    let key = |k: &'static str| {
+        Span::styled(
+            k,
+            style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD),
+        )
+    };
+    let muted = |t: String| Span::styled(t, style::fg(palette, Role::Muted));
+    let mut spans = vec![muted(" ".into()), key("esc"), muted(" close".into())];
+    let max = max_scroll(app);
+    if max > 0 {
+        let top = app.help_scroll.min(max);
+        let shown = visible_rows(app);
+        let total = content(app).len() as u16;
+        spans.push(muted(" · ".into()));
+        spans.push(key("j/k"));
+        spans.push(muted(format!(
+            " scroll · {}–{} of {}",
+            top + 1,
+            top + shown,
+            total
+        )));
+        if top < max {
+            spans.push(muted(" ▼".into()));
+        }
+    }
+    spans.push(muted(" ".into()));
+    Line::from(spans)
 }
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
@@ -109,6 +138,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
             format!(" Keys · {} ", screen_name(app.screen)),
             style::fg(palette, Role::TextBright).add_modifier(Modifier::BOLD),
         ))
+        .title_bottom(footer(app))
         .style(style::bg(palette, Role::Raised));
     frame.render_widget(Clear, rect);
     frame.render_widget(

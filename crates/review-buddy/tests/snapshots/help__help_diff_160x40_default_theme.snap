@@ -8,34 +8,34 @@ expression: text(&render(&mut a))
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                                                                                 │
 │  · src/ui/mod.rs          +2 −0││    11   11   pub struct Menu {                                                                                             │
 │                                ││    12   12       items: Vec<MenuItem>,                                                                                     │
-│                                ││         13 +    ╭ Keys · Diff ─────────────────────────────────────────╮                                                   │
-│                                ││         14 +    │Move                                                  │                                                   │
-│                                ││    13   15   }  │  j/k        move                                     │                                                   │
-│                                ││    14   16      │  g/G        first / last line                        │                                                   │
-│                                ││    15   17   imp│  pgup/pgdn  page up / down                           │                                                   │
-│                                ││    16   18      │  n/p        hunk                                     │                                                   │
-│                                ││              @@ │  ]/[        file                                     │                                                   │
-│                                ││    34   36      │  tab        pane                                     │                                                   │
-│                                ││    35   37      │                                                      │                                                   │
-│                                ││    36   38      │Review                                                │                                                   │
-│                                ││         39 +    │  c          comment                                  │                                                   │
-│                                ││         40 +    │  r          reply to the thread                      │                                                   │
-│                                ││         41 +    │  a          approve                                  │                                                   │
-│                                ││         42 +    │  x          request changes                          │                                                   │
-│                                ││         43 +    │                                                      │                                                   │
-│                                ││         44 +    │Change                                                │n();                                               │
-│                                ││              ╭─ │  o          open                                     │──────────────────────────────────────────────────╮│
-│                                ││              │ j│  y          copy                                     │                                                  ││
-│                                ││              │ S│                                                      │e stop at the end.                                ││
-│                                ││              │ a│General                                               │                                                  ││
-│                                ││              │ I│  esc        back                                     │y to make it configurable if you'd rather.        ││
-│                                ││              ╰──│  q          back to the queue                        │──────────────────────────────────────────────────╯│
-│                                ││         45 +    │  ?          help                                     │                                                   │
-│                                ││         46 +    │  T          theme                                    │                                                   │
-│                                ││         47 +    │  B          background: theme / yes / no             │                                                   │
-│                                ││         48 +    │                                                      │                                                   │
-│ Your review · pending ─────────││         49 +    │esc or ? to close                                     │                                                   │
-│1 suggestion · 0 comments       ││         50 +    ╰──────────────────────────────────────────────────────╯                                                   │
+│                                ││         13 +     selected: usize,                                                                                          │
+│                                ││         14 +    ╭ Keys · Diff ─────────────────────────────────────────╮                                                   │
+│                                ││    13   15   }  │Move                                                  │                                                   │
+│                                ││    14   16      │  j/k        move                                     │                                                   │
+│                                ││    15   17   imp│  g/G        first / last line                        │                                                   │
+│                                ││    16   18      │  pgup/pgdn  page up / down                           │                                                   │
+│                                ││              @@ │  n/p        hunk                                     │                                                   │
+│                                ││    34   36      │  ]/[        file                                     │                                                   │
+│                                ││    35   37      │  tab        pane                                     │                                                   │
+│                                ││    36   38      │                                                      │                                                   │
+│                                ││         39 +    │Review                                                │                                                   │
+│                                ││         40 +    │  c          comment                                  │                                                   │
+│                                ││         41 +    │  r          reply to the thread                      │                                                   │
+│                                ││         42 +    │  a          approve                                  │                                                   │
+│                                ││         43 +    │  x          request changes                          │                                                   │
+│                                ││         44 +    │                                                      │n();                                               │
+│                                ││              ╭─ │Change                                                │──────────────────────────────────────────────────╮│
+│                                ││              │ j│  o          open                                     │                                                  ││
+│                                ││              │ S│  y          copy                                     │e stop at the end.                                ││
+│                                ││              │ a│                                                      │                                                  ││
+│                                ││              │ I│General                                               │y to make it configurable if you'd rather.        ││
+│                                ││              ╰──│  esc        back                                     │──────────────────────────────────────────────────╯│
+│                                ││         45 +    │  q          back to the queue                        │                                                   │
+│                                ││         46 +    │  ?          help                                     │                                                   │
+│                                ││         47 +    │  T          theme                                    │                                                   │
+│                                ││         48 +    │  B          background: theme / yes / no             │                                                   │
+│ Your review · pending ─────────││         49 +    ╰ esc close ───────────────────────────────────────────╯                                                   │
+│1 suggestion · 0 comments       ││         50 +         }                                                                                                     │
 │0 of 3 files viewed             ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
 │Your verdict: not started       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
 │a approve · c comment           ││              │ Fewer branches this way:                                                                                   ││

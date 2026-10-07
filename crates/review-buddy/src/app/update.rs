@@ -117,6 +117,28 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
     }
 }
 
+/// Scrolls the help overlay from the keyboard: `j`/`k` and the arrows by a line, `PgUp`/`PgDn`
+/// by a page, `g`/`G` (or Home/End) to either end. Other keys do nothing while it is open.
+fn scroll_help(app: &mut App, code: KeyCode) {
+    let max = crate::ui::help::max_scroll(app);
+    let page = crate::ui::help::page(app);
+    let now = app.help_scroll.min(max);
+    let next = match code {
+        KeyCode::Char('j') | KeyCode::Down => now.saturating_add(1),
+        KeyCode::Char('k') | KeyCode::Up => now.saturating_sub(1),
+        KeyCode::PageDown | KeyCode::Char(' ') => now.saturating_add(page),
+        KeyCode::PageUp => now.saturating_sub(page),
+        KeyCode::Char('g') | KeyCode::Home => 0,
+        KeyCode::Char('G') | KeyCode::End => max,
+        _ => return,
+    }
+    .min(max);
+    if next != app.help_scroll {
+        app.help_scroll = next;
+        app.mark_dirty();
+    }
+}
+
 pub(super) fn close_help(app: &mut App) {
     app.help = false;
     app.help_scroll = 0;
@@ -169,7 +191,10 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
                 Vec::new()
             }
             KeyCode::Char('c') if ctrl => run(app, Action::Quit),
-            _ => Vec::new(),
+            code => {
+                scroll_help(app, code);
+                Vec::new()
+            }
         };
     }
     if app.screen == Screen::FirstRun && !quits {
@@ -579,6 +604,40 @@ mod tests {
         update(&mut a, Msg::Key(KeyEvent::from(KeyCode::Esc)));
         assert!(!a.help);
         assert_eq!(a.toasts.len(), 1, "the first Esc only closed the overlay");
+    }
+
+    #[test]
+    fn help_scrolls_from_the_keyboard_and_resets_when_closed() {
+        let mut a = app();
+        // Short enough that the overlay can't show every row.
+        a.size = (100, 20);
+        update(&mut a, Msg::Key(KeyEvent::from(KeyCode::Char('?'))));
+        let max = crate::ui::help::max_scroll(&a);
+        assert!(max > 3, "the overlay needs to scroll at 100x20 (max {max})");
+        let press = |a: &mut App, c: KeyCode| update(a, Msg::Key(KeyEvent::from(c)));
+        press(&mut a, KeyCode::Char('j'));
+        assert_eq!(a.help_scroll, 1);
+        press(&mut a, KeyCode::Down);
+        assert_eq!(a.help_scroll, 2);
+        press(&mut a, KeyCode::Char('k'));
+        assert_eq!(a.help_scroll, 1);
+        press(&mut a, KeyCode::PageDown);
+        assert_eq!(a.help_scroll, (1 + crate::ui::help::page(&a)).min(max));
+        press(&mut a, KeyCode::Char('G'));
+        assert_eq!(a.help_scroll, max);
+        press(&mut a, KeyCode::Char('j'));
+        assert_eq!(a.help_scroll, max, "it stops at the end");
+        press(&mut a, KeyCode::Char('g'));
+        assert_eq!(a.help_scroll, 0);
+        press(&mut a, KeyCode::Char('k'));
+        assert_eq!(a.help_scroll, 0, "and at the top");
+        // Other keys are swallowed while it is open.
+        press(&mut a, KeyCode::Char('s'));
+        assert!(a.help && !a.show.open);
+        press(&mut a, KeyCode::Char('G'));
+        press(&mut a, KeyCode::Esc);
+        assert!(!a.help);
+        assert_eq!(a.help_scroll, 0);
     }
 
     #[test]
