@@ -1,5 +1,0 @@
----
-source: crates/review-buddy/tests/session.rs
-expression: "row.join(\"\\n\")"
----
-│                        ││                         │  P    rotate the detail pane counter-clockwise       │                                                   │

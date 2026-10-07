@@ -149,8 +149,8 @@ fn p_cycles_with_a_toast_and_composes_with_s_and_the_closed_detail() {
             a.layout.position.as_str()
         })
         .collect();
-    assert_eq!(seen, ["top", "left", "bottom", "auto", "top"]);
-    assert!(text(&render(&mut a)).contains("Detail: top (counter-clockwise)"));
+    assert_eq!(seen, ["bottom", "left", "top", "auto", "bottom"]);
+    assert!(text(&render(&mut a)).contains("Layout: list on top, details below"));
     press(&mut a, 'S');
     press(&mut a, 'p');
     press(&mut a, 'P');

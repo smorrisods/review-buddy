@@ -54,8 +54,12 @@ fn p_then_quit_then_relaunch_keeps_the_arrangement() {
     write_config(home.path(), CONFIG);
 
     let mut s = launch(home.path(), &[]);
-    s.send_expect(b"P", "Detail: top (counter-clockwise)", "P goes to top");
-    s.send_expect(b"P", "Detail: left (counter-clockwise)", "P goes to left");
+    s.send_expect(
+        b"P",
+        "Layout: list on top, details below",
+        "P goes to bottom",
+    );
+    s.send_expect(b"P", "Layout: list right, details left", "P goes to left");
     let (_, queue) = row_col(&s.screen(), "╭ queue");
     let (_, detail) = row_col(&s.screen(), "╭ detail");
     assert!(detail < queue, "detail is left of the queue");
@@ -126,7 +130,11 @@ fn remember_layout_false_neither_reads_nor_writes() {
     let (_, queue) = row_col(&s.screen(), "╭ queue");
     let (_, detail) = row_col(&s.screen(), "╭ detail");
     assert!(detail > queue, "the file wasn't read");
-    s.send_expect(b"P", "Detail: top (counter-clockwise)", "P rotates anyway");
+    s.send_expect(
+        b"P",
+        "Layout: list on top, details below",
+        "P rotates anyway",
+    );
     quit(s);
     assert_eq!(
         std::fs::read_to_string(&file).unwrap(),
@@ -162,7 +170,7 @@ fn demo_never_reads_or_writes_the_session_file() {
     let (_, queue) = row_col(&s.screen(), "╭ queue");
     let (_, detail) = row_col(&s.screen(), "╭ liminal-hq/review-buddy#214");
     assert!(detail > queue, "demo ignored the remembered file");
-    s.send_expect(b"P", "Detail: top (counter-clockwise)", "P rotates");
+    s.send_expect(b"P", "Layout: list on top, details below", "P rotates");
     s.send(b"p");
     std::thread::sleep(Duration::from_millis(900));
     quit(s);
@@ -177,7 +185,7 @@ fn demo_never_reads_or_writes_the_session_file() {
     cmd.env("PATH", "");
     let mut s = pty::Pty::spawn(cmd, 160, 40);
     s.expect("q quit", "the footer is up");
-    s.send_expect(b"P", "Detail: top", "P rotates");
+    s.send_expect(b"P", "Layout: list on top", "P rotates");
     std::thread::sleep(Duration::from_millis(900));
     quit(s);
     assert!(!session_file(fresh.path()).exists());

@@ -9,7 +9,7 @@ theme = "liminal-hq"        # liminal-hq | afterglow-dark | afterglow-light | an
 layout = "panes"            # panes | split | queue   (L cycles)
 sources = "auto"            # auto | left | top  (S cycles for the session; auto = pane at 130+ columns)
 detail = "auto"             # auto | open | closed  (p toggles for the session)
-detail_position = "auto"    # auto | right | left | top | bottom  (P rotates it counter-clockwise: right, top, left, bottom, auto; REVIEW_BUDDY_DETAIL_POSITION for one run; auto = right at 110+ columns, else below the Queue)
+detail_position = "auto"    # auto | right | left | top | bottom  (P rotates it: auto, bottom, left, top, right; REVIEW_BUDDY_DETAIL_POSITION for one run; auto = right at 110+ columns, else below the Queue)
 queue_width = 48            # columns, or a percentage like "60%" (side by side; < > or dragging the seam change it for the session, W saves it; omit for automatic)
 queue_height = "55%"        # columns/rows as above, for when Detail is above or below the Queue
 jax = true                  # J toggles

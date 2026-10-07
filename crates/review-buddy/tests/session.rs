@@ -124,24 +124,24 @@ fn without_a_tracker_nothing_is_scheduled_or_written() {
 }
 
 #[test]
-fn the_toast_says_counter_clockwise() {
+fn the_toast_describes_the_arrangement() {
     let mut a = app();
     press(&mut a, 'P');
     let toast: Vec<String> = text(&render(&mut a))
         .lines()
-        .filter(|l| l.contains("counter-clockwise"))
+        .filter(|l| l.contains("Layout: "))
         .map(|l| l.trim().to_string())
         .collect();
     insta::assert_snapshot!(toast.join("\n"));
 }
 
 #[test]
-fn the_help_row_says_counter_clockwise() {
+fn the_help_row_names_the_cycle() {
     let mut a = app();
     press(&mut a, '?');
     let row: Vec<String> = text(&render(&mut a))
         .lines()
-        .filter(|l| l.contains("rotate the detail pane"))
+        .filter(|l| l.contains("rotate panes"))
         .map(|l| l.trim().to_string())
         .collect();
     insta::assert_snapshot!(row.join("\n"));

@@ -92,7 +92,7 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind(
                 "View",
                 "P",
-                "rotate the detail pane counter-clockwise",
+                "rotate panes: list left → top → right → bottom",
                 Some(Action::CyclePosition),
                 false,
             ),

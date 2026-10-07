@@ -402,10 +402,12 @@ pub fn cycle_position(app: &mut App) -> Vec<Cmd> {
     on_resize(app);
     ensure_visible(app);
     app.mark_dirty();
-    let text = format!(
-        "Detail: {} (counter-clockwise)",
-        app.layout.position.as_str()
-    );
+    let place = app.layout.place(app.size.0).describe();
+    let text = if app.layout.position == crate::config::DetailPosition::Auto {
+        format!("Layout: auto ({place})")
+    } else {
+        format!("Layout: {place}")
+    };
     super::update::set_status(app, Notice::new(NoticeKind::Info, text))
 }
 

@@ -21,7 +21,7 @@ expression: text(&render(&mut a))
 ╭ liminal-hq/review-bu│View                                                  │────────────────── ▼ ╮
 │ Add a menu bar and k│  p    close / reopen the detail pane                 │                     │
 │ ada wants ada/menus │  S    sources: auto / left / top                     │                     │
-│ +32 −1 · 3 files · o│  P    rotate the detail pane counter-clockwise       │                     │
+│ +32 −1 · 3 files · o│  P    rotate panes: list left → top → right → bottom │                     │
 │ a Approve  x Request│  < >  shrink / grow the focused pane (or drag a seam)│                     │
 │  Overview   Files 3 │  =    reset that split to automatic                  │                     │
 │ ────────────────────│  W    save pane sizes to config                      │──────────────────── │
