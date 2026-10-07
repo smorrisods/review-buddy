@@ -1,0 +1,5 @@
+---
+source: crates/review-buddy/tests/session.rs
+expression: "row.join(\"\\n\")"
+---
+│                        ││                         │  P    rotate panes: list left → top → right → bottom │                                                   │

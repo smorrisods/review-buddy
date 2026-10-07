@@ -39,24 +39,37 @@ fn p_moves_the_detail_pane_around_the_queue() {
     let (qr, qc, dr, dc) = beside(&s.screen());
     assert!(dr > qr && dc > qc, "auto is right at 160 columns");
 
-    s.send_expect(b"P", "Detail position: right", "P goes to right");
-    let (qr, qc, _, dc) = beside(&s.screen());
-    assert!(dc > qc && qr >= 1);
-
-    s.send_expect(b"P", "Detail position: left", "P goes to left");
-    let (_, qc, _, dc) = beside(&s.screen());
-    assert!(dc < qc, "detail is left of the queue");
-
-    s.send_expect(b"P", "Detail position: top", "P goes to top");
-    let (qr, _, dr, _) = beside(&s.screen());
-    assert!(dr < qr, "detail is above the queue");
-
-    s.send_expect(b"P", "Detail position: bottom", "P goes to bottom");
+    s.send_expect(
+        b"P",
+        "Layout: list on top, details below",
+        "P goes to bottom",
+    );
     let (qr, _, dr, _) = beside(&s.screen());
     assert!(dr > qr, "detail is below the queue");
     assert!(s.sees("▼"), "the close marker points down");
 
-    s.send_expect(b"P", "Detail position: auto", "P returns to auto");
+    s.send_expect(b"P", "Layout: list right, details left", "P goes to left");
+    let (_, qc, _, dc) = beside(&s.screen());
+    assert!(dc < qc, "detail is left of the queue");
+
+    s.send_expect(
+        b"P",
+        "Layout: list on bottom, details above",
+        "P goes to top",
+    );
+    let (qr, _, dr, _) = beside(&s.screen());
+    assert!(dr < qr, "detail is above the queue");
+
+    s.send_expect(
+        b"P",
+        "Layout: auto (list left, details right)",
+        "P reaches auto, skipping right",
+    );
+    s.send_expect(
+        b"P",
+        "Layout: list on top, details below",
+        "and goes round again",
+    );
     s.send(b"q");
     assert!(s.wait_exit(Duration::from_secs(10)), "q didn't exit");
 }

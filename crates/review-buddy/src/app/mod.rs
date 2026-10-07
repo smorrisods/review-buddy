@@ -155,6 +155,8 @@ pub enum Msg {
     Mouse(crossterm::event::MouseEvent),
     Resize(u16, u16),
     Tick,
+    /// The debounce after a layout change passed: write the remembered layout.
+    SaveSessionDue,
     FocusGained,
     FocusLost,
     Paste(String),
@@ -267,6 +269,11 @@ pub enum Cmd {
         target: std::path::PathBuf,
         queue_width: Option<crate::ui::layout::Size>,
         queue_height: Option<crate::ui::layout::Size>,
+    },
+    /// Write the remembered layout to `path`, quietly.
+    SaveSession {
+        path: std::path::PathBuf,
+        session: crate::session::Session,
     },
     /// Run one first-run effect (detection, a token check, the config write).
     Setup(crate::setup::Effect),
@@ -437,6 +444,8 @@ pub struct App {
     pub reduced_motion: bool,
     /// Where Sources and Detail sit (`ui.sources`, `ui.detail`), as changed this session.
     pub layout: crate::ui::layout::Options,
+    /// Remembers layout changes between runs. `None` in demo mode and when it is turned off.
+    pub session: Option<crate::session::Tracker>,
     /// The seam being dragged with the mouse.
     pub drag: Option<resize::Drag>,
     /// The last press on a seam, for spotting a double-click: which seam and the tick.
@@ -483,6 +492,7 @@ impl App {
             tab_width: diffview::TAB_WIDTH,
             reduced_motion: false,
             layout: crate::ui::layout::Options::default(),
+            session: None,
             drag: None,
             last_seam: None,
             quit_armed: false,
@@ -546,6 +556,14 @@ impl App {
     /// The background mode in force for the current theme, after every layer.
     pub fn background_mode(&self) -> BackgroundMode {
         self.background.mode_for(&self.palette.theme().id)
+    }
+
+    /// The layout as the remembered session sees it.
+    pub fn session_snapshot(&self) -> crate::session::Snapshot {
+        crate::session::Snapshot {
+            options: self.layout,
+            background: self.background.session,
+        }
     }
 
     /// Steps the session's background through theme, yes and no.

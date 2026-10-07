@@ -92,7 +92,7 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
             bind(
                 "View",
                 "P",
-                "detail: auto / right / left / top / bottom",
+                "rotate panes: list left → top → right → bottom",
                 Some(Action::CyclePosition),
                 false,
             ),

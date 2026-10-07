@@ -10,4 +10,5 @@ system-config-dir
 system-data-dir
 config-file
 config-file
+session-file
 write-target

@@ -398,11 +398,16 @@ pub fn cycle_sources(app: &mut App) -> Vec<Cmd> {
 }
 
 pub fn cycle_position(app: &mut App) -> Vec<Cmd> {
-    app.layout.position = app.layout.next_position();
+    app.layout.position = app.layout.next_position(app.size.0);
     on_resize(app);
     ensure_visible(app);
     app.mark_dirty();
-    let text = format!("Detail position: {}", app.layout.position.as_str());
+    let place = app.layout.place(app.size.0).describe();
+    let text = if app.layout.position == crate::config::DetailPosition::Auto {
+        format!("Layout: auto ({place})")
+    } else {
+        format!("Layout: {place}")
+    };
     super::update::set_status(app, Notice::new(NoticeKind::Info, text))
 }
 

@@ -18,6 +18,7 @@ const PATH_FIELDS: &[&str] = &[
     "systemDataDirs",
     "configFiles",
     "writeTarget",
+    "sessionFile",
 ];
 
 fn display(path: &std::path::Path) -> String {
@@ -42,6 +43,7 @@ pub(super) fn paths_json(report: &PathsReport) -> Value {
             "exists": f.exists,
         })).collect::<Vec<_>>(),
         "writeTarget": display(&report.write_target),
+        "sessionFile": display(&p.session_file()),
     })
 }
 
@@ -80,6 +82,16 @@ fn paths_table(report: &PathsReport) -> Table {
             Cell::plain(if file.exists { "loaded" } else { "not found" }),
         ]);
     }
+    let session = p.session_file();
+    table.push(vec![
+        Cell::plain("session-file"),
+        Cell::plain(display(&session)),
+        Cell::plain(if session.exists() {
+            "present"
+        } else {
+            "not found"
+        }),
+    ]);
     table.push(vec![
         Cell::plain("write-target"),
         Cell::plain(display(&report.write_target)),

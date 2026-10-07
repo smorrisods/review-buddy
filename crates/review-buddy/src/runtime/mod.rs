@@ -62,6 +62,8 @@ pub struct Settings {
     pub background: rb_theme::BackgroundMode,
     pub per_theme_background: std::collections::BTreeMap<String, rb_theme::BackgroundMode>,
     pub layout: crate::ui::layout::Options,
+    /// The remembered layout file and what it held at launch. `None` when remembering is off.
+    pub session: Option<(std::path::PathBuf, Option<crate::session::Session>)>,
     /// Where `w` in the Show control writes `hide_repos`; `None` when there's nowhere to write.
     pub write_target: Option<std::path::PathBuf>,
 }
@@ -83,6 +85,41 @@ impl Settings {
     /// Lets the Show control save the project choice to the config's write target.
     pub fn with_write_target(mut self, path: std::path::PathBuf) -> Self {
         self.write_target = Some(path);
+        self
+    }
+
+    /// Remembers the layout in `path`, starting from `loaded` (what the file held, if it was
+    /// there). Precedence at launch: a key pressed this session, `REVIEW_BUDDY_*` in `env`,
+    /// the remembered file, then the config this was built from.
+    pub fn with_session(
+        mut self,
+        path: std::path::PathBuf,
+        loaded: Option<crate::session::Session>,
+        env: &dyn rb_paths::Env,
+    ) -> Self {
+        if let Some(session) = loaded {
+            let l = session.layout;
+            let env_position = env
+                .var("REVIEW_BUDDY_DETAIL_POSITION")
+                .is_some_and(|v| crate::config::parse_position(&v).is_some());
+            let env_background = env
+                .var("REVIEW_BUDDY_BACKGROUND")
+                .is_some_and(|v| v.parse::<rb_theme::BackgroundMode>().is_ok());
+            let o = &mut self.layout;
+            if !env_position {
+                o.position = l.detail_position.unwrap_or(o.position);
+            }
+            o.sources = l.sources.unwrap_or(o.sources);
+            o.detail = l.detail.unwrap_or(o.detail);
+            o.split.queue_width = l.queue_width.or(o.split.queue_width);
+            o.split.queue_height = l.queue_height.or(o.split.queue_height);
+            o.split.sources_width = l.sources_width.or(o.split.sources_width);
+            if let (Some(mode), false) = (l.background, env_background) {
+                self.background = mode;
+                self.per_theme_background.clear();
+            }
+        }
+        self.session = Some((path, loaded));
         self
     }
 
@@ -115,6 +152,7 @@ impl Settings {
                     sources_width: None,
                 },
             },
+            session: None,
             write_target: None,
         }
     }
@@ -138,6 +176,13 @@ impl Settings {
             .per_theme
             .clone_from(&self.per_theme_background);
         app.rebuild_palette();
+        app.session = self.session.as_ref().map(|(path, loaded)| {
+            crate::session::Tracker::new(
+                path.clone(),
+                loaded.unwrap_or_default(),
+                app.session_snapshot(),
+            )
+        });
         app.state.queue_settings = self.queue.clone();
         app.project_save.clone_from(&self.write_target);
     }
@@ -437,6 +482,9 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 )));
             });
         }
+        Cmd::SaveSession { path, session } => {
+            let _ = crate::session::save(&path, &session);
+        }
         Cmd::Setup(effect) => {
             let Some(services) = platform.setup().cloned() else {
                 return;
@@ -642,6 +690,138 @@ mod tests {
     use rb_platform::{
         clipboard::ClipboardContext, CommandOutput, CommandRunner, Os, PlatformError,
     };
+
+    fn remembered(
+        edit: impl FnOnce(&mut crate::session::SessionLayout),
+    ) -> Option<crate::session::Session> {
+        let mut session = crate::session::Session::default();
+        edit(&mut session.layout);
+        Some(session)
+    }
+
+    fn launched(
+        config_toml: &str,
+        session: Option<crate::session::Session>,
+        env: &[(&str, &str)],
+    ) -> Settings {
+        let mut config: crate::config::Config = toml::from_str(config_toml).unwrap();
+        let mut map = rb_paths::MapEnv::new("/home/a");
+        for (k, v) in env {
+            map = map.with_var(k, v);
+        }
+        if let Some(p) = env
+            .iter()
+            .find(|(k, _)| *k == "REVIEW_BUDDY_DETAIL_POSITION")
+            .and_then(|(_, v)| crate::config::parse_position(v))
+        {
+            config.ui.detail_position = p;
+        }
+        Settings::from_config(&config).with_session("/s/session.toml".into(), session, &map)
+    }
+
+    #[test]
+    fn precedence_is_env_over_remembered_over_config_over_default() {
+        use crate::config::DetailPosition::*;
+        let left = remembered(|l| l.detail_position = Some(Left));
+        let position =
+            |toml, session, env: &[(&str, &str)]| launched(toml, session, env).layout.position;
+        assert_eq!(position("", None, &[]), Auto, "built-in default");
+        assert_eq!(
+            position("[ui]\ndetail_position = \"bottom\"", None, &[]),
+            Bottom,
+            "config"
+        );
+        assert_eq!(
+            position("[ui]\ndetail_position = \"bottom\"", left, &[]),
+            Left,
+            "remembered beats config"
+        );
+        assert_eq!(
+            position(
+                "[ui]\ndetail_position = \"bottom\"",
+                left,
+                &[("REVIEW_BUDDY_DETAIL_POSITION", "top")]
+            ),
+            Top,
+            "env beats remembered"
+        );
+        assert_eq!(
+            position("", left, &[("REVIEW_BUDDY_DETAIL_POSITION", "sideways")]),
+            Left,
+            "an env value that isn't one is ignored"
+        );
+    }
+
+    #[test]
+    fn the_session_key_beats_everything_it_was_seeded_from() {
+        let settings = launched(
+            "",
+            remembered(|l| l.background = Some(rb_theme::BackgroundMode::No)),
+            &[],
+        );
+        let mut app = App::new(crate::app::AppConfig {
+            theme_id: "liminal-hq".into(),
+            depth: rb_theme::ColourDepth::TrueColour,
+            no_color: false,
+            size: (160, 40),
+        });
+        app.background.env = Some(rb_theme::BackgroundMode::Theme);
+        settings.apply(&mut app);
+        assert_eq!(app.background_mode(), rb_theme::BackgroundMode::Theme);
+        app.background.session = Some(rb_theme::BackgroundMode::Yes);
+        assert_eq!(app.background_mode(), rb_theme::BackgroundMode::Yes);
+    }
+
+    #[test]
+    fn remembered_background_beats_config_but_not_env() {
+        use rb_theme::BackgroundMode::*;
+        let config = "[ui]\nbackground = \"no\"\n[ui.theme_background]\ndusk = \"no\"\n";
+        let remembered = remembered(|l| l.background = Some(Yes));
+        let s = launched(config, remembered, &[]);
+        assert_eq!(s.background, Yes);
+        assert!(s.per_theme_background.is_empty());
+        let s = launched(config, remembered, &[("REVIEW_BUDDY_BACKGROUND", "theme")]);
+        assert_eq!(s.background, No);
+        assert_eq!(s.per_theme_background.len(), 1);
+    }
+
+    #[test]
+    fn remembered_keys_beat_config_and_unset_ones_follow_it() {
+        use crate::ui::layout::Size;
+        let config = "[ui]\nsources = \"left\"\ndetail = \"closed\"\nqueue_width = 60\nqueue_height = \"40%\"\n";
+        let session = remembered(|l| {
+            l.sources = Some(crate::config::SourcesLayout::Top);
+            l.queue_width = Some(Size::Cells(52));
+            l.sources_width = Some(Size::Cells(30));
+        });
+        let layout = launched(config, session, &[]).layout;
+        assert_eq!(layout.sources, crate::config::SourcesLayout::Top);
+        assert_eq!(layout.detail, crate::config::DetailMode::Closed);
+        assert_eq!(layout.split.queue_width, Some(Size::Cells(52)));
+        assert_eq!(layout.split.queue_height, Some(Size::Percent(40)));
+        assert_eq!(layout.split.sources_width, Some(Size::Cells(30)));
+    }
+
+    #[test]
+    fn a_missing_file_changes_nothing_and_without_a_path_nothing_is_tracked() {
+        let plain = Settings::from_config(&crate::config::Config::default());
+        assert_eq!(
+            launched("", None, &[]).layout,
+            plain.layout,
+            "no file, no change"
+        );
+        assert!(plain.session.is_none());
+        let mut app = App::new(crate::app::AppConfig {
+            theme_id: "liminal-hq".into(),
+            depth: rb_theme::ColourDepth::TrueColour,
+            no_color: false,
+            size: (160, 40),
+        });
+        plain.apply(&mut app);
+        assert!(app.session.is_none());
+        launched("", None, &[]).apply(&mut app);
+        assert!(app.session.is_some());
+    }
 
     #[test]
     fn frames_are_capped_and_only_when_dirty() {

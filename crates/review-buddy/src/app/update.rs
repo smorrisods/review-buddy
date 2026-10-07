@@ -10,7 +10,27 @@ use super::{
 pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     let mut cmds = apply(app, msg);
     cmds.extend(live::ensure_info(app));
+    cmds.extend(remember_layout(app));
     cmds
+}
+
+const SESSION_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(500);
+
+fn remember_layout(app: &mut App) -> Option<Cmd> {
+    let now = app.session_snapshot();
+    let quitting = app.should_quit();
+    let tracker = app.session.as_mut()?;
+    match tracker.observe(now, quitting) {
+        crate::session::Step::Nothing => None,
+        crate::session::Step::Schedule => Some(Cmd::After {
+            delay: SESSION_DEBOUNCE,
+            msg: Msg::SaveSessionDue,
+        }),
+        crate::session::Step::SaveNow(session) => Some(Cmd::SaveSession {
+            path: tracker.path().to_path_buf(),
+            session,
+        }),
+    }
 }
 
 fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
@@ -31,6 +51,17 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             }
             Vec::new()
         }
+        Msg::SaveSessionDue => app
+            .session
+            .as_mut()
+            .and_then(|t| {
+                t.due().map(|session| Cmd::SaveSession {
+                    path: t.path().to_path_buf(),
+                    session,
+                })
+            })
+            .into_iter()
+            .collect(),
         Msg::FocusGained => {
             app.focused = true;
             app.mark_dirty();

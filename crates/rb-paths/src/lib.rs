@@ -11,7 +11,7 @@ mod resolve;
 pub use config::{ConfigFile, ConfigLayers, ConfigOrigin};
 pub use env::{Env, MapEnv, Os, SystemEnv};
 pub use fs::{ensure_private_dir, write_private_file};
-pub use resolve::{PathsError, ResolvedPaths, APP_DIR};
+pub use resolve::{PathsError, ResolvedPaths, APP_DIR, SESSION_FILE};
 
 use std::fmt;
 use std::path::PathBuf;
@@ -70,6 +70,15 @@ impl fmt::Display for PathsReport {
             let status = if file.exists { "loaded" } else { "not found" };
             writeln!(f, "  [{status}] {} ({})", file.path.display(), file.origin)?;
         }
+        writeln!(f)?;
+        writeln!(f, "Remembered layout")?;
+        let session = p.session_file();
+        let status = if session.exists() {
+            "present"
+        } else {
+            "none yet"
+        };
+        writeln!(f, "  [{status}] {}", session.display())?;
         writeln!(f)?;
         write!(f, "Settings are written to {}", self.write_target.display())
     }

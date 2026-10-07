@@ -2,6 +2,9 @@ use crate::env::{Env, Os};
 use std::path::{Path, PathBuf};
 
 /// Directory name appended to every base directory.
+/// The file name of the remembered panel layout in the state directory.
+pub const SESSION_FILE: &str = "session.toml";
+
 pub const APP_DIR: &str = "review-buddy";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,6 +95,11 @@ impl ResolvedPaths {
             system_config_dirs,
             system_data_dirs,
         })
+    }
+
+    /// The remembered panel layout, `session.toml` in the state directory.
+    pub fn session_file(&self) -> PathBuf {
+        self.state_dir.join(SESSION_FILE)
     }
 
     /// Where `instance.lock` lives: the runtime dir, else the state dir.

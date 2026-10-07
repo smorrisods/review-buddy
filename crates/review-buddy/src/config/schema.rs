@@ -86,6 +86,8 @@ pub struct UiConfig {
     /// Per-theme `background` settings, by theme id; each beats the global one.
     pub theme_background: BTreeMap<String, Background>,
     pub mouse: bool,
+    /// Remember the panel layout between runs in the state directory's `session.toml`.
+    pub remember_layout: bool,
     pub date_locale: String,
 }
 
@@ -106,6 +108,7 @@ impl Default for UiConfig {
             background: Background::Theme,
             theme_background: BTreeMap::new(),
             mouse: true,
+            remember_layout: true,
             date_locale: "en-CA".into(),
         }
     }

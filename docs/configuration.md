@@ -17,7 +17,7 @@ Review Buddy follows the [XDG Base Directory spec](https://specifications.freede
 | Data | `$XDG_DATA_HOME` | `~/.local/share` | `…/review-buddy/` | `themes/` installed by theme packs or `review-buddy theme install` |
 | System data | `$XDG_DATA_DIRS` | `/usr/local/share:/usr/share` | `…/review-buddy/` | `themes/` shipped by distro packages |
 | Cache | `$XDG_CACHE_HOME` | `~/.cache` | `…/review-buddy/` | `cache.sqlite` (summaries, details, ETags, capability probes). Safe to delete at any time |
-| State | `$XDG_STATE_HOME` | `~/.local/state` | `…/review-buddy/` | Planned: `drafts/`, `queue.jsonl` (offline actions), `session.toml` (last source, selection, layout), `logs/`. Nothing is written here yet |
+| State | `$XDG_STATE_HOME` | `~/.local/state` | `…/review-buddy/` | `session.toml` (the remembered panel layout, see [Remembered layout](#remembered-layout)). Planned: `drafts/`, `queue.jsonl` (offline actions), `logs/` |
 | Runtime | `$XDG_RUNTIME_DIR` | none (falls back to the state dir) | `…/review-buddy/` | Planned: `instance.lock` so two copies don't refresh the same cache at once. Not used yet |
 
 Secrets never go to disk. They live in the OS keyring (Secret Service on Linux, Keychain on macOS, Credential Manager on Windows) under service `review-buddy`, account `<host>`.
@@ -58,15 +58,15 @@ Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at,
 
 ## `[ui]`
 
-Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width` and `queue_height`.
+Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `remember_layout`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width` and `queue_height`.
 
 | Key | Default | Notes |
 |---|---|---|
 | `theme` | `"liminal-hq"` | Any built-in or user theme id |
 | `layout` | `"panes"` | `panes` · `split` · `queue`. Only `panes` exists today |
-| `sources` | `"auto"` | `auto` · `left` · `top`. Where the Sources sit. `auto` shows the pane at 130 columns or more and the tab strip below; `left` always shows the pane; `top` always shows the strip, which frees 26 columns for the Queue and Detail. `S` cycles it for the session |
+| `sources` | `"auto"` | `auto` · `left` · `top`. Where the Sources sit. `auto` shows the pane at 130 columns or more and the tab strip below; `left` always shows the pane; `top` always shows the strip, which frees 26 columns for the Queue and Detail. `S` cycles it for the session, and the choice is remembered between runs |
 | `detail` | `"auto"` | `auto` · `open` · `closed`. `closed` starts with the Detail pane closed, so the Queue uses the full width; `auto` and `open` show it. `p` toggles it for the session. Neither key is saved to the file |
-| `detail_position` | `"auto"` | `auto` · `right` · `left` · `top` · `bottom`. Where the Detail pane sits relative to the Queue. `auto` puts it on the right when the terminal is at least 110 columns wide and the Queue (48) and Detail (50) fit side by side, otherwise below the Queue. `left` swaps the two panes; `top` and `bottom` stack them, giving the Queue about 55 percent of the height and at least 8 rows. The env var `REVIEW_BUDDY_DETAIL_POSITION` sets it for one run, and `P` cycles it for the session. Not saved to the file from the key |
+| `detail_position` | `"auto"` | `auto` · `right` · `left` · `top` · `bottom`. Where the Detail pane sits relative to the Queue. `auto` puts it on the right when the terminal is at least 110 columns wide and the Queue (48) and Detail (50) fit side by side, otherwise below the Queue. `left` swaps the two panes; `top` and `bottom` stack them, giving the Queue about 55 percent of the height and at least 8 rows. The env var `REVIEW_BUDDY_DETAIL_POSITION` sets it for one run, and `P` rotates it (auto, bottom, left, top, right; skipping a stop that looks the same as what is on screen) for the session. The choice is remembered between runs (see [Remembered layout](#remembered-layout)); the key never edits the file |
 | `queue_width` | automatic | Starting width of the Queue when Detail sits beside it: a number of columns (`52`) or a percentage of the space the Queue and Detail share (`"60%"`, 10 to 90). The Queue never goes below 30 columns and Detail never below 36. Without it the Queue is 48 columns (60 with Sources on top at 130 columns or more). Dragging the seam or `<` / `>` change it for the session, and `W` saves the current size here. `config get ui.queue_width` shows `auto` when unset |
 | `queue_height` | automatic | The same for the Queue's height when Detail is above or below it: rows (`14`) or a percentage of the height (`"50%"`). At least 6 rows each. Without it the Queue gets about 55 percent and at least 8 rows |
 | `jax` | `true` | Jax is not drawn yet |
@@ -76,7 +76,25 @@ Applied: `theme`, `colour_depth`, `background`, `theme_background`, `mouse`, `re
 | `background` | `"theme"` | `theme` · `yes` · `no`. Whether the frame paints a background: `theme` follows the theme (Afterglow paints, Liminal HQ and Dusk don't), `yes` always paints, `no` never does. `NO_COLOR` never paints, and 16 colours paint only with `yes`. `B` cycles it for the session and `REVIEW_BUDDY_BACKGROUND` overrides it for one run. See [theming](theming.md#background) |
 | `theme_background` | _none_ | A `[ui.theme_background]` table of theme id to `theme` · `yes` · `no`, for example `dusk = "yes"`. Beats `background` for that theme. Precedence, strongest first: the `B` key, `REVIEW_BUDDY_BACKGROUND`, this table, `background`, the theme's own default |
 | `mouse` | `true` | Click, drag-select, scroll. `false` leaves mouse capture off so the terminal handles the mouse. Demo mode never reads the config and always captures it |
+| `remember_layout` | `true` | Remember the panel layout between runs: where Detail sits (`P`), where Sources sit (`S`), whether Detail is open (`p`), the dragged sizes and the background mode (`B`), in `session.toml` in the state directory. `false` neither reads nor writes that file. See [Remembered layout](#remembered-layout) |
 | `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale. Not applied yet |
+
+### Remembered layout
+
+Review Buddy keeps the choices you make with `P`, `S`, `p`, `B` and by dragging or nudging the panes in `$XDG_STATE_HOME/review-buddy/session.toml` (`%LOCALAPPDATA%\review-buddy\state\` on Windows), and picks them up at the next launch. Only what you changed is stored, so a setting you never touched keeps following `config.toml`. The file is written in the background shortly after a change (about half a second) and once more on quit, and only when its content changed. It is created with mode `0600` in the private state directory, written atomically, and never touched in `--demo`. A file that is empty, corrupt or has unknown keys is ignored quietly, and each key that does parse is still used.
+
+```toml
+[layout]
+detail_position = "left"   # auto | right | left | top | bottom
+sources = "top"            # auto | left | top
+detail = "closed"          # auto | open | closed
+queue_width = 52           # columns, or a percentage like "60%"
+queue_height = "55%"
+sources_width = 30
+background = "yes"         # theme | yes | no
+```
+
+Precedence at launch, strongest first: a key you press this session, the `REVIEW_BUDDY_*` environment variable (`REVIEW_BUDDY_DETAIL_POSITION`, `REVIEW_BUDDY_BACKGROUND`), the remembered `session.toml`, `config.toml`, then the built-in default. Resetting a split with `=` forgets that size, so the next launch uses `ui.queue_width` or `ui.queue_height` again. `W` still writes sizes to `config.toml`. Set `ui.remember_layout = false` to turn remembering off, in which case the file is neither read nor written. `review-buddy config paths` lists the file and `review-buddy config reset-layout` removes it.
 
 ## `[review]`
 
@@ -222,7 +240,7 @@ Parsed but not applied yet. See `keybindings.md`.
 | `REVIEW_BUDDY_CONFIG` | Path to an alternate config file (replaces the user config layers) |
 | `XDG_CONFIG_HOME`, `XDG_CONFIG_DIRS`, `XDG_DATA_HOME`, `XDG_DATA_DIRS`, `XDG_CACHE_HOME`, `XDG_STATE_HOME`, `XDG_RUNTIME_DIR` | Standard base directories; see above |
 | `REVIEW_BUDDY_THEME` | Overrides `ui.theme` for this run |
-| `REVIEW_BUDDY_BACKGROUND` | `theme`, `yes` or `no` for this run: whether the frame paints a background. Beats `ui.background` and `[ui.theme_background]`; `B` beats it. Other values are ignored |
+| `REVIEW_BUDDY_BACKGROUND` | `theme`, `yes` or `no` for this run: whether the frame paints a background. Beats the remembered layout, `ui.background` and `[ui.theme_background]`; `B` beats it. Other values are ignored |
 | `REVIEW_BUDDY_COLOUR_DEPTH` | Forces the colour depth for this run: `truecolor`, `256` or `16` (overrides detection; `ui.colour_depth` in `config.toml` does the same persistently) |
 | `REVIEW_BUDDY_REDUCED_MOTION=1` | Same as `ui.reduced_motion = true` (only the refresh spinner animates today) |
 | `GITHUB_TOKEN`, `GITLAB_TOKEN` | Used only by sources with `auth = "env:…"` |

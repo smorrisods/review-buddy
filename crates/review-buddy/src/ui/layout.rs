@@ -120,6 +120,16 @@ pub enum Place {
 }
 
 impl Place {
+    /// What is on screen, in terms of the list (Queue) and the details.
+    pub fn describe(self) -> &'static str {
+        match self {
+            Self::Right => "list left, details right",
+            Self::Left => "list right, details left",
+            Self::Top => "list on bottom, details above",
+            Self::Bottom => "list on top, details below",
+        }
+    }
+
     pub fn stacked(self) -> bool {
         matches!(self, Self::Top | Self::Bottom)
     }
@@ -192,15 +202,43 @@ impl Options {
         }
     }
 
-    /// `P`: auto, right, left, top, then bottom.
-    pub fn next_position(self) -> DetailPosition {
-        match self.position {
-            DetailPosition::Auto => DetailPosition::Right,
-            DetailPosition::Right => DetailPosition::Left,
-            DetailPosition::Left => DetailPosition::Top,
-            DetailPosition::Top => DetailPosition::Bottom,
-            DetailPosition::Bottom => DetailPosition::Auto,
+    /// `P`: moves the list panel left → top → right → bottom, then `auto`. As detail positions
+    /// that is auto → bottom → left → top → right → auto. A stop that would look the same as
+    /// the layout showing now is skipped, and so is a fixed stop that looks the same as the
+    /// `auto` stop right after it.
+    pub fn next_position(self, width: u16) -> DetailPosition {
+        const RING: [DetailPosition; 5] = [
+            DetailPosition::Auto,
+            DetailPosition::Bottom,
+            DetailPosition::Left,
+            DetailPosition::Top,
+            DetailPosition::Right,
+        ];
+        let step = |p: DetailPosition| {
+            let at = RING.iter().position(|r| *r == p).unwrap_or(0);
+            RING[(at + 1) % RING.len()]
+        };
+        let look = |p: DetailPosition| {
+            Options {
+                position: p,
+                ..self
+            }
+            .place(width)
+        };
+        let shown = look(self.position);
+        let auto = look(DetailPosition::Auto);
+        let mut next = step(self.position);
+        for _ in 0..RING.len() {
+            let same_as_shown = look(next) == shown;
+            let same_as_auto_after = next != DetailPosition::Auto
+                && look(next) == auto
+                && step(next) == DetailPosition::Auto;
+            if !same_as_shown && !same_as_auto_after {
+                break;
+            }
+            next = step(next);
         }
+        next
     }
 
     /// `S`: auto, then left, then top.
@@ -785,24 +823,73 @@ mod position_tests {
         }
     }
 
+    fn walk(start: DetailPosition, width: u16, steps: usize) -> Vec<DetailPosition> {
+        let mut o = Options {
+            position: start,
+            ..Options::default()
+        };
+        (0..steps)
+            .map(|_| {
+                o.position = o.next_position(width);
+                o.position
+            })
+            .collect()
+    }
+
     #[test]
-    fn the_cycle_visits_every_position_and_returns() {
-        let mut o = Options::default();
-        let mut seen = Vec::new();
-        for _ in 0..5 {
-            o.position = o.next_position();
-            seen.push(o.position);
+    fn narrow_cycle_skips_bottom_after_auto() {
+        use DetailPosition::*;
+        for width in [60, 100, 109] {
+            assert_eq!(
+                walk(Auto, width, 5),
+                [Left, Top, Right, Auto, Left],
+                "width {width}"
+            );
+            assert_eq!(walk(Bottom, width, 1), [Left]);
+            assert_eq!(walk(Left, width, 1), [Top]);
+            assert_eq!(walk(Top, width, 1), [Right]);
+            assert_eq!(walk(Right, width, 1), [Auto]);
         }
-        assert_eq!(
-            seen,
-            [
-                DetailPosition::Right,
-                DetailPosition::Left,
-                DetailPosition::Top,
-                DetailPosition::Bottom,
-                DetailPosition::Auto
-            ]
-        );
+    }
+
+    #[test]
+    fn wide_cycle_skips_right_before_auto() {
+        use DetailPosition::*;
+        for width in [110, 130, 160, 200] {
+            assert_eq!(
+                walk(Auto, width, 5),
+                [Bottom, Left, Top, Auto, Bottom],
+                "width {width}"
+            );
+            assert_eq!(walk(Right, width, 1), [Bottom], "remembered right");
+        }
+    }
+
+    #[test]
+    fn every_start_reaches_every_visible_arrangement_and_never_repeats_the_screen() {
+        use DetailPosition::*;
+        for width in [60, 100, 109, 110, 129, 130, 160, 220] {
+            for start in [Auto, Right, Left, Top, Bottom] {
+                let mut o = Options {
+                    position: start,
+                    ..Options::default()
+                };
+                let mut seen = std::collections::HashSet::new();
+                for _ in 0..5 {
+                    let before = o.place(width);
+                    o.position = o.next_position(width);
+                    assert_ne!(o.place(width), before, "{start:?} at {width}");
+                    seen.insert(o.place(width).describe());
+                }
+                assert_eq!(seen.len(), 4, "{start:?} at {width}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_places_are_described_by_what_is_on_screen() {
+        assert_eq!(Place::Bottom.describe(), "list on top, details below");
+        assert_eq!(Place::Right.describe(), "list left, details right");
     }
 
     #[test]

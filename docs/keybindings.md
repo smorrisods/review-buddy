@@ -22,22 +22,35 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `⏎` on a `+N more` row | Show the rest of that bucket, past `triage.bucket_limit`. `⏎` again on the `show fewer` row collapses it |
 | `,` | Open Settings → Sources (see [Settings](#settings)) |
 | `s` | Open the Show filters control: `reviewing`, `assigned`, `authored`, `drafts` and `noise`. Changes apply to the queue at once and last for the session |
-| `p` | Close or reopen the Detail pane (`ui.detail`). Closed, the Queue takes the full width and the footer adds `p show detail`. Selection and `⏎` are unchanged. Lasts for the session |
-| `S` | Cycle where the Sources sit: `auto` (pane at 130 columns or more, tabs below), `left` (always the pane) and `top` (always the tab strip). Lasts for the session (`ui.sources`) |
-| `P` | Cycle where the Detail pane sits: `auto` (right when the terminal is at least 110 columns wide and the Queue and Detail have 98 between them, otherwise below the Queue), `right`, `left`, `top` and `bottom`. Stacked, the Queue gets about 55 percent of the height (at least 8 rows) and Detail the rest, and Detail drops to a compact header so the action chips and tabs stay in view. Lasts for the session (`ui.detail_position`, `REVIEW_BUDDY_DETAIL_POSITION`) |
-| `<` / `>` | Shrink or grow the focused pane by 2 columns (or rows, when stacked): the Queue/Detail split for those panes, or the Sources width when Sources is focused (or when Detail is closed). Lasts for the session; `[` and `]` stay on the Detail tabs |
+| `p` | Close or reopen the Detail pane (`ui.detail`). Closed, the Queue takes the full width and the footer adds `p show detail`. Selection and `⏎` are unchanged. Remembered between runs |
+| `S` | Cycle where the Sources sit: `auto` (pane at 130 columns or more, tabs below), `left` (always the pane) and `top` (always the tab strip). Remembered between runs (`ui.sources`) |
+| `P` | Rotate the panes: the list (Queue) moves left → top → right → bottom, then back to `auto`. As `ui.detail_position` values that is `auto` → `bottom` → `left` → `top` → `right` → `auto`. `auto` puts Detail on the right when the terminal is at least 110 columns wide and the Queue and Detail have 98 between them, otherwise below the Queue. A stop that would look the same as what is on screen is skipped (see the table below). Stacked, the Queue gets about 55 percent of the height (at least 8 rows) and Detail the rest, and Detail drops to a compact header so the action chips and tabs stay in view. The toast says what is on screen, for example `Layout: list on top, details below`. Remembered between runs (`ui.detail_position`, `REVIEW_BUDDY_DETAIL_POSITION`) |
+| `<` / `>` | Shrink or grow the focused pane by 2 columns (or rows, when stacked): the Queue/Detail split for those panes, or the Sources width when Sources is focused (or when Detail is closed). Remembered between runs; `[` and `]` stay on the Detail tabs |
 | `=` | Reset the split next to the focused pane to its automatic size |
 | `W` | Save the current Queue width and height to `ui.queue_width` and `ui.queue_height` in the config file. Needs a config file to write to; under `--demo` nothing is written |
 | `PgUp` / `PgDn` | Scroll the Detail pane when it has focus (so does `j` / `k`, the wheel and `g` / `G`) |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
 | `T` | Cycle theme |
-| `B` | Cycle the background: theme → yes → no, for the session (not on first run) |
+| `B` | Cycle the background: theme → yes → no, and remember it between runs (not on first run) |
 | `?` | Help overlay for the current screen (`esc` or `?` closes it) |
 | `q` / `⌃C` | Quit. If there are unsent comments, it asks you to quit again |
 | `esc` | Dismiss status messages |
 
 The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable. `a` and `c` (or their chips) open the diff for the selected change and start the approve preview or the comment composer there, with the cursor on the first changed line. `x` and `m` explain that they are planned for v0.3.
+
+**Rotating with `P`.** The cycle is `auto` → `bottom` (list on top, details below) → `left` (list on the right, details left) → `top` (list on the bottom, details above) → `right` (list on the left, details right) → `auto`. A stop that looks the same as the layout showing now is skipped, and so is a fixed `right` that looks the same as the `auto` after it:
+
+| Now | `P` goes to | Note |
+|---|---|---|
+| `auto` showing details right (110 columns or more) | `bottom` | |
+| `auto` showing details below (narrower) | `left` | `bottom` already looks like this, so it is skipped |
+| `bottom` | `left` | |
+| `left` | `top` | |
+| `top` | `right`, or `auto` when `auto` shows details right | At wide sizes `right` looks like `auto`, so the cycle goes `top` → `auto` |
+| `right` | `auto`, or `bottom` when `auto` shows details right | A remembered `right` at a wide size: `auto` would look the same, so it goes on to `bottom` |
+
+**Remembered layout.** `P`, `S`, `p`, `B` and the dragged or nudged sizes are remembered between runs in `session.toml` in the state directory (see `docs/configuration.md#remembered-layout`). Precedence at launch, strongest first: a key you press this session, the `REVIEW_BUDDY_*` environment variable, the remembered file, `config.toml`, the built-in default. `ui.remember_layout = false` turns it off, and `review-buddy config reset-layout` forgets it. Demo mode never reads or writes it.
 
 ## Diff
 
