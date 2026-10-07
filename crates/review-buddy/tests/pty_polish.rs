@@ -103,6 +103,10 @@ impl Session {
         std::thread::sleep(Duration::from_millis(300));
         self.writer.write_all(b"q").unwrap();
         self.writer.flush().unwrap();
+        // Demo drafts aren't saved, so a kept draft makes the first quit ask again.
+        std::thread::sleep(Duration::from_millis(300));
+        let _ = self.writer.write_all(b"q");
+        let _ = self.writer.flush();
         let deadline = Instant::now() + LIMIT;
         loop {
             if let Some(status) = self.child.try_wait().unwrap() {
@@ -145,6 +149,11 @@ fn a_dragged_range_becomes_a_range_comment() {
     s.send(b"c", "Comment · menus.rs lines", "c anchors a range");
     s.send(b"Both of these", "oth of these", "typing shows");
     s.send(b"\r", "pending comment · lines", "⏎ adds the range");
-    s.send(b"q", "Waiting on you", "q returns to the queue");
+    s.send(b"q", "as a draft?", "q asks whether to keep the draft");
+    s.send(
+        b"\r",
+        "Waiting on you",
+        "⏎ keeps it and returns to the queue",
+    );
     s.quit();
 }

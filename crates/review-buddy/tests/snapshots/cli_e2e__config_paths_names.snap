@@ -11,4 +11,5 @@ system-data-dir
 config-file
 config-file
 session-file
+drafts-dir
 write-target

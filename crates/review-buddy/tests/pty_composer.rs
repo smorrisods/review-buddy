@@ -32,17 +32,7 @@ fn comment_then_approve_in_demo_and_quit_cleanly() {
     s.send_expect(b"\r", "Approved (demo)", "⏎ confirms");
 
     // Back out of the diff, then quit: nothing is unsent, so there is no prompt.
-    s.send_expect(b"q", "as a draft?", "q asks whether to keep the draft");
-    s.send_expect(
-        b"\r",
-        "Waiting on you",
-        "keeping is the default and returns to the queue",
-    );
-    s.send_expect(
-        b"q",
-        "aren't saved",
-        "demo drafts are memory only, so quitting warns",
-    );
+    s.send_expect(b"q", "Waiting on you", "q returns to the queue");
     s.send(b"q");
     assert!(s.wait_exit(Duration::from_secs(10)));
     assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);

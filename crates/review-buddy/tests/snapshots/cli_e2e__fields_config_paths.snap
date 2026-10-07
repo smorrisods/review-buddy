@@ -12,3 +12,4 @@ systemDataDirs
 configFiles
 writeTarget
 sessionFile
+draftsDir
