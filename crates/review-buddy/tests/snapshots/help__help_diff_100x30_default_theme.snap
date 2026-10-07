@@ -3,32 +3,32 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
- GH liminal-hq/review-╭ Keys · Diff ─────────────────────────────────────────╮ven menus
-╭ files 3 ────────────│Move                                                  │─────────────────────╮
-│› · src/ui/menus.rs  │  j/k          move                                   │app::Action;         │
-│  · src/ui/menubar.rs│  g/G          first / last line                      │                     │
-│  · src/ui/mod.rs    │  pgup/pgdn    page up / down                         │                     │
+╭ files 3 ────────────╭ Keys · Diff ─────────────────────────────────────────╮─────────────────────╮
+│› · src/ui/menus.rs  │Move                                                  │app::Action;         │
+│  · src/ui/menubar.rs│  j/k          move                                   │                     │
+│  · src/ui/mod.rs    │  g/G          first / last line                      │                     │
+│                     │  pgup/pgdn    page up / down                         │                     │
 │                     │  n/p          hunk                                   │                     │
 │                     │  ← →          file                                   │                     │
 │                     │  ]/[          file                                   │                     │
 │                     │  tab          pane                                   │                     │
 │                     │                                                      │                     │
-│                     │Select                                                │                     │
-│                     │  ⇧↑/⇧↓        select lines                           │uItem>) -> Self {    │
-│                     │  ⇧pgup/⇧pgdn  select a page                          │{                    │
-│                     │  V            select lines with j/k, again to end    │e {                  │
+│                     │Select                                                │uItem>) -> Self {    │
+│                     │  ⇧↑/⇧↓        select lines                           │{                    │
+│                     │  ⇧pgup/⇧pgdn  select a page                          │e {                  │
+│                     │  V            select lines with j/k, again to end    │                     │
 │                     │  esc          clear the selection                    │                     │
 │                     │                                                      │                     │
-│                     │Review                                                │                     │
-│                     │  c            comment                                │elf) {               │
-│                     │  r            reply to the thread on this line       │y() {                │
+│                     │Review                                                │elf) {               │
+│                     │  c            comment                                │y() {                │
+│                     │  r            reply to the thread on this line       │                     │
 │                     │  e / ⏎        edit the pending comment on this line  │                     │
-│ Your review · pendin│  d / del      delete it (asks first)                 │                     │
-│1 suggestion · 0 comm│  , / .        previous / next comment on this line   │.selected + 1) % sel…│
-│0 of 3 files viewed  │  a            approve                                │────────────────────╮│
-│Your review: not star│  x            request changes                        │                    ││
-│  menus.rs:51 Fewer b│  R            submit a review                        │he first item? Most ││
-│a approve · c comment│                                                      │.                   ││
-│x request changes · R│Change                                                │                    ││
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 36 ▼ ───────────────╯─────────────────────╯
+│ Your review · pendin│  d / del      delete it (asks first)                 │.selected + 1) % sel…│
+│1 suggestion · 0 comm│  , / .        previous / next comment on this line   │────────────────────╮│
+│0 of 3 files viewed  │  a            approve                                │                    ││
+│Your review: not star│  x            request changes                        │he first item? Most ││
+│  menus.rs:51 Fewer b│  R            submit a review                        │.                   ││
+│a approve · c comment│                                                      │                    ││
+│x request changes · R│Change                                                │eld key never gets  ││
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 39 ▼ ───────────────╯─────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

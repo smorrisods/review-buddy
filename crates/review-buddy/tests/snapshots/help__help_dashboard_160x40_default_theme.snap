@@ -28,6 +28,7 @@ expression: text(&render(&mut a))
 │                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│                                                   │
 │                        ││                         │  =    reset that split to automatic                  │                                                   │
 │                        ││                         │  W    save pane sizes to config                      │                                                   │
+│                        ││                         │  t    terminal pane: open, or focus it               │                                                   │
 │                        ││                         │                                                      │                                                   │
 │                        ││                         │Change                                                │                                                   │
 │                        ││                         │  s /  pick projects in show filters                  │                                                   │

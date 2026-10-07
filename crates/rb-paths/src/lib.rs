@@ -11,9 +11,7 @@ mod resolve;
 pub use config::{ConfigFile, ConfigLayers, ConfigOrigin};
 pub use env::{Env, MapEnv, Os, SystemEnv};
 pub use fs::{ensure_private_dir, write_private_file};
-pub use resolve::{
-    PathsError, ResolvedPaths, APP_DIR, DRAFTS_DIR, SESSION_FILE, WORKTREES_DIR,
-};
+pub use resolve::{PathsError, ResolvedPaths, APP_DIR, DRAFTS_DIR, SESSION_FILE, WORKTREES_DIR};
 
 use std::fmt;
 use std::path::PathBuf;
