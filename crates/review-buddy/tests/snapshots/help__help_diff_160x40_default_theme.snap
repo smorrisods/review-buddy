@@ -37,7 +37,7 @@ expression: text(&render(&mut a))
 │ Your review · pending ─────────││         49 +    │  ?            help                                   │                                                   │
 │1 suggestion · 0 comments       ││         50 +    │  T            theme                                  │                                                   │
 │0 of 3 files viewed             ││         51 +    │  B            background: theme / yes / no           │_or(self.items.len() - 1);                         │
-│Your verdict: not started       ││              ╭─ │  ⌃Z           suspend                                │──────────────────────────────────────────────────╮│
+│Your verdict: not started       ││              ╭─ │  ⌃Z           suspend (not on Windows)               │──────────────────────────────────────────────────╮│
 │a approve · c comment           ││              │ F╰ esc close ───────────────────────────────────────────╯                                                  ││
 │x request changes               ││              │ -         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                    ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯

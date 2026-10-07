@@ -53,8 +53,15 @@ fn bind(
 /// Every key that works on `screen`, in the order the help overlay lists them.
 pub fn registry(screen: Screen) -> Vec<Binding> {
     let mut bindings = screen_bindings(screen);
-    #[cfg(unix)]
-    bindings.push(bind("General", "⌃Z", "suspend", None, false));
+    // Listed on every platform so the help overlay reads the same everywhere; on Windows the key
+    // only shows a status saying it isn't available.
+    bindings.push(bind(
+        "General",
+        "⌃Z",
+        "suspend (not on Windows)",
+        None,
+        false,
+    ));
     bindings
 }
 
