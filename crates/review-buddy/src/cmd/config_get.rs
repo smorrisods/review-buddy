@@ -70,6 +70,7 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
         );
     }
     put("ui.mouse", json!(ui.mouse));
+    put("ui.remember_layout", json!(ui.remember_layout));
     put("ui.date_locale", json!(ui.date_locale));
     put("review.merge_method", json!(review.merge_method.as_str()));
     put("review.confirm_merge", json!(review.confirm_merge));

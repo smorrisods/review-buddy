@@ -97,11 +97,7 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
                     }
                     let live =
                         std::sync::Arc::new(review_buddy::providers::Live::from_context(&ctx)?);
-                    Ok((
-                        runtime::Settings::from_config(&ctx.config)
-                            .with_write_target(ctx.paths.write_target.clone()),
-                        live,
-                    ))
+                    Ok((launch_settings(&ctx), live))
                 })));
             }
             let setup_services = std::sync::Arc::new(review_buddy::setup::Services::system(
@@ -123,17 +119,10 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
                     }
                     let live =
                         std::sync::Arc::new(review_buddy::providers::Live::from_context(&ctx)?);
-                    Ok((
-                        runtime::Settings::from_config(&ctx.config)
-                            .with_write_target(ctx.paths.write_target.clone()),
-                        live,
-                    ))
+                    Ok((launch_settings(&ctx), live))
                 })));
             }
-            options.settings = Some(
-                runtime::Settings::from_config(&ctx.config)
-                    .with_write_target(ctx.paths.write_target.clone()),
-            );
+            options.settings = Some(launch_settings(&ctx));
             options.no_mouse = !ctx.config.ui.mouse;
             options.live = Some(std::sync::Arc::new(
                 review_buddy::providers::Live::from_context(&ctx)?,
@@ -141,4 +130,18 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
         }
     }
     Ok(options)
+}
+
+/// The settings for a live run: the config, then the remembered layout on top unless
+/// `ui.remember_layout` is off.
+#[cfg(feature = "live")]
+fn launch_settings(ctx: &cmd::context::Context) -> runtime::Settings {
+    let settings = runtime::Settings::from_config(&ctx.config)
+        .with_write_target(ctx.paths.write_target.clone());
+    if !ctx.config.ui.remember_layout {
+        return settings;
+    }
+    let path = review_buddy::session::file_in(&ctx.paths.paths.state_dir);
+    let loaded = review_buddy::session::load(&path);
+    settings.with_session(path, loaded, ctx.env.as_ref())
 }

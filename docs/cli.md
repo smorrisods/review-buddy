@@ -10,7 +10,7 @@ This page is the design for the whole command line. What runs today is the **rea
 
 | Runs today | Planned |
 |---|---|
-| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open` (all also as `mr`), `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3, not declared in the binary yet, so they are a usage error); `triage explain` and `theme check|export` (declared, but not built: they exit `2` with `Not built yet`); `api` (later) |
+| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open` (all also as `mr`), `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list|reset-layout`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3, not declared in the binary yet, so they are a usage error); `triage explain` and `theme check|export` (declared, but not built: they exit `2` with `Not built yet`); `api` (later) |
 
 Declared commands that aren't built exit `2` with `Not built yet. It's planned for <milestone>.` (the milestone text for `triage explain` and `theme check|export` still reads v0.1.0). The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), including GitHub Enterprise Server and self-hosted GitLab (see `integrations.md`), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
 
@@ -69,6 +69,7 @@ review-buddy triage explain <selector>    which rule or built-in bucketed a chan
 review-buddy config paths                 every resolved directory and which config files were loaded
 review-buddy config get <key>             one resolved value and the layer it came from
 review-buddy config list                  every resolved value with its origin
+review-buddy config reset-layout          forget the remembered panel layout (session.toml)
 
 review-buddy theme list|check <id>|export <id>
 review-buddy doctor                       auth, scopes, rate limits, API versions and XDG paths
@@ -284,6 +285,8 @@ Capabilities
 ### `config`
 
 `config paths` lists the resolved directories and loaded files. `config get <key>` prints one effective value, for example `ui.theme`, and `config list` prints every one in a stable order (the sections of `config.example.toml`, then `keys.*`, then each source as `source.<name>.<field>`). On a TTY `get` adds `(from <layer>)`; piped, it prints the bare value so it's safe in `$(…)`. `config list` piped is `key<TAB>value<TAB>origin`. With `--json key,value,origin` both give the origin: the config file that last set the key, `default`, or the override (`$REVIEW_BUDDY_THEME`). Lists print as JSON and durations as `5m`. An unknown key exits `2` with the closest matches.
+
+`config paths` also lists the remembered layout file (`session.toml` in the state directory; `sessionFile` in `--json`, and a `session-file` row piped). `config reset-layout` removes that file, so the next run starts from `config.toml`. It asks first on a TTY (the default is No), needs `--yes` without one (exit `3` with nothing changed otherwise), says so and exits `0` when there is nothing to remove, and never touches `config.toml`. Under `--demo` it prints what it would remove and removes nothing. See `docs/configuration.md#remembered-layout`.
 
 ### `api` (later)
 

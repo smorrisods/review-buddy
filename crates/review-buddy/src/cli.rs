@@ -388,6 +388,8 @@ pub enum ConfigAction {
     Get { key: String },
     /// Every resolved value with its origin
     List,
+    /// Forget the remembered panel layout (session.toml)
+    ResetLayout,
 }
 
 #[derive(Subcommand, Debug)]

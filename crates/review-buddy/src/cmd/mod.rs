@@ -18,6 +18,7 @@ mod changes;
 mod completion;
 mod config;
 mod config_get;
+mod config_reset;
 mod doctor;
 pub(crate) mod host;
 mod markdown;
@@ -138,6 +139,9 @@ fn execute(cli: Cli, terminal: Terminal) -> Result<(), CmdError> {
         Command::Config {
             action: ConfigAction::List,
         } => config_get::list(&ctx),
+        Command::Config {
+            action: ConfigAction::ResetLayout,
+        } => config_reset::run(&ctx),
         Command::Source {
             action: SourceAction::List,
         } => source::list(&ctx),
