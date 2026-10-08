@@ -31,15 +31,16 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `W` | Save the current Queue width and height to `ui.queue_width` and `ui.queue_height` in the config file. Needs a config file to write to; under `--demo` nothing is written |
 | `PgUp` / `PgDn` | Scroll the Detail pane when it has focus (so does `j` / `k`, the wheel and `g` / `G`) |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
-| `o` / `y` | Open the change in the browser / copy its URL. While an image is selected (`i`), they open or copy that image's address instead. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
+| `o` / `y` | Open the change in the browser / copy its URL. With text selected in the Detail pane, `y` copies that text instead (see [Copying text](#copying-text)). While an image is selected (`i`), they open or copy that image's address instead. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
 | `i` | Select the next image in the description, scrolling it into view: its caption gains `▸` and `(open with o)`. After the last, none is selected. Works with images off too, so `o` can still open one. See [Images in descriptions](SPEC.md#images-in-descriptions) |
 | `t` | Open the terminal pane next to the change, or focus it if it is open (also in the Diff). See [Terminal pane](#terminal-pane) |
 | `T` | Cycle theme |
 | `B` | Cycle the background: theme → yes → no, and remember it between runs (not on first run) |
+| `M` | Turn mouse capture off or on for this session, so your terminal's own selection and wheel work everywhere. The footer shows `mouse off · M turns it on` while it is off. Also on the Diff screen |
 | `?` | Help overlay for the current screen (`esc` or `?` closes it) |
 | `q` / `⌃C` | Quit. If there are unsent comments, it asks you to quit again |
 | `⌃Z` | Suspend to the shell on macOS and Linux, on every screen. The terminal is restored first (main screen, cooked mode, mouse, paste and focus reporting off, cursor shown); `fg` re-enters, repaints everything and refreshes as if the window had just regained focus. Unsent composer text is kept. On Windows there is no job control: the footer says `Suspend isn't available on Windows. Use ⌃C or q to quit.` |
-| `esc` | Dismiss status messages |
+| `esc` | Clear selected text, then dismiss status messages |
 
 The action chips in the detail pane (`a Approve`, `x Request changes`, `c Comment`, `m Merge`) are clickable. `a`, `x` and `c` (or their chips) open the diff for the selected change and start the review modal (Approve or Request changes selected) or the comment composer there, with the cursor on the first changed line. Where the source can't request changes, `x` explains why in one line instead. `m` explains that merging is planned for v0.3.
 
@@ -79,14 +80,33 @@ Open with `⏎` or `d` from the dashboard. A header row above the panes names th
 | `a` | Review modal with **Approve** selected (see [Review modal](#review-modal)) |
 | `x` | Review modal with **Request changes** selected. Where the source can't request changes the key stays on screen and says why in one line instead |
 | `R` | Review modal with **Comment** selected: submits the pending comments without approving |
+| `v` | Copy mode: start a text selection at the cursor line and move its end with `h` `j` `k` `l` or the arrows, `w` / `b` by word, `0` / `$` to the start / end of the row. `tab` moves between the code and the comments under the line. `y` copies and ends the mode; `esc` or `v` cancels. See [Copying text](#copying-text) |
+| `y` | With text selected: copy exactly that text (otherwise copies the change's URL, as below) |
+| `Y` | Copy the whole comment or thread under the cursor line (the one picked with `,` / `.` when the line has several) |
+| `M` | Turn mouse capture off or on for this session |
 | `z` | Turn soft wrap on or off (`Wrap on` / `Wrap off`; `diff.wrap`). See [Soft wrap](#soft-wrap) |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
 | `T` / `B` / `?` | Cycle theme / cycle the background / help |
-| `esc` / `q` | Clear the selected range (and end `V` mode), then go back to the dashboard. If you added or changed comments since you opened the change it asks `Keep these 3 comments as a draft?` first (see [Review drafts](#review-drafts)) |
+| `esc` / `q` | Clear the selected text or range (and end `V` and copy modes), then go back to the dashboard. If you added or changed comments since you opened the change it asks `Keep these 3 comments as a draft?` first (see [Review drafts](#review-drafts)) |
 
 A keyboard range is the same range a drag makes: the same highlight, the same `c` comment, and it stays inside one hunk (the extension stops at the hunk edge) and, for the comment, on one side. A plain move without Shift outside `V` mode clears the range, just as a click does.
 
-**Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
+**Mouse:** click to place the cursor · press and drag on code or a comment to copy text · press and drag on the line numbers to select a range of lines · shift-click to extend the range · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
+
+### Copying text
+
+Where a drag starts decides what it does, so neither use is lost:
+
+- **Start on code, a comment or a thread, the description, or a path in the Files pane:** the drag selects text. It stays inside the block of text it began in, even if the pointer leaves it (a drag that starts in a thread never picks up the code beside it, and the other way round), is highlighted cell by cell in a stronger tint than the cursor line (reversed under `NO_COLOR`), and is copied when you let go. The toast says `Copied 42 characters`, never the text. Dragging past the top or bottom of the diff scrolls it.
+- **Start in the line-number gutter or on the `+` / `-` sign:** the drag selects whole lines for `c`, exactly as before. Shift-click, `⇧↑` `⇧↓` and `V` are unchanged.
+
+What is copied is the logical text. For the diff that is the code without the gutter, with tabs expanded as shown; for a thread or comment it is the text inside the border, without the `│` padding or the `-` / `+` marks of a suggestion; a soft-wrapped line (the diff with `z`, a long comment, the description) comes back as one line, wide characters whole; rows are joined with newlines and trailing spaces are trimmed. Selecting across code lines skips the comments between them. A path shortened to fit (`…ui/menus.rs`) copies in full. Image rows have no text to select.
+
+**Double-click** selects a word, **triple-click** a line (a whole wrapped line, a whole paragraph); dragging after either grows the selection by words or lines. `esc`, or a click anywhere else, clears the highlight. Changing file, toggling wrap, resizing or opening a composer also drops it, since the rows it pointed at have moved. The first time you press on text in the diff the footer reminds you of the split.
+
+**With the keyboard:** `v` starts a selection at the cursor line, `h` `j` `k` `l` and the arrows move its end, `w` and `b` jump by word, `0` and `$` go to the ends of the row, `tab` moves between the line's code and the comments under it, and `y` copies and ends the mode. `esc` or `v` cancels. Other keys do nothing in this mode. `y` outside copy mode copies a mouse selection when there is one, and otherwise keeps its meaning (the change's URL, or the selected image's address). `Y` copies a whole comment or thread, with the author lines, exactly as written.
+
+**When the terminal's own selection is what you want:** Shift-drag always works (most terminals keep it for themselves; Windows Terminal and some others want their own modifier). `M` turns mouse capture off for the rest of the session so a plain drag is the terminal's too, and on again; the footer shows `mouse off`. `ui.mouse = false` starts that way. The copy goes through OSC 52 first and the operating system's clipboard tool second, so it works over SSH in terminals that allow OSC 52.
 
 ### Soft wrap
 
@@ -270,7 +290,7 @@ Sources that come from `config.d/*.toml`, `$XDG_CONFIG_DIRS` or a `--config` fil
 
 ## Mouse
 
-Every mouse target is registered while drawing and resolved in `update`, so it behaves like the key it mirrors. Turn the mouse off with `ui.mouse = false`; then the terminal's own selection and wheel work everywhere.
+Every mouse target is registered while drawing and resolved in `update`, so it behaves like the key it mirrors. Turn the mouse off with `ui.mouse = false`, or with `M` for the rest of the session; then the terminal's own selection and wheel work everywhere.
 
 | Where | What it does |
 |---|---|
@@ -288,7 +308,8 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
 | Diff: files | Click a file to open it |
 | Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from. With soft wrap on, any row of a wrapped line means that line |
-| Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. `c` comments on the range |
+| Diff: press and drag on the line numbers or the `+` / `-` sign | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. `c` comments on the range |
+| Diff: press and drag on code, a comment or a thread, the Files paths, or the Detail description and latest comment | Selects text inside that block and copies it when you let go (`Copied 42 characters`); `esc` or a click elsewhere clears it. Double-click a word, triple-click a line. See [Copying text](#copying-text) |
 | Diff: shift-click | Extends the range from the cursor (or the range's anchor) to the line clicked |
 | Pending reviews list | Click a row to select it, click again to open it. The confirm's buttons answer it. A click outside closes the list |
 | Diff: Your review list | Click a pending comment to jump to it |

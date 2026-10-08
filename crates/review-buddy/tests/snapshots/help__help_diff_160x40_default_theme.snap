@@ -17,28 +17,28 @@ expression: text(&render(&mut a))
 │                                ││    16   18      │  ⇧↑/⇧↓        select lines                           │                                                   │
 │                                ││              @@ │  ⇧pgup/⇧pgdn  select a page                          │                                                   │
 │                                ││    34   36      │  V            select lines with j/k, again to end    │                                                   │
-│                                ││    35   37      │  esc          clear the selection                    │                                                   │
-│                                ││    36   38      │                                                      │                                                   │
-│                                ││         39 +    │Review                                                │                                                   │
-│                                ││         40 +    │  c            comment                                │                                                   │
-│                                ││         41 +    │  r            reply to the thread on this line       │                                                   │
-│                                ││         42 +    │  e / ⏎        edit the pending comment on this line  │                                                   │
-│                                ││         43 +    │  d / del      delete it (asks first)                 │                                                   │
-│                                ││         44 +    │  , / .        previous / next comment on this line   │n();                                               │
-│                                ││              ╭─ │  a            approve                                │──────────────────────────────────────────────────╮│
-│                                ││              │ j│  x            request changes                        │                                                  ││
-│                                ││              │ S│  R            submit a review                        │e stop at the end.                                ││
-│                                ││              │ a│                                                      │                                                  ││
-│                                ││              │ I│Change                                                │y to make it configurable if you'd rather.        ││
-│                                ││              ╰──│  o            open                                   │──────────────────────────────────────── r reply ─╯│
-│                                ││         45 +    │  y            copy                                   │                                                   │
-│                                ││         46 +    │                                                      │                                                   │
-│ Your review · pending ─────────││         47 +    │View                                                  │                                                   │
-│1 suggestion · 0 comments       ││         48 +    │  t            terminal pane: open, or focus it       │                                                   │
-│0 of 3 files viewed             ││         49 +    │  z            soft-wrap long lines: on / off         │                                                   │
-│Your review: not started        ││         50 +    │                                                      │                                                   │
-│  menus.rs:51 Fewer branches th…││         51 +    │General                                               │_or(self.items.len() - 1);                         │
-│a approve · c comment           ││              ╭─ │  esc          back                                   │──────────────────────────────────────────────────╮│
-│x request changes · R review    ││              │ F│  q            back to the queue                      │                                                  ││
-╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close · j/k scroll · 1–36 of 40 ▼ ───────────────╯───────────────────────────────────────────────────╯
+│                                ││    35   37      │  drag         copy text (numbers: pick lines)        │                                                   │
+│                                ││    36   38      │  2× / 3×      click: select a word / a line          │                                                   │
+│                                ││         39 +    │  v            copy mode: h j k l w b, then y         │                                                   │
+│                                ││         40 +    │  y            copy the selected text                 │                                                   │
+│                                ││         41 +    │  Y            copy the comment or thread here        │                                                   │
+│                                ││         42 +    │  esc          clear the selection                    │                                                   │
+│                                ││         43 +    │                                                      │                                                   │
+│                                ││         44 +    │Review                                                │n();                                               │
+│                                ││              ╭─ │  c            comment                                │──────────────────────────────────────────────────╮│
+│                                ││              │ j│  r            reply to the thread on this line       │                                                  ││
+│                                ││              │ S│  e / ⏎        edit the pending comment on this line  │e stop at the end.                                ││
+│                                ││              │ a│  d / del      delete it (asks first)                 │                                                  ││
+│                                ││              │ I│  , / .        previous / next comment on this line   │y to make it configurable if you'd rather.        ││
+│                                ││              ╰──│  a            approve                                │──────────────────────────────────────── r reply ─╯│
+│                                ││         45 +    │  x            request changes                        │                                                   │
+│                                ││         46 +    │  R            submit a review                        │                                                   │
+│ Your review · pending ─────────││         47 +    │                                                      │                                                   │
+│1 suggestion · 0 comments       ││         48 +    │Change                                                │                                                   │
+│0 of 3 files viewed             ││         49 +    │  o            open                                   │                                                   │
+│Your review: not started        ││         50 +    │  y            copy                                   │                                                   │
+│  menus.rs:51 Fewer branches th…││         51 +    │                                                      │_or(self.items.len() - 1);                         │
+│a approve · c comment           ││              ╭─ │View                                                  │──────────────────────────────────────────────────╮│
+│x request changes · R review    ││              │ F│  t            terminal pane: open, or focus it       │                                                  ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close · j/k scroll · 1–36 of 46 ▼ ───────────────╯───────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

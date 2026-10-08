@@ -28,6 +28,7 @@ pub mod size;
 pub mod style;
 pub mod terminal;
 pub mod text;
+pub mod textmap;
 
 pub use hitmap::HitMap;
 
@@ -57,6 +58,7 @@ pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
         Screen::FirstRun => first_run::draw(frame, app, body, &mut hits),
         Screen::Settings => settings::draw(frame, app, body, &mut hits),
     }
+    textmap::paint(frame, app, &hits.texts);
     if let Some(dock) = dock {
         terminal::draw(frame, app, dock);
     }

@@ -250,7 +250,7 @@ fn the_wheel_scrolls_the_pane_under_the_pointer_not_the_focused_one() {
 }
 
 fn code_row(offset: u16) -> (u16, u16) {
-    (60, 1 + 1 + 1 + offset)
+    (44, 1 + 1 + 1 + offset)
 }
 
 fn drag(app: &mut App, from: (u16, u16), to: (u16, u16)) {
@@ -589,4 +589,364 @@ fn the_range_is_drawn_with_the_selection_role() {
     let want = ui::style::bg(&a.palette, Role::Selection).bg;
     assert_ne!(want, None);
     assert_eq!(buffer[(60, y)].bg, want.unwrap());
+}
+
+fn mouse_cmds(
+    app: &mut App,
+    kind: MouseEventKind,
+    (column, row): (u16, u16),
+    mods: KeyModifiers,
+) -> Vec<Cmd> {
+    update(
+        app,
+        Msg::Mouse(MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers: mods,
+        }),
+    )
+}
+
+/// Presses at `from`, drags to `to` and releases there, drawing between events as the runtime
+/// does, and returns the effects of the release.
+fn drag_cmds(app: &mut App, from: (u16, u16), to: (u16, u16)) -> Vec<Cmd> {
+    let none = KeyModifiers::NONE;
+    mouse_cmds(app, MouseEventKind::Down(MouseButton::Left), from, none);
+    render(app);
+    mouse_cmds(app, MouseEventKind::Drag(MouseButton::Left), to, none);
+    render(app);
+    mouse_cmds(app, MouseEventKind::Up(MouseButton::Left), to, none)
+}
+
+fn copied(cmds: &[Cmd]) -> Option<&str> {
+    cmds.iter().find_map(|c| match c {
+        Cmd::CopySelection(text) => Some(text.as_str()),
+        _ => None,
+    })
+}
+
+/// The screen as text with the cells painted as selected text wrapped in `⟦ ⟧`, so a snapshot
+/// shows exactly what is highlighted.
+fn marked(app: &App, buffer: &Buffer) -> String {
+    let look = ui::style::text_selection(&app.palette);
+    let on = |x: u16, y: u16| {
+        let cell = &buffer[(x, y)];
+        match look.bg {
+            Some(bg) => cell.bg == bg,
+            None => cell.modifier.contains(ratatui::style::Modifier::REVERSED),
+        }
+    };
+    (0..buffer.area.height)
+        .map(|y| {
+            let mut line = String::new();
+            let mut open = false;
+            for x in 0..buffer.area.width {
+                let now = on(x, y);
+                if now != open {
+                    line.push(if now { '⟦' } else { '⟧' });
+                    open = now;
+                }
+                line.push_str(buffer[(x, y)].symbol());
+            }
+            if open {
+                line.push('⟧');
+            }
+            line.trim_end().to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn dragging_on_code_selects_text_and_copies_it_without_a_line_range() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    let cmds = drag_cmds(&mut a, (60, 4), (80, 6));
+    let text = copied(&cmds).expect("a drag on code copies on release");
+    assert!(text.contains('\n'), "three rows were covered: {text:?}");
+    assert!(!text.contains(" \n"), "trailing spaces are trimmed");
+    assert!(
+        !text.contains('│') && !text.contains('▌'),
+        "no gutter or border: {text:?}"
+    );
+    assert_eq!(
+        range_bounds(&a),
+        None,
+        "text drags do not build a line range"
+    );
+    assert!(a.selection.is_some(), "the highlight stays until esc");
+}
+
+#[test]
+fn a_drag_that_starts_in_the_gutter_keeps_the_line_range() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    let cmds = drag_cmds(&mut a, (44, 4), (80, 7));
+    assert!(copied(&cmds).is_none());
+    assert!(range_bounds(&a).is_some());
+    assert!(a.selection.is_none());
+}
+
+#[test]
+fn esc_and_a_click_elsewhere_clear_the_text_highlight() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    drag_cmds(&mut a, (60, 4), (80, 6));
+    assert!(a.selection.is_some());
+    press(&mut a, KeyCode::Esc);
+    assert!(a.selection.is_none());
+    assert_eq!(a.screen, Screen::Diff, "esc cleared the highlight first");
+
+    drag_cmds(&mut a, (60, 4), (80, 6));
+    render(&mut a);
+    click(&mut a, (44, 10));
+    assert!(a.selection.is_none(), "a click in the gutter clears it");
+}
+
+#[test]
+fn a_plain_click_on_code_selects_nothing() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    let cmds = drag_cmds(&mut a, (60, 6), (60, 6));
+    assert!(copied(&cmds).is_none());
+    assert!(a.selection.is_none());
+}
+
+#[test]
+fn shift_events_in_the_text_never_select() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    let shift = KeyModifiers::SHIFT;
+    mouse_cmds(
+        &mut a,
+        MouseEventKind::Down(MouseButton::Left),
+        (60, 4),
+        shift,
+    );
+    mouse_cmds(
+        &mut a,
+        MouseEventKind::Drag(MouseButton::Left),
+        (90, 6),
+        shift,
+    );
+    let cmds = mouse_cmds(
+        &mut a,
+        MouseEventKind::Up(MouseButton::Left),
+        (90, 6),
+        shift,
+    );
+    assert!(a.selection.is_none() && copied(&cmds).is_none());
+}
+
+#[test]
+fn double_click_selects_a_word_and_triple_click_a_line() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    let none = KeyModifiers::NONE;
+    let at = (60, 5);
+    let click_cmds = |a: &mut App| {
+        mouse_cmds(a, MouseEventKind::Down(MouseButton::Left), at, none);
+        render(a);
+        mouse_cmds(a, MouseEventKind::Up(MouseButton::Left), at, none)
+    };
+    assert!(
+        copied(&click_cmds(&mut a)).is_none(),
+        "one click copies nothing"
+    );
+    let word = click_cmds(&mut a);
+    let word = copied(&word)
+        .expect("a double-click copies a word")
+        .to_string();
+    assert!(!word.contains(' ') && !word.contains('\n'), "{word:?}");
+    let line = click_cmds(&mut a);
+    let line = copied(&line)
+        .expect("a triple-click copies a line")
+        .to_string();
+    assert!(
+        line.len() >= word.len() && line.contains(&word),
+        "{line:?} / {word:?}"
+    );
+    assert!(!line.contains('\n'));
+}
+
+#[test]
+fn y_copies_the_selection_and_otherwise_keeps_its_meaning() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    let cmds = press(&mut a, KeyCode::Char('y'));
+    assert!(
+        matches!(cmds.first(), Some(Cmd::Copy(_))),
+        "no selection: the link"
+    );
+    drag_cmds(&mut a, (60, 4), (80, 5));
+    let cmds = press(&mut a, KeyCode::Char('y'));
+    assert!(copied(&cmds).is_some(), "a selection: its text");
+}
+
+#[test]
+fn text_drags_are_drawn_apart_from_the_cursor_line() {
+    let mut a = diff("liminal-hq", 160, 40);
+    render(&mut a);
+    drag_cmds(&mut a, (60, 4), (90, 6));
+    let buffer = render(&mut a);
+    let look = ui::style::text_selection(&a.palette);
+    let cursor = ui::style::bg(&a.palette, rb_theme::Role::Selection).bg;
+    assert_ne!(look.bg, None);
+    assert_ne!(look.bg, cursor, "stronger than the cursor line's tint");
+    assert_eq!(buffer[(55, 5)].bg, look.bg.unwrap());
+    assert_ne!(
+        buffer[(40, 5)].bg,
+        look.bg.unwrap(),
+        "the gutter is not selected"
+    );
+}
+
+fn selection_app(theme: &str, width: u16, height: u16) -> App {
+    let mut a = diff(theme, width, height);
+    render(&mut a);
+    let x0 = 60;
+    drag_cmds(&mut a, (x0, 4), (x0 + 18, 6));
+    assert!(a.selection.is_some());
+    a
+}
+
+#[test]
+fn text_selection_160x40_default_theme() {
+    let mut a = selection_app("liminal-hq", 160, 40);
+    let buffer = render(&mut a);
+    insta::assert_snapshot!(marked(&a, &buffer));
+}
+
+#[test]
+fn text_selection_160x40_dusk() {
+    let mut a = selection_app("dusk", 160, 40);
+    let buffer = render(&mut a);
+    insta::assert_snapshot!(marked(&a, &buffer));
+}
+
+#[test]
+fn text_selection_100x30_default_theme() {
+    let mut a = selection_app("liminal-hq", 100, 30);
+    let buffer = render(&mut a);
+    insta::assert_snapshot!(marked(&a, &buffer));
+}
+
+#[test]
+fn text_selection_100x30_dusk() {
+    let mut a = selection_app("dusk", 100, 30);
+    let buffer = render(&mut a);
+    insta::assert_snapshot!(marked(&a, &buffer));
+}
+
+#[test]
+fn dragging_in_the_description_copies_its_bullets_and_stays_in_the_description() {
+    let mut a = dashboard("liminal-hq", 160, 40);
+    let buffer = render(&mut a);
+    let (x, y) = find(&buffer, "• Menu::select_next");
+    // The pointer ends far below, in the Latest comment text: still the description.
+    let (_, low) = find(&buffer, "us?");
+    let cmds = drag_cmds(&mut a, (x, y), (x + 40, low));
+    let text = copied(&cmds).expect("copied");
+    assert!(
+        text.starts_with("• Menu::select_next and Menu::select_prev"),
+        "{text:?}"
+    );
+    assert!(
+        text.contains("• Menu::activate returns the action"),
+        "{text:?}"
+    );
+    assert!(text.ends_with("picks up the active theme"), "{text:?}");
+    assert!(
+        !text.contains("Reviewers") && !text.contains("jo ·"),
+        "{text:?}"
+    );
+}
+
+#[test]
+fn a_wrapped_comment_in_the_detail_pane_copies_as_one_paragraph() {
+    let mut a = dashboard("liminal-hq", 160, 40);
+    let buffer = render(&mut a);
+    let (x, y) = find(&buffer, "These three lines");
+    let (_, low) = find(&buffer, "us?");
+    let cmds = drag_cmds(&mut a, (x, y), (x + 5, low));
+    let text = copied(&cmds).expect("copied");
+    assert_eq!(
+        text,
+        "These three lines could be one join. Is the intermediate Vec doing anything for us?"
+    );
+}
+
+#[test]
+fn a_text_drag_in_the_detail_pane_does_not_disturb_the_queue_or_its_double_click() {
+    let mut a = dashboard("liminal-hq", 160, 40);
+    let before = a.dashboard.selected.clone();
+    let buffer = render(&mut a);
+    let (x, y) = find(&buffer, "Adds a menu bar");
+    drag_cmds(&mut a, (x, y), (x + 20, y));
+    assert_eq!(a.dashboard.selected, before);
+    assert_eq!(a.screen, Screen::Dashboard);
+    // A double-click on a queue row still opens the diff.
+    let (x, y) = find(&render(&mut a), "Waiting on you");
+    let row = (x + 2, y + 2);
+    click(&mut a, row);
+    tick(&mut a, 1);
+    click(&mut a, row);
+    assert_eq!(a.screen, Screen::Diff);
+}
+
+#[test]
+fn a_drag_over_file_paths_copies_them_row_by_row() {
+    let mut a = diff("liminal-hq", 160, 40);
+    let buffer = render(&mut a);
+    let (x, y) = find(&buffer, "src/ui/menus.rs       +22");
+    let (_, low) = find(&buffer, "src/ui/mod.rs");
+    let cmds = drag_cmds(&mut a, (x + 4, y), (x + 8, low));
+    let text = copied(&cmds).expect("copied");
+    assert_eq!(text, "ui/menus.rs\nsrc/ui/menubar.rs\nsrc/ui/mo");
+    assert_eq!(
+        a.diff_state().unwrap().file,
+        0,
+        "the first press chose the first file"
+    );
+}
+
+#[test]
+fn the_text_highlight_is_reversed_under_no_color_and_flips_on_the_cursor_line() {
+    use ratatui::style::Modifier;
+    let mut a = App::new(AppConfig {
+        theme_id: "liminal-hq".into(),
+        depth: ColourDepth::TrueColour,
+        no_color: true,
+        size: (160, 40),
+    });
+    update(&mut a, Msg::Loaded(Box::new(snapshot())));
+    let id = a.selected_change().unwrap().id.clone();
+    let data = block_on(world().diff_data(&id)).unwrap();
+    update(
+        &mut a,
+        Msg::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+    );
+    update(
+        &mut a,
+        Msg::DiffLoaded {
+            id,
+            result: Ok(Box::new(data)),
+        },
+    );
+    render(&mut a);
+    let buffer = render(&mut a);
+    let (x, y) = find(&buffer, "pub struct Menu {");
+    let cmds = drag_cmds(&mut a, (x + 4, y + 1), (x + 12, y + 1));
+    assert!(copied(&cmds).is_some());
+    let buffer = render(&mut a);
+    // y + 1 is the cursor line, which NO_COLOR draws reversed: the text flips back, underlined.
+    let cell = &buffer[(x + 6, y + 1)];
+    assert!(!cell.modifier.contains(Modifier::REVERSED));
+    assert!(cell.modifier.contains(Modifier::UNDERLINED), "{cell:?}");
+    let plain = &buffer[(x + 20, y + 1)];
+    assert!(
+        plain.modifier.contains(Modifier::REVERSED),
+        "the rest of the line is reversed"
+    );
 }

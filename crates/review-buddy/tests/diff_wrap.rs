@@ -437,22 +437,23 @@ fn clicking_a_continuation_row_selects_its_line() {
 fn dragging_across_wrapped_lines_selects_logical_lines() {
     let mut a = plain(true, (100, 30));
     let buffer = render(&mut a);
+    // A drag that starts in the line-number gutter selects lines; one on the code selects text.
     let (code_x, y) = find(&buffer, "let removed").unwrap();
     let (_, y2) = find(&buffer, "let added").unwrap();
     mouse(
         &mut a,
         MouseEventKind::Down(MouseButton::Left),
-        (code_x, y + 1),
+        (code_x - 6, y + 1),
     );
     mouse(
         &mut a,
         MouseEventKind::Drag(MouseButton::Left),
-        (code_x, y2 + 1),
+        (code_x - 6, y2 + 1),
     );
     mouse(
         &mut a,
         MouseEventKind::Up(MouseButton::Left),
-        (code_x, y2 + 1),
+        (code_x - 6, y2 + 1),
     );
     let range = state(&a).range.expect("a range");
     let rows = &state(&a).view.rows;

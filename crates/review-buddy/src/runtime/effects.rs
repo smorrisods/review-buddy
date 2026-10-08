@@ -118,6 +118,32 @@ impl Platform {
     }
 }
 
+impl Platform {
+    /// Copies selected text through the same clipboard path as `y`. The toast says how many
+    /// characters, never which: a selection can hold anything.
+    pub fn copy_selection(&self, text: &str) -> Notice {
+        let Ok(mut tty) = self.tty.lock() else {
+            return Notice::new(
+                NoticeKind::Warning,
+                copy_failure(&PlatformError::ClipboardUnavailable),
+            );
+        };
+        match copy(text, &self.ctx, &mut *tty, self.runner.as_ref()) {
+            Ok(_) => Notice::new(NoticeKind::Success, copied_text(text.chars().count())),
+            Err(err) => Notice::new(NoticeKind::Warning, copy_failure(&err)),
+        }
+    }
+}
+
+/// `Copied 1 character` or `Copied 42 characters`.
+pub fn copied_text(n: usize) -> String {
+    if n == 1 {
+        "Copied 1 character".to_string()
+    } else {
+        format!("Copied {n} characters")
+    }
+}
+
 /// The notice for a browser that wouldn't open: what went wrong, then what to do next.
 pub fn open_failure(err: &PlatformError) -> String {
     match err {
@@ -263,6 +289,37 @@ mod tests {
         assert!(written.starts_with("\x1b]52;c;"));
         let p = platform(&Arc::new(Fake::default()), Arc::new(Mutex::new(Broken)));
         assert_eq!(p.copy_from_pane("x").kind, NoticeKind::Warning);
+    }
+
+    #[test]
+    fn selected_text_goes_through_osc52_and_the_notice_counts_characters_only() {
+        let runner = Arc::new(Fake::default());
+        let tty = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let p = platform(&runner, tty.clone());
+        let notice = p.copy_selection("hunter2-secret\n日本語");
+        assert_eq!(notice.kind, NoticeKind::Success);
+        assert_eq!(notice.text, "Copied 18 characters");
+        assert!(!notice.text.contains("hunter2"));
+        let written = String::from_utf8(tty.lock().unwrap().clone()).unwrap();
+        assert!(written.starts_with("\x1b]52;c;"));
+        assert_eq!(p.copy_selection("x").text, "Copied 1 character");
+    }
+
+    #[test]
+    fn selected_text_falls_back_to_a_tool_and_failure_says_what_to_do_next() {
+        let runner = Arc::new(Fake {
+            works: vec!["xclip"],
+            ..Fake::default()
+        });
+        let p = platform(&runner, Arc::new(Mutex::new(Broken)));
+        assert_eq!(p.copy_selection("hello").kind, NoticeKind::Success);
+        assert_eq!(runner.calls.lock().unwrap()[0].0, "xclip");
+
+        let p = platform(&Arc::new(Fake::default()), Arc::new(Mutex::new(Broken)));
+        let notice = p.copy_selection("hello");
+        assert_eq!(notice.kind, NoticeKind::Warning);
+        assert!(notice.text.contains("Install wl-copy"));
+        assert!(!notice.text.contains("hello"));
     }
 
     #[test]

@@ -15,6 +15,9 @@ use crate::ui::help;
 const DOUBLE_CLICK_TICKS: u64 = 2;
 
 pub(super) fn on_mouse(app: &mut App, mouse: MouseEvent) -> Vec<Cmd> {
+    if let Some(cmds) = super::selection::on_mouse(app, mouse) {
+        return cmds;
+    }
     if let Some(cmds) = super::terminal::on_mouse(app, mouse) {
         return cmds;
     }
@@ -71,6 +74,12 @@ fn press(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
             return cmds;
         }
     }
+    if let Some((key, at)) =
+        super::selection::start_target(app, mouse.column, mouse.row, hit.as_ref())
+    {
+        return press_text(app, mouse, hit, (key, at));
+    }
+    super::selection::clear(app);
     match hit {
         Some(Action::DiffRow(row)) if app.screen == Screen::Diff => {
             app.last_click = None;
@@ -97,6 +106,29 @@ fn press(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {
             }
         }
     }
+}
+
+/// A press on text: the click's own action runs (the cursor moves, a file opens, a pane takes
+/// focus), then a selection begins where the pointer is.
+fn press_text(
+    app: &mut App,
+    mouse: MouseEvent,
+    hit: Option<Action>,
+    (key, at): (crate::ui::textmap::RegionKey, super::selection::Pos),
+) -> Vec<Cmd> {
+    app.last_click = None;
+    let mut cmds = match hit {
+        Some(action) => update::run(app, action),
+        None => match app.hits.pane_at(mouse.column, mouse.row) {
+            Some(pane) => update::run(app, Action::FocusPane(pane)),
+            None => Vec::new(),
+        },
+    };
+    super::selection::begin(app, key, at);
+    if app.screen == Screen::Diff {
+        cmds.extend(super::selection::hint_once(app));
+    }
+    cmds
 }
 
 fn on_help(app: &mut App, mouse: MouseEvent, shift: bool) -> Vec<Cmd> {

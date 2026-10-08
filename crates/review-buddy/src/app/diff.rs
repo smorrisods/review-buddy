@@ -726,6 +726,10 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char(',') if focus == DiffFocus::Diff => return comments::step_pick(app, false),
         KeyCode::Char('.') if focus == DiffFocus::Diff => return comments::step_pick(app, true),
         KeyCode::Char('V') if focus == DiffFocus::Diff => toggle_select(app),
+        KeyCode::Char('v') if focus == DiffFocus::Diff => {
+            return super::selection::start_keyboard(app)
+        }
+        KeyCode::Char('Y') if focus == DiffFocus::Diff => return copy_block(app),
         KeyCode::Char('z') => return toggle_wrap(app),
         KeyCode::Right | KeyCode::Char(']') => cmds = step_file(app, true),
         KeyCode::Left | KeyCode::Char('[') => cmds = step_file(app, false),
@@ -973,6 +977,52 @@ pub fn on_drag(app: &mut App, y: u16) {
     state.view.cursor = head;
     settle(app);
     app.mark_dirty();
+}
+
+/// Moves the view one screen row, as a drag past the edge of the code does.
+pub fn nudge_scroll(app: &mut App, dir: isize) {
+    let height = usize::from(viewport(app).code.height);
+    if let Some(state) = app.diff.as_mut() {
+        let view = &mut state.view;
+        let max = diffview::max_scroll(view.screen.total(), height);
+        view.scroll = if dir < 0 {
+            view.scroll.saturating_sub(1)
+        } else {
+            (view.scroll + 1).min(max)
+        };
+    }
+    settle(app);
+    app.mark_dirty();
+}
+
+/// Scrolls the least that brings screen row `row` into view.
+pub fn reveal_screen_row(app: &mut App, row: usize) {
+    let height = usize::from(viewport(app).code.height);
+    if let Some(state) = app.diff.as_mut() {
+        let view = &mut state.view;
+        view.scroll = diffview::reveal(view.scroll, row, row, height, view.screen.total());
+    }
+    settle(app);
+}
+
+/// `Y`: copies the whole comment or thread under the cursor line, the picked one when the line
+/// has several.
+fn copy_block(app: &mut App) -> Vec<Cmd> {
+    let Some(state) = app.diff.as_ref() else {
+        return Vec::new();
+    };
+    let rows = &state.view.rows;
+    let block = comments::picked_block(state)
+        .or_else(|| rows.blocks_after(state.view.cursor).first().copied())
+        .and_then(|b| rows.block(b))
+        .filter(|b| !b.text.is_empty());
+    match block {
+        Some(block) => vec![Cmd::CopySelection(block.text.clone())],
+        None => {
+            let text = "There's no comment on this line to copy. Move to one, then press Y.";
+            set_status(app, Notice::new(NoticeKind::Info, text))
+        }
+    }
 }
 
 pub fn on_release(app: &mut App) {

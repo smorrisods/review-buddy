@@ -358,6 +358,9 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
         Cmd::Copy(text) => {
             let _ = tx.send(Msg::Status(platform.copy(&text)));
         }
+        Cmd::CopySelection(text) => {
+            let _ = tx.send(Msg::Notify(platform.copy_selection(&text)));
+        }
         Cmd::FetchImage { source, url } => match backend {
             Backend::None => {
                 drop(source);
@@ -661,7 +664,7 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 .pane()
                 .execute(term, tx, demo, |text| platform.copy_from_pane(text));
         }
-        Cmd::FinishSetup | Cmd::Suspend => {}
+        Cmd::FinishSetup | Cmd::Suspend | Cmd::SetMouse(_) => {}
         Cmd::After { delay, msg } => {
             let tx = tx.clone();
             tokio::spawn(async move {
@@ -705,6 +708,7 @@ async fn event_loop(options: RunOptions) -> Result<()> {
     app.rebuild_palette();
 
     app.demo = backend.is_demo();
+    app.mouse = !options.no_mouse;
     app.kitty_keys = terminal::keys_enhanced();
     let mode =
         crate::images::detect::mode_from_env(std::env::var("REVIEW_BUDDY_IMAGES").ok().as_deref())
@@ -795,6 +799,8 @@ async fn event_loop(options: RunOptions) -> Result<()> {
             for cmd in update(&mut app, msg) {
                 if matches!(cmd, Cmd::Suspend) {
                     suspend(&mut guard, &mut app, &tx, &backend, &platform)?;
+                } else if let Cmd::SetMouse(on) = cmd {
+                    guard.set_mouse(on);
                 } else if matches!(cmd, Cmd::FinishSetup) {
                     #[cfg(feature = "live")]
                     finish_setup(&options, &mut app, &mut backend, &tx, &platform);
@@ -1171,6 +1177,28 @@ mod tests {
             &platform,
         );
         assert_eq!(status(&mut rx).await, "Copied https://x.test/1");
+        assert!(tty.lock().unwrap().starts_with(b"\x1b]52;c;"));
+    }
+
+    #[tokio::test]
+    async fn copying_a_selection_raises_a_toast_that_never_shows_the_text() {
+        let tty = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let platform = platform_with(Arc::new(Recorder::default()), tty.clone());
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        execute(
+            Cmd::CopySelection("top secret words".into()),
+            &tx,
+            &Backend::None,
+            &platform,
+        );
+        let msg = tokio::time::timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .expect("a notice arrives")
+            .expect("channel open");
+        match msg {
+            Msg::Notify(notice) => assert_eq!(notice.text, "Copied 16 characters"),
+            other => panic!("expected a toast, got {other:?}"),
+        }
         assert!(tty.lock().unwrap().starts_with(b"\x1b]52;c;"));
     }
 

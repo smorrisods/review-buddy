@@ -35,6 +35,25 @@ impl TerminalGuard {
         Ok(Self { terminal, mouse })
     }
 
+    /// Turns mouse capture on or off now, and remembers it so a resume after `⌃Z` keeps it.
+    pub fn set_mouse(&mut self, on: bool) {
+        if on == self.mouse {
+            return;
+        }
+        let mut stdout = io::stdout();
+        let _ = if on {
+            execute!(stdout, EnableMouseCapture)
+        } else {
+            execute!(stdout, DisableMouseCapture)
+        };
+        self.mouse = on;
+    }
+
+    /// Whether mouse capture is on.
+    pub fn mouse(&self) -> bool {
+        self.mouse
+    }
+
     /// Hands the terminal back to the shell, as before a stop. Drop is still safe afterwards.
     pub fn suspend(&mut self) {
         restore();

@@ -174,6 +174,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 background,
                 false,
             ),
+            bind(
+                "General",
+                "M",
+                "mouse on / off (off: terminal selects)",
+                None,
+                false,
+            ),
             bind("General", "q", "quit", Some(Action::Quit), true),
         ],
         Screen::Diff => vec![
@@ -190,6 +197,29 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 "Select",
                 "V",
                 "select lines with j/k, again to end",
+                None,
+                false,
+            ),
+            bind(
+                "Select",
+                "drag",
+                "copy text (numbers: pick lines)",
+                None,
+                false,
+            ),
+            bind(
+                "Select",
+                "2× / 3×",
+                "click: select a word / a line",
+                None,
+                false,
+            ),
+            bind("Select", "v", "copy mode: h j k l w b, then y", None, false),
+            bind("Select", "y", "copy the selected text", None, false),
+            bind(
+                "Select",
+                "Y",
+                "copy the comment or thread here",
                 None,
                 false,
             ),
@@ -251,6 +281,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 "B",
                 "background: theme / yes / no",
                 background,
+                false,
+            ),
+            bind(
+                "General",
+                "M",
+                "mouse on / off (off: terminal selects)",
+                None,
                 false,
             ),
         ],
@@ -520,6 +557,9 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
         (truncate(&text, room), role)
     };
     let mut status = app.status.as_ref().map(status_text).map(|(t, r)| fit(t, r));
+    if status.is_none() && !app.mouse {
+        status = Some(fit("mouse off · M turns it on".to_string(), Role::Muted));
+    }
     if status.is_none() {
         status = app
             .diff_state()

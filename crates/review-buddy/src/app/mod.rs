@@ -33,6 +33,7 @@ pub mod range;
 pub mod refresh;
 pub mod resize;
 pub mod review;
+pub mod selection;
 pub mod settings;
 pub mod setup;
 pub mod show;
@@ -364,6 +365,10 @@ pub enum Cmd {
     OpenUrl(String),
     /// Put text on the clipboard.
     Copy(String),
+    /// Put selected text on the clipboard. The notice names how many characters, never the text.
+    CopySelection(String),
+    /// Turn mouse capture on or off for the rest of the session.
+    SetMouse(bool),
     /// An effect for the terminal pane: its PTY and its worktree.
     Term(terminal::TermCmd),
 }
@@ -543,6 +548,14 @@ pub struct App {
     pub term: terminal::TerminalState,
     /// The seam being dragged with the mouse.
     pub drag: Option<resize::Drag>,
+    /// The terminal is sending mouse events to the app (`M` and `ui.mouse` turn it off).
+    pub mouse: bool,
+    /// Text picked with the mouse or the keyboard, still highlighted.
+    pub selection: Option<selection::Selection>,
+    /// The last press on text, for spotting a double- or triple-click: region, row, tick, count.
+    pub(crate) text_click: Option<(crate::ui::textmap::RegionKey, usize, u64, u8)>,
+    /// The first-use hint about dragging in the diff has been shown.
+    pub(crate) selection_hinted: bool,
     /// The last press on a seam, for spotting a double-click: which seam and the tick.
     pub(crate) last_seam: Option<(crate::ui::layout::SeamKind, u64)>,
     quit_armed: bool,
@@ -595,6 +608,10 @@ impl App {
             session: None,
             term: terminal::TerminalState::default(),
             drag: None,
+            mouse: true,
+            selection: None,
+            text_click: None,
+            selection_hinted: false,
             last_seam: None,
             quit_armed: false,
             syntax: Syntax::default(),
