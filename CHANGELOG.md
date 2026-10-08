@@ -4,6 +4,8 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-08
+
 ### Added
 
 - **First release contents.** Nothing has been tagged yet, so the work planned as v0.1.0 (GitHub, panes, unified diff) and v0.2.0 (GitLab, aggregation, first run) is recorded together under Unreleased until the first tag.
@@ -51,4 +53,5 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 - **Footer hints stay ahead of the refreshed time.** The passive `refreshed HH:MM` is the first thing to drop when space is short.
 - **v0.1.0 review polish.** Wording, spacing and CI-state output across the TUI and command line.
 
-[Unreleased]: https://github.com/smorrisods/review-buddy/commits/main
+[Unreleased]: https://github.com/smorrisods/review-buddy/compare/v0.1.0...main
+[0.1.0]: https://github.com/smorrisods/review-buddy/releases/tag/v0.1.0
