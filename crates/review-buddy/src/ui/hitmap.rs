@@ -1,5 +1,6 @@
 use ratatui::layout::Rect;
 
+use super::textmap::TextMap;
 use crate::app::{Action, Pane};
 
 /// Clickable rectangles registered while drawing; later entries sit on top.
@@ -7,6 +8,8 @@ use crate::app::{Action, Pane};
 pub struct HitMap {
     entries: Vec<(Rect, Action)>,
     panes: Vec<(Rect, Pane)>,
+    /// The text of the selectable regions, as drawn.
+    pub texts: TextMap,
 }
 
 impl HitMap {

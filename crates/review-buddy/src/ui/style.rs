@@ -62,6 +62,36 @@ pub fn bg(palette: &Palette, role: Role) -> Style {
     style(palette.bg(role))
 }
 
+/// How text picked with the mouse or the keyboard looks: the accent tinted into the selection
+/// colour, which is plainly stronger than the cursor line's own tint. Without truecolour, or
+/// under `NO_COLOR`, it reverses the cells instead ([`paint_selected`] flips cells that are
+/// already reversed, so it shows on the cursor line too).
+pub fn text_selection(palette: &Palette) -> Style {
+    use rb_theme::ColourDepth;
+    if palette.no_color() || palette.depth() != ColourDepth::TrueColour {
+        return Style::default().add_modifier(Modifier::REVERSED);
+    }
+    let theme = palette.theme();
+    match (theme.colour(Role::Accent), theme.colour(Role::Selection)) {
+        (Colour::Rgb(accent), Colour::Rgb(base)) => {
+            Style::default().bg(colour(Colour::Rgb(accent.blend_over(base, 0x70))))
+        }
+        _ => Style::default().add_modifier(Modifier::REVERSED),
+    }
+}
+
+/// Applies [`text_selection`] to one cell. A cell that is already reversed (the cursor line under
+/// `NO_COLOR`) is un-reversed and underlined instead, so it still stands out.
+pub fn paint_selected(cell: &mut ratatui::buffer::Cell, look: Style) {
+    if look.add_modifier.contains(Modifier::REVERSED) && cell.modifier.contains(Modifier::REVERSED)
+    {
+        cell.modifier.remove(Modifier::REVERSED);
+        cell.modifier.insert(Modifier::UNDERLINED | Modifier::BOLD);
+    } else {
+        cell.set_style(look);
+    }
+}
+
 /// The colour at `t` (0.0–1.0) along `stops`. Blends RGB neighbours; other colour
 /// kinds step to the nearest stop.
 pub fn gradient_at(stops: &[Colour], t: f32) -> Option<Colour> {

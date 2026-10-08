@@ -13,7 +13,8 @@ use rb_diff::{expand_tabs, DiffBody, DiffLine, LineKind};
 use rb_theme::Role;
 use unicode_width::UnicodeWidthChar;
 
-use super::text::{cells, split_spans, wrap_points};
+use super::text::{cells, split_spans, wrap_points, Join};
+use super::textmap::{RegionKey, TextRegion, TextRow};
 use super::{chrome::truncate, layout, style, HitMap};
 use crate::app::diffview::{self, BlockKind, BlockLine, BlockLineKind, Row, GUTTER};
 use crate::app::{Action, App, DiffFocus, DiffState, Phase};
@@ -167,6 +168,7 @@ fn draw_files(
         usize::from(l.file_list.height),
         files.len(),
     );
+    let mut paths = TextRegion::new(RegionKey::Files, l.file_list);
     for (offset, index) in window.enumerate() {
         let file = &files[index];
         let current = index == state.file;
@@ -209,7 +211,18 @@ fn draw_files(
         };
         frame.render_widget(Paragraph::new(Line::from(spans)).style(base), rect);
         hits.push(rect, Action::DiffFile(index));
+        let mut row = TextRow::new(
+            index,
+            (rect.x + 4, rect.y),
+            cells(&name) as u16,
+            name.clone(),
+        );
+        if name != file.diff.path {
+            row = row.copying(file.diff.path.clone());
+        }
+        paths.rows.push(row);
     }
+    hits.texts.push(paths);
     draw_review(frame, app, state, l.review, hits);
 }
 
@@ -475,6 +488,117 @@ fn draw_rows(frame: &mut Frame, app: &App, state: &DiffState, area: Rect, hits: 
             y += 1;
         }
         index += 1;
+    }
+    record_text(app, state, area, hits);
+}
+
+/// Records the code and the comment text on screen, as logical rows a selection can copy: no
+/// gutter, border, padding or `-`/`+` prefix, and a wrapped line's rows marked as continuing it.
+fn record_text(app: &App, state: &DiffState, area: Rect, hits: &mut HitMap) {
+    let view = &state.view;
+    let map = &view.screen;
+    let Some(patch) = state.current().and_then(|f| f.diff.parsed()) else {
+        return;
+    };
+    let height = usize::from(area.height);
+    let on_screen = |ord: usize| {
+        (view.scroll..view.scroll + height)
+            .contains(&ord)
+            .then(|| area.y + (ord - view.scroll) as u16)
+    };
+    let gutter = GUTTER.min(area.width);
+    let code = Rect::new(area.x + gutter, area.y, area.width - gutter, area.height);
+    let text_width = usize::from(code.width).max(1);
+    let ahead = if app
+        .selection
+        .as_ref()
+        .is_some_and(|s| s.key == RegionKey::Diff)
+    {
+        crate::app::selection::LOOKAHEAD
+    } else {
+        0
+    };
+    let from = view.scroll.saturating_sub(ahead);
+    let mut region = TextRegion::new(RegionKey::Diff, code);
+    for index in map.rows_in(from, height + (view.scroll - from) + ahead) {
+        let Some(Row::Line(id)) = view.rows.row(index) else {
+            continue;
+        };
+        let Some(line) = patch.line(id) else {
+            continue;
+        };
+        let expanded = expand_tabs(&line.text, app.tab_width);
+        let pieces: Vec<String> = if map.wrapping() {
+            let points = wrap_points(&line.text, app.tab_width, text_width);
+            split_spans(vec![Span::raw(expanded)], &points)
+                .into_iter()
+                .map(|row| row.iter().map(|s| s.content.as_ref()).collect())
+                .collect()
+        } else {
+            vec![expanded]
+        };
+        for (sub, text) in pieces.into_iter().enumerate() {
+            let ord = map.start(index) + sub;
+            let y = on_screen(ord).unwrap_or(TextRow::OFF_SCREEN);
+            let join = if sub == 0 { Join::Break } else { Join::Glue };
+            region
+                .rows
+                .push(TextRow::new(ord, (code.x, y), code.width, text).joined(join));
+        }
+    }
+    hits.texts.push(region);
+
+    // Comment and thread blocks: one region each, its lines as written, inside the border.
+    let mut touched = std::collections::BTreeMap::new();
+    for index in map.rows_in(view.scroll, height) {
+        if let Some(Row::Block { block, line }) = view.rows.row(index) {
+            touched.insert(block, index - line as usize);
+        }
+    }
+    let total = usize::from(area.width)
+        .saturating_sub(usize::from(GUTTER))
+        .max(6);
+    let inner = total.saturating_sub(4);
+    let x = area.x + GUTTER + 2;
+    for (block, first) in touched {
+        let Some(b) = view.rows.block(block) else {
+            continue;
+        };
+        let mut rows = Vec::new();
+        for (i, content) in b.lines.iter().enumerate() {
+            let prefix = block_prefix(content.kind);
+            let ord = map.start(first + 1 + i);
+            let y = on_screen(ord).unwrap_or(TextRow::OFF_SCREEN);
+            let span = inner.saturating_sub(prefix.len());
+            rows.push(
+                TextRow::new(
+                    i,
+                    (x + prefix.len() as u16, y),
+                    span as u16,
+                    content.text.clone(),
+                )
+                .joined(content.join),
+            );
+        }
+        let shown: Vec<u16> = rows.iter().filter(|r| r.on_screen()).map(|r| r.y).collect();
+        let (Some(&top), Some(&bottom)) = (shown.iter().min(), shown.iter().max()) else {
+            continue;
+        };
+        let mut region = TextRegion::new(
+            RegionKey::Block(block),
+            Rect::new(x, top, inner as u16, bottom - top + 1),
+        );
+        region.rows = rows;
+        hits.texts.push(region);
+    }
+}
+
+/// The marker a suggestion line carries inside its block, which is never part of the text.
+fn block_prefix(kind: BlockLineKind) -> &'static str {
+    match kind {
+        BlockLineKind::Removed => "- ",
+        BlockLineKind::Added => "+ ",
+        _ => "",
     }
 }
 
@@ -810,12 +934,12 @@ fn block_line_look(app: &App, line: &BlockLine) -> (&'static str, Style, Option<
         ),
         BlockLineKind::Text => ("", style::fg(palette, Role::Text), None),
         BlockLineKind::Removed => (
-            "- ",
+            block_prefix(BlockLineKind::Removed),
             style::fg(palette, Role::Danger),
             Some(style::bg(palette, Role::RemovedBg)),
         ),
         BlockLineKind::Added => (
-            "+ ",
+            block_prefix(BlockLineKind::Added),
             style::fg(palette, Role::Success),
             Some(style::bg(palette, Role::AddedBg)),
         ),

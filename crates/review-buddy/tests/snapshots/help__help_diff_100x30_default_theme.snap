@@ -17,18 +17,18 @@ expression: text(&render(&mut a))
 │                     │  ⇧↑/⇧↓        select lines                           │uItem>) -> Self {    │
 │                     │  ⇧pgup/⇧pgdn  select a page                          │{                    │
 │                     │  V            select lines with j/k, again to end    │e {                  │
+│                     │  drag         copy text (numbers: pick lines)        │                     │
+│                     │  2× / 3×      click: select a word / a line          │                     │
+│                     │  v            copy mode: h j k l w b, then y         │                     │
+│                     │  y            copy the selected text                 │elf) {               │
+│                     │  Y            copy the comment or thread here        │y() {                │
 │                     │  esc          clear the selection                    │                     │
-│                     │                                                      │                     │
-│                     │Review                                                │                     │
-│                     │  c            comment                                │elf) {               │
-│                     │  r            reply to the thread on this line       │y() {                │
-│                     │  e / ⏎        edit the pending comment on this line  │                     │
-│ Your review · pendin│  d / del      delete it (asks first)                 │                     │
-│1 suggestion · 0 comm│  , / .        previous / next comment on this line   │.selected + 1) % sel…│
-│0 of 3 files viewed  │  a            approve                                │────────────────────╮│
-│Your review: not star│  x            request changes                        │                    ││
-│  menus.rs:51 Fewer b│  R            submit a review                        │he first item? Most ││
-│a approve · c comment│                                                      │.                   ││
-│x request changes · R│Change                                                │                    ││
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 40 ▼ ───────────────╯─────────────────────╯
+│ Your review · pendin│                                                      │                     │
+│1 suggestion · 0 comm│Review                                                │.selected + 1) % sel…│
+│0 of 3 files viewed  │  c            comment                                │────────────────────╮│
+│Your review: not star│  r            reply to the thread on this line       │                    ││
+│  menus.rs:51 Fewer b│  e / ⏎        edit the pending comment on this line  │he first item? Most ││
+│a approve · c comment│  d / del      delete it (asks first)                 │.                   ││
+│x request changes · R│  , / .        previous / next comment on this line   │                    ││
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 46 ▼ ───────────────╯─────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

@@ -11,7 +11,8 @@ use rb_core::{ChangeSummary, CiState, ReviewerState};
 use rb_theme::Role;
 
 use super::dashboard::ci_look;
-use super::text::{columns, plain_markdown, spans_width, wrap};
+use super::text::{columns, plain_markdown, spans_width, wrap, wrap_marked, Join};
+use super::textmap::{RegionKey, TextRegion, TextRow};
 use super::{chrome::truncate, layout, style, HitMap};
 use crate::app::{links, queue, Action, App, ChangeInfo, Chip, Selected, Tab};
 use crate::images::extract::{self, ImageRef, Segment};
@@ -232,6 +233,18 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
             Rect::new(content.x, y + i as u16, content.width, 1),
         );
     }
+    for (key, rows) in &body.texts {
+        let mut region = TextRegion::new(*key, Rect::new(content.x, y, content.width, view));
+        for (ord, (line, text, join)) in rows.iter().enumerate() {
+            if *line >= skip && *line < skip + usize::from(view) {
+                let at = (content.x, y + (*line - skip) as u16);
+                region
+                    .rows
+                    .push(TextRow::new(ord, at, content.width, text.clone()).joined(*join));
+            }
+        }
+        hits.texts.push(region);
+    }
     let pictures = Rect::new(content.x, y, content.width, view);
     for slot in &body.slots {
         let top = slot.line as i64 - skip as i64;
@@ -359,6 +372,9 @@ fn placeholder(app: &App, change: &ChangeSummary) -> Vec<Line<'static>> {
     }
 }
 
+/// One selectable row of the body: its line, its text, and how it joins the row before.
+pub type BodyText = (usize, String, Join);
+
 /// The tab's lines, plus where pictures go in them.
 pub struct Body {
     pub lines: Vec<Line<'static>>,
@@ -366,6 +382,8 @@ pub struct Body {
     pub slots: Vec<Slot>,
     /// For each image in the description, its first line and the rows it takes with its caption.
     pub anchors: Vec<(usize, usize)>,
+    /// The selectable text: for each region, its rows as `(line, text, join)`.
+    pub texts: Vec<(RegionKey, Vec<BodyText>)>,
 }
 
 impl From<Vec<Line<'static>>> for Body {
@@ -374,6 +392,7 @@ impl From<Vec<Line<'static>>> for Body {
             lines,
             slots: Vec::new(),
             anchors: Vec::new(),
+            texts: Vec::new(),
         }
     }
 }
@@ -406,7 +425,15 @@ fn overview(app: &App, change: &ChangeSummary, info: Option<&ChangeInfo>, width:
     let mut out = Vec::new();
     let mut slots = Vec::new();
     let mut anchors = Vec::new();
-    description(app, change, info, width, &mut out, &mut slots, &mut anchors);
+    let mut described: Vec<BodyText> = Vec::new();
+    description(
+        app,
+        change,
+        info,
+        width,
+        (&mut out, &mut slots, &mut anchors),
+        &mut described,
+    );
     out.push(Line::raw(""));
 
     let reviewers = reviewer_lines(app, change);
@@ -421,16 +448,24 @@ fn overview(app: &App, change: &ChangeSummary, info: Option<&ChangeInfo>, width:
     out.push(Line::raw(""));
 
     out.push(heading(app, "Latest comment"));
-    out.extend(latest_comment(app, change, info, width));
+    let (comment, said) = latest_comment(app, change, info, width);
+    let said: Vec<_> = said
+        .into_iter()
+        .map(|(line, text, join)| (out.len() + line, text, join))
+        .collect();
+    out.extend(comment);
     out.push(Line::raw(""));
     out.push(Line::from(vec![
         Span::styled("Your review  ", style::fg(palette, Role::TextSecondary)),
         Span::styled(my_review_text(change), style::fg(palette, Role::Text)),
     ]));
+    let mut texts = vec![(RegionKey::Description, described)];
+    texts.push((RegionKey::LatestComment, said));
     Body {
         lines: out,
         slots,
         anchors,
+        texts,
     }
 }
 
@@ -440,9 +475,12 @@ fn description(
     change: &ChangeSummary,
     info: &ChangeInfo,
     width: u16,
-    out: &mut Vec<Line<'static>>,
-    slots: &mut Vec<Slot>,
-    anchors: &mut Vec<(usize, usize)>,
+    (out, slots, anchors): (
+        &mut Vec<Line<'static>>,
+        &mut Vec<Slot>,
+        &mut Vec<(usize, usize)>,
+    ),
+    described: &mut Vec<BodyText>,
 ) {
     let palette = &app.palette;
     let base = links::change_url(app, &change.id).and_then(|u| url::Url::parse(&u).ok());
@@ -457,7 +495,7 @@ fn description(
     for segment in segments {
         match segment {
             Segment::Text(text) => {
-                for line in wrap(&plain_markdown(&text), usize::from(width)) {
+                for (line, join) in wrap_marked(&plain_markdown(&text), usize::from(width)) {
                     if budget == 0 {
                         if !cut {
                             out.push(muted(app, "…"));
@@ -465,6 +503,7 @@ fn description(
                         }
                         break;
                     }
+                    described.push((out.len(), line.clone(), join));
                     out.push(Line::styled(line, style::fg(palette, Role::Text)));
                     budget -= 1;
                 }
@@ -654,7 +693,7 @@ fn latest_comment(
     change: &ChangeSummary,
     info: &ChangeInfo,
     width: u16,
-) -> Vec<Line<'static>> {
+) -> (Vec<Line<'static>>, Vec<BodyText>) {
     let palette = &app.palette;
     let now = app.state.now.unwrap_or(rb_core::Timestamp(0));
     let latest = info
@@ -663,7 +702,7 @@ fn latest_comment(
         .flat_map(|t| t.comments.iter().map(move |c| (t, c)))
         .max_by_key(|(_, c)| c.created_at);
     let Some((thread, comment)) = latest else {
-        return vec![muted(app, "No comments yet")];
+        return (vec![muted(app, "No comments yet")], Vec::new());
     };
     let place = match (&thread.path, thread.line) {
         (Some(path), Some(line)) => {
@@ -683,13 +722,15 @@ fn latest_comment(
     ])];
     let base = links::change_url(app, &change.id).and_then(|u| url::Url::parse(&u).ok());
     let text = extract::flatten(&comment.body, base.as_ref());
-    for line in wrap(&plain_markdown(&text), usize::from(width))
+    let mut said = Vec::new();
+    for (line, join) in wrap_marked(&plain_markdown(&text), usize::from(width))
         .into_iter()
         .take(3)
     {
+        said.push((out.len(), line.clone(), join));
         out.push(Line::styled(line, style::fg(palette, Role::Text)));
     }
-    out
+    (out, said)
 }
 
 fn files(app: &App, change: &ChangeSummary) -> Vec<Line<'static>> {

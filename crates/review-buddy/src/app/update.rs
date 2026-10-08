@@ -10,6 +10,7 @@ use super::{
 /// Applies one message and returns the effects to run. Does no I/O.
 pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     let mut cmds = apply(app, msg);
+    super::selection::validate(app);
     cmds.extend(live::ensure_info(app));
     cmds.extend(super::images::ensure(app));
     cmds.extend(remember_layout(app));
@@ -285,6 +286,11 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
     if overlay && !quits {
         return composer::on_key(app, key);
     }
+    if !quits {
+        if let Some(cmds) = super::selection::on_key(app, key) {
+            return cmds;
+        }
+    }
     match key.code {
         _ if quits => run(app, Action::Quit),
         KeyCode::Char('?') if !ctrl && !alt => run(app, Action::ToggleHelp),
@@ -297,13 +303,25 @@ fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
             terminal::toggle(app)
         }
         KeyCode::Char('o') if !ctrl && !alt => run(app, Action::Open),
+        KeyCode::Char('y') if !ctrl && !alt && super::selection::has_text(app) => {
+            super::selection::copy(app)
+        }
         KeyCode::Char('y') if !ctrl && !alt => run(app, Action::Copy),
+        KeyCode::Char('M')
+            if !ctrl && !alt && matches!(app.screen, Screen::Dashboard | Screen::Diff) =>
+        {
+            toggle_mouse(app)
+        }
         KeyCode::Char('T') if !ctrl => run(app, Action::CycleTheme),
         KeyCode::Char('B') if !ctrl && app.screen != Screen::FirstRun => {
             run(app, Action::CycleBackground)
         }
         KeyCode::Char('r') if !ctrl && app.screen == Screen::Dashboard => {
             live::request_refresh(app, true)
+        }
+        KeyCode::Esc if app.selection.is_some() => {
+            super::selection::clear(app);
+            Vec::new()
         }
         KeyCode::Esc if !app.toasts.is_empty() => {
             app.toasts.clear();
@@ -420,6 +438,21 @@ pub(super) fn run(app: &mut App, action: Action) -> Vec<Cmd> {
         Action::CyclePosition => dashboard::cycle_position(app),
         other => dashboard::on_action(app, other),
     }
+}
+
+/// `M`: gives the mouse back to the terminal, or takes it again, for this session.
+fn toggle_mouse(app: &mut App) -> Vec<Cmd> {
+    app.mouse = !app.mouse;
+    super::selection::clear(app);
+    app.drag = None;
+    let text = if app.mouse {
+        "Mouse on: clicks and drags go to review-buddy."
+    } else {
+        "Mouse off: select text with your terminal as usual. M turns it back on."
+    };
+    let mut cmds = vec![Cmd::SetMouse(app.mouse)];
+    cmds.extend(set_status(app, Notice::new(NoticeKind::Info, text)));
+    cmds
 }
 
 fn nothing_selected(app: &mut App, verb: &str) -> Vec<Cmd> {

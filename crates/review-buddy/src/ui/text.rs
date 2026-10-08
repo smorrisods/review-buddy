@@ -40,33 +40,57 @@ pub fn elide_middle(text: &str, max: usize) -> String {
     format!("{head}…{}", tail.into_iter().collect::<String>())
 }
 
+/// How a wrapped row joins the one before it when the rows are copied back into text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Join {
+    /// A new line: the row starts a paragraph or a source line.
+    #[default]
+    Break,
+    /// A word wrap: the row continues the one before after the space the wrap swallowed.
+    Space,
+    /// A hard cut, in the middle of a word or a line of code: the rows join with nothing between.
+    Glue,
+}
+
 pub fn wrap(text: &str, width: usize) -> Vec<String> {
+    wrap_marked(text, width)
+        .into_iter()
+        .map(|(line, _)| line)
+        .collect()
+}
+
+/// [`wrap`], with how each row joins the previous one.
+pub fn wrap_marked(text: &str, width: usize) -> Vec<(String, Join)> {
     let width = width.max(1);
-    let mut lines = Vec::new();
+    let mut rows = Vec::new();
     for paragraph in text.lines() {
         let mut line = String::new();
+        let mut join = Join::Break;
         for word in paragraph.split_whitespace() {
             let mut word = word.to_string();
             while cells(&word) > width {
                 if !line.is_empty() {
-                    lines.push(std::mem::take(&mut line));
+                    rows.push((std::mem::take(&mut line), join));
+                    join = Join::Space;
                 }
                 let (head, tail) = split_at_width(&word, width);
-                lines.push(head);
+                rows.push((head, join));
+                join = Join::Glue;
                 word = tail;
             }
             let joined = if line.is_empty() { 0 } else { cells(&line) + 1 };
             if !line.is_empty() && joined + cells(&word) > width {
-                lines.push(std::mem::take(&mut line));
+                rows.push((std::mem::take(&mut line), join));
+                join = Join::Space;
             }
             if !line.is_empty() {
                 line.push(' ');
             }
             line.push_str(&word);
         }
-        lines.push(line);
+        rows.push((line, join));
     }
-    lines
+    rows
 }
 
 fn split_at_width(word: &str, width: usize) -> (String, String) {
@@ -249,6 +273,34 @@ mod tests {
         assert_eq!(wrap("one two three", 7), ["one two", "three"]);
         assert_eq!(wrap("a\n\nb", 10), ["a", "", "b"]);
         assert_eq!(wrap("", 10), Vec::<String>::new());
+    }
+
+    #[test]
+    fn wrap_marked_says_how_each_row_joins_the_one_before() {
+        use Join::{Break, Glue, Space};
+        assert_eq!(
+            wrap_marked("one two three\n\nfour", 7),
+            [
+                ("one two".to_string(), Break),
+                ("three".to_string(), Space),
+                (String::new(), Break),
+                ("four".to_string(), Break),
+            ]
+        );
+        assert_eq!(
+            wrap_marked("hi abcdefghij", 4),
+            [
+                ("hi".to_string(), Break),
+                ("abcd".to_string(), Space),
+                ("efgh".to_string(), Glue),
+                ("ij".to_string(), Glue),
+            ]
+        );
+        let rows: Vec<String> = wrap_marked("日本語です a", 4)
+            .into_iter()
+            .map(|(t, _)| t)
+            .collect();
+        assert_eq!(rows, wrap("日本語です a", 4));
     }
 
     #[test]

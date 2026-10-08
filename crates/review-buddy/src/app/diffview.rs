@@ -10,7 +10,7 @@ use rb_core::{DraftComment, Side, Thread, Timestamp};
 use rb_diff::{expand_tabs, Anchor, DiffBody, FileDiff, LineId, ParsedPatch};
 
 use super::queue::age;
-use crate::ui::text::{wrap, wrap_rows};
+use crate::ui::text::{wrap_marked, wrap_rows, Join};
 
 /// Columns before the code: cursor (2), old number (5), new number (5), sign (2).
 pub const GUTTER: u16 = 14;
@@ -49,6 +49,8 @@ pub enum BlockLineKind {
 pub struct BlockLine {
     pub kind: BlockLineKind,
     pub text: String,
+    /// How the line joins the one before when copied: a wrapped line continues it.
+    pub join: Join,
 }
 
 /// Where a block's text comes from, so a pending comment can be found again to edit or delete.
@@ -68,6 +70,8 @@ pub struct Block {
     pub title: String,
     pub lines: Vec<BlockLine>,
     pub origin: Origin,
+    /// The whole comment or thread as written, for copying it (`Y`).
+    pub text: String,
 }
 
 impl Block {
@@ -213,6 +217,19 @@ impl Rows {
 
     pub fn block(&self, index: u32) -> Option<&Block> {
         self.blocks.get(index as usize)
+    }
+
+    /// Every block that hangs from the line at `row`, in the order they are drawn.
+    pub fn blocks_after(&self, row: usize) -> Vec<u32> {
+        let mut found = Vec::new();
+        let mut at = row + 1;
+        while let Some(Row::Block { block, line }) = self.rows.get(at).copied() {
+            if line == 0 {
+                found.push(block);
+            }
+            at += 1;
+        }
+        found
     }
 
     pub fn line_count(&self) -> usize {
@@ -553,9 +570,23 @@ fn thread_block(thread: &Thread, now: Timestamp, width: usize) -> Block {
         lines.push(BlockLine {
             kind: BlockLineKind::Meta,
             text: format!("{} · {}", comment.author, age(now, comment.created_at)),
+            join: Join::Break,
         });
         push_wrapped(&mut lines, &comment.body, width);
     }
+    let text = thread
+        .comments
+        .iter()
+        .map(|c| {
+            format!(
+                "{} · {}\n{}",
+                c.author,
+                age(now, c.created_at),
+                c.body.trim()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
     Block {
         kind: BlockKind::Thread {
             resolved: thread.resolved,
@@ -564,6 +595,7 @@ fn thread_block(thread: &Thread, now: Timestamp, width: usize) -> Block {
         title,
         lines,
         origin: Origin::None,
+        text,
     }
 }
 
@@ -582,12 +614,14 @@ fn draft_block(draft: &DraftComment, originals: Vec<String>, width: usize, tab_w
             lines.push(BlockLine {
                 kind: BlockLineKind::Removed,
                 text: expand_tabs(&text, tab_width),
+                join: Join::Break,
             });
         }
         for text in replacement {
             lines.push(BlockLine {
                 kind: BlockLineKind::Added,
                 text: expand_tabs(&text, tab_width),
+                join: Join::Break,
             });
         }
     }
@@ -596,17 +630,19 @@ fn draft_block(draft: &DraftComment, originals: Vec<String>, width: usize, tab_w
         title: format!("pending {what} · {place}"),
         lines,
         origin: Origin::None,
+        text: draft.body.trim().to_string(),
     }
 }
 
 fn push_wrapped(out: &mut Vec<BlockLine>, text: &str, width: usize) {
-    let mut wrapped = wrap(text.trim(), width);
-    while wrapped.last().is_some_and(String::is_empty) {
+    let mut wrapped = wrap_marked(text.trim(), width);
+    while wrapped.last().is_some_and(|(line, _)| line.is_empty()) {
         wrapped.pop();
     }
-    out.extend(wrapped.into_iter().map(|text| BlockLine {
+    out.extend(wrapped.into_iter().map(|(text, join)| BlockLine {
         kind: BlockLineKind::Text,
         text,
+        join,
     }));
 }
 
