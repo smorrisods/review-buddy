@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/diff.rs
 expression: shown
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files ─────────────────────────╮╭ diff ──────────────────────────────────────────────────────────╮
 │                                ││                                                                │
 │             ·  ·  ·            ││                                                                │
@@ -17,7 +18,6 @@ expression: shown
 │                                ││                                                                │
 │                                ││                                                                │
 │                                ││                        Loading the diff…                       │
-│                                ││                                                                │
 │                                ││                                                                │
 │                                ││                                                                │
 │                                ││                                                                │

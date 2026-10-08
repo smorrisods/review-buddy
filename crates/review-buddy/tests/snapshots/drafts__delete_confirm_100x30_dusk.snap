@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/drafts.rs
 expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
@@ -12,23 +13,22 @@ expression: text(& render(& mut a))
 │                                ││    11   11   pub struct Menu {                                 │
 │                                ││    12   12       items: Vec<MenuItem>,                         │
 │                                ││         13 +     selected: usize,                              │
-│                                ││         14 +     open: bool,                                   │
 │                 ╭ Delete this pending comment? ────────────────────────────────╮                 │
 │                 │ menus.rs line 10 · “This could return early. Worth a guard?” │                 │
 │                 │                                                              │                 │
-│                 │ It is removed from your pending review.                      │m>) -> Self {    │
-│                 │                                                              │                 │
+│                 │ It is removed from your pending review.                      │                 │
+│                 │                                                              │m>) -> Self {    │
 │                 │ › No, keep it ‹    Delete     ⏎ choose · esc cancel          │                 │
 │                 ╰──────────────────────────────────────────────────────────────╯                 │
+│                                ││    35   37           self.items.len()                          │
 │                                ││    36   38       }                                             │
-│                                ││         39 +                                                   │
-│ Your review · pending ─────────││         40 +     pub fn select_next(&mut self) {               │
-│1 suggestion · 1 comment        ││         41 +         if self.items.is_empty() {                │
-│0 of 3 files viewed             ││         42 +             return;                               │
-│Your review: not started        ││         43 +         }                                         │
-│  menus.rs:51 Fewer branches th…││         44 +         self.selected = (self.selected + 1) % sel…│
-│  menus.rs:10 This could return…││              ╭─ thread · line 44 ─────────────────────────────╮│
-│a approve · c comment           ││              │ jo · 1d                                        ││
-│x request changes · R review    ││              │ Should this wrap round to the first item? Most ││
+│ Your review · pending ─────────││         39 +                                                   │
+│1 suggestion · 1 comment        ││         40 +     pub fn select_next(&mut self) {               │
+│0 of 3 files viewed             ││         41 +         if self.items.is_empty() {                │
+│Your review: not started        ││         42 +             return;                               │
+│  menus.rs:51 Fewer branches th…││         43 +         }                                         │
+│  menus.rs:10 This could return…││         44 +         self.selected = (self.selected + 1) % sel…│
+│a approve · c comment           ││              ╭─ thread · line 44 ─────────────────────────────╮│
+│x request changes · R review    ││              │ jo · 1d                                        ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
  j/k move  n/p hunk         · Added to your pending review. 2 comments waiting. Press a to approve.

@@ -183,9 +183,9 @@ fn tabs_double_click_wheel_and_drag_work_through_sgr_mouse_reports() {
     }
     s.send(&wheel, "Option<", "the wheel scrolls the diff under it");
 
-    let mut drag = sgr(0, (60, 2), true);
-    drag.extend(sgr(32, (60, 5), true));
-    drag.extend(sgr(0, (60, 5), false));
+    let mut drag = sgr(0, (60, 3), true);
+    drag.extend(sgr(32, (60, 6), true));
+    drag.extend(sgr(0, (60, 6), false));
     s.send(&drag, "▌", "dragging marks the selected lines");
 
     s.send(

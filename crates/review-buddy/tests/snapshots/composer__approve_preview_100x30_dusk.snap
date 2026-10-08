@@ -3,32 +3,32 @@ source: crates/review-buddy/tests/composer.rs
 expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
 │  · src/ui/mod.rs          +2 −0││    11   11   pub struct Menu {                                 │
 │                                ││    12   12       items: Vec<MenuItem>,                         │
-│                                ││         13 +     selected: usize,                              │
 │                ╭ Submit your review ────────────────────────────────────────────╮                │
 │                │ ( ) 1 Comment  (•) 2 Approve  ( ) 3 Request changes            │                │
 │                │                                                                │                │
 │                │ Approve with 1 comment                                         │                │
-│                │ Verdict: approve                                               │>) -> Self {    │
-│                │                                                                │                │
+│                │ Verdict: approve                                               │                │
+│                │                                                                │>) -> Self {    │
 │                │ Summary (optional)                                             │                │
 │                │ ▏                                                              │                │
 │                │ ▏                                                              │                │
 │                │ ▏                                                              │                │
-│                │                                                                │{               │
-│                │ • menus.rs line 51 · Fewer branches this way:                  │                │
+│                │                                                                │                │
+│                │ • menus.rs line 51 · Fewer branches this way:                  │{               │
 │                │                                                                │                │
 │                │   Cancel    › Approve ‹                                        │                │
-│ Your review · p│ ⏎ submits · tab → cancel · esc cancels                         │cted + 1) % sel…│
-│1 suggestion · 0╰────────────────────────────────────────────────────────────────╯───────────────╮│
-│0 of 3 files viewed             ││              │ jo · 1d                                        ││
-│Your review: not started        ││              │ Should this wrap round to the first item? Most ││
-│  menus.rs:51 Fewer branches th…││              │ menus I use stop at the end.                   ││
-│Choosing: approve               ││              │ ada · 20h                                      ││
-│                                ││              │ I went with wrapping so a held key never gets  ││
+│ Your review · p│ ⏎ submits · tab → cancel · esc cancels                         │                │
+│1 suggestion · 0╰────────────────────────────────────────────────────────────────╯cted + 1) % sel…│
+│0 of 3 files viewed             ││              ╭─ thread · line 44 ─────────────────────────────╮│
+│Your review: not started        ││              │ jo · 1d                                        ││
+│  menus.rs:51 Fewer branches th…││              │ Should this wrap round to the first item? Most ││
+│Choosing: approve               ││              │ menus I use stop at the end.                   ││
+│                                ││              │ ada · 20h                                      ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

@@ -56,7 +56,7 @@ The action chips in the detail pane (`a Approve`, `x Request changes`, `c Commen
 
 ## Diff
 
-Open with `⏎` or `d` from the dashboard.
+Open with `⏎` or `d` from the dashboard. A header row above the panes names the change under review (forge badge, `owner/repo#number`, source and title), so `o` and `y` visibly act on that change.
 
 | Key | Action |
 |---|---|

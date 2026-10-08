@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/composer.rs
 expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;         │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                     │
@@ -22,9 +23,8 @@ expression: text(& render(& mut a))
 │                                ││         40 +     pub fn select_next(&mut self) {               │
 │                                ││         41 +         if self.items.is_empty() {                │
 │                                ││         42 +             return;                               │
-│                                ││         43 +         }                                         │
-│ Your review · pending ─────────││         44 +         self.selected = (self.selected + 1) % sel…│
-│1 suggestion · 0 comments       ││              ╭─ thread · line 44 ─────────────────────────────╮│
+│ Your review · pending ─────────││         43 +         }                                         │
+│1 suggestion · 0 comments       ││         44 +         self.selected = (self.selected + 1) % sel…│
 │0 of 3 files viewed             ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
 │Your review: not started        │││ This could return early.                                     ││
 │  menus.rs:51 Fewer branches th…│││ Worth a guard?                                               ││

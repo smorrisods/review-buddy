@@ -3,11 +3,11 @@ source: crates/review-buddy/tests/frames.rs
 expression: text(& render(& mut app))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                 Dusk
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────╮
-│› · src/ui/menus.rs       +22 −1││              ╭─ thread · line 44 ─────────────────────────────╮│
-│  · src/ui/menubar.rs      +8 −0││              │ jo · 1d                                        ││
-│  · src/ui/mod.rs          +2 −0││              │ Should this wrap round to the first item? Most ││
-│                                ││              │ menus I use stop at the end.                   ││
+│› · src/ui/menus.rs       +22 −1││              │ jo · 1d                                        ││
+│  · src/ui/menubar.rs      +8 −0││              │ Should this wrap round to the first item? Most ││
+│  · src/ui/mod.rs          +2 −0││              │ menus I use stop at the end.                   ││
 │                                ││              │ ada · 20h                                      ││
 │                                ││              │ I went with wrapping so a held key never gets  ││
 │                                ││              │ stuck. Happy to make it configurable if you'd  ││

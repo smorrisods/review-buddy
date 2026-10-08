@@ -18,6 +18,9 @@ use super::{chrome::truncate, layout, style, HitMap};
 use crate::app::diffview::{self, BlockKind, BlockLine, BlockLineKind, Row, GUTTER};
 use crate::app::{Action, App, DiffFocus, DiffState, Phase};
 
+/// The most cells the source label takes in the change header.
+const SOURCE_LABEL_MAX: usize = 24;
+
 const PLACEHOLDER: &str = "·  ·  ·";
 
 pub fn draw(frame: &mut Frame, app: &App, body: ratatui::layout::Rect, hits: &mut HitMap) {
@@ -25,11 +28,79 @@ pub fn draw(frame: &mut Frame, app: &App, body: ratatui::layout::Rect, hits: &mu
         return;
     };
     let l = layout::diff_screen_with(body, crate::app::comments::review_extra(state));
+    draw_header(frame, app, state, l.header);
     hits.push(l.files, Action::DiffFocus(DiffFocus::Files));
     hits.push(l.diff, Action::DiffFocus(DiffFocus::Diff));
     draw_files(frame, app, state, &l, hits);
     draw_diff(frame, app, state, &l, hits);
     super::composer::draw(frame, app, state, &l, body, hits);
+}
+
+/// The line naming the change under review: forge badge, `owner/repo#number`, source, and title,
+/// then author and branches when the whole of them fits. The title gives way first.
+fn draw_header(frame: &mut Frame, app: &App, state: &DiffState, area: Rect) {
+    if area.height == 0 || area.width == 0 {
+        return;
+    }
+    let palette = &app.palette;
+    let id = &state.id;
+    let change = app.state.changes.iter().find(|c| c.id == *id);
+    let source = app.state.source(&id.source_id);
+    let sep = || Span::styled(" · ", style::fg(palette, Role::Muted));
+    let room = usize::from(area.width);
+
+    let mut spans = vec![
+        Span::raw(" "),
+        Span::styled(
+            id.kind.tag(),
+            style::tag_fg(palette, source, id.kind).add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(" "),
+        Span::styled(id.short_ref(), style::fg(palette, Role::Cyan)),
+    ];
+    if let Some(source) = source {
+        spans.push(sep());
+        spans.push(Span::styled(
+            truncate(&source.label, SOURCE_LABEL_MAX),
+            style::fg(palette, Role::TextSecondary),
+        ));
+    }
+    spans.push(sep());
+    let used: usize = spans.iter().map(|s| cells(&s.content)).sum();
+    let title = change.map(|c| c.title.as_str());
+    let room_for_title = room.saturating_sub(used + 1);
+    let extras = change.filter(|c| {
+        let extra = 3 + cells(&c.author) + 3 + cells(&c.branch) + 3 + cells(&c.base);
+        title.map_or(0, cells) + extra <= room_for_title
+    });
+    match title {
+        Some(title) => spans.push(Span::styled(
+            truncate(title, room_for_title),
+            style::fg(palette, Role::TextBright).add_modifier(Modifier::BOLD),
+        )),
+        None => spans.push(Span::styled(
+            truncate("title not loaded yet", room_for_title),
+            style::fg(palette, Role::Muted),
+        )),
+    }
+    if let Some(change) = extras {
+        spans.push(sep());
+        spans.push(Span::styled(
+            change.author.clone(),
+            style::fg(palette, Role::Interactive),
+        ));
+        spans.push(sep());
+        spans.push(Span::styled(
+            change.branch.clone(),
+            style::fg(palette, Role::Cyan),
+        ));
+        spans.push(Span::styled(" → ", style::fg(palette, Role::Muted)));
+        spans.push(Span::styled(
+            change.base.clone(),
+            style::fg(palette, Role::Cyan),
+        ));
+    }
+    frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
 fn pane_block(app: &App, title: String, focused: bool) -> Block<'static> {

@@ -3,42 +3,42 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
-╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ╭ Keys · Diff ─────────────────────────────────────────╮───────────────────────────────────────────────────╮
-│› · src/ui/menus.rs       +22 −1││              @@ │Move                                                  │                                                   │
-│  · src/ui/menubar.rs      +8 −0││›   10   10      │  j/k          move                                   │                                                   │
-│  · src/ui/mod.rs          +2 −0││    11   11   pub│  g/G          first / last line                      │                                                   │
-│                                ││    12   12      │  pgup/pgdn    page up / down                         │                                                   │
-│                                ││         13 +    │  n/p          hunk                                   │                                                   │
-│                                ││         14 +    │  ← →          file                                   │                                                   │
-│                                ││    13   15   }  │  ]/[          file                                   │                                                   │
-│                                ││    14   16      │  tab          pane                                   │                                                   │
-│                                ││    15   17   imp│                                                      │                                                   │
-│                                ││    16   18      │Select                                                │                                                   │
-│                                ││              @@ │  ⇧↑/⇧↓        select lines                           │                                                   │
-│                                ││    34   36      │  ⇧pgup/⇧pgdn  select a page                          │                                                   │
-│                                ││    35   37      │  V            select lines with j/k, again to end    │                                                   │
-│                                ││    36   38      │  esc          clear the selection                    │                                                   │
-│                                ││         39 +    │                                                      │                                                   │
-│                                ││         40 +    │Review                                                │                                                   │
-│                                ││         41 +    │  c            comment                                │                                                   │
-│                                ││         42 +    │  r            reply to the thread on this line       │                                                   │
-│                                ││         43 +    │  e / ⏎        edit the pending comment on this line  │                                                   │
-│                                ││         44 +    │  d / del      delete it (asks first)                 │n();                                               │
-│                                ││              ╭─ │  , / .        previous / next comment on this line   │──────────────────────────────────────────────────╮│
-│                                ││              │ j│  a            approve                                │                                                  ││
-│                                ││              │ S│  x            request changes                        │e stop at the end.                                ││
-│                                ││              │ a│  R            submit a review                        │                                                  ││
-│                                ││              │ I│                                                      │y to make it configurable if you'd rather.        ││
-│                                ││              ╰──│Change                                                │──────────────────────────────────────── r reply ─╯│
-│                                ││         45 +    │  o            open                                   │                                                   │
-│                                ││         46 +    │  y            copy                                   │                                                   │
-│                                ││         47 +    │                                                      │                                                   │
-│ Your review · pending ─────────││         48 +    │General                                               │                                                   │
-│1 suggestion · 0 comments       ││         49 +    │  esc          back                                   │                                                   │
-│0 of 3 files viewed             ││         50 +    │  q            back to the queue                      │                                                   │
-│Your review: not started        ││         51 +    │  ?            help                                   │_or(self.items.len() - 1);                         │
-│  menus.rs:51 Fewer branches th…││              ╭─ │  T            theme                                  │──────────────────────────────────────────────────╮│
-│a approve · c comment           ││              │ F│  B            background: theme / yes / no           │                                                  ││
-│x request changes · R review    ││              │ -│  ⌃Z           suspend                                │wrap_or(self.items.len() - 1);                    ││
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a╭ Keys · Diff ─────────────────────────────────────────╮main
+╭ files 3 ───────────────────────╮╭ src/ui/menus.rs │Move                                                  │───────────────────────────────────────────────────╮
+│› · src/ui/menus.rs       +22 −1││              @@ │  j/k          move                                   │                                                   │
+│  · src/ui/menubar.rs      +8 −0││›   10   10      │  g/G          first / last line                      │                                                   │
+│  · src/ui/mod.rs          +2 −0││    11   11   pub│  pgup/pgdn    page up / down                         │                                                   │
+│                                ││    12   12      │  n/p          hunk                                   │                                                   │
+│                                ││         13 +    │  ← →          file                                   │                                                   │
+│                                ││         14 +    │  ]/[          file                                   │                                                   │
+│                                ││    13   15   }  │  tab          pane                                   │                                                   │
+│                                ││    14   16      │                                                      │                                                   │
+│                                ││    15   17   imp│Select                                                │                                                   │
+│                                ││    16   18      │  ⇧↑/⇧↓        select lines                           │                                                   │
+│                                ││              @@ │  ⇧pgup/⇧pgdn  select a page                          │                                                   │
+│                                ││    34   36      │  V            select lines with j/k, again to end    │                                                   │
+│                                ││    35   37      │  esc          clear the selection                    │                                                   │
+│                                ││    36   38      │                                                      │                                                   │
+│                                ││         39 +    │Review                                                │                                                   │
+│                                ││         40 +    │  c            comment                                │                                                   │
+│                                ││         41 +    │  r            reply to the thread on this line       │                                                   │
+│                                ││         42 +    │  e / ⏎        edit the pending comment on this line  │                                                   │
+│                                ││         43 +    │  d / del      delete it (asks first)                 │                                                   │
+│                                ││         44 +    │  , / .        previous / next comment on this line   │n();                                               │
+│                                ││              ╭─ │  a            approve                                │──────────────────────────────────────────────────╮│
+│                                ││              │ j│  x            request changes                        │                                                  ││
+│                                ││              │ S│  R            submit a review                        │e stop at the end.                                ││
+│                                ││              │ a│                                                      │                                                  ││
+│                                ││              │ I│Change                                                │y to make it configurable if you'd rather.        ││
+│                                ││              ╰──│  o            open                                   │──────────────────────────────────────── r reply ─╯│
+│                                ││         45 +    │  y            copy                                   │                                                   │
+│                                ││         46 +    │                                                      │                                                   │
+│ Your review · pending ─────────││         47 +    │General                                               │                                                   │
+│1 suggestion · 0 comments       ││         48 +    │  esc          back                                   │                                                   │
+│0 of 3 files viewed             ││         49 +    │  q            back to the queue                      │                                                   │
+│Your review: not started        ││         50 +    │  ?            help                                   │                                                   │
+│  menus.rs:51 Fewer branches th…││         51 +    │  T            theme                                  │_or(self.items.len() - 1);                         │
+│a approve · c comment           ││              ╭─ │  B            background: theme / yes / no           │──────────────────────────────────────────────────╮│
+│x request changes · R review    ││              │ F│  ⌃Z           suspend                                │                                                  ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close ───────────────────────────────────────────╯───────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

@@ -509,6 +509,8 @@ pub const REVIEW_HEIGHT: u16 = 6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DiffLayout {
+    /// The one-row line naming the change under review, above both panes.
+    pub header: Rect,
     pub files: Rect,
     /// Where the file rows go, inside the Files pane's border.
     pub file_list: Rect,
@@ -517,6 +519,9 @@ pub struct DiffLayout {
     /// The rows of the diff itself, inside the Diff pane's border.
     pub code: Rect,
 }
+
+/// The smallest body that still spares a row for the change header.
+const HEADER_MIN_BODY: u16 = 8;
 
 pub fn diff_screen(body: Rect) -> DiffLayout {
     diff_screen_with(body, 0)
@@ -528,6 +533,9 @@ pub const REVIEW_EXTRA_MAX: u16 = 6;
 /// Like [`diff_screen`], with the review block `extra` rows taller (never more than half the
 /// Files pane).
 pub fn diff_screen_with(body: Rect, extra: u16) -> DiffLayout {
+    let header_height = u16::from(body.height >= HEADER_MIN_BODY);
+    let [header, body] =
+        Layout::vertical([Constraint::Length(header_height), Constraint::Min(0)]).areas(body);
     let [files, diff] =
         Layout::horizontal([Constraint::Length(FILES_WIDTH), Constraint::Min(0)]).areas(body);
     let inside = inner(files);
@@ -536,6 +544,7 @@ pub fn diff_screen_with(body: Rect, extra: u16) -> DiffLayout {
     let [file_list, review] =
         Layout::vertical([Constraint::Min(0), Constraint::Length(review_height)]).areas(inside);
     DiffLayout {
+        header,
         files,
         file_list,
         review,
@@ -566,9 +575,18 @@ mod tests {
         assert_eq!(l.files.width, 34);
         assert_eq!(l.diff.x, 34);
         assert_eq!(l.code.width, 124);
-        assert_eq!(l.code.height, 36);
+        assert_eq!((l.header.y, l.header.height, l.header.width), (1, 1, 160));
+        assert_eq!(l.files.y, l.header.bottom());
+        assert_eq!(l.code.height, 35);
         assert_eq!(l.review.height, REVIEW_HEIGHT);
-        assert_eq!(l.file_list.height + l.review.height, 36);
+        assert_eq!(l.file_list.height + l.review.height, 35);
+    }
+
+    #[test]
+    fn a_very_short_body_gives_the_panes_every_row() {
+        let l = diff_screen(body((100, 9)));
+        assert_eq!(l.header.height, 0);
+        assert_eq!(l.files.y, 1);
     }
 
     #[test]

@@ -196,7 +196,8 @@ fn the_wordmark_runs_the_theme_gradient() {
 #[test]
 fn diff_tints_use_added_bg_and_removed_bg() {
     for theme in THEMES {
-        let mut app = thread_frame(theme, (160, 40), false);
+        // One row taller than the frames, so the change header leaves the suggestion's removed line in view.
+        let mut app = thread_frame(theme, (160, 41), false);
         let buffer = render(&mut app);
         let added = style::bg(&app.palette, Role::AddedBg).bg.unwrap();
         let removed = style::bg(&app.palette, Role::RemovedBg).bg.unwrap();
