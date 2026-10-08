@@ -115,6 +115,28 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 false,
             ),
             bind(
+                "Conversation",
+                "n/N",
+                "next / previous thread (Conversation tab)",
+                None,
+                false,
+            ),
+            bind("Conversation", "z/Z", "fold one / all threads", None, false),
+            bind(
+                "Conversation",
+                "c",
+                "reply to the thread; ⏎ jumps to its line",
+                None,
+                false,
+            ),
+            bind(
+                "Conversation",
+                "v",
+                "copy mode on the comments",
+                None,
+                false,
+            ),
+            bind(
                 "View",
                 "p",
                 "close / reopen the detail pane",

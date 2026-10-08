@@ -10,7 +10,7 @@ expression: text(&render(&mut a))
 │    github.com          ││                                              ││                                                                                    │
 │▌ ● smorris           1 ││  ── That's everything.                       ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
 │    github.com          ││  1 in this view.                             ││                                                                                    │
-│  ● platform          2 ││                                              ││  Overview   Files 1   Checks 1   Conversation 2                                    │
+│  ● platform          2 ││                                              ││  Overview   Files 1   Checks 1   Conversation 5                                    │
 │    gitlab.platform.ex… ││                                              ││ ────────────────────────────────────────────────────────────────────────────────── │
 │  ● gitlab.com        1 ││                                              ││ 1 file changed  +1 −1                                                              │
 │    gitlab.com          ││                                              ││                                                                                    │

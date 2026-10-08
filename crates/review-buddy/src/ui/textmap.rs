@@ -22,6 +22,8 @@ pub enum RegionKey {
     Description,
     /// The body of the latest comment in the Detail pane.
     LatestComment,
+    /// One comment on the Detail pane's Conversation tab, numbered across all its threads.
+    Comment(u32),
 }
 
 /// One screen row of text. `text` is what the row shows, without any decoration.

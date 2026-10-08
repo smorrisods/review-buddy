@@ -20,11 +20,17 @@ expression: text(&render(&mut a))
 │  [x] assigned          ││  · Clarify the install s│  s    show filters                                   │                                                   │
 │  [x] authored          ││  GL notes!12 · kai · app│  D    pending reviews: your saved drafts             │         Checks                                    │
 │  [ ] drafts            ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
-│  [ ] noise             ││  ▸ Noise · 2 bot updates│View                                                  │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates│Conversation                                          │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││                         │  n/N  next / previous thread (Conversation tab)      │                                                   │
+│                        ││  ── That's everything.  │  z/Z  fold one / all threads                         │                                                   │
+│                        ││  7 in this view.        │  c    reply to the thread; ⏎ jumps to its line       │                                                   │
+│                        ││                         │  v    copy mode on the comments                      │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │                                                      │                                                   │
+│                        ││                         │View                                                  │                                                   │
 │                        ││                         │  p    close / reopen the detail pane                 │                                                   │
-│                        ││  ── That's everything.  │  S    sources: auto / left / top                     │                                                   │
-│                        ││  7 in this view.        │  P    rotate panes: list left → top → right → bottom │                                                   │
-│                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │  S    sources: auto / left / top                     │                                                   │
+│                        ││                         │  P    rotate panes: list left → top → right → bottom │                                                   │
+│                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│                                                   │
 │                        ││                         │  =    reset that split to automatic                  │                                                   │
 │                        ││                         │  W    save pane sizes to config                      │                                                   │
 │                        ││                         │  t    terminal pane: open, or focus it               │                                                   │
@@ -34,11 +40,5 @@ expression: text(&render(&mut a))
 │                        ││                         │                                                      │                                                   │
 │                        ││                         │General                                               │                                                   │
 │                        ││                         │  ?    help                                           │                                                   │
-│                        ││                         │  ,    settings                                       │                                                   │
-│                        ││                         │  T    theme                                          │                                                   │
-│                        ││                         │  B    background: theme / yes / no                   │                                                   │
-│                        ││                         │  M    mouse on / off (off: terminal selects)         │                                                   │
-│                        ││                         │  q    quit                                           │                                                   │
-│                        ││                         │  ⌃Z   suspend                                        │                                                   │
-╰────────────────────────╯╰─────────────────────────╰ esc close ───────────────────────────────────────────╯───────────────────────────────────────────────────╯
+╰────────────────────────╯╰─────────────────────────╰ esc close · j/k scroll · 1–36 of 42 ▼ ───────────────╯───────────────────────────────────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

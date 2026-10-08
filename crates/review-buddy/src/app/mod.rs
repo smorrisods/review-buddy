@@ -130,6 +130,8 @@ pub enum Action {
     /// Select the nth item of the queue.
     SelectItem(usize),
     SelectTab(Tab),
+    /// Select the nth thread of the Conversation tab and fold or unfold it.
+    ToggleThread(usize),
     Chip(Chip),
     /// Leave the diff for the dashboard.
     CloseDiff,

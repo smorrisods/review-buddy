@@ -189,11 +189,15 @@ pub struct DiffState {
 }
 
 /// An action the dashboard asked the diff to start as soon as it is ready.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Intent {
     Approve,
     RequestChanges,
     Comment,
+    /// Move to the line a thread hangs from.
+    Goto(rb_core::ThreadId),
+    /// Move to the thread's line and start a reply to it.
+    Reply(rb_core::ThreadId),
 }
 
 impl DiffState {
@@ -280,15 +284,17 @@ pub(super) fn cursor_id_of(app: &App) -> Option<LineId> {
 
 /// Moves to the line a comment hangs from, in the file at `path`.
 pub(super) fn goto_anchor(app: &mut App, path: &str, side: rb_core::Side, line: u32) {
-    let id = app
-        .diff
+    if let Some(id) = anchor_line(app, path, side, line) {
+        goto(app, path, id);
+    }
+}
+
+fn anchor_line(app: &App, path: &str, side: rb_core::Side, line: u32) -> Option<LineId> {
+    app.diff
         .as_ref()
         .and_then(|s| s.files().iter().find(|f| f.diff.path == path))
         .and_then(|f| f.diff.parsed())
-        .and_then(|p| p.find_by_anchor(rb_diff::Anchor { side, line }));
-    if let Some(id) = id {
-        goto(app, path, id);
-    }
+        .and_then(|p| p.find_by_anchor(rb_diff::Anchor { side, line }))
 }
 
 /// Moves to `line` of the file at `path`, when both exist.
@@ -344,6 +350,11 @@ fn start_intent(app: &mut App) {
     if state.data.is_none() {
         return;
     }
+    match intent {
+        Intent::Goto(id) => return goto_thread(app, &id, false),
+        Intent::Reply(id) => return goto_thread(app, &id, true),
+        _ => {}
+    }
     if let Some(row) = first_changed_row(state) {
         state.view.cursor = row;
         reveal_cursor(state, height);
@@ -352,7 +363,57 @@ fn start_intent(app: &mut App) {
         Intent::Approve => review::open(app, Verdict::Approve),
         Intent::RequestChanges => review::open(app, Verdict::RequestChanges),
         Intent::Comment => composer::open_comment(app),
+        Intent::Goto(_) | Intent::Reply(_) => unreachable!("handled above"),
     };
+}
+
+/// Moves to the line a thread hangs from, and starts a reply when `reply` is set.
+fn goto_thread(app: &mut App, id: &rb_core::ThreadId, reply: bool) {
+    let Some(thread) = app
+        .diff
+        .as_ref()
+        .and_then(|s| s.data.as_ref())
+        .and_then(|d| d.threads.iter().find(|t| &t.id == id))
+        .cloned()
+    else {
+        composer::info(
+            app,
+            "That thread isn't in the diff any more. Refresh with r.",
+        );
+        return;
+    };
+    let place = match (thread.path.as_deref(), thread.line) {
+        (Some(path), Some(line)) => {
+            if anchor_line(app, path, thread.side, line).is_some() {
+                goto_anchor(app, path, thread.side, line);
+            } else {
+                composer::info(app, "That comment's line isn't in the current diff.");
+            }
+            composer::Anchor {
+                path: path.to_string(),
+                side: thread.side,
+                start_line: thread.start_line,
+                line,
+            }
+            .place()
+        }
+        _ => {
+            if !reply {
+                composer::info(
+                    app,
+                    "That's a general comment, so it has no line in the diff.",
+                );
+            }
+            "general".to_string()
+        }
+    };
+    if reply {
+        let target = composer::Target::Reply {
+            thread: thread.id,
+            place,
+        };
+        composer::open(app, composer::Composer::new(target, ""));
+    }
 }
 
 fn first_changed_row(state: &DiffState) -> Option<usize> {

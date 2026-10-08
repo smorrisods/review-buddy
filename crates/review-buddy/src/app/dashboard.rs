@@ -1,8 +1,12 @@
 //! Dashboard state and its pure transitions: focus, the source filter, the queue selection,
 //! scrolling and the detail tabs.
 
+use std::collections::HashSet;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rb_core::{triage::Bucket, ChangeId, ChangeSummary, FeatureAction, Source, SourceId};
+use rb_core::{
+    triage::Bucket, ChangeId, ChangeSummary, FeatureAction, Source, SourceId, Thread, ThreadId,
+};
 
 use super::queue::{item_span, total_height, Item, Queue};
 use super::update::set_status;
@@ -119,6 +123,10 @@ pub struct Dashboard {
     pub tab: Tab,
     pub queue_scroll: u16,
     pub detail_scroll: u16,
+    /// The thread the Conversation tab's cursor is on.
+    pub thread: usize,
+    /// Threads whose fold is the opposite of their default (resolved ones start folded).
+    pub flipped: HashSet<ThreadId>,
     /// Where the cursor last sat in the item list. When the selected change disappears
     /// (a refresh, a filter) the cursor settles on whatever now sits at this position.
     index: usize,
@@ -135,6 +143,8 @@ impl Default for Dashboard {
             tab: Tab::Overview,
             queue_scroll: 0,
             detail_scroll: 0,
+            thread: 0,
+            flipped: HashSet::new(),
             index: 0,
         }
     }
@@ -243,6 +253,12 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
         KeyCode::PageDown if focus == Pane::Detail => page_detail(app, true),
         KeyCode::PageUp if focus == Pane::Detail => page_detail(app, false),
         KeyCode::Char('a') if has_change => chip_pressed(app, Chip::Approve),
+        KeyCode::Char('n') if reading_threads(app) => move_thread(app, 1),
+        KeyCode::Char('N') if reading_threads(app) => move_thread(app, -1),
+        KeyCode::Char('z') if reading_threads(app) => fold_thread(app, false),
+        KeyCode::Char('Z') if reading_threads(app) => fold_thread(app, true),
+        KeyCode::Char('v') if reading_threads(app) => super::selection::start_keyboard_detail(app),
+        KeyCode::Char('c') if reading_threads(app) => with_thread(app, Intent::Reply),
         KeyCode::Char('c') if has_change => chip_pressed(app, Chip::Comment),
         KeyCode::Char('x') if has_change => chip_pressed(app, Chip::RequestChanges),
         KeyCode::Char('m') if has_change => chip_pressed(app, Chip::Merge),
@@ -287,6 +303,11 @@ pub fn on_action(app: &mut App, action: super::Action) -> Vec<Cmd> {
             }
         }
         Action::SelectTab(tab) => switch_tab(app, tab),
+        Action::ToggleThread(index) => {
+            app.dashboard.focus = Pane::Detail;
+            app.dashboard.thread = index;
+            fold_thread(app, false)
+        }
         Action::Chip(chip) => chip_pressed(app, chip),
         _ => return Vec::new(),
     };
@@ -361,6 +382,7 @@ pub fn reconcile(app: &mut App) {
 fn set_selected(app: &mut App, selected: Option<Selected>, index: usize) {
     if app.dashboard.selected != selected {
         app.dashboard.detail_scroll = 0;
+        app.dashboard.thread = 0;
     }
     app.dashboard.selected = selected;
     app.dashboard.index = index;
@@ -512,9 +534,85 @@ pub(super) fn activate(app: &mut App) -> Vec<Cmd> {
             reconcile(app);
             Vec::new()
         }
+        (Some(Selected::Change(_)), Pane::Detail) if reading_threads(app) => {
+            with_thread(app, Intent::Goto)
+        }
         (Some(Selected::Change(_)), Pane::Queue | Pane::Detail) => open_diff(app),
         _ => Vec::new(),
     }
+}
+
+/// The threads of the selected change, when its details are loaded.
+pub fn threads(app: &App) -> &[Thread] {
+    app.selected_change()
+        .and_then(|c| app.state.details.get(&c.id))
+        .map_or(&[], |info| &info.threads)
+}
+
+/// Whether the Conversation tab has the keyboard: it is showing, the Detail pane is focused and
+/// there is a thread to act on.
+pub fn reading_threads(app: &App) -> bool {
+    app.dashboard.tab == Tab::Conversation
+        && app.dashboard.focus == Pane::Detail
+        && !threads(app).is_empty()
+}
+
+fn thread_cursor(app: &App) -> usize {
+    app.dashboard
+        .thread
+        .min(threads(app).len().saturating_sub(1))
+}
+
+/// `n` and `N`: moves the thread cursor and scrolls to keep the thread in view.
+fn move_thread(app: &mut App, delta: isize) -> Vec<Cmd> {
+    let last = threads(app).len().saturating_sub(1);
+    app.dashboard.thread = thread_cursor(app).saturating_add_signed(delta).min(last);
+    show_thread(app);
+    Vec::new()
+}
+
+fn show_thread(app: &mut App) {
+    if let Some(at) = detail::scroll_to_thread(app, thread_cursor(app)) {
+        app.dashboard.detail_scroll = at;
+    }
+}
+
+/// `z` folds or unfolds the thread under the cursor; `Z` folds every thread, or unfolds them
+/// all when everything is already folded.
+fn fold_thread(app: &mut App, all: bool) -> Vec<Cmd> {
+    let at = thread_cursor(app);
+    let wanted: Vec<(ThreadId, bool)> = if all {
+        let every = threads(app).iter().all(|t| detail::thread_folded(app, t));
+        threads(app)
+            .iter()
+            .map(|t| (t.id.clone(), every == t.resolved))
+            .collect()
+    } else {
+        threads(app)
+            .get(at)
+            .map(|t| (t.id.clone(), !app.dashboard.flipped.contains(&t.id)))
+            .into_iter()
+            .collect()
+    };
+    for (id, flip) in wanted {
+        if flip {
+            app.dashboard.flipped.insert(id);
+        } else {
+            app.dashboard.flipped.remove(&id);
+        }
+    }
+    app.dashboard.thread = at;
+    clamp_scrolls(app);
+    show_thread(app);
+    Vec::new()
+}
+
+/// Opens the diff with `intent` aimed at the thread under the cursor.
+fn with_thread(app: &mut App, intent: fn(ThreadId) -> Intent) -> Vec<Cmd> {
+    let Some(id) = threads(app).get(thread_cursor(app)).map(|t| t.id.clone()) else {
+        return Vec::new();
+    };
+    super::diff::open_with_intent(app, Some(intent(id)))
 }
 
 fn open_diff(app: &mut App) -> Vec<Cmd> {
@@ -896,7 +994,7 @@ mod tests {
             let cmds = update(&mut app, Msg::Key(KeyEvent::from(KeyCode::Char(key))));
             assert!(matches!(cmds[0], Cmd::LoadDiff(_)));
             assert_eq!(app.screen, crate::app::Screen::Diff);
-            assert_eq!(app.diff.as_ref().unwrap().intent, Some(intent));
+            assert_eq!(app.diff.as_ref().unwrap().intent, Some(intent.clone()));
             let mut app = loaded(160, sample());
             on_action(&mut app, crate::app::Action::Chip(chip));
             assert_eq!(app.diff.as_ref().unwrap().intent, Some(intent));

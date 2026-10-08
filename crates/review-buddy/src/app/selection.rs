@@ -492,6 +492,7 @@ pub fn fingerprint(app: &App) -> u64 {
                 app.layout.detail_open()
             )
             .hash(&mut h);
+            (app.dashboard.thread, app.dashboard.flipped.len()).hash(&mut h);
         }
         Screen::Diff => {
             if let Some(s) = app.diff.as_ref() {
@@ -696,6 +697,47 @@ pub fn start_keyboard(app: &mut App) -> Vec<Cmd> {
     super::update::set_status(app, Notice::new(NoticeKind::Info, COPY_MODE))
 }
 
+/// `v` on the Conversation tab: starts a selection on the first visible row of the cursor
+/// thread's comments, or of any comment on screen when that thread is out of view.
+pub fn start_keyboard_detail(app: &mut App) -> Vec<Cmd> {
+    let all = super::dashboard::threads(app);
+    let at = app.dashboard.thread.min(all.len().saturating_sub(1));
+    let first: usize = all[..at].iter().map(|t| t.comments.len()).sum();
+    let mine = first..first + all.get(at).map_or(0, |t| t.comments.len());
+    let shown = |r: &&TextRegion| r.rows.iter().any(TextRow::on_screen);
+    let regions = app.hits.texts.regions();
+    let found = regions
+        .iter()
+        .filter(|r| matches!(r.key, RegionKey::Comment(_)))
+        .filter(shown)
+        .find(|r| matches!(r.key, RegionKey::Comment(n) if mine.contains(&(n as usize))))
+        .or_else(|| {
+            regions
+                .iter()
+                .filter(|r| matches!(r.key, RegionKey::Comment(_)))
+                .find(shown)
+        });
+    let Some(region) = found else {
+        let text = "Scroll a comment into view first, then press v.";
+        return super::update::set_status(app, Notice::new(NoticeKind::Info, text));
+    };
+    let ord = first_shown(region);
+    let mut sel = Selection::new(region, Pos::new(ord, 0), Unit::Char);
+    sel.keyboard = true;
+    sel.print = fingerprint(app);
+    app.selection = Some(sel);
+    app.mark_dirty();
+    super::update::set_status(app, Notice::new(NoticeKind::Info, COPY_MODE))
+}
+
+fn first_shown(region: &TextRegion) -> usize {
+    region
+        .rows
+        .iter()
+        .find(|r| r.on_screen())
+        .map_or(0, |r| r.ord)
+}
+
 /// Keys in copy mode. `None` when copy mode is not on.
 pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
     if !app.selection.as_ref().is_some_and(|s| s.keyboard) {
@@ -732,6 +774,10 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
     let (key, ord) = (sel.key, sel.head.ord);
     if key == RegionKey::Diff {
         super::diff::reveal_screen_row(app, ord);
+    } else if app.screen == Screen::Dashboard {
+        if let Some(at) = crate::ui::detail::scroll_to_text(app, key, ord) {
+            app.dashboard.detail_scroll = at;
+        }
     }
     app.mark_dirty();
     Some(Vec::new())
@@ -739,6 +785,9 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
 
 /// `tab` in copy mode: moves between the cursor line's code and the comments under it.
 fn cycle_region(app: &mut App) -> Vec<Cmd> {
+    if app.screen == Screen::Dashboard {
+        return cycle_detail_region(app);
+    }
     let Some(state) = app.diff.as_ref() else {
         return Vec::new();
     };
@@ -762,6 +811,28 @@ fn cycle_region(app: &mut App) -> Vec<Cmd> {
         return Vec::new();
     };
     let mut sel = Selection::new(region, Pos::new(ord, 0), Unit::Char);
+    sel.keyboard = true;
+    sel.print = fingerprint(app);
+    app.selection = Some(sel);
+    app.mark_dirty();
+    Vec::new()
+}
+
+/// `tab` in copy mode on the Conversation tab: moves to the next comment on screen.
+fn cycle_detail_region(app: &mut App) -> Vec<Cmd> {
+    let shown: Vec<&TextRegion> = app
+        .hits
+        .texts
+        .regions()
+        .iter()
+        .filter(|r| matches!(r.key, RegionKey::Comment(_)) && r.rows.iter().any(TextRow::on_screen))
+        .collect();
+    let now = app.selection.as_ref().map(|s| s.key);
+    let at = shown.iter().position(|r| Some(r.key) == now).unwrap_or(0);
+    let Some(next) = shown.get((at + 1) % shown.len().max(1)) else {
+        return Vec::new();
+    };
+    let mut sel = Selection::new(next, Pos::new(first_shown(next), 0), Unit::Char);
     sel.keyboard = true;
     sel.print = fingerprint(app);
     app.selection = Some(sel);

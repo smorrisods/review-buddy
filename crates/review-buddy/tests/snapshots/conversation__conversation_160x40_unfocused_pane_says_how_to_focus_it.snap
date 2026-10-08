@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/conversation.rs
+expression: dump(&mut app)
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ smorris/dotfiles#31 ──────────────────────────────────────────────────────────── ⟩ ╮
+│▌ ● All               7 ││  Waiting on you · 2                          ││ Tidy zsh startup                                                                   │
+│    every source        ││  ◐ Add a menu bar and keyboard-driven me… 2h ││ smorris wants tidy-zsh → main                                                      │
+│  ● liminal-hq        3 ││  GH review-buddy#214 · ada · review requested││ +1 −1 · 1 file · opened 4d ago                                                     │
+│    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
+│  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                                              ││                                                                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 1   Checks 1   Conversation 5                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups          7h ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ 5 comments in 3 threads                                                            │
+│    gitlab.com          ││▌ ● Tidy zsh startup                       1d ││ Focus this pane (l or tab) to move between threads, fold them, reply or jump to    │
+│                        ││▌ GH dotfiles#31 · smorris · yours            ││ the diff.                                                                          │
+│  Show  s to change     ││                                              ││                                                                                    │
+│  [x] reviewing         ││  Can wait · 1                                ││ › ▸ .zshrc:9 · resolved · 2 comments · folded, z expands                           │
+│  [x] assigned          ││  · Clarify the install steps              3d ││     ada: Does -C skip the security check? Worth a comment above it.                │
+│  [x] authored          ││  GL notes!12 · kai · approved by you         ││                                                                                    │
+│  [ ] drafts            ││                                              ││   ▾ general · 2 comments                                                           │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││   ada · 10h ago                                                                    │
+│                        ││                                              ││     Looks good overall. Before you merge, a few things worth thinking about with   │
+│                        ││  ── That's everything.                       ││     the cached dump:                                                               │
+│                        ││  7 in this view.                             ││                                                                                    │
+│                        ││                                              ││     • The dump goes stale when fpath changes. Installing a new completion won't    │
+│                        ││                                              ││     show up until the file is rebuilt, which is the sort of bug that is very hard  │
+│                        ││                                              ││     to spot a month from now.                                                      │
+│                        ││                                              ││     • Two shells starting at once can both decide to rebuild it. Writing to a      │
+│                        ││                                              ││     temporary file and renaming it keeps a half-written dump from ever being read. │
+│                        ││                                              ││     • compinit -C skips the security check on the files it finds, so a             │
+│                        ││                                              ││     world-writable directory on fpath would go unnoticed. Is that a trade you want │
+│                        ││                                              ││     to make on every machine this file lands on?                                   │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││     One way to cover the first two:                                                │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││     if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then                      │
+│                        ││                                              ││     compinit -d "$tmp" && mv "$tmp" "${ZDOTDIR:-$HOME}/.zcompdump"                 │
+│                        ││                                              ││     else                                                                           │
+│                        ││                                              ││     compinit -C                                                                    │
+│                        ││                                              ││     fi                                                                             │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

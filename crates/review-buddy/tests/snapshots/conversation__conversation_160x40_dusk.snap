@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/conversation.rs
+expression: "demo_frame(\"dusk\", (160, 40))"
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ smorris/dotfiles#31 ──────────────────────────────────────────────────────────── ⟩ ╮
+│▌ ● All               7 ││  Waiting on you · 2                          ││ Tidy zsh startup                                                                   │
+│    every source        ││  ◐ Add a menu bar and keyboard-driven me… 2h ││ smorris wants tidy-zsh → main                                                      │
+│  ● liminal-hq        3 ││  GH review-buddy#214 · ada · review requested││ +1 −1 · 1 file · opened 4d ago                                                     │
+│    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
+│  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                                              ││                                                                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 1   Checks 1   Conversation 5                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups          7h ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ › ▾ general · 2 comments                                                           │
+│    gitlab.com          ││▌ ● Tidy zsh startup                       1d ││   ada · 10h ago                                                                    │
+│                        ││▌ GH dotfiles#31 · smorris · yours            ││     Looks good overall. Before you merge, a few things worth thinking about with   │
+│  Show  s to change     ││                                              ││     the cached dump:                                                               │
+│  [x] reviewing         ││  Can wait · 1                                ││                                                                                    │
+│  [x] assigned          ││  · Clarify the install steps              3d ││     • The dump goes stale when fpath changes. Installing a new completion won't    │
+│  [x] authored          ││  GL notes!12 · kai · approved by you         ││     show up until the file is rebuilt, which is the sort of bug that is very hard  │
+│  [ ] drafts            ││                                              ││     to spot a month from now.                                                      │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││     • Two shells starting at once can both decide to rebuild it. Writing to a      │
+│                        ││                                              ││     temporary file and renaming it keeps a half-written dump from ever being read. │
+│                        ││  ── That's everything.                       ││     • compinit -C skips the security check on the files it finds, so a             │
+│                        ││  7 in this view.                             ││     world-writable directory on fpath would go unnoticed. Is that a trade you want │
+│                        ││                                              ││     to make on every machine this file lands on?                                   │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││     One way to cover the first two:                                                │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││     if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then                      │
+│                        ││                                              ││     compinit -d "$tmp" && mv "$tmp" "${ZDOTDIR:-$HOME}/.zcompdump"                 │
+│                        ││                                              ││     else                                                                           │
+│                        ││                                              ││     compinit -C                                                                    │
+│                        ││                                              ││     fi                                                                             │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││     That rebuilds once a day and uses the cache the rest of the time. I would      │
+│                        ││                                              ││     still add a way to force a rebuild by hand, such as a rehash-completions       │
+│                        ││                                              ││     function, so nobody has to remember where the file lives.                      │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││   smorris · 4h ago                                                                 │
+│                        ││                                              ││     Good call on the rename. I'll take the once-a-day rebuild and add the helper;  │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
