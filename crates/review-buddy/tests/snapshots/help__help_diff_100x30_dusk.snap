@@ -22,13 +22,13 @@ expression: text(&render(&mut a))
 │                     │Review                                                │                     │
 │                     │  c            comment                                │elf) {               │
 │                     │  r            reply to the thread on this line       │y() {                │
-│                     │  a            approve                                │                     │
-│                     │  x            request changes                        │                     │
-│ Your review · pendin│  R            submit a review                        │.selected + 1) % sel…│
-│1 suggestion · 0 comm│                                                      │────────────────────╮│
-│0 of 3 files viewed  │Change                                                │                    ││
-│Your review: not star│  o            open                                   │he first item? Most ││
-│a approve · c comment│  y            copy                                   │.                   ││
-│x request changes · R│                                                      │                    ││
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 33 ▼ ───────────────╯─────────────────────╯
+│                     │  e / ⏎        edit the pending comment on this line  │                     │
+│ Your review · pendin│  d / del      delete it (asks first)                 │                     │
+│1 suggestion · 0 comm│  , / .        previous / next comment on this line   │.selected + 1) % sel…│
+│0 of 3 files viewed  │  a            approve                                │────────────────────╮│
+│Your review: not star│  x            request changes                        │                    ││
+│  menus.rs:51 Fewer b│  R            submit a review                        │he first item? Most ││
+│a approve · c comment│                                                      │.                   ││
+│x request changes · R│Change                                                │                    ││
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 36 ▼ ───────────────╯─────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

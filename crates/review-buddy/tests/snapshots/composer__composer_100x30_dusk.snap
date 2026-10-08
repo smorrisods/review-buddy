@@ -23,11 +23,11 @@ expression: text(& render(& mut a))
 │                                ││         40 +     pub fn select_next(&mut self) {               │
 │                                ││         41 +         if self.items.is_empty() {                │
 │                                ││         42 +             return;                               │
-│                                ││         43 +         }                                         │
-│ Your review · pending ─────────││         44 +         self.selected = (self.selected + 1) % sel…│
-│1 suggestion · 0 comments       ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
-│0 of 3 files viewed             │││ This could return early.                                     ││
-│Your review: not started        │││ Worth a guard?                                               ││
+│ Your review · pending ─────────││         43 +         }                                         │
+│1 suggestion · 0 comments       ││         44 +         self.selected = (self.selected + 1) % sel…│
+│0 of 3 files viewed             ││╭ Comment · menus.rs line 10 ──────────────────────────────────╮│
+│Your review: not started        │││ This could return early.                                     ││
+│  menus.rs:51 Fewer branches th…│││ Worth a guard?                                               ││
 │a approve · c comment           │││                                                              ││
 │x request changes · R review    ││╰ ⏎ add to review · ⌃⏎ post now · ⇧⏎ newline · esc discard ────╯│
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────╯

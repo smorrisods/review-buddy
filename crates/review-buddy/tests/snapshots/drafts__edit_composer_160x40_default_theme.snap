@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/drafts.rs
 expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus · ada · ada/menus → main
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                                                                                 │
@@ -31,10 +32,9 @@ expression: text(& render(& mut a))
 │                                ││              │ jo · 1d                                                                                                    ││
 │                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
 │                                ││              │ ada · 20h                                                                                                  ││
-│                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
-│ Your review · pending ─────────││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
-│1 suggestion · 1 comment        ││         45 +     }                                                                                                         │
-│0 of 3 files viewed             ││         46 +                                                                                                               │
+│ Your review · pending ─────────││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
+│1 suggestion · 1 comment        ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
+│0 of 3 files viewed             ││         45 +     }                                                                                                         │
 │Your review: not started        ││╭ Edit comment · menus.rs line 10 ─────────────────────────────────────────────────────────────────────────────────────────╮│
 │  menus.rs:51 Fewer branches th…│││ This could return early. Worth a guard? Edited.                                                                          ││
 │  menus.rs:10 This could return…│││                                                                                                                          ││

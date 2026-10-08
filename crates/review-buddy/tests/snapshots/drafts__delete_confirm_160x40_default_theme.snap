@@ -3,6 +3,7 @@ source: crates/review-buddy/tests/drafts.rs
 expression: text(& render(& mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+ GH liminal-hq/review-buddy#214 · liminal-hq · Add a menu bar and keyboard-driven menus · ada · ada/menus → main
 ╭ files 3 ───────────────────────╮╭ src/ui/menus.rs ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │› · src/ui/menus.rs       +22 −1││              @@ -10,7 +10,9 @@ use crate::app::Action;                                                                     │
 │  · src/ui/menubar.rs      +8 −0││›   10   10                                                                                                                 │
@@ -17,28 +18,27 @@ expression: text(& render(& mut a))
 │                                ││    14   16                                                                                                                 │
 │                                ││    15   17   impl Menu {                                                                                                   │
 │                                ││    16   18       pub fn new(items: Vec<MenuItem>) -> Self {                                                                │
-│                                ││              @@ -34,6 +36,24 @@ impl Menu {                                                                                │
-│                                ││    34   36  ╭ Delete this pending comment? ────────────────────────────────╮                                               │
-│                                ││    35   37  │ menus.rs line 10 · “This could return early. Worth a guard?” │                                               │
-│                                ││    36   38  │                                                              │                                               │
-│                                ││         39 +│ It is removed from your pending review.                      │                                               │
-│                                ││         40 +│                                                              │                                               │
-│                                ││         41 +│ › No, keep it ‹    Delete     ⏎ choose · esc cancel          │                                               │
-│                                ││         42 +╰──────────────────────────────────────────────────────────────╯                                               │
+│                                ││             ╭ Delete this pending comment? ────────────────────────────────╮                                               │
+│                                ││    34   36  │ menus.rs line 10 · “This could return early. Worth a guard?” │                                               │
+│                                ││    35   37  │                                                              │                                               │
+│                                ││    36   38  │ It is removed from your pending review.                      │                                               │
+│                                ││         39 +│                                                              │                                               │
+│                                ││         40 +│ › No, keep it ‹    Delete     ⏎ choose · esc cancel          │                                               │
+│                                ││         41 +╰──────────────────────────────────────────────────────────────╯                                               │
+│                                ││         42 +             return;                                                                                           │
 │                                ││         43 +         }                                                                                                     │
 │                                ││         44 +         self.selected = (self.selected + 1) % self.items.len();                                               │
 │                                ││              ╭─ thread · line 44 ─────────────────────────────────────────────────────────────────────────────────────────╮│
 │                                ││              │ jo · 1d                                                                                                    ││
 │                                ││              │ Should this wrap round to the first item? Most menus I use stop at the end.                                ││
 │                                ││              │ ada · 20h                                                                                                  ││
-│                                ││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
-│ Your review · pending ─────────││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
-│1 suggestion · 1 comment        ││         45 +     }                                                                                                         │
-│0 of 3 files viewed             ││         46 +                                                                                                               │
-│Your review: not started        ││         47 +     pub fn select_prev(&mut self) {                                                                           │
-│  menus.rs:51 Fewer branches th…││         48 +         if self.items.is_empty() {                                                                            │
-│  menus.rs:10 This could return…││         49 +             return;                                                                                           │
-│a approve · c comment           ││         50 +         }                                                                                                     │
-│x request changes · R review    ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
+│ Your review · pending ─────────││              │ I went with wrapping so a held key never gets stuck. Happy to make it configurable if you'd rather.        ││
+│1 suggestion · 1 comment        ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
+│0 of 3 files viewed             ││         45 +     }                                                                                                         │
+│Your review: not started        ││         46 +                                                                                                               │
+│  menus.rs:51 Fewer branches th…││         47 +     pub fn select_prev(&mut self) {                                                                           │
+│  menus.rs:10 This could return…││         48 +         if self.items.is_empty() {                                                                            │
+│a approve · c comment           ││         49 +             return;                                                                                           │
+│x request changes · R review    ││         50 +         }                                                                                                     │
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review        · Added to your pending review. 2 comments waiting. Press a to approve.

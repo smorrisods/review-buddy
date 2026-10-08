@@ -33,11 +33,11 @@ expression: text(& render(& mut a))
 │                                ││              ╰────────────────────────────────────────────────────────────────────────────────────────────────── r reply ─╯│
 │                                ││         45 +     }                                                                                                         │
 │                                ││         46 +                                                                                                               │
-│                                ││         47 +     pub fn select_prev(&mut self) {                                                                           │
-│ Your review · pending ─────────││         48 +         if self.items.is_empty() {                                                                            │
-│1 suggestion · 0 comments       ││         49 +             return;                                                                                           │
-│0 of 3 files viewed             ││         50 +         }                                                                                                     │
-│Your review: not started        ││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
+│ Your review · pending ─────────││         47 +     pub fn select_prev(&mut self) {                                                                           │
+│1 suggestion · 0 comments       ││         48 +         if self.items.is_empty() {                                                                            │
+│0 of 3 files viewed             ││         49 +             return;                                                                                           │
+│Your review: not started        ││         50 +         }                                                                                                     │
+│  menus.rs:51 Fewer branches th…││         51 +         self.selected = self.selected.checked_sub(1).unwrap_or(self.items.len() - 1);                         │
 │Choosing: request changes       ││              ╭─ pending suggestion · line 51 ─────────────────────────────────────────────────────────────────────────────╮│
 │                                ││              │ Fewer branches this way:                                                                                   ││
 ╰────────────────────────────────╯╰ hunk 1 of 3 · file 1 of 3 ─────────────────────────────────────────────────────────────────────────────────────────────────╯
