@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/terminal_pane.rs
+expression: "frame(\"dusk\", (160, 40))"
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                             Dusk
+  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1              ┏ terminal (focused) · liminal-hq/review-buddy#214 · demo ━━━━━┓
+╭ queue ───────────────────────────────────────────────────────────────────────────────────────╮┃(demo) This pane is scripted. No shell is running and nothing ┃
+│  Waiting on you · 2                                                                          │┃here touches your files.                                      ┃
+│▌ ◐ Add a menu bar and keyboard-driven menus                                               2h │┃demo:~/review/review-buddy$ git status -sb                    ┃
+│▌ GH review-buddy#214 · ada · review requested                                                │┃## review/214-head...origin/main                              ┃
+│  ● Raise muted text contrast in the light theme                                           5h │┃ M src/lib.rs                                                 ┃
+│  GH review-buddy#209 · jo · approved by you                                                  │┃demo:~/review/review-buddy$ echo $RB_REPO#$RB_NUMBER          ┃
+│                                                                                              │┃liminal-hq/review-buddy#214                                   ┃
+│  Worth a look · 2                                                                            │┃demo:~/review/review-buddy$ git log                           ┃
+│  ✕ Cache pipeline status lookups                                                          7h │┃e3b0c44 Tighten the retry loop                                ┃
+│  GL flow!1182 · priya · you're mentioned                                                     │┃9f2a7d1 Add a test for the empty case                         ┃
+│  ● Tidy zsh startup                                                                       1d │┃41c6b02 Start on the retry changes                            ┃
+│  GH dotfiles#31 · smorris · yours                                                            │┃demo:~/review/review-buddy$                                   ┃
+│                                                                                              │┃                                                              ┃
+│  Can wait · 1                                                                                │┃                                                              ┃
+│  · Clarify the install steps                                                              3d │┃                                                              ┃
+│  GL notes!12 · kai · approved by you                                                         │┃                                                              ┃
+│                                                                                              │┃                                                              ┃
+│  ▸ Noise · 2 bot updates · ⏎ to expand                                                       │┃                                                              ┃
+│                                                                                              │┃                                                              ┃
+╰──────────────────────────────────────────────────────────────────────────────────────────────╯┃                                                              ┃
+╭ liminal-hq/review-buddy#214 ────────────────────────────────────────────────────────────── ▼ ╮┃                                                              ┃
+│ Add a menu bar and keyboard-driven menus                                                     │┃                                                              ┃
+│ ada wants ada/menus → main                                                                   │┃                                                              ┃
+│ +32 −1 · 3 files · opened 3d ago                                                             │┃                                                              ┃
+│                                                                                              │┃                                                              ┃
+│ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                                     │┃                                                              ┃
+│                                                                                              │┃                                                              ┃
+│  Overview   Files 3   Checks 6   Conversation 3                                              │┃                                                              ┃
+│ ──────────────────────────────────────────────────────────────────────────────────────────── │┃                                                              ┃
+│ Adds a menu bar along the top and a Menu type that tracks the selected item.                 │┃                                                              ┃
+│                                                                                              │┃                                                              ┃
+│ • Menu::select_next and Menu::select_prev move the highlight                                 │┃                                                              ┃
+│ • Menu::activate returns the action for the highlighted item                                 │┃                                                              ┃
+│ • The bar itself is a plain Line, so it picks up the active theme                            │┃                                                              ┃
+│                                                                                              │┃                                                              ┃
+│ Reviewers                                     Checks                                         │┃                                                              ┃
+╰──────────────────────────────────────────────────────────────────────────────────────────────╯┗ ⌃\ then esc: back to the app ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+ esc esc back to the app  chord esc also leaves (the chord is on the border)

@@ -137,7 +137,8 @@ fn run_options(cli: &cli::Cli) -> anyhow::Result<runtime::RunOptions> {
 #[cfg(feature = "live")]
 fn launch_settings(ctx: &cmd::context::Context) -> runtime::Settings {
     let mut settings = runtime::Settings::from_config(&ctx.config)
-        .with_write_target(ctx.paths.write_target.clone());
+        .with_write_target(ctx.paths.write_target.clone())
+        .with_worktrees_root(ctx.paths.paths.worktrees_dir());
     if ctx.config.ui.drafts == review_buddy::config::DraftStorage::Local {
         settings = settings.with_drafts(ctx.paths.paths.drafts_dir());
     }

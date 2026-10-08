@@ -114,7 +114,7 @@ impl Provider for GithubProvider {
     }
 
     fn checkout_refspec(&self, id: &ChangeId) -> String {
-        format!("pull/{}/head", id.number)
+        id.checkout_refspec()
     }
 
     fn web_url(&self, id: &ChangeId) -> Url {

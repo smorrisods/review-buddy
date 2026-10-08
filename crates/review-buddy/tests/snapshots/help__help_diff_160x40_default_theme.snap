@@ -33,12 +33,12 @@ expression: text(&render(&mut a))
 │                                ││              ╰──│  o            open                                   │──────────────────────────────────────── r reply ─╯│
 │                                ││         45 +    │  y            copy                                   │                                                   │
 │                                ││         46 +    │                                                      │                                                   │
-│ Your review · pending ─────────││         47 +    │General                                               │                                                   │
-│1 suggestion · 0 comments       ││         48 +    │  esc          back                                   │                                                   │
-│0 of 3 files viewed             ││         49 +    │  q            back to the queue                      │                                                   │
-│Your review: not started        ││         50 +    │  ?            help                                   │                                                   │
-│  menus.rs:51 Fewer branches th…││         51 +    │  T            theme                                  │_or(self.items.len() - 1);                         │
-│a approve · c comment           ││              ╭─ │  B            background: theme / yes / no           │──────────────────────────────────────────────────╮│
-│x request changes · R review    ││              │ F│  ⌃Z           suspend                                │                                                  ││
-╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close ───────────────────────────────────────────╯───────────────────────────────────────────────────╯
+│ Your review · pending ─────────││         47 +    │View                                                  │                                                   │
+│1 suggestion · 0 comments       ││         48 +    │  t            terminal pane: open, or focus it       │                                                   │
+│0 of 3 files viewed             ││         49 +    │                                                      │                                                   │
+│Your review: not started        ││         50 +    │General                                               │                                                   │
+│  menus.rs:51 Fewer branches th…││         51 +    │  esc          back                                   │_or(self.items.len() - 1);                         │
+│a approve · c comment           ││              ╭─ │  q            back to the queue                      │──────────────────────────────────────────────────╮│
+│x request changes · R review    ││              │ F│  ?            help                                   │                                                  ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close · j/k scroll · 1–36 of 39 ▼ ───────────────╯───────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

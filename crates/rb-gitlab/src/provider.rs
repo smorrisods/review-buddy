@@ -115,7 +115,7 @@ impl Provider for GitlabProvider {
     }
 
     fn checkout_refspec(&self, id: &ChangeId) -> String {
-        format!("merge-requests/{}/head", id.number)
+        id.checkout_refspec()
     }
 
     fn web_url(&self, id: &ChangeId) -> Url {

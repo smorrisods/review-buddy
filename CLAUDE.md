@@ -36,6 +36,7 @@ A Cargo workspace; see `docs/architecture.md` for detail.
 - `rb-store`: SQLite cache, ETag store, drafts, offline queue.
 - `rb-theme`: theme loading, role resolution, colour-depth quantisation. Built-in themes live in `themes/`.
 - `rb-diff`: patch parsing, hunk model, side-by-side pairing, syntax highlighting bridge.
+- `rb-term`: the terminal pane: emulator boundary, PTY, key and mouse encoders, focus chord, scripted demo pane, worktree planning. No forge crates.
 - `review-buddy`: the binary. `src/cli.rs` is shared with `build.rs` for the man page.
 
 The app is Elm-style: a pure `update(&mut App, Msg) -> Vec<Cmd>`, with effects run as `Cmd`s and results returned as `Msg`s.

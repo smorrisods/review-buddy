@@ -30,5 +30,5 @@ expression: text(&render(&mut a))
 │  menus.rs:51 Fewer b│  R            submit a review                        │he first item? Most ││
 │a approve · c comment│                                                      │.                   ││
 │x request changes · R│Change                                                │                    ││
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 36 ▼ ───────────────╯─────────────────────╯
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 39 ▼ ───────────────╯─────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

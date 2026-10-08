@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/terminal_pane.rs
+expression: "prompt_frame((160, 40))"
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
+│▌ ● All               7 ││  Waiting on you · 2                          ││ Add a menu bar and keyboard-driven menus                                           │
+│    every source        ││▌ ◐ Add a menu bar and keyboard-driven me… 2h ││ ada wants ada/menus → main                                                         │
+│  ● liminal-hq        3 ││▌ GH review-buddy#214 · ada · review requested││ +32 −1 · 3 files · opened 3d ago                                                   │
+│    github.com          ││  ● Raise muted text contrast in the ligh… 5h ││                                                                                    │
+│  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you  ││ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                                              ││                                                                                    │
+│  ● platform          2 ││  Worth a look · 2                            ││  Overview   Files 3   Checks 6   Conversation 3                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups          7h ││ ────────────────────────────────────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned     ││ Adds a menu bar along the top and a Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ● Tidy zsh s╭ Open a terminal for liminal-hq/review-buddy#214 ───────────────────────────╮                                        │
+│                        ││  GH dotfiles#│ Create a separate checkout of acme/widgets#214 at                          │ove the highlight                       │
+│  Show  s to change     ││              │ /state/review-buddy/worktrees/demo-gh/acme__widgets/214.                   │ highlighted item                       │
+│  [x] reviewing         ││  Can wait · 1│ git -C /src/widgets fetch origin pull/214/head                             │ks up the active theme                  │
+│  [x] assigned          ││  · Clarify th│ git -C /src/widgets worktree add --detach                                  │                                        │
+│  [x] authored          ││  GL notes!12 │ /state/review-buddy/worktrees/demo-gh/acme__widgets/214 FETCH_HEAD         │ecks                                    │
+│  [ ] drafts            ││              │ Your own working copy at /src/widgets is left alone.                       │2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 │ Review Buddy never removes it for you. When you are done: git -C           │1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││              │ /src/widgets worktree remove                                               │                                        │
+│                        ││  ── That's ev│ /state/review-buddy/worktrees/demo-gh/acme__widgets/214                    │                                        │
+│                        ││  7 in this vi│                                                                            │                                        │
+│                        ││              │ The current directory starts the terminal where Review Buddy was started,  │ intermediate Vec doing anything for    │
+│                        ││              │ with the same environment variables, and creates nothing.                  │                                        │
+│                        ││              │                                                                            │                                        │
+│                        ││              │ › No, cancel ‹    Create the worktree      Use the current directory       │                                        │
+│                        ││              │ ⏎ choose · ←→ switch · esc cancel                                          │                                        │
+│                        ││              ╰────────────────────────────────────────────────────────────────────────────╯                                        │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+│                        ││                                              ││                                                                                    │
+╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯
+ ←→ choose  ⏎ confirm  esc cancel

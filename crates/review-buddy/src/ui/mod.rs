@@ -26,6 +26,7 @@ pub mod settings;
 pub mod show;
 pub mod size;
 pub mod style;
+pub mod terminal;
 pub mod text;
 
 pub use hitmap::HitMap;
@@ -49,14 +50,21 @@ pub fn draw(frame: &mut Frame, app: &App) -> HitMap {
     .areas(area);
 
     chrome::draw_top_bar(frame, app, top, &mut hits);
+    let (body, dock) = terminal::split(app, body);
     match app.screen {
         Screen::Dashboard => dashboard::draw(frame, app, body, &mut hits),
         Screen::Diff => diff::draw(frame, app, body, &mut hits),
         Screen::FirstRun => first_run::draw(frame, app, body, &mut hits),
         Screen::Settings => settings::draw(frame, app, body, &mut hits),
     }
+    if let Some(dock) = dock {
+        terminal::draw(frame, app, dock);
+    }
     chrome::draw_footer(frame, app, footer, &mut hits);
     chrome::draw_toasts(frame, app, body.inner(Margin::new(2, 1)), &mut hits);
+    if app.term.prompt.is_some() {
+        terminal::draw_prompt(frame, app, layout::body(app.size), &mut hits);
+    }
     if app.show.open && app.screen == Screen::Dashboard {
         show::draw(frame, app, body, &mut hits);
     }

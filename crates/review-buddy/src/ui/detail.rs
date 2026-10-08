@@ -25,7 +25,9 @@ const EXCERPT_LINES: usize = 8;
 const SIDE_BY_SIDE: u16 = 54;
 
 fn content_rect(app: &App) -> Rect {
-    layout::detail_content(layout::dashboard(layout::body(app.size), app.layout).detail)
+    layout::detail_content(
+        layout::dashboard(crate::app::terminal::app_body(app), app.layout).detail,
+    )
 }
 
 /// A short pane (Detail stacked under or over the Queue) drops the title to one line and

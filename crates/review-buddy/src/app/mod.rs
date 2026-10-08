@@ -36,6 +36,7 @@ pub mod review;
 pub mod settings;
 pub mod setup;
 pub mod show;
+pub mod terminal;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
@@ -166,6 +167,8 @@ pub enum Action {
     },
     /// Press the preview's Cancel (`false`) or confirm (`true`) button.
     Answer(bool),
+    /// Open the terminal pane, or answer its start prompt.
+    Terminal(terminal::TermAction),
     /// A press on part of the first-run screen.
     Setup(crate::setup::Click),
     /// Open Settings from the dashboard.
@@ -278,6 +281,8 @@ pub enum Msg {
         result: Result<Comment, String>,
         demo: bool,
     },
+    /// Output, exit or a planning result from the terminal pane.
+    Term(terminal::TermMsg),
 }
 
 /// Effects, run by the runtime. They never run inside `update`.
@@ -357,6 +362,8 @@ pub enum Cmd {
     OpenUrl(String),
     /// Put text on the clipboard.
     Copy(String),
+    /// An effect for the terminal pane: its PTY and its worktree.
+    Term(terminal::TermCmd),
 }
 
 /// The sources and changes handed to the app in one go.
@@ -502,7 +509,8 @@ pub struct App {
     pub settings: Option<crate::settings::State>,
     /// Running on demo data: Settings shows it read-only and touches nothing real.
     pub demo: bool,
-    /// The terminal reports `⌃⏎` as such (the kitty keyboard protocol). Set at startup.
+    /// The terminal reports `⌃⏎` as such (the kitty keyboard protocol). Set at startup. The terminal pane uses it
+    /// to decide whether a child that asked for kitty keys can be given them.
     pub kitty_keys: bool,
     /// Pictures in descriptions: the renderer, each address's progress and the selected image.
     pub images: crate::images::State,
@@ -527,6 +535,8 @@ pub struct App {
     pub layout: crate::ui::layout::Options,
     /// Remembers layout changes between runs. `None` in demo mode and when it is turned off.
     pub session: Option<crate::session::Tracker>,
+    /// The terminal pane.
+    pub term: terminal::TerminalState,
     /// The seam being dragged with the mouse.
     pub drag: Option<resize::Drag>,
     /// The last press on a seam, for spotting a double-click: which seam and the tick.
@@ -578,6 +588,7 @@ impl App {
             reduced_motion: false,
             layout: crate::ui::layout::Options::default(),
             session: None,
+            term: terminal::TerminalState::default(),
             drag: None,
             last_seam: None,
             quit_armed: false,
@@ -650,6 +661,7 @@ impl App {
         crate::session::Snapshot {
             options: self.layout,
             background: self.background.session,
+            terminal: (self.term.position, self.term.size),
         }
     }
 

@@ -27,8 +27,8 @@ expression: text(&render(&mut a))
 │ ────────────────────│  < >  shrink / grow the focused pane (or drag a seam)│──────────────────── │
 │ Adds a menu bar alon│  =    reset that split to automatic                  │                     │
 │                     │  W    save pane sizes to config                      │                     │
-│ • Menu::select_next │                                                      │                     │
-│ • Menu::activate ret│Change                                                │                     │
-│ • The bar itself is │  s /  pick projects in show filters                  │                     │
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 34 ▼ ───────────────╯─────────────────────╯
+│ • Menu::select_next │  t    terminal pane: open, or focus it               │                     │
+│ • Menu::activate ret│                                                      │                     │
+│ • The bar itself is │Change                                                │                     │
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 35 ▼ ───────────────╯─────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

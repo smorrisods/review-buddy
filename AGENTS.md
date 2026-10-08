@@ -20,7 +20,7 @@ Guidelines for humans and AI agents working in `review-buddy`.
 
 ## Rust Conventions
 
-- Cargo workspace of nine crates (`rb-core`, `rb-github`, `rb-gitlab`, `rb-paths`, `rb-platform`, `rb-store`, `rb-theme`, `rb-diff`, `review-buddy`). Put code in the crate that owns the concern; `rb-core` stays free of I/O.
+- Cargo workspace of ten crates (`rb-core`, `rb-github`, `rb-gitlab`, `rb-paths`, `rb-platform`, `rb-store`, `rb-theme`, `rb-diff`, `rb-term`, `review-buddy`). Put code in the crate that owns the concern; `rb-core` stays free of I/O.
 - Keep fast UI state separate from slow remote state.
 - Domain models in `rb-core` stay stable even if forge API shapes vary.
 - Prefer small, readable functions; avoid clever borrows that hurt legibility.

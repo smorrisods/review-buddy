@@ -1,0 +1,29 @@
+[package]
+name = "rb-term"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+rust-version.workspace = true
+description = "Terminal pane for Review Buddy: a PTY, an emulator boundary and a key encoder."
+
+[features]
+default = []
+# Optional ratatui widget that draws the emulator grid.
+widget = ["dep:ratatui"]
+
+[dependencies]
+alacritty_terminal.workspace = true
+crossterm.workspace = true
+portable-pty.workspace = true
+ratatui = { workspace = true, optional = true }
+unicode-width.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

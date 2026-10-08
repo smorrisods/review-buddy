@@ -17,7 +17,7 @@ pub struct Drag {
 }
 
 fn body(app: &App) -> Rect {
-    layout::body(app.size)
+    super::terminal::app_body(app)
 }
 
 /// A left press on a seam starts a drag, or resets that split when it is a second press.

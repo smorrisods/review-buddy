@@ -11,7 +11,7 @@ mod resolve;
 pub use config::{ConfigFile, ConfigLayers, ConfigOrigin};
 pub use env::{Env, MapEnv, Os, SystemEnv};
 pub use fs::{ensure_private_dir, write_private_file};
-pub use resolve::{PathsError, ResolvedPaths, APP_DIR, DRAFTS_DIR, SESSION_FILE};
+pub use resolve::{PathsError, ResolvedPaths, APP_DIR, DRAFTS_DIR, SESSION_FILE, WORKTREES_DIR};
 
 use std::fmt;
 use std::path::PathBuf;
@@ -124,6 +124,10 @@ mod tests {
             PathBuf::from("/home/a/.local/state/review-buddy")
         );
         assert_eq!(p.runtime_dir, None);
+        assert_eq!(
+            p.worktrees_dir(),
+            PathBuf::from("/home/a/.local/state/review-buddy/worktrees")
+        );
         assert_eq!(p.lock_dir(), p.state_dir);
         assert_eq!(
             p.system_config_dirs,

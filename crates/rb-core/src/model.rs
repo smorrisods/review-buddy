@@ -139,6 +139,14 @@ impl ChangeId {
             ForgeKind::GitLab => format!("{}!{}", self.repo, self.number),
         }
     }
+
+    /// The ref on the remote that holds the change's head, as `git fetch <remote> <ref>` takes it.
+    pub fn checkout_refspec(&self) -> String {
+        match self.kind {
+            ForgeKind::GitHub => format!("pull/{}/head", self.number),
+            ForgeKind::GitLab => format!("merge-requests/{}/head", self.number),
+        }
+    }
 }
 
 impl fmt::Display for ChangeId {
@@ -448,6 +456,15 @@ mod tests {
             repo: "platform/flow".into(),
             number: 88,
         }
+    }
+
+    #[test]
+    fn the_head_ref_follows_the_forge() {
+        assert_eq!(id(ForgeKind::GitHub).checkout_refspec(), "pull/88/head");
+        assert_eq!(
+            id(ForgeKind::GitLab).checkout_refspec(),
+            "merge-requests/88/head"
+        );
     }
 
     #[test]

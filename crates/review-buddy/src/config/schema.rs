@@ -96,6 +96,8 @@ pub struct UiConfig {
     /// `off` keeps them in memory only.
     pub drafts: DraftStorage,
     pub date_locale: String,
+    /// The terminal pane (`t`).
+    pub terminal: TerminalConfig,
 }
 
 impl Default for UiConfig {
@@ -119,6 +121,46 @@ impl Default for UiConfig {
             remember_layout: true,
             drafts: DraftStorage::Local,
             date_locale: "en-CA".into(),
+            terminal: TerminalConfig::default(),
+        }
+    }
+}
+
+choice!(TerminalStart { Ask = "ask", Worktree = "worktree", Current = "current" });
+
+/// `[ui.terminal]`: the terminal pane next to the change.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct TerminalConfig {
+    /// The program and its arguments. Empty runs `$SHELL` (`%COMSPEC%` on Windows).
+    pub command: Vec<String>,
+    /// The chord that starts leaving the pane, for example `ctrl-\` or `ctrl-]`.
+    pub escape: String,
+    /// Where the pane sits: `auto`, `right`, `left`, `top` or `bottom`.
+    pub position: DetailPosition,
+    /// Starting size of the pane: columns or rows, or a percentage like `40%`.
+    #[serde(deserialize_with = "size_option")]
+    pub size: Option<Size>,
+    /// Lines of history kept for scrolling back.
+    pub scrollback: usize,
+    /// Where to start: `ask` offers a managed worktree or the current directory, `worktree` offers
+    /// only the worktree, `current` starts in the current directory without asking.
+    pub start: TerminalStart,
+    /// Local clones to make worktrees from, by `owner/name`. The directory Review Buddy was
+    /// started in is tried first.
+    pub checkouts: BTreeMap<String, String>,
+}
+
+impl Default for TerminalConfig {
+    fn default() -> Self {
+        Self {
+            command: Vec::new(),
+            escape: "ctrl-\\".into(),
+            position: DetailPosition::Auto,
+            size: None,
+            scrollback: 10_000,
+            start: TerminalStart::Ask,
+            checkouts: BTreeMap::new(),
         }
     }
 }

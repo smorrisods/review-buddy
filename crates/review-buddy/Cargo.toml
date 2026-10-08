@@ -39,6 +39,7 @@ rb-gitlab.workspace = true
 rb-paths.workspace = true
 rb-platform.workspace = true
 rb-store.workspace = true
+rb-term = { workspace = true, features = ["widget"] }
 rb-theme.workspace = true
 reqwest.workspace = true
 serde.workspace = true
