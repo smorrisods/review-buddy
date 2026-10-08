@@ -4,7 +4,7 @@
 
 ## Architecture
 
-Cargo workspace (see `docs/architecture.md`): `rb-core` (domain, triage, `Provider` trait, no I/O), `rb-github`, `rb-gitlab`, `rb-paths` (XDG), `rb-platform` (browser, clipboard, keyring), `rb-store` (SQLite cache, drafts, queue), `rb-theme`, `rb-diff`, `rb-term` (terminal pane: emulator, PTY, encoders; no forge crates), and the `review-buddy` binary. App logic is a pure `update(&mut App, Msg) -> Vec<Cmd>`. `crates/review-buddy/src/cli.rs` is shared by `main.rs` and `build.rs` (man page via `clap_mangen`).
+Cargo workspace (see `docs/architecture.md`): `rb-core` (domain, triage, `Provider` trait, no I/O), `rb-github`, `rb-gitlab`, `rb-paths` (XDG), `rb-platform` (browser, clipboard, keyring), `rb-store` (SQLite cache, ETags, capability probes; review drafts are files in the binary crate, and the offline queue is planned), `rb-theme`, `rb-diff`, `rb-term` (terminal pane: emulator, PTY, encoders; no forge crates), and the `review-buddy` binary. App logic is a pure `update(&mut App, Msg) -> Vec<Cmd>`. `crates/review-buddy/src/cli.rs` is shared by `main.rs` and `build.rs` (man page via `clap_mangen`).
 
 ## What to keep true
 
@@ -30,5 +30,6 @@ Cargo workspace (see `docs/architecture.md`): `rb-core` (domain, triage, `Provid
 
 - Conventional Commits (`type(scope): summary`), Markdown bodies **without headings**, using bold labels (**Summary**, **Why**, **Details**, **Validation**, **Risks**). Use `git commit -F <file>`.
 - Branches use a `feature/`, `fix/`, `chore/`, `docs/`, `test/`, `ci/`, `build/`, or `design/` prefix. PR titles are human-readable with no `feat:` prefix, and merges use `gh pr merge --merge`. Update a PR branch by rebasing onto `main` and pushing with `--force-with-lease`.
+- After a substantial session, leave a dated note in `agent-reviews/` (what worked, what caused friction, how it was handled) and read the existing ones first.
 
 See `AGENTS.md` for the full guidelines.

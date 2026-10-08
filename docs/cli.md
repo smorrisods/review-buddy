@@ -10,9 +10,9 @@ This page is the design for the whole command line. What runs today is the **rea
 
 | Runs today | Planned |
 |---|---|
-| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open` (all also as `mr`), `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list|reset-layout`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3, not declared in the binary yet, so they are a usage error); `triage explain` and `theme check|export` (declared, but not built: they exit `2` with `Not built yet`); `api` (later) |
+| `open`, `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (including `--watch`, `--interval`, `--fail-fast` and `--required`), `pr open` (all also as `mr`), `auth status`, `auth login|logout|token`, `source list`, `source test|add`, `config paths`, `config get|list|reset-layout`, `drafts list|discard|clear`, `theme list`, `doctor`, `completion`, `--json`, `--jq`, `--web`, `--color`, `--no-color`, `--demo`, `--frozen-time`, `--yes`, selectors and every exit code in the table below | `pr review|comment|merge|checkout|rerun` (v0.3, not declared in the binary yet, so they are a usage error); `triage explain` and `theme check|export` (v0.4.0; declared, but not built: they exit `2` with `Not built yet`); `api` (later) |
 
-Declared commands that aren't built exit `2` with `Not built yet. It's planned for <milestone>.` (the milestone text for `triage explain` and `theme check|export` still reads v0.1.0). The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), including GitHub Enterprise Server and self-hosted GitLab (see `integrations.md`), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
+Declared commands that aren't built exit `2` with `Not built yet. It's planned for <milestone>.` (the milestone text for `triage explain` and `theme check|export` reads v0.4.0, when triage rules and user themes arrive). The `mr` alias works. GitHub and GitLab sources both load against a live forge (see [GitLab sources](#gitlab-sources)), including GitHub Enterprise Server and self-hosted GitLab (see `integrations.md`), and there is no `--no-cache` or `--no-unicode` flag yet. The global flags `--demo-scene`, `--jax-mood` and `--size` are accepted, and have no effect yet. `--setup` (with `--plain` for prompts) runs first run; see `docs/configuration.md`.
 
 ## GitLab sources
 
@@ -158,7 +158,7 @@ Human output follows SPEC §2: sentence case, Canadian English, middots for meta
 |---|---|
 | `0` | Success, including an empty list |
 | `1` | Something went wrong (network, forge error, bad config). The message says what to do next |
-| `2` | Usage error, or a declared command that isn't built yet (`Not built yet. It's planned for v0.1.0.`) |
+| `2` | Usage error, or a declared command that isn't built yet (`Not built yet. It's planned for v0.4.0.`) |
 | `3` | Cancelled: you answered No, or a write needed `--yes` without a TTY |
 | `4` | Authentication needed: no credentials, or the token expired or lacks a scope |
 | `5` | Not supported: the source's `Capabilities` don't allow it (for example request changes on an older GitLab) |
@@ -343,9 +343,9 @@ Tokens are never read from `REVIEW_BUDDY_*`; use `auth = "env:VAR"` on a source.
 | Milestone | Commands |
 |---|---|
 | Foundation | The skeleton from `cli.rs`: flags, stubs that exit `2`, man page |
-| v0.1.0 | **Built:** CLI core (output modes, `--json`/`--jq`, selectors, exit codes), `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, all against GitHub and `--demo`. Not built, though planned for 0.1: `triage explain`, `theme check`, `theme export` |
-| v0.2.0 | **Built:** GitLab parity for every read command, `mr` alias exercised, `auth login`/`logout`/`token`, `source test`/`add`, `config get`/`list` |
+| v0.1.0 (released; includes the v0.2 scope) | **Built:** CLI core (output modes, `--json`/`--jq`, selectors, exit codes), `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor`, `completion`, all against GitHub and `--demo`. Also built in the same release: GitLab parity for every read command, the `mr` alias, `auth login`/`logout`/`token`, `source test`/`add`, `config get`/`list`, `config reset-layout`, and `drafts list`/`discard`/`clear` |
 | v0.3.0 | Writes: `pr review`, `pr comment`, `pr merge`, `pr checkout`, `pr rerun` |
+| v0.4.0 | `triage explain` (with the triage rules engine), `theme check` and `theme export` (with user themes). Declared in the binary now; they exit `2` until then |
 | Later | `api`, dynamic completions, `pr checks --watch` polish |
 
 ## Open questions

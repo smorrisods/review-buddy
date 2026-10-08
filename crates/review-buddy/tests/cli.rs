@@ -57,14 +57,18 @@ fn unknown_flag_is_a_usage_error() {
 
 #[test]
 fn unimplemented_commands_say_so_and_exit_2() {
-    let cases: [&[&str]; 1] = [&["triage", "explain", "https://github.com/a/b/pull/1"]];
+    let cases: [&[&str]; 3] = [
+        &["triage", "explain", "https://github.com/a/b/pull/1"],
+        &["theme", "check", "dusk"],
+        &["theme", "export", "dusk"],
+    ];
     for args in cases {
         rb().args(args)
             .assert()
             .code(2)
             .stdout(predicate::str::is_empty())
             .stderr(predicate::str::contains(
-                "Not built yet. It's planned for v0.",
+                "Not built yet. It's planned for v0.4.0.",
             ))
             .stderr(predicate::str::contains("--help"));
     }

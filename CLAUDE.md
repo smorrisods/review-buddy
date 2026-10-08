@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cargo build                        # default build (live + demo features)
 cargo build --no-default-features  # offline build
 cargo run -- --version
-cargo run -- --demo                # offline fixtures (once the TUI lands)
+cargo run -- --demo                # offline fixtures
 
 cargo test                         # unit and integration tests
 cargo nextest run --workspace      # matches CI's runner (see .config/nextest.toml)
@@ -33,9 +33,10 @@ A Cargo workspace; see `docs/architecture.md` for detail.
 - `rb-github`, `rb-gitlab`: forge providers.
 - `rb-paths`: XDG resolution, config layering, directory creation.
 - `rb-platform`: open URL, clipboard (OSC 52 first), keyring, per-OS code.
-- `rb-store`: SQLite cache, ETag store, drafts, offline queue.
+- `rb-store`: SQLite cache, ETag store and capability probes. Review drafts are files written by the binary crate (`drafts.rs`), and the offline queue is planned.
 - `rb-theme`: theme loading, role resolution, colour-depth quantisation. Built-in themes live in `themes/`.
 - `rb-diff`: patch parsing, hunk model, side-by-side pairing, syntax highlighting bridge.
+- `rb-term`: the terminal pane (emulator boundary, PTY, key and mouse encoders, worktree planning). No forge crates.
 - `rb-term`: the terminal pane: emulator boundary, PTY, key and mouse encoders, focus chord, scripted demo pane, worktree planning. No forge crates.
 - `review-buddy`: the binary. `src/cli.rs` is shared with `build.rs` for the man page.
 
@@ -52,3 +53,4 @@ The app is Elm-style: a pure `update(&mut App, Msg) -> Vec<Cmd>`, with effects r
 - **Canadian spelling** in comments, docs, and UI copy, except for external API fields and crate names.
 - **Update PR branches by rebasing onto `main`** (`git push --force-with-lease`), not by merging `main` in.
 - **Branch names start with a `prefix/`** (`feature/`, `fix/`, `chore/`, `docs/`, `test/`, `ci/`, `build/`, `design/`); see `AGENTS.md`.
+- **Leave a dated note in `agent-reviews/`** after a substantial session (what worked, what caused friction, how it was handled), and read the existing ones first.

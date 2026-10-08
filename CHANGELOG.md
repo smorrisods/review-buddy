@@ -8,7 +8,7 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ### Added
 
-- **First release contents.** Nothing has been tagged yet, so the work planned as v0.1.0 (GitHub, panes, unified diff) and v0.2.0 (GitLab, aggregation, first run) is recorded together under Unreleased until the first tag.
+- **First release contents.** 0.1.0 is the first release. It rolls up everything that was planned as v0.1.0 (GitHub, panes, unified diff) and v0.2.0 (GitLab, aggregation, first run), so there is no separate v0.2.0.
 - **Three-pane dashboard.** Sources, queue and detail panes, with your pull requests bucketed into Waiting on you, Worth a look and Can wait, a collapsed Noise row for bots, and the Overview, Files, Checks and Conversation tabs.
 - **Unified diff review.** A files pane, line cursor, syntax highlighting, tinted added and removed lines, inline threads, and hunk and file jumps.
 - **Comments and approval.** Line comments and replies collect into a pending review, `⌃⏎` posts one now after a preview, and `a` approves after a preview of the verdict and pending comments. Discarding a draft asks first and defaults to No.
@@ -22,7 +22,7 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 - **Live GitHub sources.** github.com and Enterprise, signed in through `gh`, the OS keyring, `env:VAR` or a `token_command`. Cached rows paint first, then every source refreshes at once on launch, on `r` and when the terminal regains focus.
 - **Demo mode.** `--demo` runs on offline fixtures with no network and no credentials, in a throwaway directory, with `--frozen-time` for repeatable ages and writes labelled `(demo)`.
 - **Themes.** Liminal HQ (the default, on your terminal's own background), Dusk, Afterglow Dark and Afterglow Light, with `T` to cycle, `ui.theme` and `REVIEW_BUDDY_THEME` to choose, colour-depth detection and `NO_COLOR` support.
-- **Command line.** `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (with `--watch`, `--fail-fast` and `--required`), `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor` and `completion`, with `--json` and a built-in `--jq`, selectors, tab-separated output when piped, and documented exit codes. `triage explain` and `theme check|export` are declared but not built yet.
+- **Command line.** `queue`, `pr list`, `pr view`, `pr diff`, `pr checks` (with `--watch`, `--fail-fast` and `--required`), `pr open`, `open`, `auth status`, `source list`, `config paths`, `theme list`, `doctor` and `completion`, with `--json` and a built-in `--jq`, selectors, tab-separated output when piped, and documented exit codes. `triage explain` and `theme check|export` are declared but not built yet (planned for v0.4.0).
 - **Configuration.** A layered `config.toml` (system, user, `config.d/` and `--config`) that follows XDG on every Unix, including macOS, with a complete `config.example.toml`.
 - **Installers and packaging.** `install.sh` and `install.ps1` that verify `SHA256SUMS`, static musl tarballs for Linux, a universal macOS binary, Windows archives, `.deb` and `.rpm` packages, a generated man page, and bash, zsh and fish completions.
 - **Release process.** A `Release` workflow with a dry-run mode, a version bump script, and a first-release checklist in `docs/release.md`.

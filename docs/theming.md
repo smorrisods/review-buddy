@@ -1,6 +1,6 @@
 # Theming
 
-**Status.** The four built-in themes work, `T` cycles through them, the frame paints an opaque theme background (`ui.background`, `B`), `ui.theme` (and `REVIEW_BUDDY_THEME`) picks one, colour depth is detected and `NO_COLOR` is honoured. `review-buddy theme list` lists the built-ins. **Not built yet:** loading theme files from disk (the search order below is the plan), hot reload, the Settings → Theme screen and palette commands, `theme check` and `theme export` (both exit `2` for now), and the Jax roles, since Jax isn't drawn yet. The format and roles below are what user themes will use, and the built-in files in `themes/` follow it.
+**Status.** The four built-in themes work, `T` cycles through them, the frame paints an opaque theme background (`ui.background`, `B`), `ui.theme` (and `REVIEW_BUDDY_THEME`) picks one, colour depth is detected and `NO_COLOR` is honoured. `review-buddy theme list` lists the built-ins. **Not built yet:** loading theme files from disk (the search order below is the plan), hot reload, the Settings → Theme screen and palette commands, `theme check` and `theme export` (both exit `2` for now, planned for v0.4.0), and the Jax roles, since Jax isn't drawn yet. The format and roles below are what user themes will use, and the built-in files in `themes/` follow it.
 
 A theme is a TOML file that assigns colours to **roles**. Widgets only ever ask for roles, never raw colours, so a theme can restyle the whole app without touching code.
 

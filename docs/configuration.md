@@ -4,7 +4,7 @@
 
 | Applied | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.sources`, `ui.detail`, `ui.detail_position` (and `REVIEW_BUDDY_DETAIL_POSITION`), `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key, `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.images` (and `REVIEW_BUDDY_IMAGES`), `ui.drafts`, `ui.remember_layout`, `[ui.terminal]`, `ui.queue_width` and `ui.queue_height`, `ui.sources`, `ui.detail`, `ui.detail_position` (and `REVIEW_BUDDY_DETAIL_POSITION`), `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key (including `diff.syntax_highlight`), `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
 
 ## File locations (XDG Base Directory)
 
@@ -17,7 +17,7 @@ Review Buddy follows the [XDG Base Directory spec](https://specifications.freede
 | Data | `$XDG_DATA_HOME` | `~/.local/share` | `…/review-buddy/` | `themes/` installed by theme packs or `review-buddy theme install` |
 | System data | `$XDG_DATA_DIRS` | `/usr/local/share:/usr/share` | `…/review-buddy/` | `themes/` shipped by distro packages |
 | Cache | `$XDG_CACHE_HOME` | `~/.cache` | `…/review-buddy/` | `cache.sqlite` (summaries, details, ETags, capability probes) and `images/` (fetched description pictures, at most 100 MB). Safe to delete at any time |
-| State | `$XDG_STATE_HOME` | `~/.local/state` | `…/review-buddy/` | `session.toml` (the remembered panel layout, see [Remembered layout](#remembered-layout)). Planned: `drafts/`, `queue.jsonl` (offline actions), `logs/` |
+| State | `$XDG_STATE_HOME` | `~/.local/state` | `…/review-buddy/` | `session.toml` (the remembered panel layout, see [Remembered layout](#remembered-layout)), `drafts/` (unsent review comments, see [Review drafts on disk](#review-drafts-on-disk)) and `worktrees/` (the terminal pane's managed checkouts). Planned: `queue.jsonl` (offline actions), `logs/` |
 | Runtime | `$XDG_RUNTIME_DIR` | none (falls back to the state dir) | `…/review-buddy/` | Planned: `instance.lock` so two copies don't refresh the same cache at once. Not used yet |
 
 Secrets never go to disk. They live in the OS keyring (Secret Service on Linux, Keychain on macOS, Credential Manager on Windows) under service `review-buddy`, account `<host>`.
@@ -249,7 +249,7 @@ path = ["docs/**", "*.md"]
 bucket = "later"
 ```
 
-Settings → Review will show the active rules in order and which rule bucketed the selected change (`bucketed by rule 3 · repo platform/infra, path **/*.tf`), and `review-buddy triage explain <url>` will print the same from the command line. Neither exists yet.
+Settings → Review will show the active rules in order and which rule bucketed the selected change (`bucketed by rule 3 · repo platform/infra, path **/*.tf`), and `review-buddy triage explain <url>` will print the same from the command line. Neither exists yet; both are planned for v0.4.0.
 
 ## `[checkout]`
 
@@ -315,7 +315,8 @@ review-buddy pr review|comment|merge|checkout|rerun [<selector>]
 review-buddy auth status|login|logout|token
 review-buddy source list|test|add
 review-buddy triage explain <selector>   show which rule or built-in bucketed a change
-review-buddy config paths|get|list    resolved directories, loaded files and values
+review-buddy config paths|get|list|reset-layout   resolved directories, loaded files and values; forget the remembered layout
+review-buddy drafts list|discard <selector>|clear  review drafts saved on this computer
 review-buddy theme list|check <id>|export <id>
 review-buddy doctor                   check auth, scopes, rate limits, API versions and XDG paths
 review-buddy completion <shell>       print a shell completion script
@@ -325,7 +326,7 @@ global: --config <path> · -s/--source <name> · -R/--repo <owner/repo> · --jso
         --demo [--demo-scene <name>] [--frozen-time <iso>] [--jax-mood <mood>] [--size <COLSxROWS>]
 ```
 
-These run: `queue`, `pr list|view|diff|checks|open` (also as `mr`), `open`, `auth status|login|logout|token`, `source list|test|add`, `config paths|get|list`, `theme list`, `doctor` and `completion`. `triage explain` and `theme check|export` exit `2` with `Not built yet`, and the write commands in the block above (`pr review|comment|merge|checkout|rerun`) aren't declared yet, so they are a usage error (exit `2`). `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet. `--setup` runs first run (see below).
+These run: `queue`, `pr list|view|diff|checks|open` (also as `mr`), `open`, `auth status|login|logout|token`, `source list|test|add`, `config paths|get|list|reset-layout`, `drafts list|discard|clear`, `theme list`, `doctor` and `completion`. `triage explain` and `theme check|export` exit `2` with `Not built yet. It's planned for v0.4.0.`, and the write commands in the block above (`pr review|comment|merge|checkout|rerun`) aren't declared yet, so they are a usage error (exit `2`). `--demo-scene`, `--jax-mood` and `--size` are accepted but have no effect yet. `--setup` runs first run (see below).
 
 ### First run
 
