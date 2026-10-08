@@ -4,6 +4,10 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Soft wrap in the diff.** `diff.wrap = true` (default `false`) or `z` in the diff wraps lines that are wider than the pane onto the next rows, under the code and not the line numbers. Continuation rows show a dim `↪` in the number columns and keep the sign and the added or removed tint, line numbers appear only on the first row, syntax highlighting carries across the break, and wide characters, combining marks and tab expansions never split. The cursor, ranges, `j` `k`, `c` and the mouse still work on whole lines; scrolling and paging count screen rows; resizing the terminal or opening or closing the terminal pane re-wraps and keeps the cursor line. The toggle says `Wrap on` or `Wrap off`, the pane's bottom border shows `wrap`, and the choice is remembered in `session.toml`. With wrap off nothing changes.
+
 ## [0.1.0] - 2026-10-08
 
 ### Added
