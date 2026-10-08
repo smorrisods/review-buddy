@@ -17,7 +17,7 @@ pub fn milestone(command: &Command) -> Option<&'static str> {
         | Command::Open { .. }
         | Command::Doctor
         | Command::Completion { .. } => return None,
-        Command::Theme { .. } => "v0.1.0",
-        Command::Triage { .. } => "v0.1.0",
+        Command::Theme { .. } => "v0.4.0",
+        Command::Triage { .. } => "v0.4.0",
     })
 }
