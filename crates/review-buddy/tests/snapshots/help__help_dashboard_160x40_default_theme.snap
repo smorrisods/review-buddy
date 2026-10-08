@@ -3,29 +3,28 @@ source: crates/review-buddy/tests/help.rs
 expression: text(&render(&mut a))
 ---
  review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
-╭ sources ───────────────╮╭ queue ───────────────────────────────────────╮╭ liminal-hq/review-buddy#214 ──────────────────────────────────────────────────── ⟩ ╮
-│▌ ● All               7 ││  Waiting on you · 2     ╭ Keys · Queue ────────────────────────────────────────╮en menus                                           │
-│    every source        ││▌ ◐ Add a menu bar and ke│Move                                                  │                                                   │
-│  ● liminal-hq        3 ││▌ GH review-buddy#214 · a│  j/k  move in the focused pane (PgUp/PgDn: detail)   │                                                   │
-│    github.com          ││  ● Raise muted text cont│  g/G  first / last row                               │                                                   │
-│  ● smorris           1 ││  GH review-buddy#209 · j│  tab  next pane, in screen order                     │Comment  ⏎ Diff  m Merge                           │
-│    github.com          ││                         │  h/l  previous / next pane                           │                                                   │
-│  ● platform          2 ││  Worth a look · 2       │  1-9  switch source                                  │ Conversation 3                                    │
-│    gitlab.platform.ex… ││  ✕ Cache pipeline status│  [/]  previous / next detail tab                     │────────────────────────────────────────────────── │
-│  ● gitlab.com        1 ││  GL flow!1182 · priya · │                                                      │d a Menu type that tracks the selected item.       │
-│    gitlab.com          ││  ● Tidy zsh startup     │Change                                                │                                                   │
-│                        ││  GH dotfiles#31 · smorri│  ⏎    diff                                           │lect_prev move the highlight                       │
-│  Show  s to change     ││                         │  o    open                                           │ion for the highlighted item                       │
-│  [x] reviewing         ││  Can wait · 1           │  y    copy                                           │, so it picks up the active theme                  │
-│  [x] assigned          ││  · Clarify the install s│  i    select next image (o opens, y copies)          │                                                   │
-│  [x] authored          ││  GL notes!12 · kai · app│  s    show filters                                   │         Checks                                    │
-│  [ ] drafts            ││                         │  D    pending reviews: your saved drafts             │         ● 2 passing  ◐ 1 running                  │
-│  [ ] noise             ││  ▸ Noise · 2 bot updates│                                                      │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
-│                        ││                         │View                                                  │                                                   │
-│                        ││  ── That's everything.  │  p    close / reopen the detail pane                 │                                                   │
-│                        ││  7 in this view.        │  S    sources: auto / left / top                     │                                                   │
-│                        ││                         │  P    rotate panes: list left → top → right → bottom │oin. Is the intermediate Vec doing anything for    │
-│                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│                                                   │
+╭ sources ───────────────╮╭ queue ──────────────────╭ Keys · Queue ────────────────────────────────────────╮──────────────────────────────────────────────── ⟩ ╮
+│▌ ● All               7 ││  Waiting on you · 2     │Move                                                  │en menus                                           │
+│    every source        ││▌ ◐ Add a menu bar and ke│  j/k  move in the focused pane (PgUp/PgDn: detail)   │                                                   │
+│  ● liminal-hq        3 ││▌ GH review-buddy#214 · a│  g/G  first / last row                               │                                                   │
+│    github.com          ││  ● Raise muted text cont│  tab  next pane, in screen order                     │                                                   │
+│  ● smorris           1 ││  GH review-buddy#209 · j│  h/l  previous / next pane                           │Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                         │  1-9  switch source                                  │                                                   │
+│  ● platform          2 ││  Worth a look · 2       │  [/]  previous / next detail tab                     │ Conversation 3                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status│                                                      │────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · │Change                                                │d a Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ● Tidy zsh startup     │  ⏎    diff                                           │                                                   │
+│                        ││  GH dotfiles#31 · smorri│  o    open                                           │lect_prev move the highlight                       │
+│  Show  s to change     ││                         │  y    copy                                           │ion for the highlighted item                       │
+│  [x] reviewing         ││  Can wait · 1           │  i    select next image (o opens, y copies)          │, so it picks up the active theme                  │
+│  [x] assigned          ││  · Clarify the install s│  s    show filters                                   │                                                   │
+│  [x] authored          ││  GL notes!12 · kai · app│  D    pending reviews: your saved drafts             │         Checks                                    │
+│  [ ] drafts            ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates│View                                                  │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││                         │  p    close / reopen the detail pane                 │                                                   │
+│                        ││  ── That's everything.  │  S    sources: auto / left / top                     │                                                   │
+│                        ││  7 in this view.        │  P    rotate panes: list left → top → right → bottom │                                                   │
+│                        ││                         │  < >  shrink / grow the focused pane (or drag a seam)│oin. Is the intermediate Vec doing anything for    │
 │                        ││                         │  =    reset that split to automatic                  │                                                   │
 │                        ││                         │  W    save pane sizes to config                      │                                                   │
 │                        ││                         │  t    terminal pane: open, or focus it               │                                                   │

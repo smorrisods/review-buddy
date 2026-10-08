@@ -16,7 +16,6 @@ expression: text(&render(&mut a))
 │  GL flow!1182 · priy│  ⏎    diff                                           │                     │
 │  ● Tidy zsh startup │  o    open                                           │                  1d │
 │  GH dotfiles#31 · sm│  y    copy                                           │                     │
-<<<<<<< HEAD
 │                     │  i    select next image (o opens, y copies)          │                     │
 ╰─────────────────────│  s    show filters                                   │─────────────────────╯
 ╭ liminal-hq/review-bu│  D    pending reviews: your saved drafts             │────────────────── ▼ ╮
@@ -28,21 +27,8 @@ expression: text(&render(&mut a))
 │ ────────────────────│  < >  shrink / grow the focused pane (or drag a seam)│──────────────────── │
 │ Adds a menu bar alon│  =    reset that split to automatic                  │                     │
 │                     │  W    save pane sizes to config                      │                     │
-=======
-│                     │  s    show filters                                   │                     │
-╰─────────────────────│  D    pending reviews: your saved drafts             │─────────────────────╯
-╭ liminal-hq/review-bu│                                                      │────────────────── ▼ ╮
-│ Add a menu bar and k│View                                                  │                     │
-│ ada wants ada/menus │  p    close / reopen the detail pane                 │                     │
-│ +32 −1 · 3 files · o│  S    sources: auto / left / top                     │                     │
-│ a Approve  x Request│  P    rotate panes: list left → top → right → bottom │                     │
-│  Overview   Files 3 │  < >  shrink / grow the focused pane (or drag a seam)│                     │
-│ ────────────────────│  =    reset that split to automatic                  │──────────────────── │
-│ Adds a menu bar alon│  W    save pane sizes to config                      │                     │
-│                     │  t    terminal pane: open, or focus it               │                     │
->>>>>>> 92297ff (test: refresh help snapshots after rebasing onto the drafts work)
-│ • Menu::select_next │                                                      │                     │
-│ • Menu::activate ret│Change                                                │                     │
-│ • The bar itself is │  s /  pick projects in show filters                  │                     │
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 34 ▼ ───────────────╯─────────────────────╯
+│ • Menu::select_next │  t    terminal pane: open, or focus it               │                     │
+│ • Menu::activate ret│                                                      │                     │
+│ • The bar itself is │Change                                                │                     │
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 35 ▼ ───────────────╯─────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
