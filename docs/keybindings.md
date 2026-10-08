@@ -2,7 +2,7 @@
 
 Review Buddy uses arrows plus mnemonic letters. Vim-style `j`/`k` also work for movement. Arrows, `tab`, `⏎` and `esc` always work.
 
-**Status.** This page has two halves. The first covers what the binary does today. It matches the key handlers in `app/` and, with two exceptions, the registry in `ui::chrome` that the footer hints and the `?` overlay are built from: `r` (refresh) and `d` (open the diff) work on the dashboard but aren't listed in that registry, so the overlay doesn't show them. [Planned keys](#planned-keys) lists what the spec describes for later milestones. Press `?` in the app for the keys on the current screen.
+**Status.** This page has two halves. The first covers what the binary does today. It matches the key handlers in `app/` and, with a few exceptions, the registry in `ui::chrome` that the footer hints and the `?` overlay are built from. The main two: `r` (refresh) and `d` (open the diff) work on the dashboard but aren't listed in that registry, so the overlay doesn't show them. They stay out on purpose for now: the dashboard's help list already fills a 160×40 terminal, and two more rows would push `⌃Z suspend` off the bottom. The registry also leaves out a few aliases, which appear only on this page: `}` and `{` for hunks, `⌃U` and `⌃D` for half pages, and `home` and `end`. [Planned keys](#planned-keys) lists what the spec describes for later milestones. Press `?` in the app for the keys on the current screen.
 
 Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 
@@ -321,7 +321,7 @@ These are in the spec and not built yet. Pressing them does nothing, or says it 
 | `n` `p` (one at a time) | v0.4 | Skip / previous in the `queue` layout |
 | `v` · `w` | v0.3 | Unified ↔ side by side · toggle whitespace-only changes |
 | `⌃S` | v0.3 | Insert a suggestion block in the composer (on the dashboard `s` already opens Show filters, so a suggestion shortcut in the diff will need its own key) |
-| `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed |
+| `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed (`e` already edits a pending comment in the diff, so resolving will need its own key) |
 | `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
 
 The merge confirm modal (`← →` / `tab` switch between **No, not yet** and **Merge**, `⏎` confirms, `esc` cancels) arrives with merge.

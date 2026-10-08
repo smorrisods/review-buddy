@@ -6,15 +6,16 @@
 
 Every pull and merge request, in one quiet queue. **review buddy** is a keyboard-driven terminal UI that gathers your pull requests into a single, calm dashboard, with full diff review, inline comments and approvals, without leaving the terminal. Built in Rust with `ratatui` and `crossterm`, in the [Liminal HQ](https://github.com/liminal-hq) style.
 
-> **Status:** nothing is tagged yet. The first release will cover GitHub (github.com and Enterprise) and GitLab (gitlab.com and self-hosted): the queue, diff review with comments and approvals, first run, Settings → Sources and the read-only command line. Merging, suggestions, side-by-side diffs and the command palette follow in v0.3 and v0.4. See [What's included](#whats-included) for the honest list, and [`CHANGELOG.md`](CHANGELOG.md) for the history.
+> **Status:** v0.1.0 is released; see the [releases page](https://github.com/smorrisods/review-buddy/releases) for the downloads. It covers the v0.1 and v0.2 scope: GitHub (github.com and Enterprise) and GitLab (gitlab.com and self-hosted), the queue, diff review with comments, verdicts and drafts that stay, a terminal pane, first run, Settings → Sources and the read-only command line. Merging, suggestions, side-by-side diffs and the command palette follow in v0.3 and v0.4. See [What's included](#whats-included) for the honest list, and [`CHANGELOG.md`](CHANGELOG.md) for the history.
 
 ## Highlights
 
 - **One queue.** Your GitHub pull requests (github.com and Enterprise) and GitLab merge requests (gitlab.com and self-hosted) bucketed by what needs you: Waiting on you, Worth a look, Can wait, and a collapsed Noise row for bots. Show filters and per-source tag colours keep a busy queue legible.
 - **Quiet by design.** Calm copy, no alarms, pull-only refresh, and `NO_COLOR` support.
-- **Review in the terminal.** A unified diff with threads, a line cursor, comments that collect into a pending review, and approval after a preview, on GitHub and GitLab alike. A capability probe hides what an instance can't do.
+- **Review in the terminal.** A unified diff with threads, a line cursor, comments that collect into a pending review, and a verdict (approve, request changes or comment) after a preview, on GitHub and GitLab alike. Unsent comments are kept as drafts. A capability probe hides what an instance can't do.
+- **A terminal beside the change.** `t` opens a shell, or a tool such as `claude` or `lazygit`, next to the diff, in a managed worktree of the change if you want one.
 - **Easy to start.** First run finds the hosts you already use, and Settings → Sources (`,`) tests, adds, edits and removes accounts without leaving the app.
-- **Scriptable.** A `gh`-style command line (`queue`, `pr view`, `pr diff`, `pr checks`, `auth`, `source`, `doctor`, `--json` and `--jq`, with `mr` as an alias of `pr`) that never opens the TUI.
+- **Scriptable.** A `gh`-style command line (`queue`, `pr view`, `pr diff`, `pr checks`, `auth`, `source`, `drafts`, `doctor`, `--json` and `--jq`, with `mr` as an alias of `pr`) that never opens the TUI.
 - **Always explorable.** `--demo` runs against offline fixtures with no network and no credentials.
 - **Your secrets stay put.** Tokens come from `gh`, the OS keyring, an `env:VAR` or a `token_command`. Never from disk.
 - **Themeable.** Liminal HQ is the default look, with Dusk, Afterglow Dark and Afterglow Light built in.
@@ -26,12 +27,16 @@ Every pull and merge request, in one quiet queue. **review buddy** is a keyboard
 | Forges | GitHub, including Enterprise Server, and GitLab, including self-hosted. Sources are aggregated into one queue, with a capability probe per source | |
 | First run and sources | First run (`--setup`) that finds your hosts and writes a commented config. Settings → Sources (`,`) to test, edit, add, switch and remove sources | The rest of Settings: Review, Keys, Theme and Jax (v0.4) |
 | Dashboard | The three-pane layout (sources, queue, detail) with Overview, Files, Checks and Conversation tabs, Show filters, `+N more` rows and a refresh engine with per-source state, backoff and rate-limit pauses | Split and one-at-a-time layouts, command palette, search (v0.4) |
-| Diff | Unified diff, file list, line cursor, inline threads, hunk and file jumps, syntax highlighting with tinted added and removed lines | Ranges from the keyboard, suggestions, side by side, merge, re-run CI, checkout (v0.3) |
-| Review | Line comments that collect into a pending review, replies, approve with a preview, open and copy the URL | Request changes in the interface (v0.3), draft persistence (1.0) |
+| Layout | Rotate the Detail pane (`P`), move the Sources (`S`), close the Detail (`p`), resize panes by dragging a seam or with `<` `>` `=`, and `W` to save the sizes. Your choices are remembered between runs (`ui.remember_layout`, reset with `config reset-layout`) | |
+| Diff | Unified diff, a header naming the change under review, file list, line cursor, inline threads, hunk and file jumps, syntax highlighting with tinted added and removed lines, and line ranges from the keyboard (`V` or `⇧↑` `⇧↓`) | Suggestions, side by side, merge, re-run CI, checkout (v0.3) |
+| Review | Line comments that collect into a pending review, replies, editing and deleting pending comments, a review modal with Approve, Request changes or Comment and an optional summary, a preview before anything is sent, open and copy the URL | Merge and suggestions (v0.3) |
+| Drafts | Unsent comments, the summary and your verdict are kept per change and restored with your cursor (`ui.drafts`), `✎ 3` markers in the queue, the Pending reviews list (`D`), and `drafts list|discard|clear` | Offline queueing of actions (1.0) |
+| Terminal pane | `t` opens a terminal next to the change (a shell or a tool such as `claude`), optionally in a managed worktree after a preview, with `[ui.terminal]` to configure it. Placement and size are remembered. Images inside the pane aren't supported | |
+| Images | Pictures in a change's description are drawn inline in the Overview in sixel, kitty or iTerm2, in halfblocks on a truecolour terminal, or as a one-line note (`ui.images`); `i` selects one | |
 | Mouse | Click, double-click, drag a range, wheel, tabs and chips. Shift always falls through to the terminal | |
-| Command line | `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open` (all also as `mr`), `open`, `auth status|login|logout|token`, `source list|test|add`, `config paths|get|list`, `theme list`, `doctor`, `completion`, with `--json` and `--jq` | Writes (v0.3), `triage explain`, `theme check|export` |
+| Command line | `queue`, `pr list`, `pr view`, `pr diff`, `pr checks`, `pr open` (all also as `mr`), `open`, `auth status|login|logout|token`, `source list|test|add`, `config paths|get|list|reset-layout`, `drafts list|discard|clear`, `theme list`, `doctor`, `completion`, with `--json` and `--jq` | Writes (v0.3), `triage explain` and `theme check|export` (v0.4) |
 | Demo | `--demo` with frozen time, writes labelled `(demo)` | `--demo-scene`, `--jax-mood` and `--size` are accepted but do nothing yet |
-| Themes | Four built-ins, `NO_COLOR`, colour-depth detection | User theme files (v0.4) |
+| Themes | Four built-ins, `T` to cycle, a painted-background option (`B`), `NO_COLOR`, colour-depth detection | User theme files (v0.4) |
 | Install | `install.sh`, `install.ps1`, archives, `.deb` and `.rpm`, shell completions and a man page | Homebrew, Scoop and friends are not planned yet |
 
 ## Quick start
@@ -129,7 +134,7 @@ $ review-buddy --demo --frozen-time 2026-10-05T10:00 auth status --jq '.[0].user
 smorris
 ```
 
-`review-buddy --help` lists everything, and `docs/cli.md` has the selectors, output rules and exit codes. `triage explain` and `theme check|export` are declared but not built yet: they exit `2` and say so. The write commands (`pr review`, `pr merge` and friends) aren't declared until v0.3.
+`review-buddy --help` lists everything, and `docs/cli.md` has the selectors, output rules and exit codes. `review-buddy drafts list` shows the review drafts saved on this computer, `drafts discard <selector>` and `drafts clear` remove them (both ask first), and `review-buddy config reset-layout` forgets the remembered panel layout. `triage explain` and `theme check|export` are declared but not built yet (planned for v0.4.0): they exit `2` and say so. The write commands (`pr review`, `pr merge` and friends) aren't declared until v0.3.
 
 ### Keys
 
@@ -141,18 +146,26 @@ smorris
 | `1`–`9` | Dashboard | Switch source |
 | `[` `]` | Dashboard | Previous / next detail tab |
 | `⏎` or `d` | Dashboard | Open the diff |
-| `s` | Dashboard | Show filters |
+| `s` | Dashboard | Show filters (`/` searches the project list in it) |
+| `i` | Dashboard | Select the next image in the description (`o` opens it, `y` copies it) |
+| `D` | Dashboard | Pending reviews: every change with a saved draft |
+| `p` / `S` / `P` | Dashboard | Close or reopen the detail pane / move the sources (auto, left, top) / rotate the panes |
+| `<` `>` / `=` / `W` | Dashboard | Shrink or grow the focused pane / reset that split / save the sizes to config |
 | `,` | Dashboard | Settings → Sources |
 | `r` | Dashboard | Refresh now |
 | `n` `p` | Diff | Next / previous hunk |
 | `→` `←` or `]` `[` | Diff | Next / previous file |
+| `PgUp` `PgDn` | Diff | Page up / down |
 | `⇧↑` `⇧↓` or `V` then `j` `k` | Diff | Select a range of lines (`c` comments on it, `esc` clears) |
 | `⌃Z` | Everywhere (macOS, Linux) | Suspend to the shell |
 | `tab` | Diff | Switch between files and diff |
 | `c` / `r` | Diff | Comment on the line / reply to the thread |
-| `a` | Diff | Approve, after a preview |
+| `e` or `⏎` / `d` | Diff | Edit / delete the pending comment on the line (delete asks first) |
+| `,` `.` | Diff | Previous / next pending comment on the line |
+| `a` / `x` / `R` | Diff | Review modal: Approve / Request changes / Comment, with a preview |
+| `t` | Dashboard, diff | Open a terminal next to the change, or focus it |
 | `o` / `y` | Everywhere | Open in the browser / copy the URL |
-| `T` | Everywhere | Cycle theme |
+| `T` / `B` | Everywhere | Cycle theme / cycle the painted background |
 | `?` | Everywhere | Help for the current screen |
 | `esc` / `q` | Diff / dashboard | Back / quit |
 

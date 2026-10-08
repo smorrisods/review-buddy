@@ -16,6 +16,7 @@ jax = true                  # J toggles
 reduced_motion = false
 images = "auto"            # auto | off | halfblocks | forge-only  (pictures in descriptions; forge-only fetches only from your forge's own hosts; REVIEW_BUDDY_IMAGES for one run)
 unicode = true
+date_locale = "en-CA"        # parsed, not applied yet (banner times are UTC for now)
 colour_depth = "auto"       # auto | truecolor | 256 | 16
 background = "theme"        # theme | yes | no  (B cycles for the session; REVIEW_BUDDY_BACKGROUND for one run)
                             # theme = paint what the theme sets (afterglow does, liminal-hq and dusk don't); yes = always paint; no = never
@@ -42,6 +43,7 @@ drafts = "local"            # local = keep unsent review comments across restart
 [review]
 merge_method = "squash"     # merge | squash | rebase
 confirm_merge = true        # always defaults to "No, not yet"
+confirm_post_now = true     # preview a comment or reply before ctrl-enter posts it on its own (approving always previews)
 delete_branch_on_merge = true
 mark_viewed_on_open = true
 request_changes_needs_summary = true
@@ -52,17 +54,26 @@ auto_side_by_side = true
 side_by_side_min_cols = 160
 context_lines = 3
 ignore_whitespace = false
+syntax_highlight = true     # parsed, not applied yet (the diff is always highlighted)
 tab_width = 4
 
 [refresh]
 interval = "5m"             # pull only, while open. "off" = manual (r)
 on_focus = true
+max_concurrency_per_host = 4   # requests in flight at once to one host
 
 [triage]
 noise_authors = ["renovate[bot]", "dependabot[bot]", "release-please[bot]"]
 bucket_limit = 20
 show = ["reviewing", "assigned", "authored"]   # add "drafts" to see drafts
 stale_after = "14d"
+noise_collapsed = true      # parsed, not applied yet (Noise is always one collapsed row)
+
+# Your own bucket rules, tried before the built-in ones; the first match wins. Planned for v0.4: parsed, not run yet.
+# [[triage.rule]]
+# repo = "platform/infra"
+# path = "**/*.tf"
+# bucket = "wait"           # wait | look | later | noise
 
 [checkout]
 root = "~/src/{repo}"
@@ -93,8 +104,13 @@ kind = "gitlab"
 host = "gitlab.work.ca"
 auth = "token"              # stored in keyring as review-buddy/gitlab.work.ca
 scope = { groups = ["platform", "infra"] }
-include_drafts = false
+include_drafts = false      # parsed, not applied yet (drafts follow triage.show)
 tag_colour = "gitlab"
+# in_all = true             # false leaves the source out of the All view
+# enabled = true
+# hide_repos = ["platform/legacy-*"]   # projects the queue leaves out; a trailing * covers a prefix
+# api_url = "https://example.com/gitlab/api/v4"   # only for a path prefix, plain http or another port
+# token_command = "pass show gitlab/work"          # used when auth = "command"
 
 [[source]]
 name = "gitlab.com"
