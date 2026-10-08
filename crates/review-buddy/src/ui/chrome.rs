@@ -229,6 +229,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 Some(Action::Terminal(TermAction::Toggle)),
                 false,
             ),
+            bind(
+                "View",
+                "z",
+                "soft-wrap long lines: on / off",
+                Some(Action::ToggleWrap),
+                false,
+            ),
             bind("General", "esc", "back", Some(Action::CloseDiff), true),
             bind(
                 "General",

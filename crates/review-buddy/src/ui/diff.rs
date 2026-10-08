@@ -13,7 +13,7 @@ use rb_diff::{expand_tabs, DiffBody, DiffLine, LineKind};
 use rb_theme::Role;
 use unicode_width::UnicodeWidthChar;
 
-use super::text::cells;
+use super::text::{cells, split_spans, wrap_points};
 use super::{chrome::truncate, layout, style, HitMap};
 use crate::app::diffview::{self, BlockKind, BlockLine, BlockLineKind, Row, GUTTER};
 use crate::app::{Action, App, DiffFocus, DiffState, Phase};
@@ -385,7 +385,7 @@ fn draw_diff(
         truncate(&title, usize::from(l.diff.width.saturating_sub(6))),
         focused,
     );
-    if let Some(status) = bottom_status(state) {
+    if let Some(status) = bottom_status(state, app.diff_wrap) {
         block = block.title_bottom(Line::styled(
             format!(" {status} "),
             style::fg(palette, Role::Muted),
@@ -422,7 +422,7 @@ fn draw_diff(
     }
 }
 
-fn bottom_status(state: &DiffState) -> Option<String> {
+fn bottom_status(state: &DiffState, wrap: bool) -> Option<String> {
     let data = state.data.as_ref()?;
     let view = &state.view;
     let mut parts = Vec::new();
@@ -431,6 +431,9 @@ fn bottom_status(state: &DiffState) -> Option<String> {
         parts.push(format!("hunk {at} of {total}"));
     }
     parts.push(format!("file {} of {}", state.file + 1, data.files.len()));
+    if wrap {
+        parts.push("wrap".to_string());
+    }
     Some(parts.join(" · "))
 }
 
@@ -447,28 +450,92 @@ fn centre(frame: &mut Frame, area: Rect, lines: Vec<Line<'static>>) {
 
 fn draw_rows(frame: &mut Frame, app: &App, state: &DiffState, area: Rect, hits: &mut HitMap) {
     let view = &state.view;
-    let window = diffview::visible(view.scroll, usize::from(area.height), view.rows.len());
-    for (offset, index) in window.enumerate() {
-        let rect = Rect::new(area.x, area.y + offset as u16, area.width, 1);
-        let (line, base) = row_line(app, state, index, usize::from(area.width));
-        frame.render_widget(Paragraph::new(line).style(base), rect);
-        hits.push(rect, Action::DiffRow(index));
-        if let Some(Row::Block { block, line }) = view.rows.row(index) {
-            let Some(b) = view.rows.block(block) else {
-                continue;
-            };
-            if line as usize + 1 == b.height() {
-                let total = usize::from(area.width)
-                    .saturating_sub(usize::from(GUTTER))
-                    .max(6);
-                if let Some(fill) = reply_hint_offset(b, total) {
-                    let x = area.x + GUTTER + 1 + fill as u16;
-                    let hint = Rect::new(x, rect.y, cells(REPLY_HINT) as u16, 1);
-                    hits.push(hint, Action::ReplyAt(index));
-                }
-            }
+    let map = &view.screen;
+    let height = usize::from(area.height);
+    let width = usize::from(area.width);
+    let Some((first, skip)) = map.locate(view.scroll) else {
+        return;
+    };
+    let mut y = 0;
+    let mut index = first;
+    while y < height && index < view.rows.len() {
+        let skip = if index == first { skip } else { 0 };
+        let wrapped = match view.rows.row(index) {
+            Some(Row::Line(id)) if map.wrapping() => Some(id),
+            _ => None,
+        };
+        if let Some(id) = wrapped {
+            y += draw_wrapped(frame, app, state, (index, id, skip), (area, y), hits);
+        } else {
+            let rect = Rect::new(area.x, area.y + y as u16, area.width, 1);
+            let (line, base) = row_line(app, state, index, width);
+            frame.render_widget(Paragraph::new(line).style(base), rect);
+            hits.push(rect, Action::DiffRow(index));
+            draw_reply_hint(state, index, rect, area, hits);
+            y += 1;
+        }
+        index += 1;
+    }
+}
+
+fn draw_reply_hint(state: &DiffState, index: usize, rect: Rect, area: Rect, hits: &mut HitMap) {
+    let Some(Row::Block { block, line }) = state.view.rows.row(index) else {
+        return;
+    };
+    let Some(b) = state.view.rows.block(block) else {
+        return;
+    };
+    if line as usize + 1 == b.height() {
+        let total = usize::from(area.width)
+            .saturating_sub(usize::from(GUTTER))
+            .max(6);
+        if let Some(fill) = reply_hint_offset(b, total) {
+            let x = area.x + GUTTER + 1 + fill as u16;
+            let hint = Rect::new(x, rect.y, cells(REPLY_HINT) as u16, 1);
+            hits.push(hint, Action::ReplyAt(index));
         }
     }
+}
+
+/// Draws the screen rows of a wrapped diff line from `skip`, starting `y` rows into `area`, and
+/// returns how many it drew.
+fn draw_wrapped(
+    frame: &mut Frame,
+    app: &App,
+    state: &DiffState,
+    (index, id, skip): (usize, rb_diff::LineId, usize),
+    (area, y): (Rect, usize),
+    hits: &mut HitMap,
+) -> usize {
+    let Some(line) = state
+        .current()
+        .and_then(|f| f.diff.parsed())
+        .and_then(|p| p.line(id))
+    else {
+        return 1;
+    };
+    let view = &state.view;
+    let flags = (
+        index == view.cursor,
+        state.range.is_some_and(|r| r.contains(index)),
+    );
+    let (lines, base) = wrapped_line(
+        app,
+        state,
+        (id, line),
+        flags,
+        usize::from(area.width),
+        view.screen.height(index),
+    );
+    let room = usize::from(area.height) - y;
+    let mut drawn = 0;
+    for line in lines.into_iter().skip(skip).take(room) {
+        let rect = Rect::new(area.x, area.y + (y + drawn) as u16, area.width, 1);
+        frame.render_widget(Paragraph::new(line).style(base), rect);
+        hits.push(rect, Action::DiffRow(index));
+        drawn += 1;
+    }
+    drawn
 }
 
 fn row_line(app: &App, state: &DiffState, index: usize, width: usize) -> (Line<'static>, Style) {
@@ -523,25 +590,17 @@ fn row_line(app: &App, state: &DiffState, index: usize, width: usize) -> (Line<'
     }
 }
 
-fn diff_line(
-    app: &App,
-    state: &DiffState,
-    id: rb_diff::LineId,
-    line: &DiffLine,
-    (at_cursor, in_range): (bool, bool),
-    width: usize,
-) -> (Line<'static>, Style) {
-    let palette = &app.palette;
-    let (tint, sign, sign_role) = match line.kind {
+fn line_look(kind: LineKind) -> (Option<Role>, &'static str, Role) {
+    match kind {
         LineKind::Added => (Some(Role::AddedBg), "+", Role::Success),
         LineKind::Removed => (Some(Role::RemovedBg), "-", Role::Danger),
         LineKind::Context => (None, " ", Role::Muted),
-    };
-    let number = |n: Option<u32>| match n {
-        Some(n) => format!("{n:>4} "),
-        None => "     ".to_string(),
-    };
-    let marker = if at_cursor {
+    }
+}
+
+fn marker_span(app: &App, at_cursor: bool, in_range: bool) -> Span<'static> {
+    let palette = &app.palette;
+    if at_cursor {
         Span::styled(
             "› ",
             style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD),
@@ -550,30 +609,126 @@ fn diff_line(
         Span::styled("▌ ", style::fg(palette, Role::Accent))
     } else {
         Span::raw("  ")
-    };
+    }
+}
+
+/// The row's background: the selection while it is the cursor line or in a range, else the
+/// added or removed tint.
+fn line_base(
+    app: &App,
+    state: &DiffState,
+    tint: Option<Role>,
+    (at_cursor, in_range): (bool, bool),
+) -> Style {
+    let palette = &app.palette;
+    if in_range || (at_cursor && state.focus == DiffFocus::Diff) {
+        style::bg(palette, Role::Selection)
+    } else {
+        tint.map_or_else(Style::default, |role| style::bg(palette, role))
+    }
+}
+
+/// The styled code of a line: syntax spans when highlighted, plain text otherwise, tabs expanded.
+fn code_spans(
+    app: &App,
+    state: &DiffState,
+    id: rb_diff::LineId,
+    line: &DiffLine,
+) -> Vec<Span<'static>> {
+    let palette = &app.palette;
+    match state.view.spans(id) {
+        Some(parts) => parts
+            .iter()
+            .map(|p| Span::styled(p.text.clone(), style::style(p.style(palette))))
+            .collect(),
+        None => vec![Span::styled(
+            expand_tabs(&line.text, app.tab_width),
+            style::fg(palette, Role::Text),
+        )],
+    }
+}
+
+fn number(n: Option<u32>) -> String {
+    match n {
+        Some(n) => format!("{n:>4} "),
+        None => "     ".to_string(),
+    }
+}
+
+fn diff_line(
+    app: &App,
+    state: &DiffState,
+    id: rb_diff::LineId,
+    line: &DiffLine,
+    flags: (bool, bool),
+    width: usize,
+) -> (Line<'static>, Style) {
+    let palette = &app.palette;
+    let (tint, sign, sign_role) = line_look(line.kind);
     let mut spans = vec![
-        marker,
+        marker_span(app, flags.0, flags.1),
         Span::styled(number(line.old_no), style::fg(palette, Role::Muted)),
         Span::styled(number(line.new_no), style::fg(palette, Role::Muted)),
         Span::styled(format!("{sign} "), style::fg(palette, sign_role)),
     ];
-    match state.view.spans(id) {
-        Some(parts) => spans.extend(
-            parts
-                .iter()
-                .map(|p| Span::styled(p.text.clone(), style::style(p.style(palette)))),
-        ),
-        None => spans.push(Span::styled(
-            expand_tabs(&line.text, app.tab_width),
-            style::fg(palette, Role::Text),
-        )),
-    }
-    let base = if in_range || (at_cursor && state.focus == DiffFocus::Diff) {
-        style::bg(palette, Role::Selection)
-    } else {
-        tint.map_or_else(Style::default, |role| style::bg(palette, role))
+    spans.extend(code_spans(app, state, id, line));
+    (
+        Line::from(clip(spans, width)),
+        line_base(app, state, tint, flags),
+    )
+}
+
+/// The screen rows of a wrapped line, `height` of them. The first row looks like an unwrapped
+/// line; each continuation row has a blank cursor column (a range marker if the line is in a
+/// range), a dim `↪` where the line numbers were, the sign, and the next piece of code. The
+/// tint is the returned base style, which covers every row.
+fn wrapped_line(
+    app: &App,
+    state: &DiffState,
+    (id, line): (rb_diff::LineId, &DiffLine),
+    flags: (bool, bool),
+    width: usize,
+    height: usize,
+) -> (Vec<Line<'static>>, Style) {
+    let palette = &app.palette;
+    let (tint, sign, sign_role) = line_look(line.kind);
+    let text_width = width.saturating_sub(usize::from(GUTTER)).max(1);
+    let points = wrap_points(&line.text, app.tab_width, text_width);
+    let mut pieces = split_spans(code_spans(app, state, id, line), &points);
+    pieces.resize(height.max(1), Vec::new());
+    let muted = style::fg(palette, Role::Muted);
+    let arrow = |has: bool| {
+        Span::styled(
+            if has { "   ↪ " } else { "     " },
+            muted.add_modifier(Modifier::DIM),
+        )
     };
-    (Line::from(clip(spans, width)), base)
+    let lines = pieces
+        .into_iter()
+        .enumerate()
+        .map(|(row, piece)| {
+            let mut spans = if row == 0 {
+                vec![
+                    marker_span(app, flags.0, flags.1),
+                    Span::styled(number(line.old_no), muted),
+                    Span::styled(number(line.new_no), muted),
+                ]
+            } else {
+                vec![
+                    marker_span(app, false, flags.1),
+                    arrow(line.old_no.is_some()),
+                    arrow(line.new_no.is_some()),
+                ]
+            };
+            spans.push(Span::styled(
+                format!("{sign} "),
+                style::fg(palette, sign_role),
+            ));
+            spans.extend(piece);
+            Line::from(spans)
+        })
+        .collect();
+    (lines, line_base(app, state, tint, flags))
 }
 
 const REPLY_HINT: &str = " r reply ";

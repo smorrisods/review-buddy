@@ -306,9 +306,7 @@ fn keep_cursor_visible(app: &mut App) {
     };
     let dock = layout::composer_dock(code, composer.editor.line_count()).height;
     let height = usize::from(code.height.saturating_sub(dock)).max(1);
-    let view = &mut s.view;
-    let (top, bottom) = view.rows.reveal_span(view.cursor);
-    view.scroll = super::diffview::reveal(view.scroll, top, bottom, height, view.rows.len());
+    reveal_cursor(s, height);
 }
 
 pub fn comment_line(c: &DraftComment) -> String {

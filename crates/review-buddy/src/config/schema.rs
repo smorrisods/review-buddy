@@ -199,6 +199,8 @@ pub struct DiffConfig {
     pub ignore_whitespace: bool,
     pub syntax_highlight: bool,
     pub tab_width: u8,
+    /// Soft-wrap long lines in the diff instead of cutting them at the pane edge.
+    pub wrap: bool,
 }
 
 impl Default for DiffConfig {
@@ -211,6 +213,7 @@ impl Default for DiffConfig {
             ignore_whitespace: false,
             syntax_highlight: true,
             tab_width: 4,
+            wrap: false,
         }
     }
 }
