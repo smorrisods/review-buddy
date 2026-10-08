@@ -4,7 +4,7 @@
 
 | Applied | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.images` (and `REVIEW_BUDDY_IMAGES`), `ui.drafts`, `ui.remember_layout`, `[ui.terminal]`, `ui.queue_width` and `ui.queue_height`, `ui.sources`, `ui.detail`, `ui.detail_position` (and `REVIEW_BUDDY_DETAIL_POSITION`), `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key (including `diff.syntax_highlight`), `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.images` (and `REVIEW_BUDDY_IMAGES`), `ui.drafts`, `ui.remember_layout`, `[ui.terminal]`, `ui.queue_width` and `ui.queue_height`, `ui.sources`, `ui.detail`, `ui.detail_position` (and `REVIEW_BUDDY_DETAIL_POSITION`), `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `diff.wrap`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key (including `diff.syntax_highlight`), `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
 
 ## File locations (XDG Base Directory)
 
@@ -124,7 +124,7 @@ start = "ask"           # ask | worktree | current
 
 ### Remembered layout
 
-Review Buddy keeps the choices you make with `P`, `S`, `p`, `B`, the terminal pane's placement and size, and by dragging or nudging the panes in `$XDG_STATE_HOME/review-buddy/session.toml` (`%LOCALAPPDATA%\review-buddy\state\` on Windows), and picks them up at the next launch. Only what you changed is stored, so a setting you never touched keeps following `config.toml`. The file is written in the background shortly after a change (about half a second) and once more on quit, and only when its content changed. It is created with mode `0600` in the private state directory, written atomically, and never touched in `--demo`. A file that is empty, corrupt or has unknown keys is ignored quietly, and each key that does parse is still used.
+Review Buddy keeps the choices you make with `P`, `S`, `p`, `B`, `z` (soft wrap in the diff), the terminal pane's placement and size, and by dragging or nudging the panes in `$XDG_STATE_HOME/review-buddy/session.toml` (`%LOCALAPPDATA%\review-buddy\state\` on Windows), and picks them up at the next launch. Only what you changed is stored, so a setting you never touched keeps following `config.toml`. The file is written in the background shortly after a change (about half a second) and once more on quit, and only when its content changed. It is created with mode `0600` in the private state directory, written atomically, and never touched in `--demo`. A file that is empty, corrupt or has unknown keys is ignored quietly, and each key that does parse is still used.
 
 ```toml
 [layout]
@@ -137,6 +137,7 @@ sources_width = 30
 background = "yes"         # theme | yes | no
 terminal_position = "right"  # the terminal pane: auto | right | left | top | bottom
 terminal_size = "40%"
+diff_wrap = true           # soft wrap in the diff (z)
 ```
 
 Precedence at launch, strongest first: a key you press this session, the `REVIEW_BUDDY_*` environment variable (`REVIEW_BUDDY_DETAIL_POSITION`, `REVIEW_BUDDY_BACKGROUND`), the remembered `session.toml`, `config.toml`, then the built-in default. Resetting a split with `=` forgets that size, so the next launch uses `ui.queue_width` or `ui.queue_height` again. `W` still writes sizes to `config.toml`. Set `ui.remember_layout = false` to turn remembering off, in which case the file is neither read nor written. `review-buddy config paths` lists the file and `review-buddy config reset-layout` removes it.
@@ -162,7 +163,7 @@ Applied: `confirm_post_now`. The merge, viewed and request-changes options arriv
 
 ## `[diff]`
 
-Applied: `tab_width` (1–16). The diff is always unified, with syntax highlighting on; the other options arrive with side by side in v0.3.
+Applied: `tab_width` (1–16) and `wrap`. The diff is always unified, with syntax highlighting on; the other options arrive with side by side in v0.3.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -173,6 +174,7 @@ Applied: `tab_width` (1–16). The diff is always unified, with syntax highlight
 | `ignore_whitespace` | `false` | Toggle with `w` |
 | `syntax_highlight` | `true` | |
 | `tab_width` | `4` | |
+| `wrap` | `false` | Soft-wrap long lines in the diff instead of cutting them at the pane edge (see [Soft wrap](keybindings.md#soft-wrap)). `z` toggles it in the diff, and the choice is remembered between runs (see [Remembered layout](#remembered-layout)); the key never edits the file |
 
 ## `[refresh]`
 

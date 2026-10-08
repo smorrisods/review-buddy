@@ -11,7 +11,7 @@ use rb_diff::{
 };
 
 use super::composer::{self, Composer, Confirm};
-use super::diffview::{self, Inputs, Rows};
+use super::diffview::{self, Inputs, Rows, ScreenMap};
 use super::range::{self, RowRange};
 use super::review::{self, ReviewModal};
 use super::update::set_status;
@@ -115,8 +115,13 @@ pub struct FileView {
     pub rows: Rows,
     /// A row index that rests on a diff line.
     pub cursor: usize,
+    /// The first screen row in view. With wrap off a screen row is a logical row.
     pub scroll: usize,
     pub highlight: Highlight,
+    /// How tall each logical row is on screen.
+    pub screen: ScreenMap,
+    /// The code area width the rows and the screen map were built for.
+    pub width: u16,
 }
 
 impl FileView {
@@ -391,6 +396,7 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
     let code = viewport(app).code;
     let now = app.state.now.unwrap_or(Timestamp(0));
     let tab_width = app.tab_width;
+    let wrap = app.diff_wrap;
     let App {
         diff,
         syntax,
@@ -423,6 +429,16 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
         },
         code.width,
     );
+    let screen = match file.diff.parsed() {
+        Some(patch) => ScreenMap::build(
+            &rows,
+            patch,
+            usize::from(code.width.saturating_sub(diffview::GUTTER)).max(1),
+            tab_width,
+            wrap,
+        ),
+        None => ScreenMap::identity(rows.len()),
+    };
     let highlight = match &file.diff.body {
         DiffBody::Text(patch) if patch.is_large() => Highlight::Windowed(HashMap::new()),
         DiffBody::Text(patch) => {
@@ -444,6 +460,8 @@ pub(super) fn rebuild(app: &mut App, keep: Option<rb_diff::LineId>) {
         cursor,
         scroll: 0,
         highlight,
+        screen,
+        width: code.width,
     };
     reveal_cursor(state, usize::from(code.height));
     settle(app);
@@ -471,7 +489,7 @@ fn settle(app: &mut App) {
         return;
     };
     let view = &state.view.rows;
-    for row in diffview::visible(state.view.scroll, height, view.len()) {
+    for row in state.view.screen.rows_in(state.view.scroll, height) {
         let Some(id) = view.line_id(row) else {
             continue;
         };
@@ -521,15 +539,48 @@ pub fn on_resize(app: &mut App) {
         return;
     };
     let keep = state.view.rows.line_id(state.view.cursor);
-    let scroll = state.view.scroll;
+    // The screen offset means nothing at a new width, so remember the line it showed.
+    let top = state
+        .view
+        .screen
+        .locate(state.view.scroll)
+        .map(|(row, sub)| (state.view.rows.line_id(row), row, sub));
     rebuild(app, keep);
     let height = usize::from(viewport(app).code.height);
     if let Some(state) = app.diff.as_mut() {
-        let total = state.view.rows.len();
-        state.view.scroll = scroll.min(diffview::max_scroll(total, height));
+        let view = &mut state.view;
+        if let Some((id, row, sub)) = top {
+            let row = id.and_then(|id| view.rows.row_of(id)).unwrap_or(row);
+            let row = row.min(view.rows.len().saturating_sub(1));
+            let at = view.screen.start(row) + sub.min(view.screen.height(row) - 1);
+            view.scroll = at.min(diffview::max_scroll(view.screen.total(), height));
+        }
         reveal_cursor(state, height);
     }
     settle(app);
+}
+
+/// Re-wraps the open diff if the code area is no longer the width it was built for: the
+/// terminal was resized, or the terminal pane opened, closed or moved.
+pub fn refit(app: &mut App) {
+    let width = viewport(app).code.width;
+    if app
+        .diff
+        .as_ref()
+        .is_some_and(|s| s.data.is_some() && s.view.width != width)
+    {
+        on_resize(app);
+        app.mark_dirty();
+    }
+}
+
+/// `z`: turns soft wrap on or off, keeping the cursor line and the top of the view.
+pub fn toggle_wrap(app: &mut App) -> Vec<Cmd> {
+    app.diff_wrap = !app.diff_wrap;
+    on_resize(app);
+    app.mark_dirty();
+    let text = if app.diff_wrap { "Wrap on" } else { "Wrap off" };
+    set_status(app, Notice::new(NoticeKind::Info, text))
 }
 
 pub fn refresh_theme(app: &mut App) {
@@ -547,7 +598,13 @@ pub fn refresh_theme(app: &mut App) {
 pub(super) fn reveal_cursor(state: &mut DiffState, height: usize) {
     let view = &mut state.view;
     let (top, bottom) = view.rows.reveal_span(view.cursor);
-    view.scroll = diffview::reveal(view.scroll, top, bottom, height, view.rows.len());
+    view.scroll = diffview::reveal(
+        view.scroll,
+        view.screen.start(top),
+        view.screen.end(bottom),
+        height,
+        view.screen.total(),
+    );
 }
 
 pub(super) fn select_file(app: &mut App, index: usize) {
@@ -602,14 +659,23 @@ fn move_cursor(app: &mut App, to: impl FnOnce(&Rows, usize) -> Option<usize>) {
 
 fn page(app: &mut App, forward: bool, fraction: usize) {
     let height = usize::from(viewport(app).code.height);
-    let rows = (height / fraction).max(1);
-    move_cursor(app, |rows_view, cursor| {
-        let last = rows_view.len().checked_sub(1)?;
+    let step = (height / fraction).max(1);
+    let Some(state) = app.diff.as_ref() else {
+        return;
+    };
+    let screen = &state.view.screen;
+    let from = screen.start(state.view.cursor);
+    let target = if forward {
+        screen.locate((from + step).min(screen.total().saturating_sub(1)))
+    } else {
+        screen.locate(from.saturating_sub(step))
+    }
+    .map(|(row, _)| row);
+    move_cursor(app, |rows_view, _| {
+        let target = target?;
         if forward {
-            let target = (cursor + rows).min(last);
             rows_view.nearest_line(target).or(rows_view.last_line())
         } else {
-            let target = cursor.saturating_sub(rows);
             rows_view.line_from(target)
         }
     });
@@ -660,6 +726,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char(',') if focus == DiffFocus::Diff => return comments::step_pick(app, false),
         KeyCode::Char('.') if focus == DiffFocus::Diff => return comments::step_pick(app, true),
         KeyCode::Char('V') if focus == DiffFocus::Diff => toggle_select(app),
+        KeyCode::Char('z') => return toggle_wrap(app),
         KeyCode::Right | KeyCode::Char(']') => cmds = step_file(app, true),
         KeyCode::Left | KeyCode::Char('[') => cmds = step_file(app, false),
         KeyCode::Char('c') => {
@@ -844,6 +911,7 @@ pub fn on_action(app: &mut App, action: Action) -> Vec<Cmd> {
                 state.focus = focus;
             }
         }
+        Action::ToggleWrap => return toggle_wrap(app),
         _ => return Vec::new(),
     }
     settle(app);
@@ -889,13 +957,13 @@ pub fn on_drag(app: &mut App, y: u16) {
     };
     let view = &mut state.view;
     let height = usize::from(code.height);
-    let max = diffview::max_scroll(view.rows.len(), height);
+    let max = diffview::max_scroll(view.screen.total(), height);
     match range::edge_scroll(y, code.y, code.height) {
         -1 => view.scroll = view.scroll.saturating_sub(1),
         1 => view.scroll = (view.scroll + 1).min(max),
         _ => {}
     }
-    let Some(row) = range::row_at(y, code.y, code.height, view.scroll, view.rows.len()) else {
+    let Some(row) = range::row_at(y, code.y, code.height, view.scroll, &view.screen) else {
         return;
     };
     let Some(head) = view.rows.nearest_line(row) else {
@@ -929,19 +997,26 @@ pub fn on_scroll(app: &mut App, column: u16, row: u16, down: bool) {
         };
     } else if l.diff.contains(at) {
         let view = &mut state.view;
-        let max = diffview::max_scroll(view.rows.len(), height);
+        let max = diffview::max_scroll(view.screen.total(), height);
         view.scroll = if down {
             (view.scroll + WHEEL_ROWS).min(max)
         } else {
             view.scroll.saturating_sub(WHEEL_ROWS)
         };
-        if view.cursor < view.scroll {
-            view.cursor = view.rows.line_from(view.scroll).unwrap_or(view.cursor);
-        } else if view.cursor >= view.scroll + height {
-            view.cursor = view
-                .rows
-                .line_before(view.scroll + height)
-                .unwrap_or(view.cursor);
+        let cursor_top = view.screen.start(view.cursor);
+        if cursor_top < view.scroll {
+            let first = match view.screen.locate(view.scroll) {
+                Some((row, 0)) => row,
+                Some((row, _)) => row + 1,
+                None => view.rows.len(),
+            };
+            view.cursor = view.rows.line_from(first).unwrap_or(view.cursor);
+        } else if cursor_top >= view.scroll + height {
+            let after = view
+                .screen
+                .locate(view.scroll + height - 1)
+                .map_or(view.rows.len(), |(row, _)| row + 1);
+            view.cursor = view.rows.line_before(after).unwrap_or(view.cursor);
         }
     } else {
         return;

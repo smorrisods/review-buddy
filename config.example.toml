@@ -56,6 +56,7 @@ context_lines = 3
 ignore_whitespace = false
 syntax_highlight = true     # parsed, not applied yet (the diff is always highlighted)
 tab_width = 4
+wrap = false                # soft-wrap long lines instead of cutting them (z toggles, and is remembered)
 
 [refresh]
 interval = "5m"             # pull only, while open. "off" = manual (r)

@@ -896,6 +896,15 @@ fn drag_seam(app: &mut App, d: &geometry::Dock, drag: Drag, mouse: MouseEvent) -
 /// Run after every `update`: keeps the pane's grid the size of its box, and lets a half-typed
 /// chord expire.
 pub fn after(app: &mut App) -> Vec<Cmd> {
+    let cmds = fit_pane(app);
+    // The pane opening, closing or resizing changes the diff's width, so its lines re-wrap.
+    if app.screen == Screen::Diff {
+        super::diff::refit(app);
+    }
+    cmds
+}
+
+fn fit_pane(app: &mut App) -> Vec<Cmd> {
     app.term.escape.tick(app.ticks);
     if app.term.pane.is_none() {
         return Vec::new();

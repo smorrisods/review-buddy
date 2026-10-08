@@ -108,6 +108,7 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     put("diff.ignore_whitespace", json!(diff.ignore_whitespace));
     put("diff.syntax_highlight", json!(diff.syntax_highlight));
     put("diff.tab_width", json!(diff.tab_width));
+    put("diff.wrap", json!(diff.wrap));
     put(
         "refresh.interval",
         json!(refresh
@@ -423,6 +424,7 @@ mod tests {
             json!(["reviewing", "assigned", "authored"])
         );
         assert_eq!(all["diff.tab_width"], json!(4));
+        assert_eq!(all["diff.wrap"], json!(false));
     }
 
     #[test]

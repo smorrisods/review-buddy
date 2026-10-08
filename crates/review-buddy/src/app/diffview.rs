@@ -5,11 +5,12 @@
 use std::collections::HashMap;
 use std::ops::Range;
 
+use ratatui::layout::Rect;
 use rb_core::{DraftComment, Side, Thread, Timestamp};
-use rb_diff::{expand_tabs, Anchor, DiffBody, FileDiff, LineId};
+use rb_diff::{expand_tabs, Anchor, DiffBody, FileDiff, LineId, ParsedPatch};
 
 use super::queue::age;
-use crate::ui::text::wrap;
+use crate::ui::text::{wrap, wrap_rows};
 
 /// Columns before the code: cursor (2), old number (5), new number (5), sign (2).
 pub const GUTTER: u16 = 14;
@@ -342,6 +343,165 @@ impl Rows {
         }
         (top, bottom)
     }
+}
+
+/// How many terminal rows each logical row takes, for scrolling, revealing, drawing and mapping
+/// the pointer. The cursor, ranges and navigation stay on logical rows ([`Rows`]); only a diff
+/// line can be taller than one screen row, and only while wrap is on. Blocks and hunk headers
+/// are already one screen row per row.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ScreenMap {
+    /// Screen rows before each logical row, plus the total. Empty when every row is one screen
+    /// row, so wrap off costs nothing.
+    starts: Vec<usize>,
+    len: usize,
+    wrap: bool,
+}
+
+impl ScreenMap {
+    /// One screen row per logical row.
+    pub fn identity(len: usize) -> Self {
+        Self {
+            starts: Vec::new(),
+            len,
+            wrap: false,
+        }
+    }
+
+    /// Measures every diff line of `patch` at `text_width` cells of code. O(total characters),
+    /// with no styling, so it stays cheap for the biggest files.
+    pub fn build(
+        rows: &Rows,
+        patch: &ParsedPatch,
+        text_width: usize,
+        tab_width: u8,
+        wrap: bool,
+    ) -> Self {
+        if !wrap {
+            return Self::identity(rows.len());
+        }
+        let mut starts = Vec::with_capacity(rows.len() + 1);
+        let mut total = 0;
+        for index in 0..rows.len() {
+            starts.push(total);
+            total += match rows.row(index) {
+                Some(Row::Line(id)) => patch
+                    .line(id)
+                    .map_or(1, |l| wrap_rows(&l.text, tab_width, text_width)),
+                _ => 1,
+            };
+        }
+        starts.push(total);
+        Self {
+            starts,
+            len: rows.len(),
+            wrap: true,
+        }
+    }
+
+    /// Whether wrap was on when this was measured.
+    pub fn wrapping(&self) -> bool {
+        self.wrap
+    }
+
+    /// Screen rows in all.
+    pub fn total(&self) -> usize {
+        if self.starts.is_empty() {
+            self.len
+        } else {
+            self.starts[self.len]
+        }
+    }
+
+    /// The first screen row of logical row `row`.
+    pub fn start(&self, row: usize) -> usize {
+        if self.starts.is_empty() {
+            row
+        } else {
+            self.starts[row.min(self.len)]
+        }
+    }
+
+    pub fn height(&self, row: usize) -> usize {
+        if self.starts.is_empty() || row >= self.len {
+            1
+        } else {
+            self.starts[row + 1] - self.starts[row]
+        }
+    }
+
+    /// The last screen row of logical row `row`.
+    pub fn end(&self, row: usize) -> usize {
+        self.start(row) + self.height(row) - 1
+    }
+
+    /// The logical row drawn on screen row `screen`, and which of its rows that is (0 is the
+    /// first). `None` past the end.
+    pub fn locate(&self, screen: usize) -> Option<(usize, usize)> {
+        if self.starts.is_empty() {
+            return (screen < self.len).then_some((screen, 0));
+        }
+        if screen >= self.total() {
+            return None;
+        }
+        let row = self.starts[..=self.len].partition_point(|&s| s <= screen) - 1;
+        Some((row, screen - self.starts[row]))
+    }
+
+    /// The logical rows touched by `height` screen rows from `scroll`, including a first row
+    /// that is only partly in view.
+    pub fn rows_in(&self, scroll: usize, height: usize) -> Range<usize> {
+        let Some((first, _)) = self.locate(scroll) else {
+            return self.len..self.len;
+        };
+        let last = self
+            .locate((scroll + height.max(1) - 1).min(self.total() - 1))
+            .map_or(first, |(row, _)| row);
+        first..last + 1
+    }
+}
+
+/// The two places a click on a diff row can land: the gutter (cursor, numbers, sign) and the
+/// code. Every screen row of a wrapped line has the same split. The draw registers one hit per
+/// screen row; [`hit_at`] says which of the two a pointer is over.
+pub fn row_rects(area: Rect, y: u16) -> (Rect, Rect) {
+    let gutter = GUTTER.min(area.width);
+    (
+        Rect::new(area.x, y, gutter, 1),
+        Rect::new(area.x + gutter, y, area.width - gutter, 1),
+    )
+}
+
+/// What lies under a screen position in the diff's code area.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScreenHit {
+    /// The logical row.
+    pub row: usize,
+    /// Which screen row of that logical row (0 is the first).
+    pub sub: usize,
+    /// Cells from the left edge of the gutter when `gutter`, else from the left edge of the
+    /// code. Add `ui::text::row_start(&wrap_points(..), sub)` to get the cell offset into the whole
+    /// line.
+    pub column: usize,
+    pub gutter: bool,
+}
+
+/// Maps a pointer at screen `(x, y)` to a logical row, a sub-row and a cell column, for the code
+/// area `area` scrolled to screen row `scroll`. `None` outside the area or past the last row.
+pub fn hit_at(map: &ScreenMap, area: Rect, scroll: usize, x: u16, y: u16) -> Option<ScreenHit> {
+    if x < area.x || x >= area.right() || y < area.y || y >= area.bottom() {
+        return None;
+    }
+    let (row, sub) = map.locate(scroll + usize::from(y - area.y))?;
+    let (gutter, code) = row_rects(area, area.y);
+    let on_gutter = x < gutter.right();
+    let column = if on_gutter { x - gutter.x } else { x - code.x };
+    Some(ScreenHit {
+        row,
+        sub,
+        column: usize::from(column),
+        gutter: on_gutter,
+    })
 }
 
 fn push_block(rows: &mut Vec<Row>, blocks: &[Block], index: u32) {
@@ -758,6 +918,172 @@ pub(crate) mod tests {
         );
         assert!(rows.is_empty());
         assert_eq!(rows.first_line(), None);
+    }
+
+    fn wrapped(width: usize) -> (Rows, ScreenMap) {
+        let file = file(Some(
+            "@@ -1,3 +1,3 @@\n short\n-0123456789abcdefghij\n+0123456789abcdefghijKLMNOPQRSTU\n tail",
+        ));
+        let patch = file.parsed().unwrap();
+        let rows = Rows::build(
+            &file,
+            Inputs {
+                threads: &[],
+                drafts: &[],
+                now: Timestamp(0),
+                tab_width: TAB_WIDTH,
+                stale: false,
+            },
+            100,
+        );
+        let map = ScreenMap::build(&rows, patch, width, TAB_WIDTH, true);
+        (rows, map)
+    }
+
+    #[test]
+    fn heights_and_prefix_sums_follow_the_wrapped_lines() {
+        // rows: hunk header, short, removed (20 chars), added (31 chars), tail
+        let (rows, map) = wrapped(10);
+        assert_eq!(rows.len(), 5);
+        let heights: Vec<_> = (0..5).map(|r| map.height(r)).collect();
+        assert_eq!(heights, [1, 1, 2, 4, 1]);
+        assert_eq!(map.total(), 9);
+        assert_eq!(
+            (0..5).map(|r| map.start(r)).collect::<Vec<_>>(),
+            [0, 1, 2, 4, 8]
+        );
+        assert_eq!(map.end(3), 7);
+        assert!(map.wrapping());
+    }
+
+    #[test]
+    fn wrap_off_is_the_identity() {
+        let f = file(Some("@@ -1 +1 @@\n a"));
+        let rows = Rows::build(
+            &f,
+            Inputs {
+                threads: &[],
+                drafts: &[],
+                now: Timestamp(0),
+                tab_width: TAB_WIDTH,
+                stale: false,
+            },
+            100,
+        );
+        let off = ScreenMap::build(&rows, f.parsed().unwrap(), 10, TAB_WIDTH, false);
+        assert!(!off.wrapping());
+        assert_eq!(off.total(), rows.len());
+        assert_eq!(off.start(1), 1);
+        assert_eq!(off.height(1), 1);
+        assert_eq!(off.locate(1), Some((1, 0)));
+        assert_eq!(off.locate(rows.len()), None);
+    }
+
+    #[test]
+    fn locate_maps_screen_rows_back_to_logical_rows() {
+        let (_, map) = wrapped(10);
+        let got: Vec<_> = (0..9).map(|s| map.locate(s).unwrap()).collect();
+        assert_eq!(
+            got,
+            [
+                (0, 0),
+                (1, 0),
+                (2, 0),
+                (2, 1),
+                (3, 0),
+                (3, 1),
+                (3, 2),
+                (3, 3),
+                (4, 0)
+            ]
+        );
+        assert_eq!(map.locate(9), None);
+    }
+
+    #[test]
+    fn rows_in_includes_a_partly_visible_first_row() {
+        let (_, map) = wrapped(10);
+        assert_eq!(map.rows_in(0, 3), 0..3);
+        assert_eq!(map.rows_in(3, 2), 2..4, "starts inside row 2");
+        assert_eq!(map.rows_in(5, 100), 3..5);
+        assert_eq!(map.rows_in(50, 3), 5..5);
+    }
+
+    #[test]
+    fn reveal_works_in_screen_rows_for_a_tall_line() {
+        let (rows, map) = wrapped(10);
+        let cursor = rows.row_of(LineId { hunk: 0, line: 2 }).unwrap();
+        let (top, bottom) = rows.reveal_span(cursor);
+        let (st, sb) = (map.start(top), map.end(bottom));
+        assert_eq!((st, sb), (4, 7));
+        assert_eq!(
+            reveal(0, st, sb, 3, map.total()),
+            4,
+            "top wins when too tall"
+        );
+        assert_eq!(
+            reveal(0, st, sb, 5, map.total()),
+            3,
+            "bottom brought into view"
+        );
+        assert_eq!(reveal(4, st, sb, 5, map.total()), 4);
+    }
+
+    #[test]
+    fn hit_at_splits_gutter_from_code_and_finds_the_sub_row() {
+        let (_, map) = wrapped(10);
+        let area = Rect::new(34, 3, 24, 6);
+        // scrolled so screen row 3 (row 2, second sub-row) is the top
+        let at = |x, y| hit_at(&map, area, 3, x, y);
+        assert_eq!(
+            at(34, 3),
+            Some(ScreenHit {
+                row: 2,
+                sub: 1,
+                column: 0,
+                gutter: true
+            })
+        );
+        assert_eq!(
+            at(34 + GUTTER - 1, 3),
+            Some(ScreenHit {
+                row: 2,
+                sub: 1,
+                column: usize::from(GUTTER) - 1,
+                gutter: true
+            })
+        );
+        assert_eq!(
+            at(34 + GUTTER, 4),
+            Some(ScreenHit {
+                row: 3,
+                sub: 0,
+                column: 0,
+                gutter: false
+            })
+        );
+        assert_eq!(
+            at(34 + GUTTER + 7, 6),
+            Some(ScreenHit {
+                row: 3,
+                sub: 2,
+                column: 7,
+                gutter: false
+            })
+        );
+        assert_eq!(at(33, 3), None, "left of the area");
+        assert_eq!(at(34, 9), None, "below the area");
+        assert_eq!(at(34, 2), None, "above the area");
+        assert_eq!(hit_at(&map, area, 6, 40, 8), None, "past the last row");
+    }
+
+    #[test]
+    fn row_rects_split_at_the_gutter() {
+        let (gutter, code) = row_rects(Rect::new(10, 2, 40, 9), 5);
+        assert_eq!(gutter, Rect::new(10, 5, GUTTER, 1));
+        assert_eq!(code, Rect::new(10 + GUTTER, 5, 40 - GUTTER, 1));
+        let (g, c) = row_rects(Rect::new(0, 0, 5, 1), 0);
+        assert_eq!((g.width, c.width), (5, 0));
     }
 
     #[test]

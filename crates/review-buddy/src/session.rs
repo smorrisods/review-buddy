@@ -32,6 +32,8 @@ pub struct SessionLayout {
     /// Where the terminal pane sits and how big it is.
     pub terminal_position: Option<DetailPosition>,
     pub terminal_size: Option<Size>,
+    /// Soft wrap in the diff (`z`).
+    pub diff_wrap: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -119,6 +121,7 @@ impl Session {
                     )
                 }),
                 terminal_size: size(table, "terminal_size"),
+                diff_wrap: table.get("diff_wrap").and_then(Value::as_bool),
             },
         }
     }
@@ -148,6 +151,7 @@ impl Session {
             l.terminal_position.and_then(|v| name(v.as_str())),
         );
         put("terminal_size", l.terminal_size.map(size_value));
+        put("diff_wrap", l.diff_wrap.map(Value::Boolean));
         let mut root = Table::new();
         root.insert("layout".to_string(), Value::Table(table));
         format!(
@@ -190,6 +194,8 @@ pub struct Snapshot {
     pub background: Option<BackgroundMode>,
     /// The terminal pane's placement and size.
     pub terminal: (DetailPosition, Option<Size>),
+    /// Soft wrap in the diff.
+    pub wrap: bool,
 }
 
 /// Remembers what changed and decides when to write it. Pure: the runtime does the writing.
@@ -256,6 +262,9 @@ impl Tracker {
         if a.terminal.1 != b.terminal.1 {
             l.terminal_size = b.terminal.1;
         }
+        if a.wrap != b.wrap {
+            l.diff_wrap = Some(b.wrap);
+        }
         if a.background != b.background && b.background.is_some() {
             l.background = b.background;
         }
@@ -293,6 +302,7 @@ mod tests {
             options: Options::default(),
             background: None,
             terminal: (DetailPosition::Auto, None),
+            wrap: false,
         }
     }
 
@@ -312,6 +322,7 @@ mod tests {
                 background: Some(BackgroundMode::Yes),
                 terminal_position: Some(DetailPosition::Bottom),
                 terminal_size: Some(Size::Percent(35)),
+                diff_wrap: Some(true),
             },
         }
     }
@@ -374,6 +385,30 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(30));
         save(&path, &full()).unwrap();
         assert_eq!(std::fs::metadata(&path).unwrap().modified().unwrap(), first);
+    }
+
+    #[test]
+    fn toggling_wrap_is_remembered_and_launching_alone_is_not() {
+        let mut t = tracker();
+        assert_eq!(t.observe(snap(), false), Step::Nothing);
+        let mut now = snap();
+        now.wrap = true;
+        assert_eq!(t.observe(now, false), Step::Schedule);
+        assert_eq!(t.due().unwrap().layout.diff_wrap, Some(true));
+        now.wrap = false;
+        t.observe(now, false);
+        assert_eq!(
+            t.due().unwrap().layout.diff_wrap,
+            Some(false),
+            "turning it off is remembered too"
+        );
+        assert_eq!(
+            Session::parse("[layout]\ndiff_wrap = \"yes\"\n")
+                .layout
+                .diff_wrap,
+            None,
+            "a value that isn't a boolean is skipped"
+        );
     }
 
     #[test]

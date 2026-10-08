@@ -35,10 +35,10 @@ expression: text(&render(&mut a))
 │                                ││         46 +    │                                                      │                                                   │
 │ Your review · pending ─────────││         47 +    │View                                                  │                                                   │
 │1 suggestion · 0 comments       ││         48 +    │  t            terminal pane: open, or focus it       │                                                   │
-│0 of 3 files viewed             ││         49 +    │                                                      │                                                   │
-│Your review: not started        ││         50 +    │General                                               │                                                   │
-│  menus.rs:51 Fewer branches th…││         51 +    │  esc          back                                   │_or(self.items.len() - 1);                         │
-│a approve · c comment           ││              ╭─ │  q            back to the queue                      │──────────────────────────────────────────────────╮│
-│x request changes · R review    ││              │ F│  ?            help                                   │                                                  ││
-╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close · j/k scroll · 1–36 of 39 ▼ ───────────────╯───────────────────────────────────────────────────╯
+│0 of 3 files viewed             ││         49 +    │  z            soft-wrap long lines: on / off         │                                                   │
+│Your review: not started        ││         50 +    │                                                      │                                                   │
+│  menus.rs:51 Fewer branches th…││         51 +    │General                                               │_or(self.items.len() - 1);                         │
+│a approve · c comment           ││              ╭─ │  esc          back                                   │──────────────────────────────────────────────────╮│
+│x request changes · R review    ││              │ F│  q            back to the queue                      │                                                  ││
+╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close · j/k scroll · 1–36 of 40 ▼ ───────────────╯───────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

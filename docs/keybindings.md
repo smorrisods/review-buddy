@@ -79,6 +79,7 @@ Open with `⏎` or `d` from the dashboard. A header row above the panes names th
 | `a` | Review modal with **Approve** selected (see [Review modal](#review-modal)) |
 | `x` | Review modal with **Request changes** selected. Where the source can't request changes the key stays on screen and says why in one line instead |
 | `R` | Review modal with **Comment** selected: submits the pending comments without approving |
+| `z` | Turn soft wrap on or off (`Wrap on` / `Wrap off`; `diff.wrap`). See [Soft wrap](#soft-wrap) |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
 | `T` / `B` / `?` | Cycle theme / cycle the background / help |
 | `esc` / `q` | Clear the selected range (and end `V` mode), then go back to the dashboard. If you added or changed comments since you opened the change it asks `Keep these 3 comments as a draft?` first (see [Review drafts](#review-drafts)) |
@@ -86,6 +87,12 @@ Open with `⏎` or `d` from the dashboard. A header row above the panes names th
 A keyboard range is the same range a drag makes: the same highlight, the same `c` comment, and it stays inside one hunk (the extension stops at the hunk edge) and, for the comment, on one side. A plain move without Shift outside `V` mode clears the range, just as a click does.
 
 **Mouse:** click to place the cursor · press and drag to select a range · shift-click to extend it · click a file to open it · the wheel scrolls the pane under the pointer. See [Mouse](#mouse).
+
+### Soft wrap
+
+Off by default, a line that is wider than the Diff pane is cut at the edge and ends in `…`. Press `z` (or set `diff.wrap = true`) to wrap it instead: the line continues on the next rows, under the code and not under the line numbers. Each continuation row shows a dim `↪` where the line numbers are (in the old column, the new column, or both, matching the line), repeats the `+` or `-` sign, and carries the same added or removed tint and cursor highlight; line numbers and the `›` cursor marker appear only on the first row. Syntax highlighting carries across the break, and a wide character (CJK, emoji), a character with its combining marks, or the spaces a tab expands to are never split, so a row can end a cell early. Thread and pending-suggestion blocks sit below the last row of their line.
+
+The cursor, a selected range, `j` `k`, `n` `p`, `c` and the mouse all work on whole lines: `j` moves one line, not one row, and clicking or dragging on any row of a wrapped line means that line. Scrolling, `PgUp` `PgDn`, `⌃U` `⌃D` and the wheel count screen rows. Resizing the terminal, or opening, closing or resizing the terminal pane, re-wraps the lines and keeps the cursor line and the top of the view. While wrap is on, the Diff pane's bottom border ends with `wrap`, and the toggle says `Wrap on` or `Wrap off`. The choice is remembered between runs with the rest of the layout (see [Remembered layout](#remembered-layout) in the configuration reference). The Files pane, the composer and the other screens are not affected.
 
 ## Terminal pane
 
@@ -280,7 +287,7 @@ Every mouse target is registered while drawing and resolved in `update`, so it b
 | Terminal pane | Click to focus it. With mouse reporting on in the child, clicks, drags and the wheel go to it; otherwise the wheel scrolls its history. Shift is never sent to the child. Drag its seam to resize, double-click to reset |
 | Any pane | Click empty space to focus it. The wheel scrolls the pane under the pointer, whichever is focused |
 | Diff: files | Click a file to open it |
-| Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from |
+| Diff: rows and thread blocks | Click to place the cursor; a block puts it on the line it hangs from. With soft wrap on, any row of a wrapped line means that line |
 | Diff: press and drag | Selects a range of lines, shown with the selection colour and a `▌` marker. Dragging past the top or bottom scrolls. `c` comments on the range |
 | Diff: shift-click | Extends the range from the cursor (or the range's anchor) to the line clicked |
 | Pending reviews list | Click a row to select it, click again to open it. The confirm's buttons answer it. A click outside closes the list |

@@ -1,6 +1,7 @@
 //! Small text helpers for the panes: word wrapping, markdown flattening and column joins.
 
 use ratatui::text::{Line, Span};
+use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub fn cells(s: &str) -> usize {
@@ -83,6 +84,97 @@ fn split_at_width(word: &str, width: usize) -> (String, String) {
         cut = word.chars().next().map_or(0, char::len_utf8);
     }
     (word[..cut].to_string(), word[cut..].to_string())
+}
+
+/// Walks `raw` (a source line, tabs not yet expanded) and calls `on_break` with the cell offset,
+/// in the tab-expanded text, at which each continuation row of a `width`-cell row begins.
+/// Breaks fall between grapheme clusters, so a wide character, an emoji sequence or a base
+/// letter with its combining marks never splits, and a tab's expansion moves to the next row as
+/// one unit (unless it is wider than the row, when it has to be cut).
+fn walk_wrap(raw: &str, tab_width: u8, width: usize, mut on_break: impl FnMut(usize)) {
+    let width = width.max(1);
+    let tab = usize::from(tab_width.max(1));
+    let (mut pos, mut row_start, mut col) = (0usize, 0usize, 0usize);
+    let mut place = |w: usize, pos: &mut usize, row_start: &mut usize| {
+        if w > 0 && *pos > *row_start && *pos - *row_start + w > width {
+            on_break(*pos);
+            *row_start = *pos;
+        }
+        *pos += w;
+    };
+    for g in raw.graphemes(true) {
+        if g == "\t" {
+            let n = tab - col % tab;
+            col += n;
+            if n > width {
+                for _ in 0..n {
+                    place(1, &mut pos, &mut row_start);
+                }
+            } else {
+                place(n, &mut pos, &mut row_start);
+            }
+        } else {
+            col += g.chars().count();
+            place(UnicodeWidthStr::width(g), &mut pos, &mut row_start);
+        }
+    }
+}
+
+/// The cell offsets where the continuation rows of `raw` start when it is wrapped to `width`
+/// cells; see [`walk_wrap`]. Empty when the line fits on one row.
+pub fn wrap_points(raw: &str, tab_width: u8, width: usize) -> Vec<usize> {
+    let mut points = Vec::new();
+    walk_wrap(raw, tab_width, width, |at| points.push(at));
+    points
+}
+
+/// The cell offset at which row `sub` of a wrapped line starts, given its [`wrap_points`].
+pub fn row_start(points: &[usize], sub: usize) -> usize {
+    sub.checked_sub(1)
+        .and_then(|i| points.get(i))
+        .copied()
+        .unwrap_or(0)
+}
+
+/// How many rows `raw` takes when wrapped to `width` cells (at least one).
+pub fn wrap_rows(raw: &str, tab_width: u8, width: usize) -> usize {
+    if raw.bytes().all(|b| (0x20..0x7f).contains(&b)) {
+        return raw.len().div_ceil(width.max(1)).max(1);
+    }
+    let mut rows = 1;
+    walk_wrap(raw, tab_width, width, |_| rows += 1);
+    rows
+}
+
+/// Cuts styled `spans` into rows at the cell offsets in `points`, keeping each piece's style so
+/// highlighting carries across a break. Always returns at least one row.
+pub fn split_spans(spans: Vec<Span<'static>>, points: &[usize]) -> Vec<Vec<Span<'static>>> {
+    let mut rows: Vec<Vec<Span<'static>>> = vec![Vec::new()];
+    let (mut pos, mut next) = (0usize, 0usize);
+    for span in spans {
+        let mut piece = String::new();
+        for g in span.content.graphemes(true) {
+            let w = UnicodeWidthStr::width(g);
+            if w > 0 && points.get(next).is_some_and(|&p| pos >= p) {
+                if !piece.is_empty() {
+                    let done = std::mem::take(&mut piece);
+                    rows.last_mut()
+                        .expect("rows starts non-empty")
+                        .push(Span::styled(done, span.style));
+                }
+                rows.push(Vec::new());
+                next += 1;
+            }
+            piece.push_str(g);
+            pos += w;
+        }
+        if !piece.is_empty() {
+            rows.last_mut()
+                .expect("rows starts non-empty")
+                .push(Span::styled(piece, span.style));
+        }
+    }
+    rows
 }
 
 /// Flattens the markdown a description is likely to use into plain, readable lines.
@@ -215,5 +307,119 @@ mod elide_tests {
         assert!(e.contains('…'));
         assert_eq!(elide_middle("abcdef", 1), "…");
         assert_eq!(elide_middle("abcdef", 0), "");
+    }
+}
+
+#[cfg(test)]
+mod wrap_tests {
+    use super::*;
+
+    fn rows(raw: &str, tab: u8, width: usize) -> Vec<String> {
+        let expanded = rb_diff::expand_tabs(raw, tab);
+        let points = wrap_points(raw, tab, width);
+        split_spans(vec![Span::raw(expanded)], &points)
+            .into_iter()
+            .map(|r| r.iter().map(|s| s.content.as_ref()).collect())
+            .collect()
+    }
+
+    #[test]
+    fn short_lines_stay_whole() {
+        assert_eq!(rows("hello", 4, 10), ["hello"]);
+        assert_eq!(rows("", 4, 10), [""]);
+        assert_eq!(wrap_rows("hello", 4, 5), 1);
+    }
+
+    #[test]
+    fn ascii_breaks_at_the_width_with_no_word_logic() {
+        assert_eq!(rows("abcdefghij", 4, 4), ["abcd", "efgh", "ij"]);
+        assert_eq!(wrap_rows("abcdefghij", 4, 4), 3);
+        assert_eq!(rows("aaaa bbbb", 4, 5), ["aaaa ", "bbbb"]);
+    }
+
+    #[test]
+    fn a_long_unbroken_token_is_cut_at_the_edge() {
+        let token = "x".repeat(250);
+        let out = rows(&token, 4, 80);
+        assert_eq!(
+            out.iter().map(|r| r.len()).collect::<Vec<_>>(),
+            [80, 80, 80, 10]
+        );
+    }
+
+    #[test]
+    fn wide_characters_never_split() {
+        assert_eq!(rows("日本語です", 4, 5), ["日本", "語で", "す"]);
+        assert_eq!(rows("a日本", 4, 2), ["a", "日", "本"]);
+        assert_eq!(wrap_rows("日本語です", 4, 5), 3);
+    }
+
+    #[test]
+    fn a_wide_character_wider_than_the_row_still_makes_progress() {
+        assert_eq!(rows("日日", 4, 1), ["日", "日"]);
+    }
+
+    #[test]
+    fn emoji_sequences_and_combining_marks_stay_together() {
+        let family = "👨\u{200d}👩\u{200d}👧";
+        let out = rows(&format!("ab{family}cd"), 4, 3);
+        assert!(
+            out.iter().any(|r| r == family || r.contains(family)),
+            "{out:?}"
+        );
+        for row in &out {
+            assert!(!row.starts_with('\u{200d}'));
+        }
+        let accent = "e\u{301}";
+        let out = rows(&accent.repeat(5), 4, 2);
+        assert_eq!(
+            out,
+            [accent.repeat(2), accent.repeat(2), accent.to_string()]
+        );
+    }
+
+    #[test]
+    fn a_tab_expansion_moves_whole_to_the_next_row() {
+        // "ab" then a tab to column 4 (two spaces): 2 + 2 > 3 so all of it moves down.
+        assert_eq!(rows("ab\tc", 4, 3), ["ab", "  c"]);
+        // A tab that cannot fit any row is cut at the edge.
+        assert_eq!(rows("\tx", 8, 3), ["   ", "   ", "  x"]);
+        assert_eq!(wrap_rows("ab\tc", 4, 3), 2);
+    }
+
+    #[test]
+    fn styles_follow_the_text_across_a_break() {
+        use ratatui::style::{Color, Style};
+        let red = Style::default().fg(Color::Red);
+        let blue = Style::default().fg(Color::Blue);
+        let out = split_spans(
+            vec![Span::styled("abc", red), Span::styled("def", blue)],
+            &wrap_points("abcdef", 4, 4),
+        );
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0][0].style, red);
+        assert_eq!(out[0][1].content, "d");
+        assert_eq!(out[0][1].style, blue);
+        assert_eq!(out[1][0].content, "ef");
+        assert_eq!(out[1][0].style, blue);
+    }
+
+    #[test]
+    fn row_counts_agree_with_the_points() {
+        for raw in [
+            "",
+            "plain",
+            "日本語 mixed ascii",
+            "a\tb\tc\td",
+            "e\u{301}e\u{301}x",
+        ] {
+            for width in 1..9 {
+                assert_eq!(
+                    wrap_rows(raw, 4, width),
+                    wrap_points(raw, 4, width).len() + 1,
+                    "{raw:?} at {width}"
+                );
+            }
+        }
     }
 }

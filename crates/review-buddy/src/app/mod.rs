@@ -108,6 +108,8 @@ pub enum Action {
     CyclePosition,
     /// Open the current change (or its diff page) in the browser.
     Open,
+    /// Turn soft wrap in the diff on or off.
+    ToggleWrap,
     /// Copy the current change's URL.
     Copy,
     ToggleHelp,
@@ -529,6 +531,8 @@ pub struct App {
     pub confirm_post_now: bool,
     /// Columns a tab expands to in diffs (`diff.tab_width`).
     pub tab_width: u8,
+    /// Soft-wrap long lines in the diff (`diff.wrap`, then `z`).
+    pub diff_wrap: bool,
     /// Still glyphs instead of a spinner (`ui.reduced_motion`).
     pub reduced_motion: bool,
     /// Where Sources and Detail sit (`ui.sources`, `ui.detail`), as changed this session.
@@ -585,6 +589,7 @@ impl App {
             last_click: None,
             confirm_post_now: true,
             tab_width: diffview::TAB_WIDTH,
+            diff_wrap: false,
             reduced_motion: false,
             layout: crate::ui::layout::Options::default(),
             session: None,
@@ -662,6 +667,7 @@ impl App {
             options: self.layout,
             background: self.background.session,
             terminal: (self.term.position, self.term.size),
+            wrap: self.diff_wrap,
         }
     }
 

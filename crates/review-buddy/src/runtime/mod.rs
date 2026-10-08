@@ -58,6 +58,8 @@ pub struct Settings {
     pub theme: String,
     pub depth: Option<rb_theme::ColourDepth>,
     pub tab_width: u8,
+    /// `diff.wrap`, then the remembered `z`.
+    pub diff_wrap: bool,
     pub confirm_post_now: bool,
     pub reduced_motion: bool,
     /// `ui.images`, with `REVIEW_BUDDY_IMAGES` already applied when it came from the config.
@@ -141,6 +143,7 @@ impl Settings {
             o.split.sources_width = l.sources_width.or(o.split.sources_width);
             self.terminal_place.0 = l.terminal_position.unwrap_or(self.terminal_place.0);
             self.terminal_place.1 = l.terminal_size.or(self.terminal_place.1);
+            self.diff_wrap = l.diff_wrap.unwrap_or(self.diff_wrap);
             if let (Some(mode), false) = (l.background, env_background) {
                 self.background = mode;
                 self.per_theme_background.clear();
@@ -160,6 +163,7 @@ impl Settings {
                 other => rb_theme::ColourDepth::from_str(other.as_str()).ok(),
             },
             tab_width: config.diff.tab_width.clamp(1, 16),
+            diff_wrap: config.diff.wrap,
             confirm_post_now: config.review.confirm_post_now,
             reduced_motion: config.ui.reduced_motion,
             images: config.ui.images,
@@ -200,6 +204,7 @@ impl Settings {
     pub fn apply(&self, app: &mut App) {
         app.confirm_post_now = self.confirm_post_now;
         app.tab_width = self.tab_width;
+        app.diff_wrap = self.diff_wrap;
         app.reduced_motion = self.reduced_motion;
         app.layout = self.layout;
         app.background.global = self.background;
@@ -933,6 +938,33 @@ mod tests {
             Left,
             "an env value that isn't one is ignored"
         );
+    }
+
+    #[test]
+    fn wrap_is_config_then_remembered() {
+        let wrap = |toml, session| launched(toml, session, &[]).diff_wrap;
+        assert!(!wrap("", None), "built-in default is off");
+        assert!(wrap("[diff]\nwrap = true", None), "config");
+        assert!(
+            !wrap(
+                "[diff]\nwrap = true",
+                remembered(|l| l.diff_wrap = Some(false))
+            ),
+            "remembered beats config"
+        );
+        assert!(wrap("", remembered(|l| l.diff_wrap = Some(true))));
+        assert!(
+            wrap("[diff]\nwrap = true", remembered(|_| ())),
+            "untouched keeps following the config"
+        );
+        let mut app = App::new(crate::app::AppConfig {
+            theme_id: "liminal-hq".into(),
+            depth: rb_theme::ColourDepth::TrueColour,
+            no_color: false,
+            size: (160, 40),
+        });
+        launched("[diff]\nwrap = true", None, &[]).apply(&mut app);
+        assert!(app.diff_wrap);
     }
 
     #[test]
