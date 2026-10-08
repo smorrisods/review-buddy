@@ -189,7 +189,13 @@ my_reviewed_sha = "5d02c97"
 i_commented = true
 has_new_activity = true
 mergeable = true
-body = "Muted text dipped under 4.5:1 on the light surface. This raises the floor and adds a regression test."
+body = """
+Muted text dipped under 4.5:1 on the light surface. This raises the floor and adds a regression test.
+
+![Muted text before the change](https://demo.invalid/screenshots/contrast-before.png)
+
+<img src="https://demo.invalid/screenshots/contrast-after.png" alt="Muted text after the change" width="240">
+"""
 
 [[change.reviewer]]
 login = "smorris"

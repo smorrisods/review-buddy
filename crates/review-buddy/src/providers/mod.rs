@@ -14,12 +14,14 @@ use rb_platform::{CommandRunner, SecretStore, SystemRunner};
 
 use crate::app::SourceFailure;
 use crate::config::{AuthSetting, Config};
+use crate::images::fetch::{Token, TokenStyle};
+use crate::images::hosts::ForgeHosts;
 
 mod live;
 pub mod probe;
 pub mod refresh;
 
-pub use live::Live;
+pub use live::{ImageSettings, Live};
 
 pub type EnvLookup = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
 
@@ -177,6 +179,43 @@ impl Factory {
             .entry(id)
             .ok_or_else(|| ProviderError::UnknownSource(id.to_string()))?;
         self.client_for(entry)
+    }
+
+    /// What fetching a picture for this source needs: the hosts that count as the forge's own
+    /// and, when a token can be found, the token (never sent anywhere else). Resolves the token
+    /// afresh; blocking. A missing token isn't an error: public images load without one.
+    pub fn image_access(&self, id: &SourceId) -> Option<(ForgeHosts, Option<Token>)> {
+        let entry = self.entry(id)?;
+        let hosts = ForgeHosts::for_source(&entry.source, entry.api_url.as_deref());
+        let getenv = &self.deps.getenv;
+        let token = if entry.source.kind == ForgeKind::GitLab {
+            let mut auth = rb_gitlab::Auth::new(&entry.source.host, entry.auth.clone());
+            if let Some(command) = &entry.token_command {
+                auth = auth.with_token_command(command);
+            }
+            auth.resolve(&*self.deps.runner, &*self.deps.store, |key| getenv(key))
+                .ok()
+                .map(|t| Token {
+                    secret: t.secret,
+                    style: if t.origin == rb_gitlab::TokenOrigin::GlabCli {
+                        TokenStyle::Bearer
+                    } else {
+                        TokenStyle::PrivateToken
+                    },
+                })
+        } else {
+            let mut auth = Auth::new(&entry.source.host, entry.auth.clone());
+            if let Some(command) = &entry.token_command {
+                auth = auth.with_token_command(command);
+            }
+            auth.resolve(&*self.deps.runner, &*self.deps.store, |key| getenv(key))
+                .ok()
+                .map(|t| Token {
+                    secret: t.secret,
+                    style: TokenStyle::Bearer,
+                })
+        };
+        Some((hosts, token))
     }
 
     fn entry(&self, id: &SourceId) -> Option<&Entry> {

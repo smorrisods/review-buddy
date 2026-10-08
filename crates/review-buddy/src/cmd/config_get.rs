@@ -60,6 +60,7 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     put("ui.queue_height", size(ui.queue_height));
     put("ui.jax", json!(ui.jax));
     put("ui.reduced_motion", json!(ui.reduced_motion));
+    put("ui.images", json!(ui.images.as_str()));
     put("ui.unicode", json!(ui.unicode));
     put("ui.colour_depth", json!(ui.colour_depth.as_str()));
     put("ui.background", json!(ui.background.as_str()));
@@ -169,6 +170,10 @@ fn origin_of(key: &str, files: &[(PathBuf, toml::Table)], env: &dyn Env) -> Stri
             .var("REVIEW_BUDDY_DETAIL_POSITION")
             .filter(|v| crate::config::parse_position(v).is_some())
             .map(|_| "$REVIEW_BUDDY_DETAIL_POSITION"),
+        "ui.images" => env
+            .var("REVIEW_BUDDY_IMAGES")
+            .filter(|v| crate::images::detect::mode_from_env(Some(v)).is_some())
+            .map(|_| "$REVIEW_BUDDY_IMAGES"),
         "ui.reduced_motion" => env
             .var("REVIEW_BUDDY_REDUCED_MOTION")
             .filter(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes"))

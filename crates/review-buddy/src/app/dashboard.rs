@@ -227,6 +227,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
         KeyCode::Char('G') | KeyCode::End => jump(app, true),
         KeyCode::Enter => activate(app),
         KeyCode::Char('d') => open_diff(app),
+        KeyCode::Char('i') if has_change => super::images::next(app),
         KeyCode::Char('s') => {
             super::show::open(app);
             Vec::new()

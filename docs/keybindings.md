@@ -31,7 +31,8 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `W` | Save the current Queue width and height to `ui.queue_width` and `ui.queue_height` in the config file. Needs a config file to write to; under `--demo` nothing is written |
 | `PgUp` / `PgDn` | Scroll the Detail pane when it has focus (so does `j` / `k`, the wheel and `g` / `G`) |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
-| `o` / `y` | Open the change in the browser / copy its URL. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
+| `o` / `y` | Open the change in the browser / copy its URL. While an image is selected (`i`), they open or copy that image's address instead. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |
+| `i` | Select the next image in the description, scrolling it into view: its caption gains `▸` and `(open with o)`. After the last, none is selected. Works with images off too, so `o` can still open one. See [Images in descriptions](SPEC.md#images-in-descriptions) |
 | `T` | Cycle theme |
 | `B` | Cycle the background: theme → yes → no, and remember it between runs (not on first run) |
 | `?` | Help overlay for the current screen (`esc` or `?` closes it) |

@@ -4,6 +4,7 @@
 
 mod env;
 mod fixtures;
+pub mod images;
 mod provider;
 mod time;
 

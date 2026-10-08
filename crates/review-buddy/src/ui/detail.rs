@@ -13,7 +13,9 @@ use rb_theme::Role;
 use super::dashboard::ci_look;
 use super::text::{columns, plain_markdown, spans_width, wrap};
 use super::{chrome::truncate, layout, style, HitMap};
-use crate::app::{queue, Action, App, ChangeInfo, Chip, Selected, Tab};
+use crate::app::{links, queue, Action, App, ChangeInfo, Chip, Selected, Tab};
+use crate::images::extract::{self, ImageRef, Segment};
+use crate::images::{self, Slot, View};
 
 /// Rows above the tab content: meta, stats, gap, chips, gap, tabs, rule (plus the title).
 const FIXED_ROWS: u16 = 7;
@@ -57,11 +59,8 @@ fn header_height(title: &[String], height: u16) -> u16 {
     title.len().max(1) as u16 + FIXED_ROWS - gaps
 }
 
-/// How far the tab content can scroll.
-pub fn max_scroll(app: &App) -> u16 {
-    let Some(change) = app.selected_change() else {
-        return 0;
-    };
+/// The rows the tab content has to scroll in, below the header.
+fn view_rows(app: &App, change: &ChangeSummary) -> (u16, u16) {
     let area = content_rect(app);
     let title = title_lines(
         change,
@@ -69,9 +68,36 @@ pub fn max_scroll(app: &App) -> u16 {
         max_title_lines(area.height),
     );
     let header = header_height(&title, area.height);
-    let view = area.height.saturating_sub(header);
-    let body = body_lines(app, change, area.width).len();
+    (area.width, area.height.saturating_sub(header))
+}
+
+/// How far the tab content can scroll.
+pub fn max_scroll(app: &App) -> u16 {
+    let Some(change) = app.selected_change() else {
+        return 0;
+    };
+    let (width, view) = view_rows(app, change);
+    let body = body_lines(app, change, width).len();
     u16::try_from(body).unwrap_or(u16::MAX).saturating_sub(view)
+}
+
+/// The scroll offset that brings the `index`th image of the description (and its caption) into
+/// view, or `None` when it is already there or isn't laid out.
+pub fn scroll_to_image(app: &App, index: usize) -> Option<u16> {
+    let change = app.selected_change()?;
+    let (width, view) = view_rows(app, change);
+    let body = body(app, change, width);
+    let (line, rows) = body.anchors.get(index).copied()?;
+    let now = usize::from(app.dashboard.detail_scroll.min(max_scroll(app)));
+    let view = usize::from(view);
+    let want = if line < now {
+        line
+    } else if line + rows > now + view {
+        (line + rows).saturating_sub(view).min(line)
+    } else {
+        return None;
+    };
+    u16::try_from(want).ok()
 }
 
 /// The detail pane's contents inside `area` (the bordered pane's rectangle).
@@ -189,10 +215,11 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
     }
     y += 1;
 
-    let body = body_lines(app, change, content.width);
+    let body = body(app, change, content.width);
     let view = content.bottom().saturating_sub(y);
     let skip = usize::from(app.dashboard.detail_scroll.min(max_scroll(app)));
     for (i, line) in body
+        .lines
         .into_iter()
         .skip(skip)
         .take(usize::from(view))
@@ -202,6 +229,15 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
             Paragraph::new(line),
             Rect::new(content.x, y + i as u16, content.width, 1),
         );
+    }
+    let pictures = Rect::new(content.x, y, content.width, view);
+    for slot in &body.slots {
+        let top = slot.line as i64 - skip as i64;
+        if top >= i64::from(view) || top + i64::from(slot.rows) <= 0 {
+            continue;
+        }
+        let top = i16::try_from(top).unwrap_or(i16::MIN);
+        app.images.render(frame, pictures, slot, top);
     }
 }
 
@@ -321,45 +357,54 @@ fn placeholder(app: &App, change: &ChangeSummary) -> Vec<Line<'static>> {
     }
 }
 
+/// The tab's lines, plus where pictures go in them.
+pub struct Body {
+    pub lines: Vec<Line<'static>>,
+    /// Blocks of blank lines that hold a drawn picture.
+    pub slots: Vec<Slot>,
+    /// For each image in the description, its first line and the rows it takes with its caption.
+    pub anchors: Vec<(usize, usize)>,
+}
+
+impl From<Vec<Line<'static>>> for Body {
+    fn from(lines: Vec<Line<'static>>) -> Self {
+        Self {
+            lines,
+            slots: Vec::new(),
+            anchors: Vec::new(),
+        }
+    }
+}
+
 pub fn body_lines(app: &App, change: &ChangeSummary, width: u16) -> Vec<Line<'static>> {
+    body(app, change, width).lines
+}
+
+pub fn body(app: &App, change: &ChangeSummary, width: u16) -> Body {
     let info = app.state.details.get(&change.id);
     match app.dashboard.tab {
         Tab::Overview => overview(app, change, info, width),
-        Tab::Files => files(app, change),
+        Tab::Files => files(app, change).into(),
         Tab::Checks => match info {
-            Some(info) => checks(app, info),
-            None => placeholder(app, change),
+            Some(info) => checks(app, info).into(),
+            None => placeholder(app, change).into(),
         },
         Tab::Conversation => match info {
-            Some(info) => conversation(app, info),
-            None => placeholder(app, change),
+            Some(info) => conversation(app, info).into(),
+            None => placeholder(app, change).into(),
         },
     }
 }
 
-fn overview(
-    app: &App,
-    change: &ChangeSummary,
-    info: Option<&ChangeInfo>,
-    width: u16,
-) -> Vec<Line<'static>> {
+fn overview(app: &App, change: &ChangeSummary, info: Option<&ChangeInfo>, width: u16) -> Body {
     let palette = &app.palette;
     let Some(info) = info else {
-        return placeholder(app, change);
+        return placeholder(app, change).into();
     };
     let mut out = Vec::new();
-    let text = plain_markdown(&info.body);
-    let wrapped = wrap(&text, usize::from(width));
-    let cut = wrapped.len() > EXCERPT_LINES;
-    for line in wrapped.iter().take(EXCERPT_LINES) {
-        out.push(Line::styled(line.clone(), style::fg(palette, Role::Text)));
-    }
-    if cut {
-        out.push(muted(app, "…"));
-    }
-    if wrapped.is_empty() {
-        out.push(muted(app, "No description."));
-    }
+    let mut slots = Vec::new();
+    let mut anchors = Vec::new();
+    description(app, change, info, width, &mut out, &mut slots, &mut anchors);
     out.push(Line::raw(""));
 
     let reviewers = reviewer_lines(app, change);
@@ -374,13 +419,137 @@ fn overview(
     out.push(Line::raw(""));
 
     out.push(heading(app, "Latest comment"));
-    out.extend(latest_comment(app, info, width));
+    out.extend(latest_comment(app, change, info, width));
     out.push(Line::raw(""));
     out.push(Line::from(vec![
         Span::styled("Your review  ", style::fg(palette, Role::TextSecondary)),
         Span::styled(my_review_text(change), style::fg(palette, Role::Text)),
     ]));
-    out
+    Body {
+        lines: out,
+        slots,
+        anchors,
+    }
+}
+
+/// The description: its first few lines of text, with each image where it sits in the text.
+fn description(
+    app: &App,
+    change: &ChangeSummary,
+    info: &ChangeInfo,
+    width: u16,
+    out: &mut Vec<Line<'static>>,
+    slots: &mut Vec<Slot>,
+    anchors: &mut Vec<(usize, usize)>,
+) {
+    let palette = &app.palette;
+    let base = links::change_url(app, &change.id).and_then(|u| url::Url::parse(&u).ok());
+    let segments = extract::segments(&info.body, base.as_ref());
+    if segments.is_empty() {
+        out.push(muted(app, "No description."));
+        return;
+    }
+    let mut budget = EXCERPT_LINES;
+    let mut cut = false;
+    let mut index = 0;
+    for segment in segments {
+        match segment {
+            Segment::Text(text) => {
+                for line in wrap(&plain_markdown(&text), usize::from(width)) {
+                    if budget == 0 {
+                        if !cut {
+                            out.push(muted(app, "…"));
+                            cut = true;
+                        }
+                        break;
+                    }
+                    out.push(Line::styled(line, style::fg(palette, Role::Text)));
+                    budget -= 1;
+                }
+            }
+            Segment::Image(image) => {
+                if index < images::MAX_IMAGES {
+                    let start = out.len();
+                    picture(app, change, &image, index, width, out, slots);
+                    anchors.push((start, out.len() - start));
+                }
+                index += 1;
+            }
+        }
+    }
+    if index > images::MAX_IMAGES {
+        let more = index - images::MAX_IMAGES;
+        let noun = if more == 1 { "image" } else { "images" };
+        out.push(muted(
+            app,
+            format!("+{more} more {noun}. o opens the change to see them."),
+        ));
+    }
+}
+
+/// One image in the description: a block for the picture and its caption when it can be drawn,
+/// otherwise a note that says why not.
+fn picture(
+    app: &App,
+    change: &ChangeSummary,
+    image: &ImageRef,
+    index: usize,
+    width: u16,
+    out: &mut Vec<Line<'static>>,
+    slots: &mut Vec<Slot>,
+) {
+    let focused = matches!(&app.images.focus, Some((id, at)) if *id == change.id && *at == index);
+    let label = image.label();
+    let note = |detail: Option<String>| {
+        let mut text = format!("▣ image: {label}");
+        if let Some(detail) = detail {
+            text.push_str(" – ");
+            text.push_str(&detail);
+        }
+        text
+    };
+    let text = match app.images.view(image) {
+        View::Ready(img) => {
+            let (cols, rows) = images::layout::fit(
+                (img.width(), img.height()),
+                (image.width, image.height),
+                app.images.font(),
+                width,
+            );
+            if let Some(url) = &image.url {
+                slots.push(Slot {
+                    line: out.len(),
+                    cols,
+                    rows,
+                    url: url.to_string(),
+                });
+                out.extend((0..rows).map(|_| Line::raw("")));
+            }
+            note(None)
+        }
+        View::Loading if image.url.is_some() => note(Some("loading…".into())),
+        View::Failed(failure) => note(Some(failure.reason())),
+        View::Off | View::Loading => {
+            let why = if image.url.is_none() {
+                "not a web address"
+            } else {
+                "can't be drawn in this terminal"
+            };
+            note(Some(why.into()))
+        }
+    };
+    let (marker, text, role) = if focused {
+        ("▸ ", format!("{text} (open with o)"), Role::Accent)
+    } else {
+        ("", text, Role::Muted)
+    };
+    let mut style = style::fg(&app.palette, role);
+    if focused {
+        style = style.add_modifier(Modifier::BOLD);
+    }
+    for line in wrap(&format!("{marker}{text}"), usize::from(width)) {
+        out.push(Line::styled(line, style));
+    }
 }
 
 fn my_review_text(change: &ChangeSummary) -> &'static str {
@@ -478,7 +647,12 @@ fn check_summary_lines(app: &App, info: &ChangeInfo) -> Vec<Line<'static>> {
     out
 }
 
-fn latest_comment(app: &App, info: &ChangeInfo, width: u16) -> Vec<Line<'static>> {
+fn latest_comment(
+    app: &App,
+    change: &ChangeSummary,
+    info: &ChangeInfo,
+    width: u16,
+) -> Vec<Line<'static>> {
     let palette = &app.palette;
     let now = app.state.now.unwrap_or(rb_core::Timestamp(0));
     let latest = info
@@ -505,7 +679,9 @@ fn latest_comment(app: &App, info: &ChangeInfo, width: u16) -> Vec<Line<'static>
             style::fg(palette, Role::Muted),
         ),
     ])];
-    for line in wrap(&plain_markdown(&comment.body), usize::from(width))
+    let base = links::change_url(app, &change.id).and_then(|u| url::Url::parse(&u).ok());
+    let text = extract::flatten(&comment.body, base.as_ref());
+    for line in wrap(&plain_markdown(&text), usize::from(width))
         .into_iter()
         .take(3)
     {
