@@ -141,11 +141,13 @@ Platform code lives behind `cfg` in `rb-paths` and `rb-platform`.
 
 Adapted from jira-tui's. Tagging and publishing are a deliberate, separate step after the milestone review; everything above the tag line can be done and re-run safely.
 
+**Status.** v0.1.0 was tagged on `main` and published on 2026-10-08 with 15 assets: four Linux builds (amd64 and arm64, each a static musl binary and tarball, plus glibc `.deb` and `.rpm`), a macOS universal2 binary and tarball, Windows amd64 and arm64 `.exe` and `.zip`, and one `SHA256SUMS`. Sections 1 to 4 are done. Section 5 is only partly done: what was and wasn't checked is listed under it, so nobody has to guess.
+
 ### 1. Pre-flight (on a clean `main`)
 
-- [ ] The milestone's issues are closed and the docs match behaviour (`README.md`, `docs/`, `CHANGELOG.md`)
-- [ ] CI is green on `main` (format, clippy and test across the three feature sets, `test-platforms`, `scripts`, audit)
-- [ ] The same checks pass locally:
+- [ ] The milestone's issues are closed and the docs match behaviour (`README.md`, `docs/`, `CHANGELOG.md`). Not true at the tag: the docs still described an untagged project, and #29 stayed open for the docs sync that fixes it
+- [x] CI is green on `main` (format, clippy and test across the three feature sets, `test-platforms`, `scripts`, audit)
+- [x] The same checks pass locally:
 
 ```sh
 cargo fmt --all -- --check
@@ -158,31 +160,31 @@ cargo nextest run --workspace --all-features
 bash scripts/tests/run.sh                          # the release and install script tests
 ```
 
-- [ ] `cargo tree -p rb-github | grep -i -E 'openssl|native-tls'` prints nothing, so the musl build stays static
-- [ ] `target/release/review-buddy --demo` opens and `review-buddy --version` prints the version you expect
+- [x] `cargo tree -p rb-github | grep -i -E 'openssl|native-tls'` prints nothing, so the musl build stays static
+- [x] `target/release/review-buddy --demo` opens and `review-buddy --version` prints the version you expect
 
 ### 2. Version bump
 
-- [ ] `scripts/prepare-release-version.sh --version 0.1.0 --dry-run`, then without `--dry-run` in a clean tree. It creates `chore/release-v0.1.0` and bumps the workspace `version` and our `Cargo.lock` stanza
-- [ ] In `CHANGELOG.md`, rename `Unreleased` to `0.1.0 - <date>` and add a fresh empty `Unreleased` heading above it, in the same branch
-- [ ] Open the PR (label `release`), wait for green CI and merge it with a merge commit
+- [x] `scripts/prepare-release-version.sh --version 0.1.0 --dry-run`, then without `--dry-run` in a clean tree. It creates `chore/release-v0.1.0` and bumps the workspace `version` and our `Cargo.lock` stanza
+- [x] In `CHANGELOG.md`, rename `Unreleased` to `0.1.0 - <date>` and add a fresh empty `Unreleased` heading above it, in the same branch
+- [x] Open the PR (label `release`), wait for green CI and merge it with a merge commit
 
 ### 3. Dry run from `main`
 
-- [ ] Actions → Release → Run workflow on `main` with `dry_run` on (the default) and `release_tag` empty, or `gh workflow run release.yml --ref main -f dry_run=true`
-- [ ] Every job is green. Download the workflow artefacts and check `SHA256SUMS` against them: `sha256sum -c SHA256SUMS --ignore-missing`
-- [ ] Spot-check one musl tarball: `tar tzf` shows the layout under [Artefacts](#artefacts), including the man page, the three completions, `themes/`, `config.example.toml` and `LICENSE`
+- [x] Actions → Release → Run workflow on `main` with `dry_run` on (the default) and `release_tag` empty, or `gh workflow run release.yml --ref main -f dry_run=true`
+- [x] Every job is green. Download the workflow artefacts and check `SHA256SUMS` against them: `sha256sum -c SHA256SUMS --ignore-missing`
+- [x] Spot-check one musl tarball: `tar tzf` shows the layout under [Artefacts](#artefacts), including the man page, the three completions, `themes/`, `config.example.toml` and `LICENSE`
 
 ### 4. Tag (only after the milestone review)
 
-- [ ] On `main`: `git tag v0.1.0 && git push origin v0.1.0`. The tag must match the `Cargo.toml` version and the commit must be on `main`
-- [ ] The `Release` workflow publishes the release with generated notes and one `SHA256SUMS`
+- [x] On `main`: `git tag v0.1.0 && git push origin v0.1.0`. The tag must match the `Cargo.toml` version and the commit must be on `main`
+- [x] The `Release` workflow publishes the release with generated notes and one `SHA256SUMS`
 
 ### 5. Post-release verification
 
-- [ ] **Checksums:** download the assets and `SHA256SUMS`, then `sha256sum -c SHA256SUMS`
-- [ ] **Static check (Linux, both arches):** extract each musl tarball. `file bin/review-buddy` names the right architecture, and `ldd bin/review-buddy` says `not a dynamic executable` (or `statically linked`)
-- [ ] **`--version`:** `review-buddy --version` prints `review-buddy 0.1.0` from each Linux tarball, the macOS binary and the Windows `.exe`
+- [x] **Checksums:** download the assets and `SHA256SUMS`, then `sha256sum -c SHA256SUMS`. Checked over all 14 artefacts of the dry run that the release then published; not re-run against the downloaded release assets
+- [ ] **Static check (Linux, both arches):** extract each musl tarball. The tarball layout was checked with `tar tzf` on one tarball (section 3), but `file` and `ldd` were not run. `file bin/review-buddy` names the right architecture, and `ldd bin/review-buddy` says `not a dynamic executable` (or `statically linked`)
+- [ ] **`--version`:** `review-buddy --version` prints `review-buddy 0.1.0` from each Linux tarball, the macOS binary and the Windows `.exe`. Checked only from the linux-amd64 musl binary, where it prints 0.1.0
 - [ ] **Linux install script:** `curl -fsSL https://raw.githubusercontent.com/smorrisods/review-buddy/main/scripts/install.sh | sh`, then `review-buddy --version`, `man review-buddy`, `review-buddy config paths` and `review-buddy --demo`. Run it once with `--prefix "$HOME/.local"` and once with `--uninstall` afterwards
 - [ ] **Linux packages:** install the `.deb` in a Debian or Ubuntu 22.04+ container and the `.rpm` in a Fedora or RHEL 9+ container on both arches, and run `review-buddy --version` and `review-buddy --demo`
 - [ ] **macOS:** the install script on one Mac; `lipo -archs $(which review-buddy)` shows `x86_64 arm64`, `codesign -dv` shows an ad-hoc signature, and `--demo` runs natively and under Rosetta. Check the Gatekeeper behaviour for a browser download is as documented
@@ -190,10 +192,12 @@ bash scripts/tests/run.sh                          # the release and install scr
 - [ ] **Completions:** `review-buddy completion bash | head` works, and the installed bash, zsh and fish completions load
 - [ ] The release notes look right; edit the generated notes if needed
 
+**Not yet verified:** `install.sh` and `install.ps1` runs (including `--uninstall`), the `.deb` and `.rpm` installs, anything on macOS (the universal binary, the ad-hoc signature, Rosetta, Gatekeeper behaviour for a browser download) and anything on Windows (both `.exe` files, the installer, SmartScreen behaviour, Windows Terminal and conhost), the arm64 builds' `file` and `ldd` output, and the installed shell completions. The first person with that hardware should run the matching item above and tick it here.
+
 ### Known gaps for v0.1.0
 
-- **PowerShell in CI:** nothing in CI lints or runs `install.ps1` or `build-release-archive.ps1` yet. A `pwsh` check is pending, because adding it means editing `.github/workflows/`, which needs a token with workflow scope. Until it lands, the Windows steps above are the only check
-- **The real publish path is untested:** dry runs build and verify everything, but the step that creates the GitHub Release (`publish-release` with `dry_run` off) has not run. The first real tag is its first test, so keep an eye on it, and remember it refuses to modify a release that is already published
+- **PowerShell is parsed in CI, not run:** CI parses `scripts/*.ps1` (the `scripts` job when `pwsh` is installed, and the `scripts-windows` job on `windows-latest`, added in #155), so a syntax error shows up on a pull request. Nothing runs `install.ps1` or `build-release-archive.ps1` yet, so the Windows steps above are still the only check that they work
+- **The real publish path has run once:** pushing the `v0.1.0` tag ran the `Release` workflow with `dry_run` off and created the GitHub Release with all 15 assets. It refuses to modify a release that is already published
 - **glibc has only `.deb` and `.rpm`:** there is no glibc tarball. The musl tarballs are static and run on any Linux. `install.sh --libc glibc` asks for a glibc tarball that isn't published, so it will fail until one is added
 - **No signing or notarisation:** macOS is ad-hoc signed only and Windows is unsigned, as described under [Running unsigned builds](#running-unsigned-builds)
 - **Bundled themes aren't read from disk yet:** archives and packages install `themes/` where the `$XDG_DATA_DIRS` search path will find it, but 0.1 only loads the built-in themes
