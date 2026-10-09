@@ -168,6 +168,9 @@ async fn threads_map_discussions_and_drafts() {
     let draft = &threads[3];
     assert!(draft.pending && draft.comments[0].pending);
     assert_eq!((draft.path.as_deref(), draft.line), (Some("b.rs"), Some(9)));
+
+    // The shared definition: every comment people wrote, drafts included, no system notes.
+    assert_eq!(rb_core::thread_comment_count(&threads), 6);
 }
 
 #[tokio::test]

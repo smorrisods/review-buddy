@@ -120,7 +120,7 @@ fn the_demo_shows_every_state_in_words_and_glyphs() {
         "✓1",
         "✕1",
         "○1",
-        "¶6",
+        "¶3",
         "2 open",
         "CI running",
         "CI failing",
@@ -162,7 +162,7 @@ fn a_narrow_queue_drops_pieces_from_the_right_and_keeps_the_reason() {
     // border cells, so each piece needs the Queue this wide: 62, 76, 88 and 101.
     let all = [
         ("GH review-buddy#209", "✓1"),
-        ("GH review-buddy#214", "¶6"),
+        ("GH review-buddy#214", "¶3"),
         ("GH review-buddy#214", "CI running"),
         ("GH review-buddy#214", "+32"),
     ];
@@ -213,11 +213,11 @@ fn columns_line_up_down_the_list() {
         line[..byte].chars().count()
     };
     assert_eq!(
-        col("¶6"),
         col("¶3"),
+        col("¶2"),
         "the comment column is the same on every row"
     );
-    assert_eq!(col("¶6"), col("¶5"));
+    assert_eq!(col("¶3"), col("¶5"));
 }
 
 #[test]

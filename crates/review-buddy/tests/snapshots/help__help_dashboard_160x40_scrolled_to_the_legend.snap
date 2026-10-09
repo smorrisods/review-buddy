@@ -1,0 +1,44 @@
+---
+source: crates/review-buddy/tests/help.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                                                                                       Liminal HQ
+╭ sources ───────────────╮╭ queue ──────────────────╭ Keys · Queue ────────────────────────────────────────╮──────────────────────────────────────────────── ⟩ ╮
+│▌ ● All               7 ││  Waiting on you · 2     │  z/Z  fold one / all threads                         │en menus                                           │
+│    every source        ││▌ ◐ Add a menu bar and ke│  c    reply to the thread; ⏎ jumps to its line       │                                                   │
+│  ● liminal-hq        3 ││▌ GH review-buddy#214 · a│  v    copy mode on the comments                      │                                                   │
+│    github.com          ││  ● Raise muted text cont│                                                      │                                                   │
+│  ● smorris           1 ││  GH review-buddy#209 · j│View                                                  │Comment  ⏎ Diff  m Merge                           │
+│    github.com          ││                         │  p    close / reopen the detail pane                 │                                                   │
+│  ● platform          2 ││  Worth a look · 2       │  S    sources: auto / left / top                     │ Conversation 3                                    │
+│    gitlab.platform.ex… ││  ✕ Cache pipeline status│  P    rotate panes: list left → top → right → bottom │────────────────────────────────────────────────── │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · │  < >  shrink / grow the focused pane (or drag a seam)│d a Menu type that tracks the selected item.       │
+│    gitlab.com          ││  ● Tidy zsh startup     │  =    reset that split to automatic                  │                                                   │
+│                        ││  GH dotfiles#31 · smorri│  W    save pane sizes to config                      │lect_prev move the highlight                       │
+│  Show  s to change     ││                         │  t    terminal pane: open, or focus it               │ion for the highlighted item                       │
+│  [x] reviewing         ││  Can wait · 1           │                                                      │, so it picks up the active theme                  │
+│  [x] assigned          ││  · Clarify the install s│Change                                                │                                                   │
+│  [x] authored          ││  GL notes!12 · kai · app│  s /  pick projects in show filters                  │         Checks                                    │
+│  [ ] drafts            ││                         │                                                      │         ● 2 passing  ◐ 1 running                  │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates│General                                               │         ○ 1 neutral  ↷ 1 skipped  ⊘ 1 cancelled   │
+│                        ││                         │  ?    help                                           │                                                   │
+│                        ││  ── That's everything.  │  ,    settings                                       │                                                   │
+│                        ││  7 in this view.        │  T    theme                                          │                                                   │
+│                        ││                         │  B    background: theme / yes / no                   │oin. Is the intermediate Vec doing anything for    │
+│                        ││                         │  M    mouse on / off (off: terminal selects)         │                                                   │
+│                        ││                         │  q    quit                                           │                                                   │
+│                        ││                         │  ⌃Z   suspend                                        │                                                   │
+│                        ││                         │                                                      │                                                   │
+│                        ││                         │Queue marks                                           │                                                   │
+│                        ││                         │  ✓N          approvals from other people             │                                                   │
+│                        ││                         │  ✕N          reviewers asking for changes            │                                                   │
+│                        ││                         │  ○N          reviewers asked, not done yet           │                                                   │
+│                        ││                         │  ○           approval needed, nobody asked yet       │                                                   │
+│                        ││                         │  ¶N          comments on the change                  │                                                   │
+│                        ││                         │  ¶N+         at least N; exact once you open it      │                                                   │
+│                        ││                         │  N open      unresolved review threads               │                                                   │
+│                        ││                         │  CI running  checks are still running                │                                                   │
+│                        ││                         │  CI failing  a check has failed                      │                                                   │
+│                        ││                         │  +N −M       lines added / removed (or N files)      │                                                   │
+╰────────────────────────╯╰─────────────────────────╰ esc close · j/k scroll · 19–54 of 54 ────────────────╯───────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

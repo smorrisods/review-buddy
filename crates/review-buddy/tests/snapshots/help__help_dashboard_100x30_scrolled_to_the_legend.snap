@@ -1,0 +1,34 @@
+---
+source: crates/review-buddy/tests/help.rs
+expression: text(&render(&mut a))
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+  1 ● All 7   2 ● limi╭ Keys · Queue ────────────────────────────────────────╮om 1
+╭ queue ──────────────│  W    save pane sizes to config                      │─────────────────────╮
+│  Waiting on you · 2 │  t    terminal pane: open, or focus it               │                     │
+│▌ ◐ Add a menu bar an│                                                      │                  2h │
+│▌ GH review-buddy#214│Change                                                │ 2 open   CI running │
+│  ● Raise muted text │  s /  pick projects in show filters                  │                  5h │
+│  GH review-buddy#209│                                                      │                     │
+│                     │General                                               │                     │
+│  Worth a look · 2   │  ?    help                                           │                     │
+│  ✕ Cache pipeline st│  ,    settings                                       │                  7h │
+│  GL flow!1182 · priy│  T    theme                                          │          CI failing │
+│  ● Tidy zsh startup │  B    background: theme / yes / no                   │                  1d │
+│  GH dotfiles#31 · sm│  M    mouse on / off (off: terminal selects)         │ 2 open              │
+│                     │  q    quit                                           │                     │
+╰─────────────────────│  ⌃Z   suspend                                        │─────────────────────╯
+╭ liminal-hq/review-bu│                                                      │────────────────── ▼ ╮
+│ Add a menu bar and k│Queue marks                                           │                     │
+│ ada wants ada/menus │  ✓N          approvals from other people             │                     │
+│ +32 −1 · 3 files · o│  ✕N          reviewers asking for changes            │                     │
+│ a Approve  x Request│  ○N          reviewers asked, not done yet           │                     │
+│  Overview   Files 3 │  ○           approval needed, nobody asked yet       │                     │
+│ ────────────────────│  ¶N          comments on the change                  │──────────────────── │
+│ Adds a menu bar alon│  ¶N+         at least N; exact once you open it      │                     │
+│                     │  N open      unresolved review threads               │                     │
+│ • Menu::select_next │  CI running  checks are still running                │                     │
+│ • Menu::activate ret│  CI failing  a check has failed                      │                     │
+│ • The bar itself is │  +N −M       lines added / removed (or N files)      │                     │
+╰─────────────────────╰ esc close · j/k scroll · 29–54 of 54 ────────────────╯─────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

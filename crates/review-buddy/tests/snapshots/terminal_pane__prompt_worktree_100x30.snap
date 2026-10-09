@@ -7,7 +7,7 @@ expression: "prompt_frame((100, 30))"
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Waiting on you · 2                                                                              │
 │▌ ◐ Add a menu bar and keyboard-driven menus                                                   2h │
-│▌ GH review-buddy#214 · ada · review requested                           ¶6   2 open   CI running │
+│▌ GH review-buddy#214 · ada · review requested                           ¶3   2 open   CI running │
 │  ● Raise ╭ Open a terminal for liminal-hq/review-buddy#214 ───────────────────────────╮       5h │
 │  GH revie│ Create a separate checkout of acme/widgets#214 at                          │          │
 │          │ /state/review-buddy/worktrees/demo-gh/acme__widgets/214.                   │          │

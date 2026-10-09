@@ -7,7 +7,7 @@ expression: "demo_frame(\"liminal-hq\", (100, 30))"
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Waiting on you · 2                                                                              │
 │  ◐ Add a menu bar and keyboard-driven menus                                                   2h │
-│  GH review-buddy#214 · ada · review requested                           ¶6   2 open   CI running │
+│  GH review-buddy#214 · ada · review requested                           ¶3   2 open   CI running │
 │  ● Raise muted text contrast in the light theme                                               5h │
 │  GH review-buddy#209 · jo · approved by you                ✓1  ✕1       ¶3                       │
 │                                                                                                  │

@@ -367,8 +367,9 @@ fn tabs(app: &App, change: &ChangeSummary) -> Vec<(Vec<Span<'static>>, Option<Ac
         .collect()
 }
 
+/// The same number the queue row's `¶N` shows once the threads have loaded.
 fn conversation_count(info: &ChangeInfo) -> usize {
-    info.threads.iter().map(|t| t.comments.len()).sum()
+    rb_core::thread_comment_count(&info.threads) as usize
 }
 
 fn muted(app: &App, text: impl Into<String>) -> Line<'static> {

@@ -87,7 +87,8 @@
                   "login": "octo"
                 }
               }
-            ]
+            ],
+            "totalCount": 2
           },
           "commits": {
             "nodes": [
@@ -101,8 +102,8 @@
             ]
           },
           "reviewDecision": "REVIEW_REQUIRED",
-          "totalCommentsCount": 7,
           "reviewThreads": {
+            "totalCount": 3,
             "nodes": [
               {
                 "isResolved": false

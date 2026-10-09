@@ -30,5 +30,5 @@ expression: text(&render(&mut a))
 │ • Menu::select_next │  p    close / reopen the detail pane                 │                     │
 │ • Menu::activate ret│  S    sources: auto / left / top                     │                     │
 │ • The bar itself is │  P    rotate panes: list left → top → right → bottom │                     │
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 42 ▼ ───────────────╯─────────────────────╯
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 54 ▼ ───────────────╯─────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

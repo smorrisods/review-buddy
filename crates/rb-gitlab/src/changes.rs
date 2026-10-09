@@ -419,7 +419,10 @@ fn signals(node: &MrNode, me: &str, reviewers: &[Reviewer]) -> Signals {
         Some(false) => OpenThreads::Any,
         None => OpenThreads::Unknown,
     };
-    Signals {
+    // `user_notes_count` counts notes people wrote (general notes, diff notes and thread
+    // replies) and leaves out system notes such as "merged" or "added a commit". It cannot see
+    // your pending draft notes, which the loaded Conversation tab adds.
+    let mut signals = Signals {
         comments: node.user_notes_count.unwrap_or(0),
         open_threads,
         ..Signals::from_reviewers(
@@ -427,7 +430,9 @@ fn signals(node: &MrNode, me: &str, reviewers: &[Reviewer]) -> Signals {
             me,
             node.detailed_merge_status.as_deref() == Some("not_approved"),
         )
-    }
+    };
+    signals.reconcile();
+    signals
 }
 
 fn summarize(
@@ -823,6 +828,21 @@ mod tests {
             .unwrap()
             .extend(json.as_object().unwrap().clone());
         serde_json::from_value(base).unwrap()
+    }
+
+    #[test]
+    fn open_discussions_imply_at_least_one_comment() {
+        let n = node(serde_json::json!({
+            "user_notes_count": 0, "blocking_discussions_resolved": false
+        }));
+        let s = signals(&n, "octo", &[]);
+        assert_eq!((s.comments, s.open_threads), (1, OpenThreads::Any));
+        let n = node(serde_json::json!({
+            "user_notes_count": 4, "blocking_discussions_resolved": true
+        }));
+        let s = signals(&n, "octo", &[]);
+        assert_eq!((s.comments, s.open_threads), (4, OpenThreads::Count(0)));
+        assert!(!s.comments_floor);
     }
 
     #[test]

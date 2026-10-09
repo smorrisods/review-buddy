@@ -61,6 +61,21 @@ The action chips in the detail pane (`a Approve`, `x Request changes`, `c Commen
 
 **Remembered layout.** `P`, `S`, `p`, `B` and the dragged or nudged sizes are remembered between runs in `session.toml` in the state directory (see `docs/configuration.md#remembered-layout`). Precedence at launch, strongest first: a key you press this session, the `REVIEW_BUDDY_*` environment variable, the remembered file, `config.toml`, the built-in default. `ui.remember_layout = false` turns it off, and `review-buddy config reset-layout` forgets it. Demo mode never reads or writes it.
 
+### Queue marks
+
+The `?` overlay on the queue ends with this table, so it matches the app. The marks sit at the right of each row's second line when the Queue is wide enough (close Detail with `p` to see them). See [the status cluster](SPEC.md#queue-status-cluster).
+
+| Mark | Meaning |
+|---|---|
+| `✓N` | Approvals from other people |
+| `✕N` | Reviewers asking for changes |
+| `○N` | Reviewers asked and not done yet |
+| `○` | An approval is required and nobody was asked |
+| `¶N` | Comments on the change: general comments and every comment in review threads (`¶N+` is at least N: the list can't see every thread's comments, so it is exact once you select the change) |
+| `N open` | Unresolved review threads |
+| `CI running`, `CI failing` | Checks still running; a check has failed |
+| `+N −M` | Lines added and removed (`N files` when the forge's list has no line counts) |
+
 ## Diff
 
 Open with `⏎` or `d` from the dashboard. A header row above the panes names the change under review (forge badge, `owner/repo#number`, source and title), so `o` and `y` visibly act on that change.
