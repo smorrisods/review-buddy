@@ -7,7 +7,7 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
-use rb_core::{ChangeSummary, CiState, ReviewerState};
+use rb_core::{ChangeSummary, CiState, ReviewerState, Thread};
 use rb_theme::Role;
 
 use super::dashboard::ci_look;
@@ -220,28 +220,48 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
 
     let body = body(app, change, content.width);
     let view = content.bottom().saturating_sub(y);
-    let skip = usize::from(app.dashboard.detail_scroll.min(max_scroll(app)));
+    let most = u16::try_from(body.lines.len())
+        .unwrap_or(u16::MAX)
+        .saturating_sub(view);
+    let skip = usize::from(app.dashboard.detail_scroll.min(most));
+    let visible = |line: usize| line >= skip && line < skip + usize::from(view);
     for (i, line) in body
         .lines
-        .into_iter()
+        .iter()
         .skip(skip)
         .take(usize::from(view))
         .enumerate()
     {
         frame.render_widget(
-            Paragraph::new(line),
+            Paragraph::new(line.clone()),
             Rect::new(content.x, y + i as u16, content.width, 1),
         );
     }
+    for (index, &(start, _)) in body.threads.iter().enumerate() {
+        if visible(start) {
+            let row = y + (start - skip) as u16;
+            hits.push(
+                Rect::new(content.x, row, content.width, 1),
+                Action::ToggleThread(index),
+            );
+        }
+    }
     for (key, rows) in &body.texts {
+        if !rows.iter().any(|r| visible(r.line)) {
+            continue;
+        }
         let mut region = TextRegion::new(*key, Rect::new(content.x, y, content.width, view));
-        for (ord, (line, text, join)) in rows.iter().enumerate() {
-            if *line >= skip && *line < skip + usize::from(view) {
-                let at = (content.x, y + (*line - skip) as u16);
-                region
-                    .rows
-                    .push(TextRow::new(ord, at, content.width, text.clone()).joined(*join));
-            }
+        for (ord, row) in rows.iter().enumerate() {
+            let at_y = if visible(row.line) {
+                y + (row.line - skip) as u16
+            } else {
+                TextRow::OFF_SCREEN
+            };
+            let at = (content.x + row.indent, at_y);
+            let span = content.width.saturating_sub(row.indent);
+            region
+                .rows
+                .push(TextRow::new(ord, at, span, row.text.clone()).joined(row.join));
         }
         hits.texts.push(region);
     }
@@ -372,8 +392,26 @@ fn placeholder(app: &App, change: &ChangeSummary) -> Vec<Line<'static>> {
     }
 }
 
-/// One selectable row of the body: its line, its text, and how it joins the row before.
-pub type BodyText = (usize, String, Join);
+/// One selectable row of the body: its line, its text, how it joins the row before, and how
+/// many cells in from the pane's left edge the text starts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BodyText {
+    pub line: usize,
+    pub text: String,
+    pub join: Join,
+    pub indent: u16,
+}
+
+impl BodyText {
+    fn new(line: usize, text: String, join: Join) -> Self {
+        Self {
+            line,
+            text,
+            join,
+            indent: 0,
+        }
+    }
+}
 
 /// The tab's lines, plus where pictures go in them.
 pub struct Body {
@@ -384,6 +422,8 @@ pub struct Body {
     pub anchors: Vec<(usize, usize)>,
     /// The selectable text: for each region, its rows as `(line, text, join)`.
     pub texts: Vec<(RegionKey, Vec<BodyText>)>,
+    /// On the Conversation tab, each thread's first line (its header) and the rows it takes.
+    pub threads: Vec<(usize, usize)>,
 }
 
 impl From<Vec<Line<'static>>> for Body {
@@ -393,6 +433,7 @@ impl From<Vec<Line<'static>>> for Body {
             slots: Vec::new(),
             anchors: Vec::new(),
             texts: Vec::new(),
+            threads: Vec::new(),
         }
     }
 }
@@ -411,7 +452,7 @@ pub fn body(app: &App, change: &ChangeSummary, width: u16) -> Body {
             None => placeholder(app, change).into(),
         },
         Tab::Conversation => match info {
-            Some(info) => conversation(app, info).into(),
+            Some(info) => conversation(app, change, info, width),
             None => placeholder(app, change).into(),
         },
     }
@@ -451,7 +492,10 @@ fn overview(app: &App, change: &ChangeSummary, info: Option<&ChangeInfo>, width:
     let (comment, said) = latest_comment(app, change, info, width);
     let said: Vec<_> = said
         .into_iter()
-        .map(|(line, text, join)| (out.len() + line, text, join))
+        .map(|mut row| {
+            row.line += out.len();
+            row
+        })
         .collect();
     out.extend(comment);
     out.push(Line::raw(""));
@@ -466,6 +510,7 @@ fn overview(app: &App, change: &ChangeSummary, info: Option<&ChangeInfo>, width:
         slots,
         anchors,
         texts,
+        threads: Vec::new(),
     }
 }
 
@@ -503,7 +548,7 @@ fn description(
                         }
                         break;
                     }
-                    described.push((out.len(), line.clone(), join));
+                    described.push(BodyText::new(out.len(), line.clone(), join));
                     out.push(Line::styled(line, style::fg(palette, Role::Text)));
                     budget -= 1;
                 }
@@ -727,7 +772,7 @@ fn latest_comment(
         .into_iter()
         .take(3)
     {
-        said.push((out.len(), line.clone(), join));
+        said.push(BodyText::new(out.len(), line.clone(), join));
         out.push(Line::styled(line, style::fg(palette, Role::Text)));
     }
     (out, said)
@@ -773,39 +818,225 @@ fn checks(app: &App, info: &ChangeInfo) -> Vec<Line<'static>> {
         .collect()
 }
 
-fn conversation(app: &App, info: &ChangeInfo) -> Vec<Line<'static>> {
+/// Where a thread sits: `menus.rs:43`, `menubar.rs:5–7`, or `general`.
+fn place_of(thread: &Thread) -> String {
+    match (&thread.path, thread.line) {
+        (Some(path), Some(line)) => {
+            let name = path.rsplit('/').next().unwrap_or(path);
+            match thread.start_line {
+                Some(start) if start != line => format!("{name}:{start}–{line}"),
+                _ => format!("{name}:{line}"),
+            }
+        }
+        _ => "general".to_string(),
+    }
+}
+
+/// Whether the thread shows only its first line: resolved threads start folded, and `z` flips
+/// either kind.
+pub fn thread_folded(app: &App, thread: &Thread) -> bool {
+    thread.resolved != app.dashboard.flipped.contains(&thread.id)
+}
+
+fn thread_labels(thread: &Thread) -> Vec<&'static str> {
+    let mut labels = Vec::new();
+    if thread.resolved {
+        labels.push("resolved");
+    }
+    if thread.outdated {
+        labels.push("outdated");
+    }
+    if thread.pending {
+        labels.push("pending");
+    }
+    labels
+}
+
+fn conversation(app: &App, change: &ChangeSummary, info: &ChangeInfo, width: u16) -> Body {
     let palette = &app.palette;
     let comments = conversation_count(info);
     if comments == 0 {
-        return vec![muted(app, "No comments yet.")];
+        return vec![muted(app, "No comments yet.")].into();
     }
-    let mut out = vec![
-        Line::styled(
-            format!(
-                "{} in {}",
-                plural(comments, "comment"),
-                plural(info.threads.len(), "thread")
-            ),
-            style::fg(palette, Role::Text),
+    let now = app.state.now.unwrap_or(rb_core::Timestamp(0));
+    let base = links::change_url(app, &change.id).and_then(|u| url::Url::parse(&u).ok());
+    let width = usize::from(width);
+    let cursor = app
+        .dashboard
+        .thread
+        .min(info.threads.len().saturating_sub(1));
+    let focused = app.dashboard.focus == crate::app::Pane::Detail;
+
+    let mut out = vec![Line::styled(
+        format!(
+            "{} in {}",
+            plural(comments, "comment"),
+            plural(info.threads.len(), "thread")
         ),
-        Line::raw(""),
-    ];
-    for thread in &info.threads {
-        let place = match (&thread.path, thread.line) {
-            (Some(path), Some(line)) => {
-                format!("{}:{line}", path.rsplit('/').next().unwrap_or(path))
-            }
-            _ => "general".to_string(),
-        };
-        let authors: Vec<&str> = thread.comments.iter().map(|c| c.author.as_str()).collect();
-        out.push(Line::from(vec![
-            Span::styled(format!("{place}  "), style::fg(palette, Role::Cyan)),
-            Span::styled(authors.join(", "), style::fg(palette, Role::Interactive)),
-        ]));
-    }
+        style::fg(palette, Role::Text),
+    )];
+    let keys = if focused {
+        "n and N move between threads · z folds one · Z folds all · c replies · ⏎ opens the line in the diff"
+    } else {
+        "Focus this pane (l or tab) to move between threads, fold them, reply or jump to the diff."
+    };
+    out.extend(wrap(keys, width).into_iter().map(|l| muted(app, l)));
     out.push(Line::raw(""));
-    out.push(hint(app, "⏎", "to jump to the line in the diff"));
-    out
+
+    let mut texts: Vec<(RegionKey, Vec<BodyText>)> = Vec::new();
+    let mut spans = Vec::new();
+    let mut flat = 0u32;
+    for (index, thread) in info.threads.iter().enumerate() {
+        let start = out.len();
+        let folded = thread_folded(app, thread);
+        let here = index == cursor;
+        let mut labels: Vec<String> = thread_labels(thread)
+            .iter()
+            .map(|l| l.to_string())
+            .collect();
+        labels.push(plural(thread.comments.len(), "comment"));
+        if folded {
+            labels.push(if here {
+                "folded, z expands".to_string()
+            } else {
+                "folded".to_string()
+            });
+        }
+        let mut place_style = style::fg(palette, Role::Cyan);
+        let mut rest_style = style::fg(palette, Role::Muted);
+        let mut mark_style = style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD);
+        if here {
+            let on = style::bg(palette, Role::Selection);
+            place_style = place_style.patch(on).add_modifier(Modifier::BOLD);
+            rest_style = rest_style.patch(on);
+            mark_style = mark_style.patch(on);
+        }
+        let head = format!(" · {}", labels.join(" · "));
+        let room = width.saturating_sub(4);
+        let place = truncate(&place_of(thread), room);
+        let used = 4 + unicode_width::UnicodeWidthStr::width(place.as_str());
+        out.push(Line::from(vec![
+            Span::styled(if here { "› " } else { "  " }, mark_style),
+            Span::styled(if folded { "▸ " } else { "▾ " }, mark_style),
+            Span::styled(place, place_style),
+            Span::styled(truncate(&head, width.saturating_sub(used)), rest_style),
+        ]));
+
+        if folded {
+            if let Some(first) = thread.comments.first() {
+                let line = format!(
+                    "{}: {}",
+                    first.author,
+                    plain_markdown(&crate::app::comments::first_words(&first.body, 120))
+                );
+                out.push(muted(
+                    app,
+                    format!(
+                        "{INDENT_PAD}{}",
+                        truncate(&line, width.saturating_sub(INDENT))
+                    ),
+                ));
+            }
+        } else {
+            for (n, comment) in thread.comments.iter().enumerate() {
+                if n > 0 {
+                    out.push(Line::raw(""));
+                }
+                let age = queue::age(now, comment.created_at);
+                let when = if age == "now" {
+                    "just now".to_string()
+                } else {
+                    format!("{age} ago")
+                };
+                let mut meta = vec![
+                    Span::raw("  "),
+                    Span::styled(
+                        comment.author.clone(),
+                        style::fg(palette, Role::Interactive),
+                    ),
+                    Span::styled(format!(" · {when}"), style::fg(palette, Role::Muted)),
+                ];
+                if comment.pending {
+                    meta.push(Span::styled(" · pending", style::fg(palette, Role::Muted)));
+                }
+                out.push(Line::from(meta));
+                let text = extract::flatten(&comment.body, base.as_ref());
+                let mut said = Vec::new();
+                let room = width.saturating_sub(INDENT);
+                for (line, join) in wrap_marked(&plain_markdown(&text), room) {
+                    let mut row = BodyText::new(out.len(), line.clone(), join);
+                    row.indent = INDENT as u16;
+                    said.push(row);
+                    out.push(Line::styled(
+                        format!("{INDENT_PAD}{line}"),
+                        style::fg(palette, Role::Text),
+                    ));
+                }
+                if !said.is_empty() {
+                    texts.push((RegionKey::Comment(flat), said));
+                }
+                flat += 1;
+            }
+        }
+        if folded {
+            flat += thread.comments.len() as u32;
+        }
+        spans.push((start, out.len() - start));
+        out.push(Line::raw(""));
+    }
+    out.pop();
+    Body {
+        lines: out,
+        slots: Vec::new(),
+        anchors: Vec::new(),
+        texts,
+        threads: spans,
+    }
+}
+
+const INDENT: usize = 4;
+const INDENT_PAD: &str = "    ";
+
+/// The scroll offset that brings the `index`th thread of the Conversation into view, or `None`
+/// when it already is.
+pub fn scroll_to_thread(app: &App, index: usize) -> Option<u16> {
+    let change = app.selected_change()?;
+    let (width, view) = view_rows(app, change);
+    let body = body(app, change, width);
+    let (line, rows) = body.threads.get(index).copied()?;
+    let now = usize::from(app.dashboard.detail_scroll.min(max_scroll(app)));
+    let view = usize::from(view);
+    let want = if line < now {
+        if index == 0 {
+            0
+        } else {
+            line
+        }
+    } else if line + rows > now + view {
+        (line + rows).saturating_sub(view).min(line)
+    } else {
+        return None;
+    };
+    u16::try_from(want).ok()
+}
+
+/// The scroll offset that brings row `ord` of the text region `key` into view, or `None` when
+/// it already is (or isn't laid out).
+pub fn scroll_to_text(app: &App, key: RegionKey, ord: usize) -> Option<u16> {
+    let change = app.selected_change()?;
+    let (width, view) = view_rows(app, change);
+    let body = body(app, change, width);
+    let line = body.texts.iter().find(|(k, _)| *k == key)?.1.get(ord)?.line;
+    let now = usize::from(app.dashboard.detail_scroll.min(max_scroll(app)));
+    let view = usize::from(view);
+    let want = if line < now {
+        line
+    } else if line >= now + view {
+        line + 1 - view
+    } else {
+        return None;
+    };
+    u16::try_from(want).ok()
 }
 
 fn hint(app: &App, key: &str, label: &str) -> Line<'static> {

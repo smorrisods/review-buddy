@@ -312,6 +312,50 @@ author = "smorris"
 created_ago = "1d"
 body = "It does. I'll note that in the file."
 
+[[change.thread]]
+id = "demo-thread-zsh-cache"
+side = "new"
+
+[[change.thread.comment]]
+id = "demo-comment-zsh-1"
+author = "ada"
+created_ago = "10h"
+body = """
+Looks good overall. Before you merge, a few things worth thinking about with the cached dump:
+
+- The dump goes stale when `fpath` changes. Installing a new completion won't show up until the file is rebuilt, which is the sort of bug that is very hard to spot a month from now.
+- Two shells starting at once can both decide to rebuild it. Writing to a temporary file and renaming it keeps a half-written dump from ever being read.
+- `compinit -C` skips the security check on the files it finds, so a world-writable directory on `fpath` would go unnoticed. Is that a trade you want to make on every machine this file lands on?
+
+One way to cover the first two:
+
+```zsh
+if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
+  compinit -d "$tmp" && mv "$tmp" "${ZDOTDIR:-$HOME}/.zcompdump"
+else
+  compinit -C
+fi
+```
+
+That rebuilds once a day and uses the cache the rest of the time. I would still add a way to force a rebuild by hand, such as a `rehash-completions` function, so nobody has to remember where the file lives.
+"""
+
+[[change.thread.comment]]
+id = "demo-comment-zsh-2"
+author = "smorris"
+created_ago = "4h"
+body = "Good call on the rename. I'll take the once-a-day rebuild and add the helper; the `fpath` check I'd rather leave for a follow-up."
+
+[[change.thread]]
+id = "demo-thread-zsh-helper"
+side = "new"
+
+[[change.thread.comment]]
+id = "demo-comment-zsh-3"
+author = "jo"
+created_ago = "2h"
+body = "Would a `rehash-completions` helper live in this file or in the functions directory?"
+
 # Can wait: you approved this exact commit, so nothing needs you.
 [[change]]
 source = "gitlab-com"

@@ -29,6 +29,10 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `<` / `>` | Shrink or grow the focused pane by 2 columns (or rows, when stacked): the Queue/Detail split for those panes, or the Sources width when Sources is focused (or when Detail is closed). Remembered between runs; `[` and `]` stay on the Detail tabs |
 | `=` | Reset the split next to the focused pane to its automatic size |
 | `W` | Save the current Queue width and height to `ui.queue_width` and `ui.queue_height` in the config file. Needs a config file to write to; under `--demo` nothing is written |
+| `n` / `N` | On the Conversation tab with the Detail pane focused: move to the next / previous thread (marked `›`), scrolling it into view |
+| `z` / `Z` | On the Conversation tab with the Detail pane focused: fold or unfold the thread under the cursor / fold every thread, or unfold them all when all are folded. Resolved threads start folded. Clicking a thread's header does the same as `z` |
+| `c` / `⏎` | On the Conversation tab with the Detail pane focused: reply to the thread under the cursor (opens the diff on its line with the reply box ready) / jump to its line in the diff. A general comment has no line, so `⏎` says so and `c` still replies |
+| `v` | On the Conversation tab with the Detail pane focused: start copy mode on the cursor thread's comments (`hjkl`, arrows, `w` `b`, `0` `$`, `tab` for the next comment on screen, `y`, `esc`) |
 | `PgUp` / `PgDn` | Scroll the Detail pane when it has focus (so does `j` / `k`, the wheel and `g` / `G`) |
 | `r` | Refresh now (live sources; also refreshes when the terminal regains focus, if `refresh.on_focus` is on) |
 | `o` / `y` | Open the change in the browser / copy its URL. With text selected in the Detail pane, `y` copies that text instead (see [Copying text](#copying-text)). While an image is selected (`i`), they open or copy that image's address instead. Under `--demo` nothing is opened: the footer says `Would open <url> (demo)` |

@@ -1,0 +1,155 @@
+---
+source: crates/review-buddy/tests/conversation.rs
+expression: plain_dump(&mut app)
+---
+ review buddy  ·  demo · 4 sources · 7 changes                                           Liminal HQ
+  1 ● All 7   2 ● liminal-hq 3   3 ● smorris 1   4 ● platform 2   5 ● gitlab.com 1
+╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
+│  Waiting on you · 2                                                                              │
+│  ◐ Add a menu bar and keyboard-driven menus                                                   2h │
+│  GH review-buddy#214 · ada · review requested                                                    │
+│  ● Raise muted text contrast in the light theme                                               5h │
+│  GH review-buddy#209 · jo · approved by you                                                      │
+│                                                                                                  │
+│  Worth a look · 2                                                                                │
+│  ✕ Cache pipeline status lookups                                                              7h │
+│  GL flow!1182 · priya · you're mentioned                                                         │
+│▌ ● Tidy zsh startup                                                                           1d │
+│▌ GH dotfiles#31 · smorris · yours                                                                │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭ smorris/dotfiles#31 ────────────────────────────────────────────────────────────────────────── ▼ ╮
+│ Tidy zsh startup                                                                                 │
+│ smorris wants tidy-zsh → main                                                                    │
+│ +1 −1 · 1 file · opened 4d ago                                                                   │
+│ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                                         │
+│  Overview   Files 1   Checks 1   Conversation 5                                                  │
+│ ──────────────────────────────────────────────────────────────────────────────────────────────── │
+│ 5 comments in 3 threads                                                                          │
+│ n and N move between threads · z folds one · Z folds all · c replies · ⏎ opens the line in the   │
+│ diff                                                                                             │
+│                                                                                                  │
+│ › ▸ .zshrc:9 · resolved · 2 comments · folded, z expands                                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+ ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
+
+-- modifiers --
+0:1 B "review buddy"
+0:13 D "  ·  demo · 4 sources · 7 changes"
+0:88 D " Liminal HQ"
+1:1 BR " 1 ● All 7"
+1:13 BD " 2"
+1:16 D "● liminal-hq 3"
+1:32 BD " 3"
+1:35 D "● smorris 1"
+1:48 BD " 4"
+1:51 D "● platform 2"
+1:65 BD " 5"
+1:68 D "● gitlab.com 1"
+2:0 D "╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮"
+3:0 D "│"
+3:3 B "Waiting on you"
+3:17 D " · 2"
+3:99 D "│"
+4:0 D "│"
+4:96 D "2h │"
+5:0 D "│"
+5:22 D " ·"
+5:28 D " · review requested"
+5:99 D "│"
+6:0 D "│"
+6:96 D "5h │"
+7:0 D "│"
+7:22 D " ·"
+7:27 D " · approved by you"
+7:99 D "│"
+8:0 D "│"
+8:99 D "│"
+9:0 D "│"
+9:3 B "Worth a look"
+9:15 D " · 2"
+9:99 D "│"
+10:0 D "│"
+10:3 B "✕"
+10:96 D "7h │"
+11:0 D "│"
+11:15 D " ·"
+11:23 D " · you're mentioned"
+11:99 D "│"
+12:0 D "│"
+12:1 DR "▌"
+12:3 R "●"
+12:5 BR "Tidy zsh startup"
+12:21 R ""
+12:96 DR "1d"
+12:99 D "│"
+13:0 D "│"
+13:1 DR "▌"
+13:3 R "GH dotfiles#31"
+13:17 DR " ·"
+13:20 R "smorris"
+13:27 DR " · yours"
+13:35 R ""
+13:99 D "│"
+14:0 D "│"
+14:99 D "│"
+15:0 D "╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
+16:0 B "╭ smorris/dotfiles#31 ──────────────────────────────────────────────────────────────────────────"
+16:96 BD " ▼"
+16:99 B "╮"
+17:0 B "│"
+17:2 B "Tidy zsh startup"
+17:99 B "│"
+18:0 B "│"
+18:9 D " wants"
+18:24 D " →"
+18:99 B "│"
+19:0 B "│"
+19:5 B "−1"
+19:7 D " · 1 file · opened 4d ago"
+19:99 B "│"
+20:0 B "│"
+20:2 B "a"
+20:13 B "x"
+20:32 B "c"
+20:43 B "⏎"
+20:51 B "m"
+20:99 B "│"
+21:0 B "│"
+21:2 D " Overview"
+21:13 D " Files 1"
+21:23 D " Checks 1"
+21:34 BR " Conversation 5"
+21:99 B "│"
+22:0 B "│"
+22:2 D "────────────────────────────────────────────────────────────────────────────────────────────────"
+22:99 B "│"
+23:0 B "│"
+23:99 B "│"
+24:0 B "│"
+24:2 D "n and N move between threads · z folds one · Z folds all · c replies · ⏎ opens the line in the"
+24:99 B "│"
+25:0 B "│"
+25:2 D "diff"
+25:99 B "│"
+26:0 B "│"
+26:99 B "│"
+27:0 B "│"
+27:2 BR "› ▸ .zshrc:9"
+27:14 DR " · resolved · 2 comments · folded, z expands"
+27:99 B "│"
+28:0 B "╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
+29:1 B "⏎"
+29:2 D " diff"
+29:9 B "o"
+29:10 D " open"
+29:17 B "y"
+29:18 D " copy"
+29:25 B "s"
+29:26 D " show filters"
+29:41 B "?"
+29:42 D " help"
+29:49 B "T"
+29:50 D " theme"
+29:58 B "q"
+29:59 D " quit"

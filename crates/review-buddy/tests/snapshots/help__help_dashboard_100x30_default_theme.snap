@@ -20,15 +20,15 @@ expression: text(&render(&mut a))
 ╰─────────────────────│  s    show filters                                   │─────────────────────╯
 ╭ liminal-hq/review-bu│  D    pending reviews: your saved drafts             │────────────────── ▼ ╮
 │ Add a menu bar and k│                                                      │                     │
-│ ada wants ada/menus │View                                                  │                     │
-│ +32 −1 · 3 files · o│  p    close / reopen the detail pane                 │                     │
-│ a Approve  x Request│  S    sources: auto / left / top                     │                     │
-│  Overview   Files 3 │  P    rotate panes: list left → top → right → bottom │                     │
-│ ────────────────────│  < >  shrink / grow the focused pane (or drag a seam)│──────────────────── │
-│ Adds a menu bar alon│  =    reset that split to automatic                  │                     │
-│                     │  W    save pane sizes to config                      │                     │
-│ • Menu::select_next │  t    terminal pane: open, or focus it               │                     │
-│ • Menu::activate ret│                                                      │                     │
-│ • The bar itself is │Change                                                │                     │
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 36 ▼ ───────────────╯─────────────────────╯
+│ ada wants ada/menus │Conversation                                          │                     │
+│ +32 −1 · 3 files · o│  n/N  next / previous thread (Conversation tab)      │                     │
+│ a Approve  x Request│  z/Z  fold one / all threads                         │                     │
+│  Overview   Files 3 │  c    reply to the thread; ⏎ jumps to its line       │                     │
+│ ────────────────────│  v    copy mode on the comments                      │──────────────────── │
+│ Adds a menu bar alon│                                                      │                     │
+│                     │View                                                  │                     │
+│ • Menu::select_next │  p    close / reopen the detail pane                 │                     │
+│ • Menu::activate ret│  S    sources: auto / left / top                     │                     │
+│ • The bar itself is │  P    rotate panes: list left → top → right → bottom │                     │
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 42 ▼ ───────────────╯─────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit
