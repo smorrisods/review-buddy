@@ -4,6 +4,8 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-09
+
 ### Added
 
 - **See at a glance whether a change still needs you.** Each queue row's second line now carries a status cluster, right-aligned in fixed columns: other people's review state (`✓2` approvals, `✕1` changes requested, `○1` reviewers who haven't answered), comments (`¶6`, then `2 open` unresolved threads), `CI running` or `CI failing` in words, and size (`+120 −8`). Your own review is still the reason text, and `CI failing` isn't repeated beside a reason that already says it. Glyphs and numbers carry the meaning, so it reads the same under `NO_COLOR`. When the Queue is narrow it drops size, then CI, comments and review state, and never pushes the reason, title or age off, so beside Detail at the default width there is usually no room: widen the Queue or close Detail with `p`. GitHub gets the counts from the list query (`comments`, `reviewThreads` with each thread's comment count, `reviewDecision`); GitLab's list has the comment count and whether any thread is open, with approvals, line counts and the open-thread number filling in when the details load. `ui.queue_status` picks the pieces or turns the cluster off.
@@ -70,6 +72,7 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 - **Footer hints stay ahead of the refreshed time.** The passive `refreshed HH:MM` is the first thing to drop when space is short.
 - **v0.1.0 review polish.** Wording, spacing and CI-state output across the TUI and command line.
 
-[Unreleased]: https://github.com/smorrisods/review-buddy/compare/v0.1.1...main
+[Unreleased]: https://github.com/smorrisods/review-buddy/compare/v0.1.2...main
+[0.1.2]: https://github.com/smorrisods/review-buddy/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/smorrisods/review-buddy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smorrisods/review-buddy/releases/tag/v0.1.0

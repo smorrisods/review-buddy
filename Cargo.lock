@@ -3092,7 +3092,7 @@ dependencies = [
 
 [[package]]
 name = "rb-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "serde",
@@ -3103,7 +3103,7 @@ dependencies = [
 
 [[package]]
 name = "rb-diff"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proptest",
  "rb-core",
@@ -3113,7 +3113,7 @@ dependencies = [
 
 [[package]]
 name = "rb-github"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "rb-core",
@@ -3129,7 +3129,7 @@ dependencies = [
 
 [[package]]
 name = "rb-gitlab"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "futures-util",
@@ -3147,14 +3147,14 @@ dependencies = [
 
 [[package]]
 name = "rb-paths"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "tempfile",
 ]
 
 [[package]]
 name = "rb-platform"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "base64 0.22.1",
  "keyring",
@@ -3163,7 +3163,7 @@ dependencies = [
 
 [[package]]
 name = "rb-store"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "rb-core",
  "rusqlite",
@@ -3175,7 +3175,7 @@ dependencies = [
 
 [[package]]
 name = "rb-term"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "alacritty_terminal",
  "crossterm",
@@ -3187,7 +3187,7 @@ dependencies = [
 
 [[package]]
 name = "rb-theme"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "toml",
@@ -3297,7 +3297,7 @@ dependencies = [
 
 [[package]]
 name = "review-buddy"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
