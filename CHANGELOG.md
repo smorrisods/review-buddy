@@ -11,7 +11,7 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ### Fixed
 
-- **The queue's comment count includes review-thread comments.** A row could read `¶0   5 open`, which can't be true. On GitHub `¶N` is now the general comments plus every comment in the change's review threads (the first 50 threads; past that the count reads `¶N+`), and on both forges it is never lower than the number of open threads. The Conversation tab and `¶N` share one definition: every comment people wrote, without system notes or review summary bodies. The GitHub list query reads a comment count under each thread, so a page now costs about 29 rate-limit points instead of about 4.
+- **The queue's comment count includes review-thread comments.** A row could read `¶0   5 open`, which can't be true. `¶N` now counts every comment people wrote on the change (general comments plus comments inside review threads, without system notes or review summary bodies) and is never lower than the open thread count. On GitHub the list only has the general comments and the number of threads, so a row with review threads reads `¶N+` (at least N, counting each thread once), and a row with only general comments reads an exact `¶N`. Selecting a change loads its threads and the row shows the exact total, the same number as the Conversation tab. The GitHub list query costs the same as before (about 4 rate-limit points a page). GitLab's count was already exact.
 
 ## [0.1.1] - 2026-10-08
 

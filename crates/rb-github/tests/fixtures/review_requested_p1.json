@@ -106,22 +106,13 @@
             "totalCount": 3,
             "nodes": [
               {
-                "isResolved": false,
-                "comments": {
-                  "totalCount": 2
-                }
+                "isResolved": false
               },
               {
-                "isResolved": true,
-                "comments": {
-                  "totalCount": 1
-                }
+                "isResolved": true
               },
               {
-                "isResolved": false,
-                "comments": {
-                  "totalCount": 4
-                }
+                "isResolved": false
               }
             ]
           }

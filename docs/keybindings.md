@@ -71,7 +71,7 @@ The `?` overlay on the queue ends with this table, so it matches the app. The ma
 | `✕N` | Reviewers asking for changes |
 | `○N` | Reviewers asked and not done yet |
 | `○` | An approval is required and nobody was asked |
-| `¶N` | Comments on the change: general comments and every comment in review threads (`¶N+`: at least N) |
+| `¶N` | Comments on the change: general comments and every comment in review threads (`¶N+` is at least N: the list can't see every thread's comments, so it is exact once you select the change) |
 | `N open` | Unresolved review threads |
 | `CI running`, `CI failing` | Checks still running; a check has failed |
 | `+N −M` | Lines added and removed (`N files` when the forge's list has no line counts) |

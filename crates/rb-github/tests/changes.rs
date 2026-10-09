@@ -172,16 +172,17 @@ async fn maps_review_state_comment_counts_and_open_threads() {
     let a = by(101).signals;
     assert_eq!((a.approvals, a.changes_requested, a.outstanding), (1, 0, 1));
     assert!(a.review_required);
-    // Two general comments plus 2 + 1 + 4 in three threads, two of them open.
-    assert_eq!(a.comments, 9);
-    assert!(!a.comments_floor);
+    // Two general comments plus three threads (one comment each at the least), two of them open.
+    assert_eq!(a.comments, 5);
+    assert!(a.comments_floor, "per-thread totals aren't in the list");
     assert_eq!(a.open_threads, OpenThreads::Count(2));
 
     let draft = by(103).signals;
     assert_eq!((draft.approvals, draft.changes_requested), (0, 1));
     assert!(!draft.review_required);
-    // Only general comments: five of them and no threads.
+    // Only general comments: five of them and no threads, so the count is exact.
     assert_eq!(draft.comments, 5);
+    assert!(!draft.comments_floor);
     assert_eq!(draft.open_threads, OpenThreads::Count(0));
 
     // Your own approval is `my_review`, not one of other people's approvals; no thread data reads
@@ -196,7 +197,7 @@ async fn maps_review_state_comment_counts_and_open_threads() {
 }
 
 #[tokio::test]
-async fn past_fifty_threads_the_comment_count_reads_as_a_floor() {
+async fn threads_make_the_comment_count_a_floor_even_past_fifty() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/graphql"))
@@ -208,9 +209,9 @@ async fn past_fifty_threads_the_comment_count_reads_as_a_floor() {
         .await
         .unwrap();
     let s = page.items[0].signals;
-    // 4 general + 10 open threads of 3 + 40 resolved threads of 2 + 10 threads not fetched (one each).
-    assert_eq!(s.comments, 4 + 30 + 80 + 10);
-    assert!(s.comments_floor, "60 threads exist and 50 were read");
+    // 4 general comments plus 60 threads, of which 50 were read and 10 are open.
+    assert_eq!(s.comments, 4 + 60);
+    assert!(s.comments_floor, "at least one comment per thread");
     assert_eq!(s.open_threads, OpenThreads::Count(10));
     assert!(s.comments >= 10);
 }
@@ -231,7 +232,7 @@ async fn the_list_query_asks_for_the_cluster_fields() {
     for field in [
         "reviewDecision",
         "comments(last: 30) { totalCount",
-        "reviewThreads(first: 50) { totalCount nodes { isResolved comments(first: 1) { totalCount } } }",
+        "reviewThreads(first: 50) { totalCount nodes { isResolved } }",
     ] {
         assert!(query.contains(field), "{field} is in the list query");
     }

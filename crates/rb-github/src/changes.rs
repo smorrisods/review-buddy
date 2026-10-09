@@ -42,7 +42,7 @@ fragment PrFields on PullRequest {
   } } }
   latestReviews(first: 30) { nodes { author { login } state commit { oid } } }
   reviewDecision
-  reviewThreads(first: 50) { totalCount nodes { isResolved comments(first: 1) { totalCount } } }
+  reviewThreads(first: 50) { totalCount nodes { isResolved } }
   comments(last: 30) { totalCount nodes { author { login } } }
   commitCount: commits { totalCount }
   commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
@@ -219,17 +219,9 @@ impl ThreadList {
 }
 
 #[derive(Deserialize)]
-struct Count {
-    #[serde(rename = "totalCount")]
-    total_count: u32,
-}
-
-#[derive(Deserialize)]
 struct ThreadNode {
     #[serde(rename = "isResolved")]
     is_resolved: bool,
-    /// Every comment in the thread; a thread always holds at least its first.
-    comments: Option<Count>,
 }
 
 #[derive(Deserialize)]
@@ -471,26 +463,18 @@ fn reviewers(node: &PrNode) -> Vec<Reviewer> {
     out
 }
 
-/// Every comment on the change: the general ones plus all comments in the threads fetched. Past
-/// the 50-thread cap each unseen thread counts as one comment and the total is marked a floor.
-/// Review summary bodies are not comments here, to match the Conversation tab.
+/// A lower bound on the comments on the change, from what the list already fetches: the general
+/// comments plus one for every review thread (a thread holds at least its first comment). The
+/// per-thread totals would cost a connection under each thread, so they wait for the change's
+/// details. With no review threads the count is exact. Review summary bodies are not counted.
 fn comment_total(node: &PrNode) -> (u32, bool) {
     let general = node.comments.total();
     let Some(threads) = &node.review_threads else {
         return (general, false);
     };
-    let seen = threads
-        .iter()
-        .map(|t| t.comments.as_ref().map_or(1, |c| c.total_count.max(1)))
-        .fold(0_u32, u32::saturating_add);
     let fetched = u32::try_from(threads.nodes.len()).unwrap_or(u32::MAX);
-    let unseen = threads
-        .total_count
-        .map_or(0, |total| total.saturating_sub(fetched));
-    (
-        general.saturating_add(seen).saturating_add(unseen),
-        unseen > 0,
-    )
+    let count = threads.total_count.map_or(fetched, |t| t.max(fetched));
+    (general.saturating_add(count), count > 0)
 }
 
 fn signals(node: &PrNode, me: &str, reviewers: &[Reviewer]) -> Signals {
@@ -762,50 +746,75 @@ pub(crate) async fn change_detail(
 
 #[cfg(test)]
 mod tests {
-    /// Every bounded connection in the list query as `(parents, bound)`: `parents` is how many
-    /// of its parent nodes exist under one pull request. GitHub caps a query at 500,000 nodes and
-    /// prices it at one point per 100 connection requests, where each connection under each
-    /// parent node is one request. A second bound on a line is nested under the first.
-    fn connections() -> Vec<(u32, u32)> {
-        let mut out = Vec::new();
+    /// Every bounded connection in the list query. GitHub caps a query at 500,000 nodes and
+    /// prices it at one point per 100 connection requests, where each connection under each of
+    /// the 50 pull requests is one request. A `totalCount` read inside a connection that is
+    /// already requested adds no connection, so the thread count is free.
+    fn connection_bounds() -> Vec<u32> {
+        let mut bounds = Vec::new();
         for line in PR_FIELDS.lines() {
-            let mut parents = 1;
             for part in line.split("(first: ").chain(line.split("(last: ")).skip(1) {
                 let n: String = part.chars().take_while(char::is_ascii_digit).collect();
-                if let Ok(n) = n.parse::<u32>() {
-                    out.push((parents, n));
-                    parents = n;
+                if let Ok(n) = n.parse() {
+                    bounds.push(n);
                 }
             }
         }
-        out
+        bounds
     }
 
     #[test]
-    fn a_list_page_stays_far_inside_githubs_limits() {
-        let connections = connections();
+    fn a_list_page_costs_what_it_did_before_the_comment_count() {
+        let bounds = connection_bounds();
         // The count-only `commitCount: commits { totalCount }` has no bound but is a connection.
-        let requests: u32 = connections.iter().map(|(parents, _)| parents).sum::<u32>() + 1;
-        let per_change: u32 = connections.iter().map(|(p, n)| p * n).sum::<u32>() + 1 + 1;
-        let nodes = PAGE_SIZE * per_change;
-        let points = f64::from(1 + PAGE_SIZE * requests) / 100.0;
-        assert_eq!(
-            requests, 58,
-            "eight bounded connections and one count, with a comment count under each of 50 threads"
-        );
-        assert_eq!(
-            nodes, 10_650,
-            "about 10,650 nodes a page against a limit of 500,000 (8,150 before thread comment counts)"
+        let connections = bounds.len() as u32 + 1;
+        let requests = 1 + PAGE_SIZE * connections;
+        let nodes = PAGE_SIZE * (1 + bounds.iter().sum::<u32>() + 1);
+        assert_eq!(connections, 8, "seven bounded connections and one count");
+        assert_eq!(requests, 401, "connection requests a page");
+        assert_eq!(nodes, 8_150, "nodes a page against a limit of 500,000");
+        assert!(
+            (f64::from(requests) / 100.0 - 4.01).abs() < 1e-9,
+            "about 4 points"
         );
         assert!(
-            (29.0..29.5).contains(&points),
-            "{points} points a page (about 4 before thread comment counts)"
+            !PR_FIELDS.contains("comments(first: 1)"),
+            "no connection is read under each thread"
         );
+    }
+
+    fn node_with(general: u32, threads: &[bool]) -> PrNode {
+        let file = format!("{}/tests/fixtures/author.json", env!("CARGO_MANIFEST_DIR"));
+        let mut doc: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(file).unwrap()).unwrap();
+        let mut pr = doc["data"]["search"]["nodes"][0].take();
+        pr["comments"] = serde_json::json!({"totalCount": general, "nodes": []});
+        let nodes: Vec<_> = threads
+            .iter()
+            .map(|open| serde_json::json!({"isResolved": !open}))
+            .collect();
+        pr["reviewThreads"] = serde_json::json!({"totalCount": nodes.len(), "nodes": nodes});
+        serde_json::from_value(pr).unwrap()
+    }
+
+    #[test]
+    fn five_open_threads_and_no_general_comments_read_at_least_five() {
+        let s = signals(&node_with(0, &[true; 5]), "octo", &[]);
+        assert_eq!(s.open_threads, OpenThreads::Count(5));
+        assert!(s.comments >= 5 && s.comments_floor, "{s:?}");
+    }
+
+    #[test]
+    fn only_general_comments_are_an_exact_count() {
+        let s = signals(&node_with(4, &[]), "octo", &[]);
+        assert_eq!((s.comments, s.comments_floor), (4, false));
+        let s = signals(&node_with(4, &[false, true]), "octo", &[]);
+        assert_eq!((s.comments, s.comments_floor), (6, true));
     }
 
     #[test]
     fn thread_bounds_are_the_widest_connection() {
-        assert_eq!(connections().into_iter().map(|(_, n)| n).max(), Some(50));
+        assert_eq!(connection_bounds().into_iter().max(), Some(50));
     }
 
     use super::*;

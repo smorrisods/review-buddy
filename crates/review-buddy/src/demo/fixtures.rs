@@ -266,7 +266,11 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
         .into_iter()
         .map(|t| thread(t, now))
         .collect::<Result<Vec<_>>>()?;
+    // GitHub's list sends general comments and a thread count, so a row with threads reads as a
+    // floor until it is selected and its threads load.
+    let list_is_a_floor = source.kind == ForgeKind::GitHub && !threads.is_empty();
     let mut signals = Signals {
+        comments_floor: list_is_a_floor,
         comments: raw.comments.unwrap_or_else(|| {
             let total: usize = threads.iter().map(|t| t.comments.len()).sum();
             u32::try_from(total).unwrap_or(u32::MAX)
