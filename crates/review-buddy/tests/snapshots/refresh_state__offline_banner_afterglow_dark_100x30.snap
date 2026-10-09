@@ -7,9 +7,9 @@ expression: text(& mut app)
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Waiting on you · 2                                                                              │
 │▌ ● Add retry to sync                                                                          1h │
-│▌ GH web#1 · mira · review requested                                                              │
+│▌ GH web#1 · mira · review requested                                                        +4 −2 │
 │  ● Fix the flaky upload test                                                                  1h │
-│  GH web#2 · mira · review requested                                                              │
+│  GH web#2 · mira · review requested                                                        +4 −2 │
 │                                                                                                  │
 │  ── That's everything.                                                                           │
 │  2 in this view.                                                                                 │

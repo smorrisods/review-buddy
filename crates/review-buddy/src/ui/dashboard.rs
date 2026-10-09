@@ -11,12 +11,14 @@ use ratatui::{
 use rb_core::{CiState, Source};
 use rb_theme::Role;
 
-use super::text::{cells, elide_middle, justify};
+use super::queue_status;
+use super::text::{cells, elide_middle, justify, spans_width};
 use super::{chrome::truncate, detail, layout, style, HitMap};
 use crate::app::{
     queue::{self, Item, Queue, Row},
     refresh, show, Action, App, Pane, Selected, SourceStatus,
 };
+use crate::config::QueuePiece;
 
 const PLACEHOLDER: &str = "·  ·  ·";
 const RULE: &str = "▌ ";
@@ -572,6 +574,7 @@ fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
         return;
     }
     let items = queue.items();
+    let pieces = cluster_pieces(app, &items, area.width);
     let focused = app.dashboard.focus == Pane::Queue;
     let scroll = i32::from(app.dashboard.queue_scroll);
     let mut top = -scroll;
@@ -585,7 +588,7 @@ fn draw_queue(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) {
             Row::Item(item) => is_selected(app, item),
             _ => false,
         };
-        for (k, line) in row_lines(app, &queue, row, selected, focused, area.width)
+        for (k, line) in row_lines(app, &queue, row, selected, focused, area.width, &pieces)
             .into_iter()
             .enumerate()
         {
@@ -653,6 +656,33 @@ fn is_selected(app: &App, item: Item) -> bool {
     }
 }
 
+/// Cells a change's second line needs before the status cluster: the rule, forge tag, reference,
+/// author and the whole reason, with their separators.
+fn second_line_used(change: &rb_core::ChangeSummary, now: rb_core::Timestamp) -> usize {
+    let parts = queue::row_parts(change, now);
+    2 + cells(parts.forge) + 1 + cells(&parts.reference) + 3 + cells(&parts.author) + 3
+}
+
+/// The cluster pieces every row shows, so the columns line up down the list: as many as fit
+/// beside the longest second line, dropped from the right.
+fn cluster_pieces(app: &App, items: &[Item], width: u16) -> Vec<QueuePiece> {
+    if app.queue_status.is_empty() {
+        return Vec::new();
+    }
+    let now = app.state.now.unwrap_or(rb_core::Timestamp(0));
+    let longest = items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Change(i) => app.state.changes.get(*i),
+            _ => None,
+        })
+        .map(|c| second_line_used(c, now) + cells(queue::row_parts(c, now).status))
+        .max()
+        .unwrap_or(0);
+    let room = usize::from(width).saturating_sub(longest + queue_status::LEAD + 1);
+    queue_status::plan(&app.queue_status, room)
+}
+
 fn row_lines(
     app: &App,
     queue: &Queue,
@@ -660,6 +690,7 @@ fn row_lines(
     selected: bool,
     focused: bool,
     width: u16,
+    pieces: &[QueuePiece],
 ) -> Vec<Line<'static>> {
     let palette = &app.palette;
     let width = usize::from(width);
@@ -769,10 +800,9 @@ fn row_lines(
                 app.state.source(&change.id.source_id),
                 change.id.kind,
             );
-            let used =
-                2 + cells(parts.forge) + 1 + cells(&parts.reference) + 3 + cells(&parts.author) + 3;
+            let used = second_line_used(change, now);
             let status = truncate(parts.status, width.saturating_sub(used));
-            let second = Line::from(vec![
+            let mut second = vec![
                 lead(selected),
                 Span::styled(parts.forge, forge_style),
                 Span::raw(" "),
@@ -781,8 +811,25 @@ fn row_lines(
                 Span::styled(parts.author, style::fg(palette, Role::Interactive)),
                 Span::styled(" · ", style::fg(palette, Role::Muted)),
                 Span::styled(status, style::fg(palette, Role::TextSecondary)),
-            ]);
-            vec![first, second]
+            ];
+            if !pieces.is_empty() {
+                let facts = queue_status::Facts::of(
+                    change,
+                    app.state.details.get(&change.id),
+                    parts.status,
+                );
+                let cluster: Vec<Span<'static>> = queue_status::segments(pieces, &facts)
+                    .into_iter()
+                    .map(|(text, role)| Span::styled(text, style::fg(palette, role)))
+                    .chain([Span::raw(" ")])
+                    .collect();
+                let gap = width
+                    .saturating_sub(spans_width(&second) + spans_width(&cluster))
+                    .max(1);
+                second.push(Span::raw(" ".repeat(gap)));
+                second.extend(cluster);
+            }
+            vec![first, Line::from(second)]
         }
     }
 }

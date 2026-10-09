@@ -31,13 +31,13 @@ expression: text(& render(& mut app))
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││ Reviewers                                Checks                                    │
 │                        ││                                              ││ ✓ smorris approved                       ● 3 passing                               │
+│                        ││                                              ││ ✎ ada asked for changes                                                            │
+│                        ││                                              ││ ✓ tomas approved                                                                   │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││ Latest comment                                                                     │
 │                        ││                                              ││ No comments yet                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││ Your review  ✓ approved                                                            │
-│                        ││                                              ││                                                                                    │
-│                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 ╰────────────────────────╯╰──────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────╯

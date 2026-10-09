@@ -7,19 +7,19 @@ expression: "frame(\"dusk\", (160, 40))"
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────╮┃(demo) This pane is scripted. No shell is running and nothing ┃
 │  Waiting on you · 2                                                                          │┃here touches your files.                                      ┃
 │▌ ◐ Add a menu bar and keyboard-driven menus                                               2h │┃demo:~/review/review-buddy$ git status -sb                    ┃
-│▌ GH review-buddy#214 · ada · review requested                                                │┃## review/214-head...origin/main                              ┃
+│▌ GH review-buddy#214 · ada · review requested                       ¶6   2 open   CI running │┃## review/214-head...origin/main                              ┃
 │  ● Raise muted text contrast in the light theme                                           5h │┃ M src/lib.rs                                                 ┃
-│  GH review-buddy#209 · jo · approved by you                                                  │┃demo:~/review/review-buddy$ echo $RB_REPO#$RB_NUMBER          ┃
+│  GH review-buddy#209 · jo · approved by you            ✓1  ✕1       ¶3                       │┃demo:~/review/review-buddy$ echo $RB_REPO#$RB_NUMBER          ┃
 │                                                                                              │┃liminal-hq/review-buddy#214                                   ┃
 │  Worth a look · 2                                                                            │┃demo:~/review/review-buddy$ git log                           ┃
 │  ✕ Cache pipeline status lookups                                                          7h │┃e3b0c44 Tighten the retry loop                                ┃
-│  GL flow!1182 · priya · you're mentioned                                                     │┃9f2a7d1 Add a test for the empty case                         ┃
+│  GL flow!1182 · priya · you're mentioned                       ○1                 CI failing │┃9f2a7d1 Add a test for the empty case                         ┃
 │  ● Tidy zsh startup                                                                       1d │┃41c6b02 Start on the retry changes                            ┃
-│  GH dotfiles#31 · smorris · yours                                                            │┃demo:~/review/review-buddy$                                   ┃
+│  GH dotfiles#31 · smorris · yours                      ✓1      ○1   ¶5   2 open              │┃demo:~/review/review-buddy$                                   ┃
 │                                                                                              │┃                                                              ┃
 │  Can wait · 1                                                                                │┃                                                              ┃
 │  · Clarify the install steps                                                              3d │┃                                                              ┃
-│  GL notes!12 · kai · approved by you                                                         │┃                                                              ┃
+│  GL notes!12 · kai · approved by you                           ○    ¶2   open                │┃                                                              ┃
 │                                                                                              │┃                                                              ┃
 │  ▸ Noise · 2 bot updates · ⏎ to expand                                                       │┃                                                              ┃
 │                                                                                              │┃                                                              ┃

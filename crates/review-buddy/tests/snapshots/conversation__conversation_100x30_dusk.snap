@@ -7,15 +7,15 @@ expression: "demo_frame(\"dusk\", (100, 30))"
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Waiting on you · 2                                                                              │
 │  ◐ Add a menu bar and keyboard-driven menus                                                   2h │
-│  GH review-buddy#214 · ada · review requested                                                    │
+│  GH review-buddy#214 · ada · review requested                           ¶6   2 open   CI running │
 │  ● Raise muted text contrast in the light theme                                               5h │
-│  GH review-buddy#209 · jo · approved by you                                                      │
+│  GH review-buddy#209 · jo · approved by you                ✓1  ✕1       ¶3                       │
 │                                                                                                  │
 │  Worth a look · 2                                                                                │
 │  ✕ Cache pipeline status lookups                                                              7h │
-│  GL flow!1182 · priya · you're mentioned                                                         │
+│  GL flow!1182 · priya · you're mentioned                           ○1                 CI failing │
 │▌ ● Tidy zsh startup                                                                           1d │
-│▌ GH dotfiles#31 · smorris · yours                                                                │
+│▌ GH dotfiles#31 · smorris · yours                          ✓1      ○1   ¶5   2 open              │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭ smorris/dotfiles#31 ────────────────────────────────────────────────────────────────────────── ▼ ╮

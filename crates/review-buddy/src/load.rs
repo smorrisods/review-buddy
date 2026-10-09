@@ -15,6 +15,7 @@ pub async fn fetch_info(provider: &dyn Provider, id: &ChangeId) -> rb_core::Resu
         body: detail.body,
         checks,
         threads,
+        summary: Some(detail.summary),
     })
 }
 

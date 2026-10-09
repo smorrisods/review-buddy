@@ -64,6 +64,10 @@ choice!(MergeMethod { Merge = "merge", Squash = "squash", Rebase = "rebase" });
 choice!(DiffView { Unified = "unified", SideBySide = "side-by-side" });
 choice!(CloneIfMissing { Ask = "ask", Always = "always", Never = "never" });
 choice!(DraftStorage { Local = "local", Off = "off" });
+choice!(
+    /// A piece of the queue row's status cluster (`ui.queue_status`).
+    QueuePiece { Review = "review", Comments = "comments", Ci = "ci", Size = "size" }
+);
 choice!(ShowFilter { Reviewing = "reviewing", Assigned = "assigned", Authored = "authored", Drafts = "drafts", Noise = "noise" });
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -95,6 +99,8 @@ pub struct UiConfig {
     /// Where unsent review comments are kept: `local` saves them to the state directory,
     /// `off` keeps them in memory only.
     pub drafts: DraftStorage,
+    /// The pieces of the status cluster on queue rows, in any order; empty turns it off.
+    pub queue_status: Vec<QueuePiece>,
     pub date_locale: String,
     /// The terminal pane (`t`).
     pub terminal: TerminalConfig,
@@ -120,10 +126,16 @@ impl Default for UiConfig {
             mouse: true,
             remember_layout: true,
             drafts: DraftStorage::Local,
+            queue_status: QueuePiece::ALL.to_vec(),
             date_locale: "en-CA".into(),
             terminal: TerminalConfig::default(),
         }
     }
+}
+
+impl QueuePiece {
+    /// Every piece, in the order they sit on a row.
+    pub const ALL: [Self; 4] = [Self::Review, Self::Comments, Self::Ci, Self::Size];
 }
 
 choice!(TerminalStart { Ask = "ask", Worktree = "worktree", Current = "current" });

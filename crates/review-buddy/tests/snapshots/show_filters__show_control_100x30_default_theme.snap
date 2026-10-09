@@ -7,15 +7,15 @@ expression: text(&render(&mut a))
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Waiting on you ╭ Show ────────────────────────────────────────────────────────╮                 │
 │▌ ◐ Add a menu ba│                                                              │              2h │
-│▌ GH review-buddy│▌ [x] reviewing  changes waiting on your review               │                 │
+│▌ GH review-buddy│▌ [x] reviewing  changes waiting on your review               │pen   CI running │
 │  ● Raise muted t│  [x] assigned   changes assigned to you                      │              5h │
 │  GH review-buddy│  [x] authored   changes you opened                           │                 │
 │                 │  [ ] drafts     drafts, yours and others                     │                 │
 │  Worth a look · │  [ ] noise      bot updates, mixed into the buckets          │                 │
 │  ✕ Cache pipelin│                                                              │              7h │
-│  GL flow!1182 · │  Projects  4 of 4 projects shown                             │                 │
+│  GL flow!1182 · │  Projects  4 of 4 projects shown                             │      CI failing │
 │  ● Tidy zsh star│  / type to find a project                                    │              1d │
-│  GH dotfiles#31 │  liminal-hq                           1 project · 3 changes  │                 │
+│  GH dotfiles#31 │  liminal-hq                           1 project · 3 changes  │pen              │
 │                 │  [x] liminal-hq/review-buddy                              3  │                 │
 ╰─────────────────│  smorris                               1 project · 1 change  │─────────────────╯
 ╭ liminal-hq/revie│  [x] smorris/dotfiles                                     1  │────────────── ▼ ╮

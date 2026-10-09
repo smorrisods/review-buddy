@@ -8,13 +8,13 @@ expression: text(& render(& mut app))
 │    every source        ││▌ ◐ Add a menu bar and keyboard-driven menus                         2h │
 │  ● liminal-hq        3 ││▌ GH review-buddy#214 · ada · review requested                          │
 │    github.com          ││  ● Raise muted text contrast in the light theme                     5h │
-│  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you                            │
+│  ● smorris           1 ││  GH review-buddy#209 · jo · approved by you                ✓1  ✕1      │
 │    github.com          ││                                                                        │
 │  ● platform          2 ││  Worth a look · 2                                                      │
 │    gitlab.platform.ex… ││  ✕ Cache pipeline status lookups                                    7h │
-│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned                               │
+│  ● gitlab.com        1 ││  GL flow!1182 · priya · you're mentioned                           ○1  │
 │    gitlab.com          ││  ● Tidy zsh startup                                                 1d │
-│                        ││  GH dotfiles#31 · smorris · yours                                      │
+│                        ││  GH dotfiles#31 · smorris · yours                          ✓1      ○1  │
 │  Show  s to change     ││                                                                        │
 │  [x] reviewing         ││  Can wait · 1                                                          │
 │  [x] assigned          │╰────────────────────────────────────────────────────────────────────────╯

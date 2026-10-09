@@ -56,6 +56,7 @@ has_new_activity = true
 mergeable = true
 mergeability = "unstable"
 commit_count = 4
+comments = 6
 body = """
 Adds a menu bar along the top and a `Menu` type that tracks the selected item.
 
@@ -189,6 +190,7 @@ my_reviewed_sha = "5d02c97"
 i_commented = true
 has_new_activity = true
 mergeable = true
+comments = 3
 body = """
 Muted text dipped under 4.5:1 on the light surface. This raises the floor and adds a regression test.
 
@@ -199,6 +201,14 @@ Muted text dipped under 4.5:1 on the light surface. This raises the floor and ad
 
 [[change.reviewer]]
 login = "smorris"
+state = "approved"
+
+[[change.reviewer]]
+login = "ada"
+state = "changes_requested"
+
+[[change.reviewer]]
+login = "tomas"
 state = "approved"
 
 [[change.file]]
@@ -236,6 +246,7 @@ labels = ["performance"]
 my_role = "mentioned"
 my_review = "none"
 mergeable = true
+review_required = true
 body = "The status panel asks for the same pipeline many times a second. This keeps results for a short time to coax the load down. @smorris, does the TTL look right to you?"
 
 [[change.reviewer]]
@@ -283,6 +294,14 @@ body = "Caches the completion dump so new shells open faster."
 [[change.reviewer]]
 login = "ada"
 state = "commented"
+
+[[change.reviewer]]
+login = "kai"
+state = "approved"
+
+[[change.reviewer]]
+login = "priya"
+state = "requested"
 
 [[change.file]]
 path = ".zshrc"
@@ -375,6 +394,9 @@ my_role = "reviewing"
 my_review = "approved"
 my_reviewed_sha = "0d9a5c1"
 mergeable = true
+comments = 2
+open_threads = "any"
+review_required = true
 body = "Mentions the demo mode so new readers can try it first."
 
 [[change.reviewer]]

@@ -7,15 +7,15 @@ expression: text(&render(&mut a))
 ╭ queue ──────────────│Move                                                  │─────────────────────╮
 │  Waiting on you · 2 │  j/k  move in the focused pane (PgUp/PgDn: detail)   │                     │
 │▌ ◐ Add a menu bar an│  g/G  first / last row                               │                  2h │
-│▌ GH review-buddy#214│  tab  next pane, in screen order                     │                     │
+│▌ GH review-buddy#214│  tab  next pane, in screen order                     │ 2 open   CI running │
 │  ● Raise muted text │  h/l  previous / next pane                           │                  5h │
 │  GH review-buddy#209│  1-9  switch source                                  │                     │
 │                     │  [/]  previous / next detail tab                     │                     │
 │  Worth a look · 2   │                                                      │                     │
 │  ✕ Cache pipeline st│Change                                                │                  7h │
-│  GL flow!1182 · priy│  ⏎    diff                                           │                     │
+│  GL flow!1182 · priy│  ⏎    diff                                           │          CI failing │
 │  ● Tidy zsh startup │  o    open                                           │                  1d │
-│  GH dotfiles#31 · sm│  y    copy                                           │                     │
+│  GH dotfiles#31 · sm│  y    copy                                           │ 2 open              │
 │                     │  i    select next image (o opens, y copies)          │                     │
 ╰─────────────────────│  s    show filters                                   │─────────────────────╯
 ╭ liminal-hq/review-bu│  D    pending reviews: your saved drafts             │────────────────── ▼ ╮

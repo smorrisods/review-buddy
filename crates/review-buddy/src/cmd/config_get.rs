@@ -73,6 +73,14 @@ pub fn values(config: &Config) -> Vec<(String, Value)> {
     put("ui.mouse", json!(ui.mouse));
     put("ui.remember_layout", json!(ui.remember_layout));
     put("ui.drafts", json!(ui.drafts.as_str()));
+    put(
+        "ui.queue_status",
+        json!(ui
+            .queue_status
+            .iter()
+            .map(|p| p.as_str())
+            .collect::<Vec<_>>()),
+    );
     put("ui.date_locale", json!(ui.date_locale));
     put("ui.terminal.command", json!(ui.terminal.command));
     put("ui.terminal.escape", json!(ui.terminal.escape));
