@@ -5,6 +5,7 @@ Every file here is **hand-written to match the GitHub GraphQL and REST API docum
 | Fixture | Endpoint |
 | --- | --- |
 | `author`, `assignee`, `mentions`, `reviewed_by`, `review_requested_p1`, `review_requested_p2`, `empty` | GraphQL `search` queries behind the queue (`author:@me`, `assignee:@me`, `mentions:@me`, `reviewed-by:@me`, `review-requested:@me`), paged and empty |
+| `list_many_threads` | A GraphQL search page for one change with more review threads (60) than the 50 the list asks for, to pin the comment count as a floor |
 | `sso_partial` | A GraphQL search answering with data and an `errors` entry for an organisation that needs SSO |
 | `detail`, `detail_missing` | GraphQL pull request detail, and the `repository: null` answer for one that is gone |
 | `files_p1`, `files_p2` | REST `GET /repos/:owner/:repo/pulls/:n/files`, paged, with modified and renamed files |

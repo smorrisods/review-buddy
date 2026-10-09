@@ -172,12 +172,15 @@ async fn maps_review_state_comment_counts_and_open_threads() {
     let a = by(101).signals;
     assert_eq!((a.approvals, a.changes_requested, a.outstanding), (1, 0, 1));
     assert!(a.review_required);
-    assert_eq!(a.comments, 7);
+    // Two general comments plus 2 + 1 + 4 in three threads, two of them open.
+    assert_eq!(a.comments, 9);
+    assert!(!a.comments_floor);
     assert_eq!(a.open_threads, OpenThreads::Count(2));
 
     let draft = by(103).signals;
     assert_eq!((draft.approvals, draft.changes_requested), (0, 1));
     assert!(!draft.review_required);
+    // Only general comments: five of them and no threads.
     assert_eq!(draft.comments, 5);
     assert_eq!(draft.open_threads, OpenThreads::Count(0));
 
@@ -190,6 +193,26 @@ async fn maps_review_state_comment_counts_and_open_threads() {
     );
     assert_eq!(mine.open_threads, OpenThreads::Unknown);
     assert_eq!(mine.comments, 0);
+}
+
+#[tokio::test]
+async fn past_fifty_threads_the_comment_count_reads_as_a_floor() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/graphql"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(fixture("list_many_threads")))
+        .mount(&server)
+        .await;
+    let page = provider(&server, "")
+        .list_changes(&Scope::everything(), None)
+        .await
+        .unwrap();
+    let s = page.items[0].signals;
+    // 4 general + 10 open threads of 3 + 40 resolved threads of 2 + 10 threads not fetched (one each).
+    assert_eq!(s.comments, 4 + 30 + 80 + 10);
+    assert!(s.comments_floor, "60 threads exist and 50 were read");
+    assert_eq!(s.open_threads, OpenThreads::Count(10));
+    assert!(s.comments >= 10);
 }
 
 #[tokio::test]
@@ -207,8 +230,8 @@ async fn the_list_query_asks_for_the_cluster_fields() {
         .to_string();
     for field in [
         "reviewDecision",
-        "totalCommentsCount",
-        "reviewThreads(first: 50) { nodes { isResolved } }",
+        "comments(last: 30) { totalCount",
+        "reviewThreads(first: 50) { totalCount nodes { isResolved comments(first: 1) { totalCount } } }",
     ] {
         assert!(query.contains(field), "{field} is in the list query");
     }

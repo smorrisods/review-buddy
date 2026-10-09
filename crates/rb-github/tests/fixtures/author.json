@@ -69,8 +69,24 @@
                 "author": {
                   "login": "mira"
                 }
+              },
+              {
+                "author": {
+                  "login": "mira"
+                }
+              },
+              {
+                "author": {
+                  "login": "octo"
+                }
+              },
+              {
+                "author": {
+                  "login": "mira"
+                }
               }
-            ]
+            ],
+            "totalCount": 5
           },
           "commits": {
             "nodes": [
@@ -82,8 +98,8 @@
             ]
           },
           "reviewDecision": "CHANGES_REQUESTED",
-          "totalCommentsCount": 5,
           "reviewThreads": {
+            "totalCount": 0,
             "nodes": []
           }
         }

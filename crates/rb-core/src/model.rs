@@ -237,8 +237,13 @@ impl OpenThreads {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Signals {
-    /// Comments of every kind: conversation, review and thread comments.
+    /// Every comment on the change: general conversation comments plus every comment inside a
+    /// review thread, resolved or not. System notes and review summary bodies don't count, so
+    /// this is the same number the Conversation tab shows (see [`thread_comment_count`]).
     pub comments: u32,
+    /// `comments` is a floor: the forge's list didn't send every thread (GitHub's list reads the
+    /// first 50), so the true count may be higher.
+    pub comments_floor: bool,
     pub open_threads: OpenThreads,
     /// Other people's approvals.
     pub approvals: u32,
@@ -251,6 +256,17 @@ pub struct Signals {
 }
 
 impl Signals {
+    /// Makes the counts agree: open threads each hold at least one comment, so the comment total
+    /// is never below the open count, and "some are open" means at least one comment.
+    pub fn reconcile(&mut self) {
+        let least = match self.open_threads {
+            OpenThreads::Count(n) => n,
+            OpenThreads::Any => 1,
+            OpenThreads::Unknown => 0,
+        };
+        self.comments = self.comments.max(least);
+    }
+
     /// The review part of the signals from the reviewer list. `me` is the current user's login.
     pub fn from_reviewers(reviewers: &[Reviewer], me: &str, review_required: bool) -> Self {
         let others = reviewers
@@ -374,6 +390,13 @@ pub struct Thread {
     #[serde(default)]
     pub pending: bool,
     pub comments: Vec<Comment>,
+}
+
+/// The one definition of "comments on a change": every comment in every thread, general or
+/// inline, resolved or not, including your own pending ones. The Conversation tab and the
+/// queue's `¶N` both use it.
+pub fn thread_comment_count(threads: &[Thread]) -> u32 {
+    u32::try_from(threads.iter().map(|t| t.comments.len()).sum::<usize>()).unwrap_or(u32::MAX)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -658,5 +681,29 @@ mod tests {
         let partial = r#"{"comments": 3}"#;
         let s: Signals = serde_json::from_str(partial).unwrap();
         assert_eq!((s.comments, s.open_threads), (3, OpenThreads::Unknown));
+        assert!(!s.comments_floor);
+    }
+
+    #[test]
+    fn reconcile_never_leaves_fewer_comments_than_open_threads() {
+        let mut s = Signals {
+            comments: 0,
+            open_threads: OpenThreads::Count(5),
+            ..Signals::default()
+        };
+        s.reconcile();
+        assert_eq!(s.comments, 5);
+        s.comments = 9;
+        s.reconcile();
+        assert_eq!(s.comments, 9);
+        let mut any = Signals {
+            open_threads: OpenThreads::Any,
+            ..Signals::default()
+        };
+        any.reconcile();
+        assert_eq!(any.comments, 1);
+        let mut unknown = Signals::default();
+        unknown.reconcile();
+        assert_eq!(unknown.comments, 0);
     }
 }

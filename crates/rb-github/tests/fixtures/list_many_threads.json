@@ -1,0 +1,405 @@
+{
+  "data": {
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4990,
+      "resetAt": "2999-01-01T00:00:00Z"
+    },
+    "viewer": {
+      "login": "octo"
+    },
+    "search": {
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      },
+      "nodes": [
+        {
+          "id": "PR_Z",
+          "number": 900,
+          "title": "Rework everything",
+          "isDraft": true,
+          "state": "OPEN",
+          "createdAt": "2026-09-01T08:00:00Z",
+          "updatedAt": "2026-10-03T09:00:00Z",
+          "headRefName": "feat/103",
+          "baseRefName": "main",
+          "headRefOid": "ccccccc",
+          "baseRefOid": "bbbbbbb",
+          "additions": 1030,
+          "deletions": 103,
+          "changedFiles": 4,
+          "author": {
+            "__typename": "User",
+            "login": "octo"
+          },
+          "repository": {
+            "nameWithOwner": "acme/api"
+          },
+          "labels": {
+            "nodes": []
+          },
+          "assignees": {
+            "nodes": []
+          },
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": [
+              {
+                "author": {
+                  "login": "mira"
+                },
+                "state": "CHANGES_REQUESTED",
+                "commit": {
+                  "oid": "ccccccc"
+                }
+              }
+            ]
+          },
+          "comments": {
+            "nodes": [
+              {
+                "author": {
+                  "login": "octo"
+                }
+              },
+              {
+                "author": {
+                  "login": "mira"
+                }
+              },
+              {
+                "author": {
+                  "login": "mira"
+                }
+              },
+              {
+                "author": {
+                  "login": "octo"
+                }
+              }
+            ],
+            "totalCount": 4
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": null
+                }
+              }
+            ]
+          },
+          "reviewDecision": "CHANGES_REQUESTED",
+          "reviewThreads": {
+            "totalCount": 60,
+            "nodes": [
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": false,
+                "comments": {
+                  "totalCount": 3
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              },
+              {
+                "isResolved": true,
+                "comments": {
+                  "totalCount": 2
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
