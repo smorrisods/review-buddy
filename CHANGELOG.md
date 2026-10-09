@@ -4,6 +4,8 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-08
+
 ### Added
 
 - **Read whole conversations in the Conversation tab.** Each thread now shows its location (`menus.rs:43`, a range, or `general`), then every comment in time order with its author, a relative age and its full body, wrapped to the pane and rendered as Markdown the way the description is (code spans, lists, fences; images show as a note). Resolved, outdated and pending threads say so in words, and resolved threads start folded to their first line. With the Detail pane focused, `n` / `N` move a `›` cursor between threads, `z` folds or unfolds one, `Z` folds or unfolds all, `c` replies to it and `⏎` jumps to its line in the diff; clicking a header folds it too. Comment text is selectable with the mouse, and `v` starts keyboard copy mode there. The demo change now has a longer conversation (a long review comment with replies, and a resolved thread).
@@ -59,5 +61,6 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 - **Footer hints stay ahead of the refreshed time.** The passive `refreshed HH:MM` is the first thing to drop when space is short.
 - **v0.1.0 review polish.** Wording, spacing and CI-state output across the TUI and command line.
 
-[Unreleased]: https://github.com/smorrisods/review-buddy/compare/v0.1.0...main
+[Unreleased]: https://github.com/smorrisods/review-buddy/compare/v0.1.1...main
+[0.1.1]: https://github.com/smorrisods/review-buddy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smorrisods/review-buddy/releases/tag/v0.1.0
