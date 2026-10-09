@@ -393,6 +393,9 @@ pub struct ChangeInfo {
     pub body: String,
     pub checks: Vec<Check>,
     pub threads: Vec<Thread>,
+    /// The change's full summary, which carries what the list couldn't (GitLab approvals and
+    /// line counts). The queue row reads it for the status cluster.
+    pub summary: Option<ChangeSummary>,
 }
 
 /// Remote data held by the app. Screens read it; only `update` writes it.
@@ -542,6 +545,8 @@ pub struct App {
     pub diff_wrap: bool,
     /// Still glyphs instead of a spinner (`ui.reduced_motion`).
     pub reduced_motion: bool,
+    /// The pieces of the queue row's status cluster (`ui.queue_status`).
+    pub queue_status: Vec<crate::config::QueuePiece>,
     /// Where Sources and Detail sit (`ui.sources`, `ui.detail`), as changed this session.
     pub layout: crate::ui::layout::Options,
     /// Remembers layout changes between runs. `None` in demo mode and when it is turned off.
@@ -606,6 +611,7 @@ impl App {
             tab_width: diffview::TAB_WIDTH,
             diff_wrap: false,
             reduced_motion: false,
+            queue_status: crate::config::QueuePiece::ALL.to_vec(),
             layout: crate::ui::layout::Options::default(),
             session: None,
             term: terminal::TerminalState::default(),

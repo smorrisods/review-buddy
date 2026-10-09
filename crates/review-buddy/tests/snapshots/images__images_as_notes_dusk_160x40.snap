@@ -19,13 +19,13 @@ expression: text(& render(& mut app))
 │  [x] reviewing         ││  Can wait · 1                                ││                                                                                    │
 │  [x] assigned          ││  · Clarify the install steps              3d ││ Reviewers                                Checks                                    │
 │  [x] authored          ││  GL notes!12 · kai · approved by you         ││ ✓ smorris approved                       ● 3 passing                               │
-│  [ ] drafts            ││                                              ││                                                                                    │
-│  [ ] noise             ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││ Latest comment                                                                     │
-│                        ││                                              ││ No comments yet                                                                    │
-│                        ││  ── That's everything.                       ││                                                                                    │
-│                        ││  7 in this view.                             ││ Your review  ✓ approved                                                            │
+│  [ ] drafts            ││                                              ││ ✎ ada asked for changes                                                            │
+│  [ ] noise             ││  ▸ Noise · 2 bot updates · ⏎ to expand       ││ ✓ tomas approved                                                                   │
 │                        ││                                              ││                                                                                    │
+│                        ││  ── That's everything.                       ││ Latest comment                                                                     │
+│                        ││  7 in this view.                             ││ No comments yet                                                                    │
 │                        ││                                              ││                                                                                    │
+│                        ││                                              ││ Your review  ✓ approved                                                            │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │
 │                        ││                                              ││                                                                                    │

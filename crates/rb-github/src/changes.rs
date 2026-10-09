@@ -10,7 +10,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use rb_core::{
     ChangeDetail, ChangeId, ChangeState, ChangeSummary, CiState, Error, Etag, ForgeKind,
-    Mergeability, MyReview, MyRole, Page, Result, Reviewer, ReviewerState, Scope, SourceId,
+    Mergeability, MyReview, MyRole, OpenThreads, Page, Result, Reviewer, ReviewerState, Scope,
+    Signals, SourceId,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -40,6 +41,9 @@ fragment PrFields on PullRequest {
     ... on Team { slug }
   } } }
   latestReviews(first: 30) { nodes { author { login } state commit { oid } } }
+  reviewDecision
+  totalCommentsCount
+  reviewThreads(first: 50) { nodes { isResolved } }
   comments(last: 30) { nodes { author { login } } }
   commitCount: commits { totalCount }
   commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
@@ -181,6 +185,12 @@ struct CommentNode {
 }
 
 #[derive(Deserialize)]
+struct ThreadNode {
+    #[serde(rename = "isResolved")]
+    is_resolved: bool,
+}
+
+#[derive(Deserialize)]
 struct CommitNode {
     commit: CommitInner,
 }
@@ -226,6 +236,9 @@ struct PrNode {
     review_requests: Nodes<RequestNode>,
     latest_reviews: Nodes<ReviewNode>,
     comments: Nodes<CommentNode>,
+    review_decision: Option<String>,
+    total_comments_count: Option<u32>,
+    review_threads: Option<Nodes<ThreadNode>>,
     commits: Nodes<CommitNode>,
     body: Option<String>,
     mergeable: Option<String>,
@@ -417,6 +430,25 @@ fn reviewers(node: &PrNode) -> Vec<Reviewer> {
     out
 }
 
+fn signals(node: &PrNode, me: &str, reviewers: &[Reviewer]) -> Signals {
+    let open_threads = node
+        .review_threads
+        .as_ref()
+        .map_or(OpenThreads::Unknown, |t| {
+            let open = t.iter().filter(|t| !t.is_resolved).count();
+            OpenThreads::Count(u32::try_from(open).unwrap_or(u32::MAX))
+        });
+    Signals {
+        comments: node.total_comments_count.unwrap_or(0),
+        open_threads,
+        ..Signals::from_reviewers(
+            reviewers,
+            me,
+            node.review_decision.as_deref() == Some("REVIEW_REQUIRED"),
+        )
+    }
+}
+
 fn summarize(
     node: &PrNode,
     me: &str,
@@ -480,11 +512,13 @@ fn summarize(
             .and_then(|c| c.author.as_ref())
             .is_some_and(|a| !same(&a.login, me));
 
+    let reviewers = reviewers(node);
     let state = match node.state.as_str() {
         "MERGED" => ChangeState::Merged,
         "CLOSED" => ChangeState::Closed,
         _ => ChangeState::Open,
     };
+    let signals = signals(node, me, &reviewers);
     Ok(ChangeSummary {
         id: ChangeId {
             source_id: source_id.clone(),
@@ -510,12 +544,13 @@ fn summarize(
         files: node.changed_files,
         ci: ci_state(node),
         labels: node.labels.iter().map(|l| l.name.clone()).collect(),
-        reviewers: reviewers(node),
+        reviewers,
         my_role,
         my_review,
         my_reviewed_sha,
         i_commented,
         has_new_activity: pushed_since_review || others_spoke_last,
+        signals,
     })
 }
 
@@ -660,6 +695,45 @@ pub(crate) async fn change_detail(
 
 #[cfg(test)]
 mod tests {
+    /// Every connection in the list query, with its page bound, so the cost of a page is easy to
+    /// see: GitHub caps a query at 500,000 nodes and prices it at one point per 100 connection
+    /// requests, where each connection under each of the 50 pull requests is one request.
+    fn connection_bounds() -> Vec<u32> {
+        let mut bounds = Vec::new();
+        for line in PR_FIELDS.lines() {
+            for part in line.split("(first: ").chain(line.split("(last: ")).skip(1) {
+                let n: String = part.chars().take_while(char::is_ascii_digit).collect();
+                if let Ok(n) = n.parse() {
+                    bounds.push(n);
+                }
+            }
+        }
+        bounds
+    }
+
+    #[test]
+    fn a_list_page_stays_far_inside_githubs_limits() {
+        let bounds = connection_bounds();
+        // The count-only `commitCount: commits { totalCount }` has no bound but is a connection.
+        let connections = bounds.len() as u32 + 1;
+        let nodes = PAGE_SIZE * (1 + bounds.iter().sum::<u32>() + 1);
+        let points = f64::from(1 + PAGE_SIZE * connections) / 100.0;
+        assert_eq!(connections, 8, "seven bounded connections and one count");
+        assert_eq!(
+            nodes, 8_150,
+            "about 8,150 nodes a page against a limit of 500,000"
+        );
+        assert!(
+            points < 4.5,
+            "{points} points a page (3.5 before the cluster fields)"
+        );
+    }
+
+    #[test]
+    fn thread_bounds_are_the_widest_connection() {
+        assert_eq!(connection_bounds().into_iter().max(), Some(50));
+    }
+
     use super::*;
 
     #[test]

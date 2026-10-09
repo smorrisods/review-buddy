@@ -195,6 +195,7 @@ fn change(number: u64, repo: &str, title: &str) -> ChangeSummary {
         my_reviewed_sha: None,
         i_commented: false,
         has_new_activity: false,
+        signals: Default::default(),
     }
 }
 

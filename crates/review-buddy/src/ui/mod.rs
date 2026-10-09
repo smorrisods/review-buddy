@@ -21,6 +21,7 @@ pub mod help;
 mod hitmap;
 pub mod layout;
 pub mod pending;
+pub mod queue_status;
 pub mod review;
 pub mod settings;
 pub mod show;

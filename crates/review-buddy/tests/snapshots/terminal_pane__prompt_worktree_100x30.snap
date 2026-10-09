@@ -7,13 +7,13 @@ expression: "prompt_frame((100, 30))"
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Waiting on you · 2                                                                              │
 │▌ ◐ Add a menu bar and keyboard-driven menus                                                   2h │
-│▌ GH review-buddy#214 · ada · review requested                                                    │
+│▌ GH review-buddy#214 · ada · review requested                           ¶6   2 open   CI running │
 │  ● Raise ╭ Open a terminal for liminal-hq/review-buddy#214 ───────────────────────────╮       5h │
 │  GH revie│ Create a separate checkout of acme/widgets#214 at                          │          │
 │          │ /state/review-buddy/worktrees/demo-gh/acme__widgets/214.                   │          │
 │  Worth a │ git -C /src/widgets fetch origin pull/214/head                             │          │
 │  ✕ Cache │ git -C /src/widgets worktree add --detach                                  │       7h │
-│  GL flow!│ /state/review-buddy/worktrees/demo-gh/acme__widgets/214 FETCH_HEAD         │          │
+│  GL flow!│ /state/review-buddy/worktrees/demo-gh/acme__widgets/214 FETCH_HEAD         │I failing │
 │  ● Tidy z│ Your own working copy at /src/widgets is left alone.                       │       1d │
 │  GH dotfi│ Review Buddy never removes it for you. When you are done: git -C           │          │
 │          │ /src/widgets worktree remove                                               │          │

@@ -4,11 +4,14 @@ use anyhow::{anyhow, bail, Context, Result};
 use rb_core::{
     triage::parse_age, AuthMode, ChangeDetail, ChangeId, ChangeState, ChangeSummary, Check,
     CiState, Comment, CommentId, DraftComment, FilePatch, FileStatus, ForgeKind, Mergeability,
-    MyReview, MyRole, ReviewDraft, Reviewer, Scope, Side, Source, SourceId, Thread, ThreadId,
-    Timestamp, User,
+    MyReview, MyRole, OpenThreads, ReviewDraft, Reviewer, Scope, Side, Signals, Source, SourceId,
+    Thread, ThreadId, Timestamp, User,
 };
 use serde::Deserialize;
 use url::Url;
+
+/// The demo account, whose own reviews the queue reports apart from everyone else's.
+const DEMO_USER: &str = "smorris";
 
 const DEMO_TOML: &str = include_str!("../../fixtures/demo/demo.toml");
 
@@ -135,6 +138,12 @@ struct RawChange {
     mergeability: Mergeability,
     #[serde(default)]
     commit_count: u32,
+    /// Overrides the comment total, which otherwise counts the comments on `thread`.
+    comments: Option<u32>,
+    /// Overrides the open-thread count, which otherwise counts unresolved `thread`s.
+    open_threads: Option<OpenThreads>,
+    #[serde(default)]
+    review_required: bool,
     body: String,
     #[serde(default)]
     reviewer: Vec<Reviewer>,
@@ -257,6 +266,17 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
         .into_iter()
         .map(|t| thread(t, now))
         .collect::<Result<Vec<_>>>()?;
+    let signals = Signals {
+        comments: raw.comments.unwrap_or_else(|| {
+            let total: usize = threads.iter().map(|t| t.comments.len()).sum();
+            u32::try_from(total).unwrap_or(u32::MAX)
+        }),
+        open_threads: raw.open_threads.unwrap_or_else(|| {
+            let open = threads.iter().filter(|t| !t.resolved).count();
+            OpenThreads::Count(u32::try_from(open).unwrap_or(u32::MAX))
+        }),
+        ..Signals::from_reviewers(&raw.reviewer, DEMO_USER, raw.review_required)
+    };
     let summary = ChangeSummary {
         adds: files.iter().map(|f| f.adds).sum(),
         dels: files.iter().map(|f| f.dels).sum(),
@@ -280,6 +300,7 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
         my_reviewed_sha: raw.my_reviewed_sha,
         i_commented: raw.i_commented,
         has_new_activity: raw.has_new_activity,
+        signals,
         id: id.clone(),
     };
     Ok(DemoChange {

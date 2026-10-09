@@ -99,6 +99,21 @@
                 }
               }
             ]
+          },
+          "reviewDecision": "REVIEW_REQUIRED",
+          "totalCommentsCount": 7,
+          "reviewThreads": {
+            "nodes": [
+              {
+                "isResolved": false
+              },
+              {
+                "isResolved": true
+              },
+              {
+                "isResolved": false
+              }
+            ]
           }
         },
         {

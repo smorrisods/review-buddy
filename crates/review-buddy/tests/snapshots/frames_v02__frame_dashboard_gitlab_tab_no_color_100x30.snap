@@ -7,7 +7,7 @@ expression: plain_dump(& mut app)
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Worth a look · 1                                                                                │
 │▌ ✕ Cache pipeline status lookups                                                              7h │
-│▌ GL flow!1182 · priya · you're mentioned                                                         │
+│▌ GL flow!1182 · priya · you're mentioned              ○1                 CI failing        +8 −2 │
 │                                                                                                  │
 │  ▸ Noise · 1 bot update · ⏎ to expand                                                            │
 │                                                                                                  │
@@ -63,6 +63,12 @@ expression: plain_dump(& mut app)
 5:18 R "priya"
 5:23 DR " · you're mentioned"
 5:42 R ""
+5:48 DR "        ○1"
+5:75 BR "CI failing"
+5:85 DR ""
+5:93 R "+8"
+5:95 DR " −2"
+5:98 R ""
 5:99 B "│"
 6:0 B "│"
 6:99 B "│"

@@ -212,6 +212,63 @@ pub enum MyReview {
     Commented,
 }
 
+/// How many review threads are still open, as far as the forge's list said.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OpenThreads {
+    /// Not loaded yet (or an older cache entry).
+    #[default]
+    Unknown,
+    /// An exact count; GitHub counts the first 50 threads, so a longer list reads as a floor.
+    Count(u32),
+    /// Some are open but the list didn't say how many (GitLab's list sends only a flag).
+    Any,
+}
+
+impl OpenThreads {
+    /// `true` when at least one thread is known to be open.
+    pub fn any_open(self) -> bool {
+        matches!(self, Self::Count(n) if n > 0) || self == Self::Any
+    }
+}
+
+/// What other people have done on a change, and how much talk it has, for the queue's status
+/// cluster. Counts leave out the current user, whose own review is `my_review`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Signals {
+    /// Comments of every kind: conversation, review and thread comments.
+    pub comments: u32,
+    pub open_threads: OpenThreads,
+    /// Other people's approvals.
+    pub approvals: u32,
+    /// Other people whose latest review asks for changes.
+    pub changes_requested: u32,
+    /// Reviewers (other than you) who were asked and haven't answered.
+    pub outstanding: u32,
+    /// The forge says approval is still required to merge.
+    pub review_required: bool,
+}
+
+impl Signals {
+    /// The review part of the signals from the reviewer list. `me` is the current user's login.
+    pub fn from_reviewers(reviewers: &[Reviewer], me: &str, review_required: bool) -> Self {
+        let others = reviewers
+            .iter()
+            .filter(|r| !r.login.eq_ignore_ascii_case(me));
+        let count = |state| {
+            u32::try_from(others.clone().filter(|r| r.state == state).count()).unwrap_or(u32::MAX)
+        };
+        Self {
+            approvals: count(ReviewerState::Approved),
+            changes_requested: count(ReviewerState::ChangesRequested),
+            outstanding: count(ReviewerState::Requested),
+            review_required,
+            ..Self::default()
+        }
+    }
+}
+
 /// Everything the queue needs about a change, without the body, files or threads.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChangeSummary {
@@ -242,6 +299,9 @@ pub struct ChangeSummary {
     pub i_commented: bool,
     /// Something happened since you last looked (computed against the local seen marker).
     pub has_new_activity: bool,
+    /// Other people's review state and the comment counts, for the queue's status cluster.
+    #[serde(default)]
+    pub signals: Signals,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -551,5 +611,52 @@ mod tests {
         assert_eq!(Timestamp(10).secs_since(Timestamp(4)), 6);
         assert_eq!(Timestamp(4).secs_since(Timestamp(10)), -6);
         assert_eq!(Timestamp(i64::MIN).secs_since(Timestamp(1)), i64::MIN);
+    }
+
+    fn reviewer(login: &str, state: ReviewerState) -> Reviewer {
+        Reviewer {
+            login: login.into(),
+            state,
+        }
+    }
+
+    #[test]
+    fn signals_count_other_peoples_reviews_and_leave_you_out() {
+        let reviewers = [
+            reviewer("Octo", ReviewerState::Approved),
+            reviewer("tess", ReviewerState::Approved),
+            reviewer("mira", ReviewerState::ChangesRequested),
+            reviewer("web-team", ReviewerState::Requested),
+            reviewer("octo2", ReviewerState::Commented),
+        ];
+        let s = Signals::from_reviewers(&reviewers, "octo", true);
+        assert_eq!((s.approvals, s.changes_requested, s.outstanding), (1, 1, 1));
+        assert!(s.review_required);
+        assert_eq!((s.comments, s.open_threads), (0, OpenThreads::Unknown));
+    }
+
+    #[test]
+    fn open_threads_know_when_any_are_open() {
+        assert!(!OpenThreads::Unknown.any_open());
+        assert!(!OpenThreads::Count(0).any_open());
+        assert!(OpenThreads::Count(2).any_open());
+        assert!(OpenThreads::Any.any_open());
+    }
+
+    #[test]
+    fn a_summary_without_signals_still_deserialises() {
+        let json = r#"{
+            "id": {"source_id": "s", "kind": "github", "repo": "o/r", "number": 1},
+            "title": "t", "author": "a", "author_is_bot": false, "state": "open",
+            "draft": false, "created_at": 1, "updated_at": 2, "branch": "b", "base": "main",
+            "head_sha": "h", "base_sha": "b", "adds": 1, "dels": 2, "files": 3, "ci": "pass",
+            "labels": [], "reviewers": [], "my_role": "reviewing", "my_review": "none",
+            "my_reviewed_sha": null, "i_commented": false, "has_new_activity": false
+        }"#;
+        let old: ChangeSummary = serde_json::from_str(json).unwrap();
+        assert_eq!(old.signals, Signals::default());
+        let partial = r#"{"comments": 3}"#;
+        let s: Signals = serde_json::from_str(partial).unwrap();
+        assert_eq!((s.comments, s.open_threads), (3, OpenThreads::Unknown));
     }
 }

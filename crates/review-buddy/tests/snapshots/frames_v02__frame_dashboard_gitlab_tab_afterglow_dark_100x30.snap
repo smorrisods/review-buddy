@@ -7,7 +7,7 @@ expression: text(& render(& mut app))
 ╭ queue ───────────────────────────────────────────────────────────────────────────────────────────╮
 │  Worth a look · 1                                                                                │
 │▌ ✕ Cache pipeline status lookups                                                              7h │
-│▌ GL flow!1182 · priya · you're mentioned                                                         │
+│▌ GL flow!1182 · priya · you're mentioned              ○1                 CI failing        +8 −2 │
 │                                                                                                  │
 │  ▸ Noise · 1 bot update · ⏎ to expand                                                            │
 │                                                                                                  │

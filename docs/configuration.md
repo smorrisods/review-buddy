@@ -4,7 +4,7 @@
 
 | Applied | Parsed, not applied yet |
 |---|---|
-| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.images` (and `REVIEW_BUDDY_IMAGES`), `ui.drafts`, `ui.remember_layout`, `[ui.terminal]`, `ui.queue_width` and `ui.queue_height`, `ui.sources`, `ui.detail`, `ui.detail_position` (and `REVIEW_BUDDY_DETAIL_POSITION`), `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `diff.wrap`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key (including `diff.syntax_highlight`), `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
+| `ui.theme` (and `REVIEW_BUDDY_THEME`), `ui.colour_depth`, `ui.background` and `[ui.theme_background]` (and `REVIEW_BUDDY_BACKGROUND`), `ui.mouse`, `ui.images` (and `REVIEW_BUDDY_IMAGES`), `ui.drafts`, `ui.queue_status`, `ui.remember_layout`, `[ui.terminal]`, `ui.queue_width` and `ui.queue_height`, `ui.sources`, `ui.detail`, `ui.detail_position` (and `REVIEW_BUDDY_DETAIL_POSITION`), `ui.reduced_motion` (and `REVIEW_BUDDY_REDUCED_MOTION`, for the refresh spinner), `diff.tab_width`, `diff.wrap`, `review.confirm_post_now`, `refresh.interval`, `refresh.on_focus`, `refresh.max_concurrency_per_host`, `triage.show`, `triage.bucket_limit`, `triage.noise_authors` and `triage.stale_after` (the dashboard and the `queue`, `pr list` and `pr view` commands), every `[[source]]` key (`name`, `kind`, `host`, `api_url`, `auth`, `token_command`, `scope`, `in_all`, `tag_colour`, `hide_repos`, `enabled`) for GitHub and GitLab, the config layering below | `ui.layout`, `ui.jax`, `ui.unicode`, `ui.date_locale`, every other `[review]` and `[diff]` key (including `diff.syntax_highlight`), `triage.noise_collapsed` (Noise is always one collapsed row), `[[triage.rule]]`, a source's `include_drafts` (drafts follow the `drafts` Show filter instead), `[checkout]`, `[keys]` |
 
 ## File locations (XDG Base Directory)
 
@@ -58,7 +58,7 @@ Planned. A legacy `~/.review-buddy/` or `~/.review-buddy.toml` is not looked at,
 
 ## `[ui]`
 
-Applied: `theme`, `colour_depth`, `images`, `background`, `theme_background`, `mouse`, `remember_layout`, `drafts`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width`, `queue_height` and the `[ui.terminal]` table (below).
+Applied: `theme`, `colour_depth`, `images`, `background`, `theme_background`, `mouse`, `remember_layout`, `drafts`, `queue_status`, `reduced_motion`, `sources`, `detail`, `detail_position`, `queue_width`, `queue_height` and the `[ui.terminal]` table (below).
 
 | Key | Default | Notes |
 |---|---|---|
@@ -79,6 +79,7 @@ Applied: `theme`, `colour_depth`, `images`, `background`, `theme_background`, `m
 | `mouse` | `true` | Click, drag-select, scroll. `false` leaves mouse capture off so the terminal handles the mouse; `M` turns it on or off for the session either way. Demo mode never reads the config and always captures it |
 | `remember_layout` | `true` | Remember the panel layout between runs: where Detail sits (`P`), where Sources sit (`S`), whether Detail is open (`p`), the dragged sizes and the background mode (`B`), in `session.toml` in the state directory. `false` neither reads nor writes that file. See [Remembered layout](#remembered-layout) |
 | `drafts` | `"local"` | `local` · `off`. Where your unsent review comments are kept. `local` saves them (with the summary and chosen verdict) under the state directory's `drafts/` folder so they survive leaving the diff and restarting the app; `off` keeps them in memory for the session only and never writes to disk. Demo mode is always memory only. See [Review drafts](keybindings.md#review-drafts) |
+| `queue_status` | `["review", "comments", "ci", "size"]` | The pieces of the status cluster on queue rows, in any order (they always sit in the order shown): `review` (other people's approvals, change requests and outstanding reviewers), `comments` (the comment count and open threads), `ci` (`CI running` or `CI failing`) and `size` (`+120 −8`). `[]` turns the cluster off. The cluster only appears when the Queue is wide enough, dropping `size`, then `ci`, `comments` and `review` as it narrows. See [the dashboard](SPEC.md#queue-status-cluster) |
 | `date_locale` | `"en-CA"` | Ages are relative ("2h"); absolute dates use this locale. Not applied yet |
 
 ### Images

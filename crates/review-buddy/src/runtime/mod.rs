@@ -62,6 +62,8 @@ pub struct Settings {
     pub diff_wrap: bool,
     pub confirm_post_now: bool,
     pub reduced_motion: bool,
+    /// `ui.queue_status`: the pieces of the queue row's status cluster.
+    pub queue_status: Vec<crate::config::QueuePiece>,
     /// `ui.images`, with `REVIEW_BUDDY_IMAGES` already applied when it came from the config.
     pub images: crate::config::Images,
     pub background: rb_theme::BackgroundMode,
@@ -166,6 +168,7 @@ impl Settings {
             diff_wrap: config.diff.wrap,
             confirm_post_now: config.review.confirm_post_now,
             reduced_motion: config.ui.reduced_motion,
+            queue_status: config.ui.queue_status.clone(),
             images: config.ui.images,
             background: background_mode(config.ui.background),
             per_theme_background: config
@@ -206,6 +209,7 @@ impl Settings {
         app.tab_width = self.tab_width;
         app.diff_wrap = self.diff_wrap;
         app.reduced_motion = self.reduced_motion;
+        app.queue_status.clone_from(&self.queue_status);
         app.layout = self.layout;
         app.background.global = self.background;
         app.background

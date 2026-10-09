@@ -1,6 +1,6 @@
 use rb_core::{
-    ChangeId, ChangeState, CiState, Error, ForgeKind, Mergeability, MyReview, MyRole, Provider,
-    ReviewerState, Scope, SourceId,
+    ChangeId, ChangeState, CiState, Error, ForgeKind, Mergeability, MyReview, MyRole, OpenThreads,
+    Provider, ReviewerState, Scope, SourceId,
 };
 use rb_gitlab::{GitlabClient, GitlabProvider};
 use rb_platform::Secret;
@@ -130,6 +130,30 @@ async fn everything_scope_merges_pages_queries_and_mentions_without_duplicates()
 
     assert_eq!(page.items[3].my_role, MyRole::Authored);
     assert_eq!(page.items[4].my_role, MyRole::Mentioned);
+}
+
+#[tokio::test]
+async fn the_list_carries_comment_counts_and_whether_threads_are_open() {
+    let server = MockServer::start().await;
+    mount_everywhere(&server, "").await;
+    let page = provider(&server, "")
+        .list_changes(&Scope::everything(), None)
+        .await
+        .unwrap();
+
+    // The list sends a count of notes and one resolved flag, not a per-thread count; it also has
+    // only the reviewers who were asked, so approvals wait for the detail call.
+    let open = &page.items[0].signals;
+    assert_eq!(open.comments, 5);
+    assert_eq!(open.open_threads, OpenThreads::Any);
+    assert_eq!((open.approvals, open.changes_requested), (0, 0));
+    assert_eq!(open.outstanding, 1, "sam was asked; octo is you");
+    assert!(open.review_required, "GitLab says it is not approved yet");
+
+    let resolved = &page.items[3].signals;
+    assert_eq!(resolved.comments, 2);
+    assert_eq!(resolved.open_threads, OpenThreads::Count(0));
+    assert!(!resolved.review_required);
 }
 
 #[tokio::test]
@@ -378,6 +402,12 @@ async fn detail_fills_in_approvals_pipeline_and_counts() {
     assert_eq!(state("lee"), ReviewerState::Requested);
     assert_eq!(detail.body, "Body of Add retry to sync.");
     assert_eq!(detail.commit_count, 4);
+    let signals = s.signals;
+    assert_eq!(
+        (signals.approvals, signals.outstanding),
+        (1, 1),
+        "sam approved; lee was asked; octo is you"
+    );
     assert_eq!(detail.mergeability, Mergeability::Blocked);
     assert_eq!(detail.mergeable, Some(true));
     assert_eq!(

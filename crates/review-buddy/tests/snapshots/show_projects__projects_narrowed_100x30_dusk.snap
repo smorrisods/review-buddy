@@ -7,15 +7,15 @@ expression: text(&render(&mut a))
 ╭ queue ──────────│                                                              │─────────────────╮
 │  Waiting on you │  [x] reviewing  changes waiting on your review               │                 │
 │▌ ◐ Add a menu ba│  [x] assigned   changes assigned to you                      │              2h │
-│▌ GH review-buddy│  [x] authored   changes you opened                           │                 │
+│▌ GH review-buddy│  [x] authored   changes you opened                           │pen   CI running │
 │  ◐ Update eslint│  [ ] drafts     drafts, yours and others                     │              2h │
-│  GH eslint-confi│  [ ] noise      bot updates, mixed into the buckets          │                 │
+│  GH eslint-confi│  [ ] noise      bot updates, mixed into the buckets          │pen   CI running │
 │  ◐ Update icons │                                                              │              2h │
-│  GH icons#907 · │  Projects  12 of 16 projects shown                           │                 │
+│  GH icons#907 · │  Projects  12 of 16 projects shown                           │pen   CI running │
 │  ◐ Update ontari│  / type to find a project                                    │              2h │
-│  GH ontario-desi│  liminal-hq                        13 projects · 15 changes  │                 │
+│  GH ontario-desi│  liminal-hq                        13 projects · 15 changes  │pen   CI running │
 │  ◐ Update releas│▌ [x] liminal-hq/review-buddy                              3  │              2h │
-│  GH release-tool│  [x] ongov/eslint-config                                  1  │                 │
+│  GH release-tool│  [x] ongov/eslint-config                                  1  │pen   CI running │
 │  ◐ Update status│  [x] ongov/icons                                          1  │              2h │
 ╰─────────────────│  [ ] ongov/legacy-forms                                   1  │─────────────────╯
 ╭ liminal-hq/revie│  [ ] ongov/legacy-portal                                  1  │────────────── ▼ ╮
