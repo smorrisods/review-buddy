@@ -285,3 +285,70 @@ fn help_diff_100x30_dusk() {
     press(&mut a, KeyCode::Char('?'));
     insta::assert_snapshot!(text(&render(&mut a)));
 }
+
+fn scrolled_to_end(theme: &str, width: u16, height: u16) -> App {
+    let mut a = dashboard(theme, width, height);
+    press(&mut a, KeyCode::Char('?'));
+    for _ in 0..80 {
+        press(&mut a, KeyCode::Char('j'));
+    }
+    a
+}
+
+#[test]
+fn the_legend_explains_every_status_mark_and_scrolls_into_view() {
+    for (width, height) in [(100, 30), (160, 40)] {
+        let mut a = scrolled_to_end("liminal-hq", width, height);
+        let shown = text(&render(&mut a));
+        assert!(shown.contains("Queue marks"), "{width}x{height}");
+        for mark in ui::chrome::legend(a.screen) {
+            assert!(
+                shown.contains(mark.hint.key),
+                "{} at {width}x{height}",
+                mark.hint.key
+            );
+            assert!(
+                shown.contains(mark.hint.label),
+                "{} at {width}x{height}",
+                mark.hint.label
+            );
+        }
+        for glyph in [
+            "✓N",
+            "✕N",
+            "○N",
+            "¶N",
+            "N open",
+            "CI running",
+            "CI failing",
+            "+N −M",
+        ] {
+            assert!(shown.contains(glyph), "{glyph} at {width}x{height}");
+        }
+    }
+}
+
+#[test]
+fn the_suspend_row_and_the_general_keys_still_show_above_the_legend() {
+    let mut a = dashboard("liminal-hq", 100, 30);
+    press(&mut a, KeyCode::Char('?'));
+    // Reach the General group, which sits just before the legend.
+    for _ in 0..32 {
+        press(&mut a, KeyCode::Char('j'));
+    }
+    let shown = text(&render(&mut a));
+    assert!(shown.contains("⌃Z"), "suspend row\n{shown}");
+    assert!(shown.contains("quit"));
+}
+
+#[test]
+fn help_dashboard_100x30_scrolled_to_the_legend() {
+    let mut a = scrolled_to_end("liminal-hq", 100, 30);
+    insta::assert_snapshot!(text(&render(&mut a)));
+}
+
+#[test]
+fn help_dashboard_160x40_scrolled_to_the_legend() {
+    let mut a = scrolled_to_end("liminal-hq", 160, 40);
+    insta::assert_snapshot!(text(&render(&mut a)));
+}

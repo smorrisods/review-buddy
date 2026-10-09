@@ -76,6 +76,27 @@ pub fn registry(screen: Screen) -> Vec<Binding> {
     bindings
 }
 
+/// The status marks a screen draws, as rows for the help overlay's legend: the mark in `key`
+/// and what it means in `label`. Only the queue draws marks today. This sits beside the key
+/// registry so the legend and the queue's status cluster are changed together.
+pub fn legend(screen: Screen) -> Vec<Binding> {
+    let row = |key, label| bind("Queue marks", key, label, None, false);
+    match screen {
+        Screen::Dashboard => vec![
+            row("✓N", "approvals from other people"),
+            row("✕N", "reviewers asking for changes"),
+            row("○N", "reviewers asked, not done yet"),
+            row("○", "approval needed, nobody asked yet"),
+            row("¶N", "comments on the change (¶N+: at least)"),
+            row("N open", "unresolved review threads"),
+            row("CI running", "checks are still running"),
+            row("CI failing", "a check has failed"),
+            row("+N −M", "lines added / removed (or N files)"),
+        ],
+        Screen::Diff | Screen::FirstRun | Screen::Settings => Vec::new(),
+    }
+}
+
 fn screen_bindings(screen: Screen) -> Vec<Binding> {
     let open = Some(Action::Open);
     let copy = Some(Action::Copy);

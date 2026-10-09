@@ -11,7 +11,7 @@ use rb_theme::Role;
 use unicode_width::UnicodeWidthStr;
 
 use super::{
-    chrome::{registry, Binding},
+    chrome::{legend, registry, Binding},
     layout, style,
 };
 use crate::app::{App, Screen};
@@ -50,6 +50,19 @@ pub fn page(app: &App) -> u16 {
     visible_rows(app).saturating_sub(1).max(1)
 }
 
+fn key_row(palette: &rb_theme::Palette, binding: &Binding, key_w: usize) -> Line<'static> {
+    let pad = key_w - UnicodeWidthStr::width(binding.hint.key);
+    Line::from(vec![
+        Span::raw("  "),
+        Span::styled(
+            binding.hint.key,
+            style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(" ".repeat(pad + 2)),
+        Span::styled(binding.hint.label, style::fg(palette, Role::Muted)),
+    ])
+}
+
 fn content(app: &App) -> Vec<Line<'static>> {
     let palette = &app.palette;
     let bindings = rows(app.screen);
@@ -72,16 +85,23 @@ fn content(app: &App) -> Vec<Line<'static>> {
                 style::fg(palette, Role::TextBright).add_modifier(Modifier::BOLD),
             ));
         }
-        let pad = key_w - UnicodeWidthStr::width(binding.hint.key);
-        lines.push(Line::from(vec![
-            Span::raw("  "),
-            Span::styled(
-                binding.hint.key,
-                style::fg(palette, Role::Accent).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" ".repeat(pad + 2)),
-            Span::styled(binding.hint.label, style::fg(palette, Role::Muted)),
-        ]));
+        lines.push(key_row(palette, binding, key_w));
+    }
+    let marks = legend(app.screen);
+    let mark_w = marks
+        .iter()
+        .map(|b| UnicodeWidthStr::width(b.hint.key))
+        .max()
+        .unwrap_or(1);
+    if let Some(first) = marks.first() {
+        lines.push(Line::raw(""));
+        lines.push(Line::styled(
+            first.group,
+            style::fg(palette, Role::TextBright).add_modifier(Modifier::BOLD),
+        ));
+    }
+    for mark in &marks {
+        lines.push(key_row(palette, mark, mark_w));
     }
     lines
 }

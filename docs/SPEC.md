@@ -139,9 +139,22 @@ The right half of each row's second line carries up to four pieces, so you can t
 | Piece | Shows | Notes |
 |---|---|---|
 | Review | `✓2` other people's approvals, `✕1` changes requested, `○1` reviewers asked who haven't answered | Your own review is left out (it is the reason text). A bare `○` means the forge still requires an approval nobody was asked for. GitHub: `latestReviews`, `reviewRequests` and `reviewDecision`. GitLab: requested reviewers and `detailed_merge_status = not_approved` from the list, with approvals added once the change's details load |
-| Comments | `¶6` comments of every kind, then `2 open` unresolved threads | GitHub: `totalCommentsCount` and `reviewThreads { isResolved }` (the first 50 threads). GitLab: `user_notes_count`, and `open` without a number when `blocking_discussions_resolved` is false, since the list has no per-thread count (the number appears once the details load). `·` stands in for an open count that isn't known |
+| Comments | `¶6` comments, then `2 open` unresolved threads. `¶6+` means at least six | One definition, shared with the Conversation tab: every comment people wrote on the change, general or inside a review thread, resolved or not (and your own pending ones once the threads load). System notes ("merged", "added a commit") and review summary bodies are not comments. `open` threads each hold at least one comment, so `¶` is never lower than the open count. GitHub: `comments { totalCount }` (the general comments) plus `comments { totalCount }` of each of the first 50 `reviewThreads`, which also say whether each is resolved; past 50 threads each unseen thread counts as one comment and the count reads `¶N+`. GitLab: `user_notes_count`, which counts notes people wrote (general, diff and replies) and leaves out system notes, and `open` without a number when `blocking_discussions_resolved` is false, since the list has no per-thread count. Once a change's threads load, the selected row and the tab both show the loaded total, so they agree; the number appears for `open` then. `·` stands in for an open count that isn't known |
 | CI | `CI running` or `CI failing` | Only where the leading dot isn't enough. Passing, none and the quiet states stay blank, and `CI failing` is not repeated when the reason text already says it (`yours · CI failing`) |
 | Size | `+120 −8`, or `7 files` when the forge's list has no line counts | Big numbers shorten (`1.2k`, `12k`). GitLab's list has line counts only after the details load |
+
+**Legend.** The `?` help overlay on the queue ends with a "Queue marks" table, built from the same registry as the keys (`legend` in `ui/chrome.rs`):
+
+| Mark | Meaning |
+|---|---|
+| `✓N` | approvals from other people |
+| `✕N` | reviewers asking for changes |
+| `○N` | reviewers asked and not done yet |
+| `○` | an approval is required and nobody was asked |
+| `¶N` | comments on the change (`¶N+`: at least N) |
+| `N open` | unresolved review threads (`open` alone: some, count not known yet; `·`: not loaded) |
+| `CI running`, `CI failing` | checks still running; a check has failed |
+| `+N −M` | lines added and removed (`N files` when the forge's list has no line counts) |
 
 Glyphs and numbers carry the meaning; colour only reinforces it (success for approvals, warning for changes requested and open threads), so it reads the same under `NO_COLOR`. The leading CI dot, the new-activity marker and the `✎ N` drafts marker are unchanged.
 
