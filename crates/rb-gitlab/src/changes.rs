@@ -13,7 +13,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use futures_util::future::join_all;
 use rb_core::{
     ChangeDetail, ChangeId, ChangeState, ChangeSummary, CiState, Error, Etag, ForgeKind,
-    Mergeability, MyReview, MyRole, Page, Result, Reviewer, ReviewerState, Scope, SourceId,
+    Mergeability, MyReview, MyRole, OpenThreads, Page, Result, Reviewer, ReviewerState, Scope,
+    Signals, SourceId,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -93,6 +94,8 @@ struct MrNode {
     detailed_merge_status: Option<String>,
     merge_status: Option<String>,
     has_conflicts: Option<bool>,
+    user_notes_count: Option<u32>,
+    blocking_discussions_resolved: Option<bool>,
     #[serde(default)]
     approved_by: Vec<Approver>,
 }
@@ -410,6 +413,23 @@ fn bad_time(field: &str, value: &str) -> Error {
     ))
 }
 
+fn signals(node: &MrNode, me: &str, reviewers: &[Reviewer]) -> Signals {
+    let open_threads = match node.blocking_discussions_resolved {
+        Some(true) => OpenThreads::Count(0),
+        Some(false) => OpenThreads::Any,
+        None => OpenThreads::Unknown,
+    };
+    Signals {
+        comments: node.user_notes_count.unwrap_or(0),
+        open_threads,
+        ..Signals::from_reviewers(
+            reviewers,
+            me,
+            node.detailed_merge_status.as_deref() == Some("not_approved"),
+        )
+    }
+}
+
 fn summarize(
     node: &MrNode,
     me: &str,
@@ -458,6 +478,7 @@ fn summarize(
             node.iid
         ))
     })?;
+    let signals = signals(node, me, &reviewers);
     Ok(ChangeSummary {
         id: ChangeId {
             source_id: source_id.clone(),
@@ -489,6 +510,7 @@ fn summarize(
         my_reviewed_sha: None,
         i_commented: my_review != MyReview::None,
         has_new_activity: false,
+        signals,
     })
 }
 

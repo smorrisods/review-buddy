@@ -165,7 +165,7 @@
       "closed_by": null,
       "target_branch": "main",
       "source_branch": "feat/11",
-      "user_notes_count": 2,
+      "user_notes_count": 5,
       "upvotes": 0,
       "downvotes": 0,
       "author": {
@@ -213,11 +213,11 @@
       "milestone": null,
       "merge_when_pipeline_succeeds": false,
       "merge_status": "can_be_merged",
-      "detailed_merge_status": "mergeable",
+      "detailed_merge_status": "not_approved",
       "sha": "1111111111111111111111111111111111111111",
       "merge_commit_sha": null,
       "has_conflicts": false,
-      "blocking_discussions_resolved": true,
+      "blocking_discussions_resolved": false,
       "web_url": "https://gitlab.test/platform/flow/-/merge_requests/11",
       "references": {
         "short": "!11",

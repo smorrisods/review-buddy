@@ -301,6 +301,7 @@ mod tests {
             my_reviewed_sha: None,
             i_commented: false,
             has_new_activity: false,
+            signals: Default::default(),
         }
     }
 

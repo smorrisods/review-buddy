@@ -1,6 +1,6 @@
 use rb_core::{
-    CiState, Error, Etag, ForgeKind, Mergeability, MyReview, MyRole, Provider, ReviewerState,
-    Scope, SourceId,
+    CiState, Error, Etag, ForgeKind, Mergeability, MyReview, MyRole, OpenThreads, Provider,
+    ReviewerState, Scope, SourceId,
 };
 use rb_github::{GithubClient, GithubProvider};
 use rb_platform::Secret;
@@ -156,6 +156,62 @@ async fn maps_summary_fields_and_roles() {
     assert_eq!(e.my_role, MyRole::Assigned);
     assert_eq!(e.ci, CiState::Fail);
     assert!(!e.author_is_bot);
+}
+
+#[tokio::test]
+async fn maps_review_state_comment_counts_and_open_threads() {
+    let server = MockServer::start().await;
+    serve_all(&server).await;
+    let page = provider(&server, "")
+        .list_changes(&org_scope(), None)
+        .await
+        .unwrap();
+    let by = |n: u64| page.items.iter().find(|c| c.id.number == n).unwrap();
+
+    // Someone asked for a team and an approver weighed in; you are asked too but are left out.
+    let a = by(101).signals;
+    assert_eq!((a.approvals, a.changes_requested, a.outstanding), (1, 0, 1));
+    assert!(a.review_required);
+    assert_eq!(a.comments, 7);
+    assert_eq!(a.open_threads, OpenThreads::Count(2));
+
+    let draft = by(103).signals;
+    assert_eq!((draft.approvals, draft.changes_requested), (0, 1));
+    assert!(!draft.review_required);
+    assert_eq!(draft.comments, 5);
+    assert_eq!(draft.open_threads, OpenThreads::Count(0));
+
+    // Your own approval is `my_review`, not one of other people's approvals; no thread data reads
+    // as unknown rather than as zero open.
+    let mine = by(104).signals;
+    assert_eq!(
+        (mine.approvals, mine.changes_requested, mine.outstanding),
+        (0, 0, 0)
+    );
+    assert_eq!(mine.open_threads, OpenThreads::Unknown);
+    assert_eq!(mine.comments, 0);
+}
+
+#[tokio::test]
+async fn the_list_query_asks_for_the_cluster_fields() {
+    let server = MockServer::start().await;
+    serve_all(&server).await;
+    provider(&server, "")
+        .list_changes(&org_scope(), None)
+        .await
+        .unwrap();
+    let requests = server.received_requests().await.unwrap();
+    let query = requests[0].body_json::<Value>().unwrap()["query"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    for field in [
+        "reviewDecision",
+        "totalCommentsCount",
+        "reviewThreads(first: 50) { nodes { isResolved } }",
+    ] {
+        assert!(query.contains(field), "{field} is in the list query");
+    }
 }
 
 #[tokio::test]

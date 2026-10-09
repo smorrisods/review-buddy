@@ -80,6 +80,11 @@
                 }
               }
             ]
+          },
+          "reviewDecision": "CHANGES_REQUESTED",
+          "totalCommentsCount": 5,
+          "reviewThreads": {
+            "nodes": []
           }
         }
       ]

@@ -474,6 +474,7 @@ mod tests {
             my_reviewed_sha: None,
             i_commented: false,
             has_new_activity: false,
+            signals: Default::default(),
         }
     }
 
@@ -507,6 +508,30 @@ mod tests {
         assert_eq!(old.commit_count, 0);
         assert_eq!(old.mergeability, Mergeability::Unknown);
         assert_eq!(old.summary, d.summary);
+    }
+
+    #[test]
+    fn a_summary_cached_before_the_status_cluster_still_loads() {
+        let mut store = Store::open_in_memory().unwrap();
+        let mut s = summary("s", "o/r", 1, 10, "sha");
+        s.signals.comments = 4;
+        store
+            .put_summaries(&sid("s"), std::slice::from_ref(&s), Timestamp(1))
+            .unwrap();
+        let mut json = serde_json::to_value(&s).unwrap();
+        assert!(json.as_object_mut().unwrap().remove("signals").is_some());
+        let raw = serde_json::to_string(&json).unwrap();
+        assert!(!raw.contains("signals"));
+        store
+            .conn
+            .execute("UPDATE changes SET summary_json = ?1", [raw])
+            .unwrap();
+        let listed = store.list_summaries(&sid("s")).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].signals, Signals::default());
+        assert_eq!(listed[0].title, s.title);
+        let one = store.get_summary(&s.id).unwrap().unwrap();
+        assert_eq!(one.signals.open_threads, OpenThreads::Unknown);
     }
 
     #[test]
