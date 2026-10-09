@@ -122,6 +122,18 @@ fn dump(app: &mut App) -> String {
     text(&render(app))
 }
 
+#[test]
+fn the_tab_count_and_the_row_count_are_the_same_number() {
+    let mut app = zsh("liminal-hq", (200, 40), false);
+    // Five comments in three threads (two open); the row and the tab share one definition.
+    let shown = dump(&mut app);
+    assert!(shown.contains("Conversation 5"), "{shown}");
+    app.dashboard.focus = Pane::Queue;
+    key(&mut app, 'p');
+    let shown = dump(&mut app);
+    assert!(shown.contains("¶5   2 open"), "{shown}");
+}
+
 // Snapshots of the demo conversation.
 
 fn demo_frame(theme: &str, size: (u16, u16)) -> String {

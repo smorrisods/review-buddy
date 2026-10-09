@@ -28,7 +28,7 @@ fn closing_detail_gives_the_queue_room_for_the_status_cluster() {
         ("✓1", "approvals from other people"),
         ("✕1", "a change request"),
         ("○1", "an outstanding reviewer"),
-        ("¶6", "the comment count"),
+        ("¶3", "the comment count"),
         ("2 open", "unresolved threads"),
         ("CI failing", "CI in words"),
         ("+32 −1", "size"),

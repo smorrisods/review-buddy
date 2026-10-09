@@ -57,6 +57,11 @@ impl Facts {
                 facts.dels = full.dels;
             }
         }
+        if !info.threads.is_empty() {
+            // The loaded threads are the whole conversation, so they replace the list's count.
+            facts.signals.comments = rb_core::thread_comment_count(&info.threads);
+            facts.signals.comments_floor = false;
+        }
         if !info.threads.is_empty() && !matches!(facts.signals.open_threads, OpenThreads::Count(_))
         {
             let open = info
@@ -67,6 +72,7 @@ impl Facts {
             facts.signals.open_threads =
                 OpenThreads::Count(u32::try_from(open).unwrap_or(u32::MAX));
         }
+        facts.signals.reconcile();
         facts
     }
 }
@@ -173,14 +179,19 @@ fn review(f: &Facts) -> Vec<Seg> {
     out
 }
 
-/// `¶4 3 open`: the comment total and, when any are open, the unresolved threads. `·` stands in
+/// `¶4 3 open`: the comment total (`¶9+` when the forge's list may have missed some) and, when any are open, the unresolved threads. `·` stands in
 /// for an open count that hasn't loaded.
 fn comments(f: &Facts) -> Vec<Seg> {
     let s = &f.signals;
     if s.comments == 0 && !s.open_threads.any_open() {
         return Vec::new();
     }
-    let mut total = format!("¶{}", count(s.comments, 999));
+    // A floor reads `¶N+`; past 99 it keeps to the four cells as `¶99+`.
+    let mut total = if s.comments_floor || s.comments > 999 {
+        format!("¶{}+", s.comments.min(99))
+    } else {
+        format!("¶{}", s.comments)
+    };
     total.push_str(&" ".repeat(4_usize.saturating_sub(total.chars().count())));
     let mut out = vec![(total, Role::TextSecondary), (" ".to_string(), Role::Muted)];
     match s.open_threads {
@@ -260,6 +271,7 @@ mod tests {
         let mut busy = facts();
         busy.signals = Signals {
             comments: 12,
+            comments_floor: false,
             open_threads: OpenThreads::Count(2),
             approvals: 2,
             changes_requested: 1,
@@ -308,6 +320,69 @@ mod tests {
         assert_eq!(flat(&[QueuePiece::Comments], &f).trim(), "¶4   open");
         f.signals.open_threads = OpenThreads::Unknown;
         assert_eq!(flat(&[QueuePiece::Comments], &f).trim(), "¶4   ·");
+    }
+
+    #[test]
+    fn a_floor_reads_with_a_plus_inside_the_same_four_cells() {
+        let mut f = facts();
+        f.signals.comments = 124;
+        f.signals.comments_floor = true;
+        f.signals.open_threads = OpenThreads::Count(10);
+        assert_eq!(flat(&[QueuePiece::Comments], &f), "¶99+ 10 open");
+        f.signals.comments = 14;
+        assert_eq!(flat(&[QueuePiece::Comments], &f), "¶14+ 10 open");
+    }
+
+    #[test]
+    fn open_threads_never_outnumber_the_comments() {
+        let mut f = facts();
+        f.signals.comments = 0;
+        f.signals.open_threads = OpenThreads::Count(5);
+        f.signals.reconcile();
+        assert_eq!(flat(&[QueuePiece::Comments], &f).trim(), "¶5   5 open");
+    }
+
+    #[test]
+    fn loaded_threads_replace_the_lists_count_with_the_conversation_tabs() {
+        let mut summary: ChangeSummary = serde_json::from_value(serde_json::json!({
+            "id": {"source_id": "s", "kind": "github", "repo": "o/r", "number": 1},
+            "title": "t", "author": "a", "author_is_bot": false, "state": "open",
+            "draft": false, "created_at": 1, "updated_at": 2, "branch": "b", "base": "main",
+            "head_sha": "h", "base_sha": "b", "adds": 1, "dels": 2, "files": 3, "ci": "pass",
+            "labels": [], "reviewers": [], "my_role": "reviewing", "my_review": "none",
+            "my_reviewed_sha": null, "i_commented": false, "has_new_activity": false
+        }))
+        .unwrap();
+        summary.signals.comments = 1;
+        let thread = |id: &str, resolved: bool, comments: usize| -> rb_core::Thread {
+            let comments: Vec<_> = (0..comments)
+                .map(|n| {
+                    serde_json::json!({
+                        "id": format!("{id}-{n}"), "author": "x", "body": "b", "created_at": 1
+                    })
+                })
+                .collect();
+            serde_json::from_value(serde_json::json!({
+                "id": id, "path": null, "line": null, "side": "new",
+                "resolved": resolved, "outdated": false, "comments": comments
+            }))
+            .unwrap()
+        };
+        let info = ChangeInfo {
+            threads: vec![
+                thread("a", false, 3),
+                thread("b", true, 2),
+                thread("c", false, 1),
+            ],
+            ..ChangeInfo::default()
+        };
+        let facts = Facts::of(&summary, Some(&info), "");
+        assert_eq!(facts.signals.comments, 6, "every comment in every thread");
+        assert_eq!(facts.signals.open_threads, OpenThreads::Count(2));
+        assert_eq!(
+            facts.signals.comments,
+            rb_core::thread_comment_count(&info.threads)
+        );
     }
 
     #[test]

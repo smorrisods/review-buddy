@@ -56,7 +56,6 @@ has_new_activity = true
 mergeable = true
 mergeability = "unstable"
 commit_count = 4
-comments = 6
 body = """
 Adds a menu bar along the top and a `Menu` type that tracks the selected item.
 

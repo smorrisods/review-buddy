@@ -266,7 +266,7 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
         .into_iter()
         .map(|t| thread(t, now))
         .collect::<Result<Vec<_>>>()?;
-    let signals = Signals {
+    let mut signals = Signals {
         comments: raw.comments.unwrap_or_else(|| {
             let total: usize = threads.iter().map(|t| t.comments.len()).sum();
             u32::try_from(total).unwrap_or(u32::MAX)
@@ -277,6 +277,7 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
         }),
         ..Signals::from_reviewers(&raw.reviewer, DEMO_USER, raw.review_required)
     };
+    signals.reconcile();
     let summary = ChangeSummary {
         adds: files.iter().map(|f| f.adds).sum(),
         dels: files.iter().map(|f| f.dels).sum(),
@@ -438,6 +439,29 @@ mod tests {
 
     fn bucket_of(change: &DemoChange) -> Bucket {
         triage(&change.detail.summary, &TriageConfig::default(), now()).bucket
+    }
+
+    #[test]
+    fn comment_counts_never_sit_below_the_open_threads() {
+        let f = fixtures();
+        let mut busy = false;
+        let mut only_general = false;
+        for c in &f.changes {
+            let s = c.detail.summary.signals;
+            let open = match s.open_threads {
+                OpenThreads::Count(n) => n,
+                OpenThreads::Any => 1,
+                OpenThreads::Unknown => 0,
+            };
+            assert!(s.comments >= open, "{}", c.id().short_ref());
+            busy |= matches!(s.open_threads, OpenThreads::Count(n) if n > 0 && s.comments > n);
+            only_general |= s.comments > 0 && s.open_threads == OpenThreads::Count(0);
+        }
+        assert!(
+            busy,
+            "a change with open threads and more comments than that"
+        );
+        assert!(only_general, "a change with comments but no open threads");
     }
 
     #[test]
