@@ -50,13 +50,19 @@ fn diff(theme: &str, width: u16, height: u16) -> App {
     app
 }
 
+/// The snapshots describe the Unix overlay, which lists `⌃Z suspend`; Windows doesn't. Key
+/// handling clamps the scroll by the same row count, so the override applies there too.
+fn unix_overlay() {
+    review_buddy::ui::chrome::set_suspend_listed(true);
+}
+
 fn press(app: &mut App, code: KeyCode) -> Vec<Cmd> {
+    unix_overlay();
     update(app, Msg::Key(KeyEvent::new(code, KeyModifiers::NONE)))
 }
 
 fn render(app: &mut App) -> Buffer {
-    // The snapshots describe the Unix overlay, which lists `⌃Z suspend`; Windows doesn't.
-    review_buddy::ui::chrome::set_suspend_listed(true);
+    unix_overlay();
     let (w, h) = app.size;
     let mut terminal = Terminal::new(TestBackend::new(w, h)).unwrap();
     let mut hits = HitMap::default();
@@ -289,8 +295,13 @@ fn help_diff_100x30_dusk() {
 fn scrolled_to_end(theme: &str, width: u16, height: u16) -> App {
     let mut a = dashboard(theme, width, height);
     press(&mut a, KeyCode::Char('?'));
-    for _ in 0..80 {
+    // Scroll until the overlay stops moving, however many rows the platform lists.
+    loop {
+        let before = a.help_scroll;
         press(&mut a, KeyCode::Char('j'));
+        if a.help_scroll == before {
+            break;
+        }
     }
     a
 }
@@ -332,11 +343,15 @@ fn the_legend_explains_every_status_mark_and_scrolls_into_view() {
 fn the_suspend_row_and_the_general_keys_still_show_above_the_legend() {
     let mut a = dashboard("liminal-hq", 100, 30);
     press(&mut a, KeyCode::Char('?'));
-    // Reach the General group, which sits just before the legend.
-    for _ in 0..32 {
+    // Scroll down until the suspend row appears (the legend follows it).
+    let mut shown = text(&render(&mut a));
+    for _ in 0..100 {
+        if shown.contains("⌃Z") {
+            break;
+        }
         press(&mut a, KeyCode::Char('j'));
+        shown = text(&render(&mut a));
     }
-    let shown = text(&render(&mut a));
     assert!(shown.contains("⌃Z"), "suspend row\n{shown}");
     assert!(shown.contains("quit"));
 }
