@@ -122,7 +122,7 @@ The layout is a user setting (`ui.layout`), and `L` cycles it at runtime. All th
 | Pane | Width | Contents |
 |---|---|---|
 | Sources | 26 cols | All sources, then each source (dot in the source's tag colour, host line underneath). Below that, **Show** filters: `[x] reviewing`, `[x] assigned`, `[x] authored`, `[ ] drafts`. The last Show filter is `[ ] noise`, which mixes Noise items into their natural buckets |
-| Queue | 48 cols | Bucket headings, then two-line rows: `CI glyph · title · age` / `GH|GL · repo#num · author · status tag`. Selected row: `sel` background and a 2-col `accent` left rule. After Can wait comes a collapsed **Noise** row (`Noise · 2 bot updates · ⏎ to expand`, muted); expanded, it lists them like any bucket. Ends with `── That's everything.` and a note (e.g. "1 hidden by your Show filters.") |
+| Queue | 48 cols | Bucket headings, then two-line rows: `CI glyph · title · age` / `GH|GL · repo#num · author · status tag`, with a [status cluster](#queue-status-cluster) right-aligned on the second line when there is room. Selected row: `sel` background and a 2-col `accent` left rule. After Can wait comes a collapsed **Noise** row (`Noise · 2 bot updates · ⏎ to expand`, muted); expanded, it lists them like any bucket. Ends with `── That's everything.` and a note (e.g. "1 hidden by your Show filters.") |
 | Detail | rest | Title (bold, `text_bright`), `author wants branch → base`, `+adds −dels · N files · opened 2h ago`. Tabs: **Overview · Files · Checks · Conversation** (`[` `]`). Action chips: `a Approve`, `x Request changes`, `c Comment`, `⏎ Diff`, `m Merge`. Jax box bottom-right when enabled |
 
 Detail tab contents:
@@ -131,6 +131,21 @@ Detail tab contents:
 - **Files**: changed files with `+/−` counts. `↑↓` picks, `⏎` opens that file in the diff.
 - **Checks**: every check run or pipeline job with duration. `R` re-runs failed jobs, `o` opens the logs in the browser.
 - **Conversation**: every thread in time order, each headed by its location (`menus.rs:43`, `menubar.rs:5–7`, or `general`) and then every comment in it with its author, a relative age and its full body, wrapped to the pane and rendered the way the description is (code spans, lists and fences; an image shows as a one-line `▣ image` note). `resolved`, `outdated` and `pending` are written out beside the location, and resolved threads start folded to their first line (`▸`, with `folded, z expands`). With the Detail pane focused, a `›` marks the thread the cursor is on: `n` / `N` move between threads (scrolling to keep one in view), `z` folds or unfolds it, `Z` folds every thread or unfolds them all, `c` replies to it (the diff opens on its line with the reply box ready) and `⏎` jumps to its line in the diff; clicking a thread's header folds it too. The tab scrolls with the usual Detail keys. Comment text is selectable with the mouse, and `v` starts the keyboard copy mode on the cursor thread's comments (`tab` moves to the next comment on screen).
+
+##### Queue status cluster
+
+The right half of each row's second line carries up to four pieces, so you can tell at a glance whether a change still needs you. They sit in fixed-width columns, so they line up down the list and an empty piece leaves its column blank. The reason text (`approved by you`, `you asked for changes`, `review requested`, `yours`) still covers your own actions; the cluster covers everyone else's.
+
+| Piece | Shows | Notes |
+|---|---|---|
+| Review | `✓2` other people's approvals, `✕1` changes requested, `○1` reviewers asked who haven't answered | Your own review is left out (it is the reason text). A bare `○` means the forge still requires an approval nobody was asked for. GitHub: `latestReviews`, `reviewRequests` and `reviewDecision`. GitLab: requested reviewers and `detailed_merge_status = not_approved` from the list, with approvals added once the change's details load |
+| Comments | `¶6` comments of every kind, then `2 open` unresolved threads | GitHub: `totalCommentsCount` and `reviewThreads { isResolved }` (the first 50 threads). GitLab: `user_notes_count`, and `open` without a number when `blocking_discussions_resolved` is false, since the list has no per-thread count (the number appears once the details load). `·` stands in for an open count that isn't known |
+| CI | `CI running` or `CI failing` | Only where the leading dot isn't enough. Passing, none and the quiet states stay blank, and `CI failing` is not repeated when the reason text already says it (`yours · CI failing`) |
+| Size | `+120 −8`, or `7 files` when the forge's list has no line counts | Big numbers shorten (`1.2k`, `12k`). GitLab's list has line counts only after the details load |
+
+Glyphs and numbers carry the meaning; colour only reinforces it (success for approvals, warning for changes requested and open threads), so it reads the same under `NO_COLOR`. The leading CI dot, the new-activity marker and the `✎ N` drafts marker are unchanged.
+
+When the Queue is narrow the cluster drops pieces from the right (size first, then CI words, then comments, then review state), as one choice for the whole list so the columns stay put. It never pushes the reason text, the title or the age off the row, so beside the Detail pane at the default 48 columns there is usually no room: widen the Queue (`>`, or drag the seam) or close Detail (`p`) to see it. `ui.queue_status` picks the pieces or turns the cluster off.
 
 ##### Images in descriptions
 

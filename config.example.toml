@@ -22,6 +22,7 @@ background = "theme"        # theme | yes | no  (B cycles for the session; REVIE
                             # theme = paint what the theme sets (afterglow does, liminal-hq and dusk don't); yes = always paint; no = never
 mouse = true
 remember_layout = true      # remember P, S, p, B and dragged sizes between runs in the state dir's session.toml; false = neither read nor written
+queue_status = ["review", "comments", "ci", "size"]  # pieces of the status cluster on queue rows, in any order: review | comments | ci | size; [] turns it off (it shows only when the Queue is wide enough)
 drafts = "local"            # local = keep unsent review comments across restarts in the state dir's drafts/ folder; off = memory only, nothing written
 
 # Per-theme background, beating ui.background for that theme.

@@ -4,6 +4,10 @@ All notable changes to review buddy are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **See at a glance whether a change still needs you.** Each queue row's second line now carries a status cluster, right-aligned in fixed columns: other people's review state (`✓2` approvals, `✕1` changes requested, `○1` reviewers who haven't answered), comments (`¶6`, then `2 open` unresolved threads), `CI running` or `CI failing` in words, and size (`+120 −8`). Your own review is still the reason text, and `CI failing` isn't repeated beside a reason that already says it. Glyphs and numbers carry the meaning, so it reads the same under `NO_COLOR`. When the Queue is narrow it drops size, then CI, comments and review state, and never pushes the reason, title or age off, so beside Detail at the default width there is usually no room: widen the Queue or close Detail with `p`. GitHub gets the counts from the list query (`totalCommentsCount`, `reviewThreads`, `reviewDecision`); GitLab's list has the comment count and whether any thread is open, with approvals, line counts and the open-thread number filling in when the details load. `ui.queue_status` picks the pieces or turns the cluster off.
+
 ## [0.1.1] - 2026-10-08
 
 ### Added
