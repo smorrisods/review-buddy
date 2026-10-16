@@ -137,6 +137,20 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 false,
             ),
             bind(
+                "Change",
+                "f",
+                "flag to come back to (⚑); f again clears",
+                None,
+                false,
+            ),
+            bind(
+                "Change",
+                "F",
+                "jump to the next flagged change",
+                None,
+                false,
+            ),
+            bind(
                 "Conversation",
                 "n/N",
                 "next / previous thread (Conversation tab)",
@@ -576,6 +590,20 @@ pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect, hits: &mut HitMap) 
                     key: "D",
                     label: "pending",
                     action: Some(Action::OpenPending),
+                },
+            );
+        }
+        if app.screen == Screen::Dashboard && !app.flags.is_empty() {
+            let at = hints
+                .iter()
+                .position(|h| h.key == "?")
+                .unwrap_or(hints.len());
+            hints.insert(
+                at,
+                Hint {
+                    key: "F",
+                    label: "flagged",
+                    action: None,
                 },
             );
         }

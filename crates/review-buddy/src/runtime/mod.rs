@@ -75,6 +75,8 @@ pub struct Settings {
     pub write_target: Option<std::path::PathBuf>,
     /// The folder drafts are saved in and what it held at launch. `None` keeps them in memory.
     pub drafts: Option<(std::path::PathBuf, Vec<crate::drafts::StoredDraft>)>,
+    /// The flag list's file and what it held at launch.
+    pub flags: Option<(std::path::PathBuf, Vec<rb_core::ChangeId>)>,
     /// `[ui.terminal]`, and where its worktrees go.
     pub terminal: crate::app::terminal::TerminalSettings,
     /// Where the terminal pane sits and how big it is: the config, then the remembered layout.
@@ -114,6 +116,13 @@ impl Settings {
     pub fn with_drafts(mut self, dir: std::path::PathBuf) -> Self {
         let loaded = crate::drafts::load_all(&dir);
         self.drafts = Some((dir, loaded));
+        self
+    }
+
+    /// Keeps flagged changes in `path`, starting from what it already holds.
+    pub fn with_flags(mut self, path: std::path::PathBuf) -> Self {
+        let loaded = crate::flags::load(&path);
+        self.flags = Some((path, loaded));
         self
     }
 
@@ -190,6 +199,7 @@ impl Settings {
             session: None,
             write_target: None,
             drafts: None,
+            flags: None,
             terminal: crate::app::terminal::TerminalSettings::from_config(&config.ui.terminal),
             terminal_place: (config.ui.terminal.position, config.ui.terminal.size),
         }
@@ -230,6 +240,12 @@ impl Settings {
                 crate::app::drafts::Drafts::new(Some(dir.clone()), loaded.clone())
             }
             None => crate::app::drafts::Drafts::default(),
+        };
+        app.flags = match &self.flags {
+            Some((path, loaded)) => {
+                crate::app::flags::Flags::new(Some(path.clone()), loaded.clone())
+            }
+            None => crate::app::flags::Flags::default(),
         };
         app.state.queue_settings = self.queue.clone();
         app.project_save.clone_from(&self.write_target);
@@ -617,6 +633,9 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                     None => crate::drafts::remove(&dir, &id),
                 };
             }
+        }
+        Cmd::SaveFlags { path, ids } => {
+            let _ = crate::flags::save(&path, &ids);
         }
         Cmd::SaveHiddenProjects { target, sources } => {
             let tx = tx.clone();

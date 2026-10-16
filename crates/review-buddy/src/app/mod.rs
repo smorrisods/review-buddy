@@ -22,6 +22,7 @@ pub mod diffview;
 pub mod drafts;
 pub mod editor;
 pub mod failure;
+pub mod flags;
 pub mod images;
 pub mod links;
 mod live;
@@ -337,6 +338,11 @@ pub enum Cmd {
         dir: std::path::PathBuf,
         writes: Vec<(ChangeId, Option<crate::drafts::StoredDraft>)>,
     },
+    /// Write the flagged changes to `path`.
+    SaveFlags {
+        path: std::path::PathBuf,
+        ids: Vec<ChangeId>,
+    },
     /// Fetch, decode and cache one image from a description, for the source that shows it.
     FetchImage { source: SourceId, url: String },
     /// Write each source's `hide_repos` into the config file at `target`.
@@ -514,6 +520,8 @@ pub struct App {
     /// Your unsent review comments per change: kept when you leave a diff, saved to disk
     /// unless they are memory only.
     pub drafts: drafts::Drafts,
+    /// Changes you flagged to come back to.
+    pub flags: flags::Flags,
     /// The Pending reviews list, while it is on screen.
     pub pending: Option<pending::PendingList>,
     /// The first-run flow, while it is on screen.
@@ -597,6 +605,7 @@ impl App {
             dashboard: Dashboard::default(),
             diff: None,
             drafts: drafts::Drafts::default(),
+            flags: flags::Flags::default(),
             pending: None,
             setup: None,
             settings: None,

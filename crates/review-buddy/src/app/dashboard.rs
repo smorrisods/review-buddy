@@ -132,6 +132,13 @@ pub struct Dashboard {
     index: usize,
 }
 
+impl Dashboard {
+    /// Where the queue cursor sits among the queue's rows.
+    pub fn index(&self) -> usize {
+        self.index
+    }
+}
+
 impl Default for Dashboard {
     fn default() -> Self {
         Self {
@@ -243,6 +250,8 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Option<Vec<Cmd>> {
             Vec::new()
         }
         KeyCode::Char('D') => super::pending::open(app),
+        KeyCode::Char('f') => super::flags::toggle_selected(app),
+        KeyCode::Char('F') => super::flags::jump_next(app),
         KeyCode::Char('S') => cycle_sources(app),
         KeyCode::Char('p') => toggle_detail(app),
         KeyCode::Char('P') => cycle_position(app),
@@ -386,6 +395,11 @@ fn set_selected(app: &mut App, selected: Option<Selected>, index: usize) {
     }
     app.dashboard.selected = selected;
     app.dashboard.index = index;
+}
+
+/// Moves the queue cursor to `item`, the row at `index`.
+pub(super) fn select_at(app: &mut App, item: Item, index: usize) {
+    select_item(app, item, index);
 }
 
 fn select_item(app: &mut App, item: Item, index: usize) {

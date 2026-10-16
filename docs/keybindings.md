@@ -22,6 +22,7 @@ Notation: `⌃` Ctrl · `⇧` Shift · `⌥` Alt · `⏎` Enter.
 | `⏎` on a `+N more` row | Show the rest of that bucket, past `triage.bucket_limit`. `⏎` again on the `show fewer` row collapses it |
 | `,` | Open Settings → Sources (see [Settings](#settings)) |
 | `D` | Open the **Pending reviews** list: every change you have a saved draft for (see [Review drafts](#review-drafts)). A `✎ 3` marker on a queue row says the same thing. The footer adds `D pending` while there are drafts |
+| `f` / `F` | Flag the selected change to come back to (`⚑` on its queue row; `f` again clears it) / jump to the next flagged change in the queue, wrapping round. Flags are yours alone: they are kept in `flagged.json` in the state directory, never sent to GitHub or GitLab, and held in memory only under `--demo`. The footer adds `F flagged` while anything is flagged |
 | `s` | Open the Show filters control: `reviewing`, `assigned`, `authored`, `drafts` and `noise`. Changes apply to the queue at once and last for the session |
 | `p` | Close or reopen the Detail pane (`ui.detail`). Closed, the Queue takes the full width and the footer adds `p show detail`. Selection and `⏎` are unchanged. Remembered between runs |
 | `S` | Cycle where the Sources sit: `auto` (pane at 130 columns or more, tabs below), `left` (always the pane) and `top` (always the tab strip). Remembered between runs (`ui.sources`) |
