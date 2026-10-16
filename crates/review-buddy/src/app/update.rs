@@ -13,6 +13,7 @@ pub fn update(app: &mut App, msg: Msg) -> Vec<Cmd> {
     super::selection::validate(app);
     cmds.extend(live::ensure_info(app));
     cmds.extend(super::images::ensure(app));
+    cmds.extend(super::images::ensure_diff(app));
     cmds.extend(remember_layout(app));
     cmds.extend(super::drafts::sync(app));
     cmds.extend(terminal::after(app));

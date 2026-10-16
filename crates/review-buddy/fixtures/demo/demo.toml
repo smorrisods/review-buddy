@@ -215,6 +215,11 @@ path = "crates/rb-theme/src/palette.rs"
 status = "modified"
 patch = "palette.rs.patch"
 
+[[change.file]]
+path = "docs/screenshots/muted-text.png"
+status = "modified"
+patch = "none"
+
 [[change.check]]
 name = "fmt"
 state = "pass"

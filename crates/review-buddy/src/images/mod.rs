@@ -3,6 +3,7 @@
 
 pub mod cache;
 pub mod detect;
+pub mod diff;
 pub mod extract;
 pub mod fetch;
 pub mod hosts;

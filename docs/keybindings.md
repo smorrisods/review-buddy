@@ -104,6 +104,7 @@ Open with `⏎` or `d` from the dashboard. A header row above the panes names th
 | `y` | With text selected: copy exactly that text (otherwise copies the change's URL, as below) |
 | `Y` | Copy the whole comment or thread under the cursor line (the one picked with `,` / `.` when the line has several) |
 | `M` | Turn mouse capture off or on for this session |
+| `i` | On an image file (`png`, `jpg`, `gif`, `webp`, `bmp`), switch how the original and the replacement are laid out: original above and replacement below, side by side, original only, replacement only. Starts stacked and is kept for the session. See [Images in diffs](SPEC.md#images-in-diffs) |
 | `z` | Turn soft wrap on or off (`Wrap on` / `Wrap off`; `diff.wrap`). See [Soft wrap](#soft-wrap) |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
 | `T` / `B` / `?` | Cycle theme / cycle the background / help |

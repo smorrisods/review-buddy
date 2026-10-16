@@ -332,6 +332,17 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
 }
 
 fn file(raw: RawFile, id: &ChangeId) -> Result<FilePatch> {
+    // `patch = "none"` stands for a binary file: the forge sends no patch for it.
+    if raw.patch == "none" {
+        return Ok(FilePatch {
+            path: raw.path,
+            old_path: raw.old_path,
+            status: raw.status,
+            adds: 0,
+            dels: 0,
+            patch: None,
+        });
+    }
     let patch = PATCHES
         .iter()
         .find(|(name, _)| *name == raw.patch)
@@ -609,7 +620,11 @@ mod tests {
             let s = &c.detail.summary;
             assert_eq!(s.files as usize, c.files.len());
             assert_eq!(s.adds, c.files.iter().map(|f| f.adds).sum::<u32>());
-            assert!(c.files.iter().all(|f| f.adds + f.dels > 0));
+            // A binary file carries no patch, so no counted lines.
+            assert!(c
+                .files
+                .iter()
+                .all(|f| f.patch.is_none() || f.adds + f.dels > 0));
         }
     }
 

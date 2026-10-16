@@ -535,6 +535,8 @@ pub struct App {
     pub kitty_keys: bool,
     /// Pictures in descriptions: the renderer, each address's progress and the selected image.
     pub images: crate::images::State,
+    /// How an image file's two versions sit in the diff pane (`i` on the diff).
+    pub image_layout: crate::images::diff::Layout,
     /// The help overlay is showing.
     pub help: bool,
     /// Rows the help overlay is scrolled by.
@@ -606,6 +608,7 @@ impl App {
             diff: None,
             drafts: drafts::Drafts::default(),
             flags: flags::Flags::default(),
+            image_layout: crate::images::diff::Layout::default(),
             pending: None,
             setup: None,
             settings: None,

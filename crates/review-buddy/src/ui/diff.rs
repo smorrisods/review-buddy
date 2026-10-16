@@ -398,7 +398,13 @@ fn draw_diff(
         truncate(&title, usize::from(l.diff.width.saturating_sub(6))),
         focused,
     );
-    if let Some(status) = bottom_status(state, app.diff_wrap) {
+    let status = bottom_status(state, app.diff_wrap).map(|mut s| {
+        if let Some(pictures) = super::image_diff::status(app) {
+            s = format!("{pictures} · {s}");
+        }
+        s
+    });
+    if let Some(status) = status {
         block = block.title_bottom(Line::styled(
             format!(" {status} "),
             style::fg(palette, Role::Muted),
@@ -422,14 +428,18 @@ fn draw_diff(
         ),
         (Phase::Ready, None) => centre(frame, area, vec![muted(app, "This change has no files.")]),
         (Phase::Ready, Some(file)) => match &file.diff.body {
-            DiffBody::Fallback(reason) => centre(
-                frame,
-                area,
-                vec![
-                    Line::styled(file.diff.path.clone(), style::fg(palette, Role::Text)),
-                    muted(app, reason.message()),
-                ],
-            ),
+            DiffBody::Fallback(reason) => {
+                if !super::image_diff::draw(frame, app, area) {
+                    centre(
+                        frame,
+                        area,
+                        vec![
+                            Line::styled(file.diff.path.clone(), style::fg(palette, Role::Text)),
+                            muted(app, reason.message()),
+                        ],
+                    );
+                }
+            }
             DiffBody::Text(_) => draw_rows(frame, app, state, area, hits),
         },
     }

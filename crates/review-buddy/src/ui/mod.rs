@@ -19,6 +19,7 @@ pub mod diff;
 pub mod first_run;
 pub mod help;
 mod hitmap;
+pub mod image_diff;
 pub mod layout;
 pub mod pending;
 pub mod queue_status;
