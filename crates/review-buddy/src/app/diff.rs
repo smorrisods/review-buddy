@@ -792,6 +792,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         }
         KeyCode::Char('Y') if focus == DiffFocus::Diff => return copy_block(app),
         KeyCode::Char('z') => return toggle_wrap(app),
+        KeyCode::Char('i') => return super::images::cycle_layout(app),
         KeyCode::Right | KeyCode::Char(']') => cmds = step_file(app, true),
         KeyCode::Left | KeyCode::Char('[') => cmds = step_file(app, false),
         KeyCode::Char('c') => {

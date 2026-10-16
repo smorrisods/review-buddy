@@ -324,6 +324,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 Some(Action::ToggleWrap),
                 false,
             ),
+            bind(
+                "View",
+                "i",
+                "image file: switch the original / replacement layout",
+                None,
+                false,
+            ),
             bind("General", "esc", "back", Some(Action::CloseDiff), true),
             bind(
                 "General",

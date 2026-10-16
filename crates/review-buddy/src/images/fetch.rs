@@ -106,6 +106,10 @@ impl std::fmt::Debug for Token {
     }
 }
 
+/// What the fetcher asks for. GitHub's contents API answers with the file's own bytes only for
+/// its raw media type; every other host serves a picture for `image/*`.
+const ACCEPT_IMAGES: &str = "application/vnd.github.raw+json, image/*;q=0.9";
+
 pub struct Fetcher {
     http: reqwest::Client,
     hosts: ForgeHosts,
@@ -142,7 +146,7 @@ impl Fetcher {
         let mut url = start.clone();
         for _ in 0..=self.limits.max_redirects {
             self.check(&url)?;
-            let mut request = self.http.get(url.clone()).header(ACCEPT, "image/*");
+            let mut request = self.http.get(url.clone()).header(ACCEPT, ACCEPT_IMAGES);
             if let (Some(token), true) = (&self.token, self.hosts.sends_token(&url)) {
                 request = match token.style {
                     TokenStyle::Bearer => {

@@ -146,6 +146,18 @@ impl State {
         }
     }
 
+    /// Where the picture at `url` stands, for callers that have an address and no `ImageRef`.
+    pub fn view_url(&self, url: &str) -> View<'_> {
+        if !self.is_on() {
+            return View::Off;
+        }
+        match self.entries.get(url) {
+            Some(Entry::Ready(img)) => View::Ready(img),
+            Some(Entry::Failed(failure)) => View::Failed(failure),
+            Some(Entry::Loading) | None => View::Loading,
+        }
+    }
+
     pub fn knows(&self, url: &str) -> bool {
         self.entries.contains_key(url)
     }

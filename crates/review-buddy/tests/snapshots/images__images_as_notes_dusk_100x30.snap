@@ -21,9 +21,9 @@ expression: text(& render(& mut app))
 ╭ liminal-hq/review-buddy#209 ────────────────────────────────────────────────────────────────── ▼ ╮
 │ Raise muted text contrast in the light theme                                                     │
 │ jo wants jo/light-contrast → main                                                                │
-│ +1 −1 · 1 file · opened 6d ago                                                                   │
+│ +1 −1 · 2 files · opened 6d ago                                                                  │
 │ a Approve  x Request changes  c Comment  ⏎ Diff  m Merge                                         │
-│  Overview   Files 1   Checks 3   Conversation 0                                                  │
+│  Overview   Files 2   Checks 3   Conversation 0                                                  │
 │ ──────────────────────────────────────────────────────────────────────────────────────────────── │
 │ Muted text dipped under 4.5:1 on the light surface. This raises the floor and adds a regression  │
 │ test.                                                                                            │

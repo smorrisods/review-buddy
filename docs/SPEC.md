@@ -172,6 +172,16 @@ The Overview draws the pictures a description refers to where they sit in the te
 - **Privacy.** The source's token goes only to that source's own web and API hosts, over https, and is dropped on any redirect that leaves them. Other hosts are fetched anonymously, and `ui.images = "forge-only"` refuses them. See [Images](configuration.md#images) for what a remote image can tell its host.
 - **Cache.** Fetched bytes are kept under the cache directory (100 MB at most, least recently used first), so reopening a change doesn't fetch again and cached images show offline. Demo mode draws its own generated pictures and never touches the network or the real cache.
 
+##### Images in diffs
+
+A forge sends no patch for an image, so the diff pane used to say "binary or very large". With images on, it shows the two versions instead.
+
+- **What counts.** Files ending in `png`, `jpg`, `jpeg`, `gif`, `webp` or `bmp` that arrive without a patch. SVG is text and keeps its text diff.
+- **Layouts.** `i` cycles four: original above and replacement below (the start), side by side, original only, and replacement only (each as large as the pane allows). Each picture has a caption with its name and size in pixels. A pane under 40 columns stacks instead of going side by side, and one under 8 rows shows the replacement alone. A picture is never drawn larger than its natural size, so two pictures of the same size look the same size.
+- **Added, removed and renamed.** An added file has no original and a removed one no replacement, and the caption says so. A renamed file's original is read from its old path.
+- **Where the versions come from.** The file at the change's base commit and at its head commit, through the forge's API: GitHub's contents API (the raw media type) and GitLab's raw file endpoint. They go through the same fetcher, limits, cache and token rules as description images, and nothing is requested while `ui.images` is `off`. A version that fails to load says why in its caption while the other still draws.
+- **Known limits.** The base commit is the one the forge reports for the change, which is not always the merge base once the target branch has moved on. An `api_url` that differs from the source's host isn't used for these addresses yet.
+
 #### 1b · List + diff (`split`)
 
 - The left list (46%) has one-line rows: `CI · GH/GL · repo#num · title · age`. Sources are only in the top tabs.

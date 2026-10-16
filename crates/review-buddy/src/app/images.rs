@@ -8,6 +8,7 @@ use url::Url;
 
 use super::update::set_status;
 use super::{links, App, Cmd, Notice, NoticeKind, Screen, Tab};
+use crate::images::diff::{self as images_diff, Pair};
 use crate::images::extract::{self, ImageRef};
 use crate::images::fetch::Failure;
 use crate::images::hosts::{host_label, ForgeHosts, Trust};
@@ -62,8 +63,66 @@ pub fn ensure(app: &mut App) -> Vec<Cmd> {
     cmds
 }
 
+/// The two versions of the diff's current file when it is a picture the forge sent no patch for.
+pub fn diff_pair(app: &App) -> Option<(ChangeId, Pair)> {
+    let state = app.diff.as_ref()?;
+    let file = state.current()?;
+    let is_picture = matches!(file.diff.body, rb_diff::DiffBody::Fallback(_))
+        && images_diff::is_image_path(&file.diff.path);
+    if app.screen != Screen::Diff || !is_picture {
+        return None;
+    }
+    let change = app.state.changes.iter().find(|c| c.id == state.id)?;
+    let source = app.state.source(&state.id.source_id)?;
+    let pair = images_diff::pair(
+        source,
+        &state.id,
+        &change.base_sha,
+        &change.head_sha,
+        &file.diff.path,
+        file.diff.old_path.as_deref(),
+        file.diff.status,
+    );
+    Some((state.id.clone(), pair))
+}
+
+/// Asks for the two versions of the diff's current file when it is a picture. Like the
+/// description's pictures, nothing is requested while images are off.
+pub fn ensure_diff(app: &mut App) -> Vec<Cmd> {
+    if !app.images.is_on() {
+        return Vec::new();
+    }
+    let Some((id, pair)) = diff_pair(app) else {
+        return Vec::new();
+    };
+    let mut cmds = Vec::new();
+    for url in [pair.original, pair.replacement].into_iter().flatten() {
+        if app.images.knows(url.as_str()) {
+            continue;
+        }
+        app.images.start(url.as_str());
+        cmds.push(Cmd::FetchImage {
+            source: id.source_id.clone(),
+            url: url.to_string(),
+        });
+    }
+    cmds
+}
+
+/// `i` on the diff: cycles how a picture's two versions are laid out.
+pub fn cycle_layout(app: &mut App) -> Vec<Cmd> {
+    if diff_pair(app).is_none() {
+        let text = "i switches the picture layout when the file is an image.";
+        return set_status(app, Notice::new(NoticeKind::Info, text));
+    }
+    app.image_layout = app.image_layout.next();
+    app.mark_dirty();
+    let text = format!("Picture layout: {}.", app.image_layout.label());
+    set_status(app, Notice::new(NoticeKind::Info, text))
+}
+
 pub fn on_loaded(app: &mut App, url: String, result: Result<Arc<DynamicImage>, Failure>) {
-    let keep: Vec<String> = app
+    let mut keep: Vec<String> = app
         .selected_change()
         .map(|c| c.id.clone())
         .map(|id| {
@@ -73,6 +132,14 @@ pub fn on_loaded(app: &mut App, url: String, result: Result<Arc<DynamicImage>, F
                 .collect()
         })
         .unwrap_or_default();
+    if let Some((_, pair)) = diff_pair(app) {
+        keep.extend(
+            [pair.original, pair.replacement]
+                .into_iter()
+                .flatten()
+                .map(Into::into),
+        );
+    }
     app.images.finish(&url, result, &keep);
     app.mark_dirty();
 }

@@ -37,11 +37,27 @@ fn screenshot(shade: u8) -> Vec<u8> {
     out.into_inner()
 }
 
+/// The demo change's image file, as the diff asks for it: the contents API at its base commit
+/// (the original) or its head commit (the replacement).
+const BLOB_PATH: &str = "/repos/liminal-hq/review-buddy/contents/docs/screenshots/muted-text.png";
+const BASE_REF: &str = "3ab7d05";
+const HEAD_REF: &str = "e81b6a4";
+
 /// The bytes behind a demo address, if it is one.
 pub fn bytes(url: &str) -> Option<Vec<u8>> {
     match url {
-        BEFORE => Some(screenshot(0xc4)),
-        AFTER => Some(screenshot(0x6b)),
+        BEFORE => return Some(screenshot(0xc4)),
+        AFTER => return Some(screenshot(0x6b)),
+        _ => {}
+    }
+    let parsed = url::Url::parse(url).ok()?;
+    if parsed.path() != BLOB_PATH {
+        return None;
+    }
+    let (_, sha) = parsed.query_pairs().find(|(key, _)| key == "ref")?;
+    match &*sha {
+        BASE_REF => Some(screenshot(0xc4)),
+        HEAD_REF => Some(screenshot(0x6b)),
         _ => None,
     }
 }
