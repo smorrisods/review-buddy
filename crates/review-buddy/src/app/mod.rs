@@ -38,6 +38,7 @@ pub mod settings;
 pub mod setup;
 pub mod show;
 pub mod terminal;
+pub mod title;
 mod update;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};

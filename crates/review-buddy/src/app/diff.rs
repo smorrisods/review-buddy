@@ -1208,6 +1208,19 @@ mod tests {
         ])
     }
 
+    #[test]
+    fn window_title_follows_the_file_on_screen() {
+        let mut app = two_files();
+        let first = crate::app::title::window_title(&app);
+        assert!(
+            first.contains("src/a.rs") && first.ends_with("file 1 of 3"),
+            "{first}"
+        );
+        press(&mut app, ']');
+        let next = crate::app::title::window_title(&app);
+        assert!(next.contains("file 2 of 3"), "{next}");
+    }
+
     fn press(app: &mut App, c: char) {
         update(app, Msg::Key(KeyEvent::from(KeyCode::Char(c))));
     }
