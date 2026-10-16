@@ -774,7 +774,13 @@ fn row_lines(
                 style::fg(palette, Role::Text)
             };
             let drafted = app.drafts.count(&change.id);
-            let marker = (drafted > 0).then(|| format!("✎ {drafted}"));
+            let flagged = app.flags.contains(&change.id);
+            let marker = match (flagged, drafted) {
+                (false, 0) => None,
+                (true, 0) => Some("⚑".to_string()),
+                (false, n) => Some(format!("✎ {n}")),
+                (true, n) => Some(format!("⚑ ✎ {n}")),
+            };
             let marker_w = marker.as_ref().map_or(0, |m| cells(m) + 2);
             let room = width.saturating_sub(2 + 2 + cells(&parts.age) + 2 + marker_w);
             let mut right = Vec::new();

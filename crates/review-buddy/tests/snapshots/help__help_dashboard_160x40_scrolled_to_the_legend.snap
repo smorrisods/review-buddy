@@ -40,5 +40,5 @@ expression: text(&render(&mut a))
 │                        ││                         │  CI running  checks are still running                │                                                   │
 │                        ││                         │  CI failing  a check has failed                      │                                                   │
 │                        ││                         │  +N −M       lines added / removed (or N files)      │                                                   │
-╰────────────────────────╯╰─────────────────────────╰ esc close · j/k scroll · 19–54 of 54 ────────────────╯───────────────────────────────────────────────────╯
+╰────────────────────────╯╰─────────────────────────╰ esc close · j/k scroll · 21–56 of 56 ────────────────╯───────────────────────────────────────────────────╯
  ⏎ diff  o open  y copy  s show filters  ? help  T theme  q quit

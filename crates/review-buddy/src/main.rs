@@ -142,6 +142,7 @@ fn launch_settings(ctx: &cmd::context::Context) -> runtime::Settings {
     if ctx.config.ui.drafts == review_buddy::config::DraftStorage::Local {
         settings = settings.with_drafts(ctx.paths.paths.drafts_dir());
     }
+    settings = settings.with_flags(review_buddy::flags::file_in(&ctx.paths.paths.state_dir));
     if !ctx.config.ui.remember_layout {
         return settings;
     }
