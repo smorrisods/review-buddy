@@ -166,6 +166,12 @@ fn apply(app: &mut App, msg: Msg) -> Vec<Cmd> {
             result,
             demo,
         } => super::comments::on_deleted(app, &id, &thread, &comment, result, demo),
+        Msg::FileViewedSet {
+            id,
+            path,
+            viewed,
+            result,
+        } => super::viewed::on_set(app, &id, &path, viewed, result),
         Msg::ReplyPosted {
             id,
             thread,

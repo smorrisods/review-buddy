@@ -485,6 +485,25 @@ impl Provider for DemoProvider {
         Ok(())
     }
 
+    async fn viewed_files(&self, id: &ChangeId) -> Result<Vec<String>> {
+        let state = self.lock();
+        Ok(self.own(&state, id)?.viewed.iter().cloned().collect())
+    }
+
+    async fn set_file_viewed(&self, id: &ChangeId, path: &str, viewed: bool) -> Result<()> {
+        let mut state = self.lock();
+        self.own(&state, id)?;
+        let change = state.change_mut(id)?;
+        if viewed {
+            change.viewed.insert(path.to_string());
+        } else {
+            change.viewed.remove(path);
+        }
+        let word = if viewed { "Marked" } else { "Unmarked" };
+        state.confirm(format!("{word} {path} as viewed on {id}"));
+        Ok(())
+    }
+
     async fn merge(&self, id: &ChangeId, opts: &MergeOpts) -> Result<MergeOutcome> {
         let mut state = self.lock();
         self.own(&state, id)?;

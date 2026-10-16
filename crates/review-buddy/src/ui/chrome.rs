@@ -325,6 +325,13 @@ fn screen_bindings(screen: Screen) -> Vec<Binding> {
                 false,
             ),
             bind(
+                "Review",
+                "m",
+                "mark the file viewed (synced on GitHub); m again clears",
+                None,
+                false,
+            ),
+            bind(
                 "View",
                 "i",
                 "image file: switch the original / replacement layout",

@@ -30,5 +30,5 @@ expression: text(&render(&mut a))
 │  menus.rs:51 Fewer b│  e / ⏎        edit the pending comment on this line  │he first item? Most ││
 │a approve · c comment│  d / del      delete it (asks first)                 │.                   ││
 │x request changes · R│  , / .        previous / next comment on this line   │                    ││
-╰─────────────────────╰ esc close · j/k scroll · 1–26 of 47 ▼ ───────────────╯─────────────────────╯
+╰─────────────────────╰ esc close · j/k scroll · 1–26 of 52 ▼ ───────────────╯─────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy

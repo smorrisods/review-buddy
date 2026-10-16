@@ -12,6 +12,7 @@ mod provider;
 mod review;
 mod threads;
 mod time;
+mod viewed;
 
 pub use auth::{Auth, AuthError, ResolvedToken, TokenOrigin};
 pub use client::{GithubClient, RateLimit, ServerInfo, TokenReport, API_VERSION};

@@ -40,5 +40,5 @@ expression: text(&render(&mut a))
 │  menus.rs:51 Fewer branches th…││         51 +    │                                                      │_or(self.items.len() - 1);                         │
 │a approve · c comment           ││              ╭─ │View                                                  │──────────────────────────────────────────────────╮│
 │x request changes · R review    ││              │ F│  t            terminal pane: open, or focus it       │                                                  ││
-╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close · j/k scroll · 1–36 of 47 ▼ ───────────────╯───────────────────────────────────────────────────╯
+╰────────────────────────────────╯╰ hunk 1 of 3 · fi╰ esc close · j/k scroll · 1–36 of 52 ▼ ───────────────╯───────────────────────────────────────────────────╯
  j/k move  n/p hunk  ← → file  tab pane  c comment  a approve  R submit a review  o open  y copy  esc back  ? help  T theme

@@ -105,6 +105,14 @@ impl Provider for GithubProvider {
         review::delete_comment(&self.client, comment).await
     }
 
+    async fn viewed_files(&self, id: &ChangeId) -> Result<Vec<String>> {
+        crate::viewed::read(&self.client, id).await
+    }
+
+    async fn set_file_viewed(&self, id: &ChangeId, path: &str, viewed: bool) -> Result<()> {
+        crate::viewed::write(&self.client, id, path, viewed).await
+    }
+
     async fn merge(&self, _id: &ChangeId, _opts: &MergeOpts) -> Result<MergeOutcome> {
         not_yet("merging")
     }

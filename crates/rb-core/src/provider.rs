@@ -45,6 +45,15 @@ pub trait Provider: Send + Sync {
     async fn delete_comment(&self, _thread: &ThreadId, _comment: &CommentId) -> Result<()> {
         Err(Error::Unsupported("deleting pending comments".to_string()))
     }
+    /// The paths you have marked viewed on the forge, for a forge that keeps that state
+    /// ([`Capabilities::viewed_files`]). A file that changed since you viewed it isn't included.
+    async fn viewed_files(&self, _id: &ChangeId) -> Result<Vec<String>> {
+        Err(Error::Unsupported("viewed files".to_string()))
+    }
+    /// Marks one file viewed or not viewed on the forge, so the change's web page agrees.
+    async fn set_file_viewed(&self, _id: &ChangeId, _path: &str, _viewed: bool) -> Result<()> {
+        Err(Error::Unsupported("marking files viewed".to_string()))
+    }
     async fn merge(&self, id: &ChangeId, opts: &MergeOpts) -> Result<MergeOutcome>;
     async fn rerun_failed(&self, id: &ChangeId) -> Result<()>;
     fn checkout_refspec(&self, id: &ChangeId) -> String;
