@@ -12,8 +12,17 @@ pub enum ColourDepth {
 
 impl ColourDepth {
     /// Detects the depth from the process environment. See [`ColourDepth::detect_with`].
+    ///
+    /// Under tmux, which hides the outer terminal, it also asks tmux whether it passes 24-bit
+    /// colour through (see [`tmux_passes_rgb`]) and takes that as `COLORTERM=truecolor`.
     pub fn from_env() -> Self {
-        Self::detect_with(|key| std::env::var(key).ok())
+        let tmux_rgb = std::env::var_os("TMUX").is_some()
+            && std::env::var("COLORTERM").map_or(true, |v| v.is_empty())
+            && tmux_passes_rgb();
+        Self::detect_with(|key| match key {
+            "COLORTERM" if tmux_rgb => Some("truecolor".to_string()),
+            _ => std::env::var(key).ok(),
+        })
     }
 
     /// Picks a depth from environment variables read through `get`, so tests can inject them.
@@ -75,6 +84,51 @@ impl ColourDepth {
             _ => None,
         })
     }
+}
+
+/// Whether the tmux this process runs under sends 24-bit colour on to the outer terminal.
+///
+/// tmux 3.2 and newer list what the client's terminal can do in `client_termfeatures`, and `RGB`
+/// is there when 24-bit colour will pass through. Older versions are read from the
+/// `terminal-overrides` option (`RGB`, or the older `Tc`). Any failure counts as no.
+pub fn tmux_passes_rgb() -> bool {
+    let ask = |args: &[&str]| {
+        std::process::Command::new("tmux")
+            .args(args)
+            .stdin(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .output()
+            .ok()
+            .filter(|out| out.status.success())
+            .map(|out| String::from_utf8_lossy(&out.stdout).into_owned())
+    };
+    if ask(&["display-message", "-p", "#{client_termfeatures}"])
+        .is_some_and(|out| tmux_features_have_rgb(&out))
+    {
+        return true;
+    }
+    ask(&["show-options", "-gs", "terminal-overrides"])
+        .is_some_and(|out| tmux_overrides_have_rgb(&out))
+}
+
+/// `client_termfeatures` is a comma-separated list such as `256,RGB,title`.
+fn tmux_features_have_rgb(features: &str) -> bool {
+    features
+        .trim()
+        .split(',')
+        .any(|f| f.trim().eq_ignore_ascii_case("rgb"))
+}
+
+/// `terminal-overrides` lines look like `terminal-overrides[0] "xterm*:Tc"` or `...:RGB`.
+fn tmux_overrides_have_rgb(options: &str) -> bool {
+    options.lines().any(|line| {
+        let value = line.split_once(' ').map_or(line, |(_, v)| v);
+        value
+            .trim_matches('"')
+            .split(':')
+            .skip(1)
+            .any(|cap| cap == "Tc" || cap == "RGB" || cap.starts_with("setrgbf"))
+    })
 }
 
 /// Parses the `ui.colour_depth` config values: `truecolor`, `256`, or `16`.
@@ -533,6 +587,26 @@ mod tests {
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
         ColourDepth::detect_with(|key| owned.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone()))
+    }
+
+    #[test]
+    fn tmux_features_name_rgb() {
+        assert!(tmux_features_have_rgb("256,RGB,title\n"));
+        assert!(tmux_features_have_rgb("rgb"));
+        assert!(!tmux_features_have_rgb("256,title,mouse"));
+        assert!(!tmux_features_have_rgb(""));
+    }
+
+    #[test]
+    fn tmux_overrides_name_tc_or_rgb() {
+        assert!(tmux_overrides_have_rgb(
+            "terminal-overrides[0] \"xterm*:Tc\"\n"
+        ));
+        assert!(tmux_overrides_have_rgb("terminal-overrides \"*:RGB\""));
+        assert!(!tmux_overrides_have_rgb(
+            "terminal-overrides[0] \"xterm*:XT\""
+        ));
+        assert!(!tmux_overrides_have_rgb(""));
     }
 
     #[test]
