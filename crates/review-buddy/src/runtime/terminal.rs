@@ -12,7 +12,7 @@ use crossterm::{
     execute,
     terminal::{
         disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen,
-        LeaveAlternateScreen,
+        LeaveAlternateScreen, SetTitle,
     },
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
@@ -25,6 +25,7 @@ static ACTIVE: AtomicBool = AtomicBool::new(false);
 pub struct TerminalGuard {
     pub terminal: Tui,
     mouse: bool,
+    title: Option<String>,
 }
 
 impl TerminalGuard {
@@ -32,7 +33,11 @@ impl TerminalGuard {
         install_panic_hook();
         let stdout = setup(mouse)?;
         let terminal = Terminal::new(CrosstermBackend::new(stdout)).inspect_err(|_| restore())?;
-        Ok(Self { terminal, mouse })
+        Ok(Self {
+            terminal,
+            mouse,
+            title: None,
+        })
     }
 
     /// Turns mouse capture on or off now, and remembers it so a resume after `⌃Z` keeps it.
@@ -54,6 +59,15 @@ impl TerminalGuard {
         self.mouse
     }
 
+    /// Sets the window title when it differs from the last one sent.
+    pub fn set_title(&mut self, title: &str) {
+        if self.title.as_deref() == Some(title) {
+            return;
+        }
+        let _ = execute!(io::stdout(), SetTitle(title));
+        self.title = Some(title.to_string());
+    }
+
     /// Hands the terminal back to the shell, as before a stop. Drop is still safe afterwards.
     pub fn suspend(&mut self) {
         restore();
@@ -63,6 +77,7 @@ impl TerminalGuard {
     pub fn resume(&mut self) -> io::Result<()> {
         let mut stdout = setup(self.mouse)?;
         execute!(stdout, Clear(ClearType::All))?;
+        self.title = None;
         self.terminal = Terminal::new(CrosstermBackend::new(stdout))?;
         Ok(())
     }
@@ -72,6 +87,8 @@ fn setup(mouse: bool) -> io::Result<Stdout> {
     enable_raw_mode()?;
     ACTIVE.store(true, Ordering::SeqCst);
     let mut stdout = io::stdout();
+    // Save the shell's title (XTWINOPS) so `restore` can put it back.
+    let _ = io::Write::write_all(&mut stdout, b"\x1b[22;2t");
     let setup = execute!(
         stdout,
         EnterAlternateScreen,
@@ -168,6 +185,7 @@ pub fn restore() {
         DisableMouseCapture,
         LeaveAlternateScreen
     );
+    let _ = io::Write::write_all(&mut stdout, b"\x1b[23;2t");
     let _ = disable_raw_mode();
 }
 

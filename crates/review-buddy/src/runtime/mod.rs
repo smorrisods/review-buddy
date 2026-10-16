@@ -784,6 +784,7 @@ async fn event_loop(options: RunOptions) -> Result<()> {
                 let hits = ui::draw(frame, &app);
                 app.hits = hits;
             })?;
+            guard.set_title(&crate::app::title::window_title(&app));
             app.clear_dirty();
             last_draw = Instant::now();
         }

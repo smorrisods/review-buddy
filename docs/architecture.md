@@ -142,6 +142,7 @@ With a command, the binary skips the TUI and runs one module under `crates/revie
 
 ## Rendering notes
 
+- The terminal window title is `app::title::window_title`: `review-buddy · <change> · <file> · file N of M` on the diff, the selected change on the dashboard, and `settings` or `setup` elsewhere. The runtime sends it (OSC 0) only when it changes, saves the shell's title on entry (`CSI 22;2 t`) and restores it on exit (`CSI 23;2 t`). Forge text is stripped of control characters and capped at 120 characters.
 - Pane titles are drawn into the top border with `Block::title`. The focused pane uses `theme.accent` for the border and title.
 - Diff lines are a custom `StatefulWidget` that renders only visible rows, from a pre-highlighted `Vec<StyledLine>` cache keyed by `(file, theme_id, tab_width)`.
 - `transparent` background → no `bg` is set on any cell outside overlays. Overlays call `Clear` and paint `raised`.
