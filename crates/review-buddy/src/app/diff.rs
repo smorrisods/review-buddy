@@ -42,6 +42,9 @@ pub struct DiffData {
     pub caps: Capabilities,
     /// The forge can edit and delete your pending comments (`Provider::supports_pending_edit`).
     pub edit_pending: bool,
+    /// The paths you have marked viewed: the forge's own marks where it keeps them
+    /// (`caps.viewed_files`), otherwise the ones kept on this machine.
+    pub viewed: std::collections::BTreeSet<String>,
 }
 
 impl DiffData {
@@ -60,11 +63,17 @@ impl DiffData {
             draft,
             caps: Capabilities::all(),
             edit_pending: false,
+            viewed: std::collections::BTreeSet::new(),
         }
     }
 
     pub fn with_pending_edit(mut self, yes: bool) -> Self {
         self.edit_pending = yes;
+        self
+    }
+
+    pub fn with_viewed(mut self, viewed: impl IntoIterator<Item = String>) -> Self {
+        self.viewed = viewed.into_iter().collect();
         self
     }
 
@@ -323,7 +332,8 @@ pub fn on_loaded(app: &mut App, id: &ChangeId, result: Result<Box<DiffData>, Str
         return Vec::new();
     };
     match result {
-        Ok(data) => {
+        Ok(mut data) => {
+            super::viewed::seed_local(&app.viewed, id, &app.state.changes, &mut data);
             state.data = Some(*data);
             state.phase = Phase::Ready;
             state.file = 0;
@@ -793,6 +803,7 @@ pub fn on_key(app: &mut App, key: KeyEvent) -> Vec<Cmd> {
         KeyCode::Char('Y') if focus == DiffFocus::Diff => return copy_block(app),
         KeyCode::Char('z') => return toggle_wrap(app),
         KeyCode::Char('i') => return super::images::cycle_layout(app),
+        KeyCode::Char('m') => return super::viewed::toggle(app),
         KeyCode::Right | KeyCode::Char(']') => cmds = step_file(app, true),
         KeyCode::Left | KeyCode::Char('[') => cmds = step_file(app, false),
         KeyCode::Char('c') => {

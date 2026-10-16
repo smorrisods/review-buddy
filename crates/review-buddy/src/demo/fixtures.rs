@@ -62,6 +62,8 @@ pub struct DemoChange {
     pub threads: Vec<Thread>,
     pub checks: Vec<Check>,
     pub draft: ReviewDraft,
+    /// Paths you marked viewed, kept in memory only.
+    pub viewed: std::collections::BTreeSet<String>,
 }
 
 impl DemoChange {
@@ -324,6 +326,7 @@ fn change(raw: RawChange, sources: &[Source], now: Timestamp) -> Result<DemoChan
             .into_iter()
             .map(|c| check(c, now))
             .collect::<Result<Vec<_>>>()?,
+        viewed: std::collections::BTreeSet::new(),
         draft: ReviewDraft {
             body: String::new(),
             comments: raw.draft_comment,

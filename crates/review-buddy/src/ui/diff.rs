@@ -191,7 +191,15 @@ fn draw_files(
                 if current { "› " } else { "  " },
                 style::fg(palette, Role::Accent),
             ),
-            Span::styled("· ", style::fg(palette, Role::Muted)),
+            if state
+                .data
+                .as_ref()
+                .is_some_and(|d| d.viewed.contains(&file.diff.path))
+            {
+                Span::styled("✓ ", style::fg(palette, Role::Success))
+            } else {
+                Span::styled("· ", style::fg(palette, Role::Muted))
+            },
             Span::styled(name.clone(), name_style),
         ];
         let pad = width.saturating_sub(4 + cells(&name) + cells(&counts));
@@ -269,7 +277,8 @@ fn draw_review(frame: &mut Frame, app: &App, state: &DiffState, area: Rect, hits
                 ))
             });
             lines.push(text(format!(
-                "0 of {} viewed",
+                "{} of {} viewed",
+                data.viewed.len(),
                 plural(data.files.len(), "file")
             )));
         }

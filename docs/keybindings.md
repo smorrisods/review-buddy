@@ -104,6 +104,7 @@ Open with `⏎` or `d` from the dashboard. A header row above the panes names th
 | `y` | With text selected: copy exactly that text (otherwise copies the change's URL, as below) |
 | `Y` | Copy the whole comment or thread under the cursor line (the one picked with `,` / `.` when the line has several) |
 | `M` | Turn mouse capture off or on for this session |
+| `m` | Mark the current file viewed, or clear the mark. A `✓` replaces the `·` before its name and the Your review block counts them (`1 of 2 files viewed`). On GitHub the mark is sent to GitHub, so the pull request's Files changed page shows the same ticks, and the ticks already there when you open the diff are shown here; if GitHub refuses, the tick goes back and the footer says why. GitLab keeps no viewed state on the server (its web page remembers it in the browser only), so there the mark is kept in `viewed.json` in the state directory for the commit it was made on, and is forgotten once the change gets a new commit. Held in memory only under `--demo` |
 | `i` | On an image file (`png`, `jpg`, `gif`, `webp`, `bmp`), switch how the original and the replacement are laid out: original above and replacement below, side by side, original only, replacement only. Starts stacked and is kept for the session. See [Images in diffs](SPEC.md#images-in-diffs) |
 | `z` | Turn soft wrap on or off (`Wrap on` / `Wrap off`; `diff.wrap`). See [Soft wrap](#soft-wrap) |
 | `o` / `y` | Open the change's files page in the browser / copy its URL |
@@ -370,7 +371,7 @@ These are in the spec and not built yet. Pressing them does nothing, or says it 
 | `n` `p` (one at a time) | v0.4 | Skip / previous in the `queue` layout |
 | `v` · `w` | v0.3 | Unified ↔ side by side · toggle whitespace-only changes |
 | `⌃S` | v0.3 | Insert a suggestion block in the composer (on the dashboard `s` already opens Show filters, so a suggestion shortcut in the diff will need its own key) |
-| `e` · `f` | v0.3 | Resolve / unresolve a thread · mark a file viewed (`e` already edits a pending comment in the diff, so resolving will need its own key) |
+| `e` | v0.3 | Resolve / unresolve a thread (`e` already edits a pending comment in the diff, so resolving will need its own key) |
 | `⌃E` | v0.3 | Edit the draft in `$EDITOR` |
 
 The merge confirm modal (`← →` / `tab` switch between **No, not yet** and **Merge**, `⏎` confirms, `esc` cancels) arrives with merge.

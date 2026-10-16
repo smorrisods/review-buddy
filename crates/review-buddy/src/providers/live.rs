@@ -676,6 +676,34 @@ impl Live {
     }
 
     /// Removes one of your pending comments on `id`.
+    /// Marks one file viewed or not viewed on the change's forge. Only called when the forge
+    /// keeps the mark; the app has already shown it ticked and puts it back on a refusal.
+    pub fn set_file_viewed(
+        self: &Arc<Self>,
+        id: ChangeId,
+        path: String,
+        viewed: bool,
+        tx: &UnboundedSender<Msg>,
+    ) {
+        let live = Arc::clone(self);
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let result = match live.write_provider(&id).await {
+                Ok(provider) => provider
+                    .set_file_viewed(&id, &path, viewed)
+                    .await
+                    .map_err(|e| e.to_string()),
+                Err(message) => Err(message),
+            };
+            let _ = tx.send(Msg::FileViewedSet {
+                id,
+                path,
+                viewed,
+                result,
+            });
+        });
+    }
+
     pub fn delete_comment(
         self: &Arc<Self>,
         id: ChangeId,

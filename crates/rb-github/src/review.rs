@@ -244,7 +244,7 @@ async fn mutate(client: &GithubClient, query: &str, input: Value) -> Result<Valu
     send_graphql(client, body).await
 }
 
-async fn send_graphql(client: &GithubClient, body: Value) -> Result<Value> {
+pub(crate) async fn send_graphql(client: &GithubClient, body: Value) -> Result<Value> {
     let raw = client
         .send(client.graphql_request().json(&body))
         .await

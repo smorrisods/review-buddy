@@ -75,6 +75,8 @@ pub struct Settings {
     pub write_target: Option<std::path::PathBuf>,
     /// The folder drafts are saved in and what it held at launch. `None` keeps them in memory.
     pub drafts: Option<(std::path::PathBuf, Vec<crate::drafts::StoredDraft>)>,
+    /// The viewed-marks file and what it held at launch.
+    pub viewed: Option<(std::path::PathBuf, Vec<crate::viewed::Stored>)>,
     /// The flag list's file and what it held at launch.
     pub flags: Option<(std::path::PathBuf, Vec<rb_core::ChangeId>)>,
     /// `[ui.terminal]`, and where its worktrees go.
@@ -116,6 +118,13 @@ impl Settings {
     pub fn with_drafts(mut self, dir: std::path::PathBuf) -> Self {
         let loaded = crate::drafts::load_all(&dir);
         self.drafts = Some((dir, loaded));
+        self
+    }
+
+    /// Keeps viewed marks for forges without their own in `path`, starting from what it holds.
+    pub fn with_viewed(mut self, path: std::path::PathBuf) -> Self {
+        let loaded = crate::viewed::load(&path);
+        self.viewed = Some((path, loaded));
         self
     }
 
@@ -200,6 +209,7 @@ impl Settings {
             write_target: None,
             drafts: None,
             flags: None,
+            viewed: None,
             terminal: crate::app::terminal::TerminalSettings::from_config(&config.ui.terminal),
             terminal_place: (config.ui.terminal.position, config.ui.terminal.size),
         }
@@ -246,6 +256,12 @@ impl Settings {
                 crate::app::flags::Flags::new(Some(path.clone()), loaded.clone())
             }
             None => crate::app::flags::Flags::default(),
+        };
+        app.viewed = match &self.viewed {
+            Some((path, loaded)) => {
+                crate::app::viewed::Local::new(Some(path.clone()), loaded.clone())
+            }
+            None => crate::app::viewed::Local::default(),
         };
         app.state.queue_settings = self.queue.clone();
         app.project_save.clone_from(&self.write_target);
@@ -634,6 +650,39 @@ pub fn execute(cmd: Cmd, tx: &UnboundedSender<Msg>, backend: &Backend, platform:
                 };
             }
         }
+        Cmd::SaveViewed { path, entries } => {
+            let _ = crate::viewed::save(&path, &entries);
+        }
+        Cmd::SetFileViewed { id, path, viewed } => match backend {
+            Backend::None => {
+                let _ = tx.send(Msg::FileViewedSet {
+                    id,
+                    path,
+                    viewed,
+                    result: Err("No source is connected".to_string()),
+                });
+            }
+            #[cfg(feature = "demo")]
+            Backend::Demo(world) => {
+                use rb_core::Provider as _;
+                let provider = world.provider(id.kind);
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let result = provider
+                        .set_file_viewed(&id, &path, viewed)
+                        .await
+                        .map_err(|err| err.to_string());
+                    let _ = tx.send(Msg::FileViewedSet {
+                        id,
+                        path,
+                        viewed,
+                        result,
+                    });
+                });
+            }
+            #[cfg(feature = "live")]
+            Backend::Live(live) => live.set_file_viewed(id, path, viewed, tx),
+        },
         Cmd::SaveFlags { path, ids } => {
             let _ = crate::flags::save(&path, &ids);
         }

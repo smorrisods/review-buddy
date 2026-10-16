@@ -41,6 +41,7 @@ pub mod show;
 pub mod terminal;
 pub mod title;
 mod update;
+pub mod viewed;
 
 pub use dashboard::{Chip, Dashboard, Pane, Selected, Tab};
 pub use diff::{
@@ -266,6 +267,13 @@ pub enum Msg {
         result: Result<(), String>,
         demo: bool,
     },
+    /// The answer to a [`Cmd::SetFileViewed`].
+    FileViewedSet {
+        id: ChangeId,
+        path: String,
+        viewed: bool,
+        result: Result<(), String>,
+    },
     /// The result of a first-run [`Cmd::Setup`] effect.
     Setup(crate::setup::Input),
     /// What a source can do, from its capability probe. `at` is when the instance was asked.
@@ -337,6 +345,17 @@ pub enum Cmd {
     SaveDrafts {
         dir: std::path::PathBuf,
         writes: Vec<(ChangeId, Option<crate::drafts::StoredDraft>)>,
+    },
+    /// Mark one file viewed or not viewed on the change's forge.
+    SetFileViewed {
+        id: ChangeId,
+        path: String,
+        viewed: bool,
+    },
+    /// Write the viewed marks kept on this machine to `path`.
+    SaveViewed {
+        path: std::path::PathBuf,
+        entries: Vec<crate::viewed::Stored>,
     },
     /// Write the flagged changes to `path`.
     SaveFlags {
@@ -522,6 +541,8 @@ pub struct App {
     pub drafts: drafts::Drafts,
     /// Changes you flagged to come back to.
     pub flags: flags::Flags,
+    /// Viewed marks kept on this machine, for forges that keep none.
+    pub viewed: viewed::Local,
     /// The Pending reviews list, while it is on screen.
     pub pending: Option<pending::PendingList>,
     /// The first-run flow, while it is on screen.
@@ -586,6 +607,16 @@ pub struct App {
 }
 
 impl App {
+    /// The head commit of a change in the queue, or empty when it isn't there.
+    pub fn selected_change_head(&self, id: &ChangeId) -> String {
+        self.state
+            .changes
+            .iter()
+            .find(|c| &c.id == id)
+            .map(|c| c.head_sha.clone())
+            .unwrap_or_default()
+    }
+
     pub fn new(config: AppConfig) -> Self {
         let theme_index = BUILTIN_IDS
             .iter()
@@ -608,6 +639,7 @@ impl App {
             diff: None,
             drafts: drafts::Drafts::default(),
             flags: flags::Flags::default(),
+            viewed: viewed::Local::default(),
             image_layout: crate::images::diff::Layout::default(),
             pending: None,
             setup: None,

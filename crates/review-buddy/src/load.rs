@@ -26,9 +26,17 @@ pub async fn fetch_diff(
     draft: ReviewDraft,
 ) -> rb_core::Result<DiffData> {
     let (files, threads) = tokio::try_join!(provider.files(id), provider.threads(id))?;
+    let caps = provider.capabilities();
+    // The forge's viewed marks are a nicety: a failure here must not stop the diff opening.
+    let viewed = if caps.viewed_files {
+        provider.viewed_files(id).await.unwrap_or_default()
+    } else {
+        Vec::new()
+    };
     Ok(DiffData::new(files, threads, draft)
-        .with_capabilities(provider.capabilities())
-        .with_pending_edit(provider.supports_pending_edit()))
+        .with_capabilities(caps)
+        .with_pending_edit(provider.supports_pending_edit())
+        .with_viewed(viewed))
 }
 
 pub fn now() -> Timestamp {
